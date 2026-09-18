@@ -243,7 +243,7 @@ no pisar lo que el comerciante puso.
 | **La portada** | `portada_titulo` · `portada_texto` · `portada_puntos` |
 | **Los colores** | `color_principal` · `color_secundario` · `color_alterno` |
 | **Los textos** | `pie_descripcion` · `como_compras` · `legal_actualizado` · `horario` |
-| **Los datos legales** | `empresa_razon` · `empresa_nit` · `empresa_correo` · `empresa_direccion` · `empresa_ciudad` · `empresa_tel` |
+| **Los datos legales** | `empresa_razon` · `empresa_nit` · `empresa_correo` · `empresa_direccion` · `empresa_ciudad` · `empresa_tel` — **desde la 1.0.0 bloquean la publicación**: razón social, NIT, dirección, ciudad y al menos uno de correo o teléfono (decisión 09) |
 | **El sitio publicado** | `sitio_url` · `sitio_titulo` · `sitio_descripcion` |
 | **El correo del resumen** | `correo_resumen` · `correo_hora` · `correo_siempre` · `correo_ultimo` |
 | **Las fotos y el respaldo** | `fotos_origen` · `fotos_cdn` · `respaldo_carpeta` · `fotos_drive` · `fotos_webp` |

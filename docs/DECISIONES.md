@@ -270,7 +270,7 @@ tienda que se olvida.
 
 ## 05 · La personalización de una tienda es dato, interruptor o ranura — nunca un archivo suyo
 
-**Estado:** PROPUESTA · pendiente de aprobar el plan 4.0 · **Escrita:** 18 de
+**Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18 de
 septiembre de 2026
 
 ### Qué hace hoy
@@ -294,7 +294,7 @@ cliente: **dato** (una clave de `Configuración`), **interruptor** (`f_*`: la
 semilla sabe hacerlo, apagado por defecto), **ranura** (código propio en
 `tienda/extension.js` o `.gs`, con contrato versionado), y **desvío declarado**
 (anotado en `semilla.lock`, ese archivo deja de actualizarse y se dice en cada
-corrida). El mecanismo está en `PLAN-4.0.md` §4.
+corrida). El mecanismo está en `PLAN-MVP.md` §4.9 y `ROADMAP.md` fase 3.2.
 
 Y una frontera que no se cruza: **el total, el inventario, el sellado del pedido
 y el filtro `pago_*` no se extienden.** Son el núcleo de confianza.
@@ -316,7 +316,7 @@ Se paga para que todas las tiendas corran exactamente el mismo archivo.
 
 ## 06 · Las versiones se aplican sobrescribiendo y rehorneando, nunca fusionando
 
-**Estado:** PROPUESTA · pendiente de aprobar el plan 4.0 · **Escrita:** 18 de
+**Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18 de
 septiembre de 2026
 
 ### Qué hace hoy
@@ -340,7 +340,7 @@ cosas — de ahí el refactor de `plantilla/` (E3). La fuente se sobrescribe; el
 producto se rehornea. La comparación a tres hashes (`semilla.lock`, disco,
 versión nueva) tiene exactamente cuatro respuestas, y ninguna es «fusionar»:
 sobrescribir, no hacer nada, dejarlo por desvío, o parar y avisar.
-Detalle en `PLAN-4.0.md` §3.4.
+Detalle en `PLAN-MVP.md` §4.7.
 
 Su mejor propiedad es la simetría: **volver atrás es el mismo camino con otro
 número de versión.**
@@ -356,6 +356,181 @@ Se pierde la posibilidad de conservar un cambio local dentro de un archivo de la
 semilla: o se sube a la semilla, o se convierte en ranura, o ese archivo deja de
 recibir actualizaciones. No hay término medio, y es a propósito: el término medio
 es exactamente donde viven los conflictos que nadie resuelve.
+
+---
+
+## 07 · En una tienda no hay pull request: fusiona sola, y se verifica sola
+
+**Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18
+de septiembre de 2026 · **Sustituye** la decisión anterior de publicar el
+maestro con una persona delante
+
+### Qué hace hoy
+
+`fotos` fusiona solo; `montaje` abre un pull request que alguien aprueba; y
+publicar el maestro exige marcar una casilla y escribir `PUBLICAR`, porque
+cuando termina el backend nuevo ya está atendiendo pedidos, sin vista previa y
+sin vuelta atrás de un clic.
+
+### El límite real
+
+La puerta humana no está donde se decide, está donde se reparte. Con tres
+tiendas eso son tres aprobaciones por versión; con veinte, sesenta — y una
+persona aprobando sesenta veces lo mismo no está revisando, está firmando. Una
+puerta que se cruza sin mirar es peor que no tener puerta, porque da la
+sensación de haber mirado.
+
+### La decisión
+
+**El único pull request manual es el de la semilla**, que es donde se decide qué
+se construye. En las tiendas todo fusiona solo: catálogo, fotos, `index.html` y
+maestro. Lo que sustituye a la persona no es la confianza, son tres
+comprobaciones: las baterías corren sobre los archivos ya modificados **antes**
+de publicar; después se verifica contra la tienda viva —qué versión contesta y
+si abre su hoja—; y si eso falla, **se vuelve atrás solo**. Y el reparto es por
+anillos: una versión mala se para en la primera tienda.
+
+### Condición de disparo
+
+**La mitad que entra en el MVP:** publicar lo que el comerciante cambió en su
+hoja fusiona solo. Eso ya funciona así y se conserva.
+
+**La mitad que espera a la 1.1:** que la tienda reciba sola una versión nueva de
+la semilla —con su verificación y su vuelta atrás— es el punto **S3** del
+roadmap. Se aplazó el 18 de septiembre con el resto del alcance: en esta línea
+todavía no hay ninguna tienda montada, así que no hay nada que poner al día.
+**Se construye cuando haya tiendas vivas que se queden atrás**, y el MVP le deja
+hecha la mitad.
+
+Y una condición de reversión, que es la que hace honesta la decisión: **si una
+vuelta atrás automática falla alguna vez**, la publicación del maestro regresa a
+tener una persona delante hasta saber por qué.
+
+### Contrapartida
+
+Se pierde el par de ojos que miraba el diff antes de que llegara al comercio. A
+cambio, el que había no estaba mirando de verdad, y ahora hay tres
+comprobaciones que no se cansan.
+
+---
+
+## 08 · Con repositorios privados, el recurso escaso son los minutos
+
+**Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18
+de septiembre de 2026
+
+### Qué hace hoy
+
+El flujo de publicación corre **cada cuatro horas** en cada tienda, para cazar
+fotos que el comerciante subió al Drive sin avisar. En repositorios públicos eso
+es gratis e ilimitado.
+
+### El límite real, que no es el que parece
+
+El límite no es el tiempo de una corrida: es **la suma de los minutos de toda la
+cuenta al mes**, que en privado se paga. Medido: el cron de cuatro horas es el
+**84 %** del gasto, ~450 de ~535 minutos al mes por tienda. Con eso, la cuarta
+tienda no cabe en el plan gratuito — y el producto se vende por tienda.
+
+### La decisión
+
+Publicación **a demanda** —el botón del comerciante, ahora en su panel— y una
+**red de seguridad diaria** que solo mira si hay algo sin publicar y avisa. De
+~535 a ~100 minutos al mes por tienda: de cuatro tiendas a unas veinte dentro
+del mismo plan. Y el flujo mide y publica su gasto en cada corrida, con un
+guardia que avisa antes de pasarse.
+
+### Condición de disparo
+
+Inmediata, con el hito M1 del MVP. **Y se revisa el día que la semilla se haga
+pública**: si las tiendas siguieran privadas —que es la decisión de hoy—, esto
+no cambia; el cron solo volvería a ser gratis si las tiendas lo fueran.
+
+### Contrapartida
+
+Una foto subida al Drive a mano puede tardar hasta un día en salir, en vez de
+cuatro horas. Es aceptable **porque el panel del comerciante elimina ese
+camino**: la foto se sube desde el panel, y el panel sabe que hay algo sin
+publicar. Si el panel se retrasara, esta decisión se retrasa con él.
+
+---
+
+## 09 · Sin los datos básicos de la empresa, la tienda no se publica
+
+**Estado:** DECIDIDA el 18 de septiembre de 2026 · entra con el hito M0
+
+### Qué hace hoy
+
+Cuatro claves bloquean la publicación —el nombre del negocio, el WhatsApp, la
+dirección del sitio y la llave de pago—. Las doce restantes **avisan y dejan
+seguir**, y entre ellas están los `empresa_*`: razón social, NIT, dirección,
+ciudad, correo y teléfono. Así que hoy una tienda puede salir al aire con sus
+textos legales sin responsable.
+
+### El límite real, que no es el que parece
+
+No es que quede feo: es que **un texto de tratamiento de datos o de derecho de
+retracto sin quién responde no obliga a nadie**. El Estatuto del Consumidor pide
+identificar al vendedor en comercio electrónico, y el comerciante está firmando
+ante sus compradores un documento que dice cosas que nadie sostiene. Y a
+diferencia de una foto que falta, esto **no se nota nunca** hasta que hay una
+reclamación.
+
+### La decisión
+
+Suben a bloquear: `empresa_razon`, `empresa_nit`, `empresa_direccion`,
+`empresa_ciudad`, y **al menos uno** de `empresa_correo` / `empresa_tel`. Un
+valor entre corchetes cuenta como vacío. El mensaje dice qué falta **y por qué
+bloquea**, como los cuatro que ya existen.
+
+### Condición de disparo
+
+Inmediata, con M0 — en el mismo cambio que arma los textos legales desde la
+hoja. Antes de eso, bloquear no tendría sentido: el texto no usaba esas claves.
+
+### Contrapartida
+
+**No se puede publicar una tienda de demostración con datos inventados**, y
+montar una tienda pasa a exigir que el comercio traiga sus papeles el primer
+día, no «la semana que viene». Es incómodo a propósito: es la clase de trámite
+que, si no bloquea, no se hace nunca. Para enseñar el producto está la tienda de
+pruebas del operador, con los datos del operador.
+
+---
+
+## 10 · El producto se llama «tienda», y esta línea empieza en 0.1.0
+
+**Estado:** DECIDIDA el 18 de septiembre de 2026
+
+### Qué hace hoy
+
+El código nombra al primer comercio como si fuera el producto, y el repositorio
+arrastra el `3.0.0` de la línea anterior, que sirve a tres tiendas con otro
+código.
+
+### El límite real
+
+Un producto que se llama como su primer cliente lo arrastra a todas partes: al
+manual, a la factura, a los textos legales y a la conversación de venta con el
+segundo cliente. Y dos líneas con la misma numeración hacen que dentro de seis
+meses nadie pueda decir qué versión corre dónde.
+
+### La decisión
+
+El producto se llama **tienda**. Este repositorio es **la semilla de su segunda
+versión**: empieza en **0.1.0** y el MVP sale como **1.0.0**. `organico` sigue en
+3.x, aparte, y **no se sincroniza** con esta línea.
+
+### Condición de disparo
+
+Con M0, historia A-9. Incluye una aserción con la lista de términos del comercio
+anterior, para que no vuelvan a entrar por descuido.
+
+### Contrapartida
+
+Se pierde la continuidad de la numeración con la línea que está en producción, y
+durante un tiempo habrá que decir «la 3.0.0 de la vieja» y «la 0.x de la nueva».
+Es más barato que lo contrario.
 
 ---
 

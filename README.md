@@ -1,57 +1,56 @@
 # Tienda en línea para negocios pequeños
 
-Una página estática, una hoja de cálculo que hace de base de datos y de panel, y
-WhatsApp para cerrar la venta. Costo de operación **$0/mes**.
+Una página estática, una hoja de cálculo que hace de base de datos, un panel web
+para administrarla y WhatsApp para cerrar la venta. Costo de infraestructura:
+**$0/mes**.
 
-Este repositorio es la **plantilla**: cada comercio se monta en un repositorio
+Este repositorio es la **semilla**: cada comercio se monta en un repositorio
 propio creado a partir de esta, con su propia cuenta de Google, para que tenga
-sus propios límites gratuitos. Ningún nombre de comercio va escrito en el
-código; todos salen de la pestaña Configuración de su hoja.
+sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
+código**: todos salen de la pestaña `Configuración` de su hoja.
 
-Primera tienda en línea con esto:
-**https://organico.laboratoriodigital-la.workers.dev**
+> **Estado: en construcción · `0.1.0`.** Esta es **la semilla de la segunda
+> versión** del producto, que se llama **tienda**. Nace de la semilla de la
+> línea anterior (`laboratoriodigital/organico`, 3.0.0) y todavía no se ha
+> tocado: el código es el de aquella línea, con sus defectos conocidos.
+>
+> El MVP —que saldrá como **1.0.0**— son cuatro hitos: la semilla limpia y
+> determinista, el rendimiento, la tienda para todo producto, y el panel básico
+> del comerciante. Lo que hay que construir está en **`docs/PLAN-MVP.md`**; el
+> contexto completo para empezar, en **`docs/TRASPASO.MD`**.
 
 ## Qué hay aquí
 
 | | |
 |---|---|
-| `publicar/` | **Lo que se despliega.** Es la raíz del sitio en Cloudflare. |
-| `maestro.gs` | El backend completo. Va en un proyecto Apps Script **independiente**, uno por comercio. |
-| `panel.gs` | El archivo de gestión: todas las tiendas en un tablero. Va dentro de su propia hoja, que no se comparte con ningún cliente. |
-| `montar/` | Las herramientas del montaje: sembrar la configuración, escribir el `<head>`, bajar las fotos de Drive y publicar el maestro. |
-| `preparar-fotos.mjs` | Convierte originales sueltos en las versiones que se publican (WebP por tamaños). |
-| `.github/workflows/` | Los mismos pasos, corriendo desde GitHub Actions. |
-| `servicio/` | El alta de una tienda. **No corre aquí**: va copiado en `laboratoriodigital/tiendas`, que es el único repositorio con permiso para crear repositorios. |
+| `publicar/` | **Lo que se despliega.** La tienda y el panel de gestión —y, en la 1.1, el tablero y el rastreo—. Es la raíz del sitio en Cloudflare |
+| `plantilla/` | *(desde el hito M0)* El código de la semilla. `publicar/` se genera a partir de aquí más la hoja de cada comercio |
+| `maestro.gs` | El backend completo. Va en un proyecto Apps Script **independiente**, uno por comercio |
+| `panel.gs` | El archivo de gestión del operador: todas las tiendas en un tablero. Va en su propia hoja, que no se comparte con ningún cliente |
+| `montar/` | Las herramientas del horneado: escribir el `<head>`, bajar las fotos de Drive, hornear el catálogo, sembrar el respaldo y publicar el maestro |
+| `.github/workflows/` | Los mismos pasos, corriendo desde GitHub Actions |
 | `pruebas/` | Baterías sobre el código real, no sobre una copia. `./pruebas/todas.sh` |
-| `docs/` | `DESPLIEGUE.md`: el mapa, de punta a punta. `ARQUITECTURA.md`: el porqué del diseño de hoy. **`CONTRATOS.md`: el contrato de datos, normativo.** `DECISIONES.md`: lo que va a cambiar y cuándo. `ROADMAP.md`: qué se construye y en qué orden. `PLAN-4.0.md`: el plan de la fase siguiente —la flota—, con sus épicas e historias. `BITACORA.md`: incidentes reales y la lección que dejaron. `ANTES-DE-SALIR.md`, `ACTUALIZAR-UNA-TIENDA.md`, `TRASPASO.MD`, `GUIA-COMERCIANTE.md` y `manuales/`. |
-| `originales/` | Fotos pesadas. **No se versiona**: viven en el Drive del comercio. |
+| `docs/` | `PLAN-MVP.md`: qué se construye ahora. `ROADMAP.md`: qué viene después. **`CONTRATOS.md`: el contrato de datos, normativo.** `TRASPASO.MD`: el contexto completo. `ARQUITECTURA.md`, `DECISIONES.md`, `BITACORA.md`, `DESPLIEGUE.md` y la guía del comerciante |
+| `servicio/` | El alta de una tienda. **No corre aquí** |
+| `originales/` | Fotos pesadas. **No se versiona**: viven en el Drive del comercio |
 
-## Poner a andar una tienda
+## Cómo se pone a andar una tienda
 
-**`docs/DESPLIEGUE.md`** — el mapa de punta a punta, en orden, con quién hace
-cada cosa, los tres sitios donde el orden cuesta una hora y los fallos
-comunes. Es el único; hasta la 3.0.0 había cuatro más describiendo tramos de
-lo mismo y se quedaban atrás sin que nadie lo notara — se consolidaron ahí y
-se borraron.
+El mapa de punta a punta está en **`docs/DESPLIEGUE.md`**. El esqueleto:
 
-El esqueleto:
-
-1. Repositorio nuevo a partir de esta plantilla —el flujo **tienda nueva** de
-   `laboratoriodigital/tiendas` lo hace y lo deja configurado—, y conectarlo a
+1. Repositorio nuevo a partir de esta plantilla —**privado**—, y conectarlo a
    Cloudflare.
-2. Cuenta de Google y hoja nuevas para ese comercio; copiar el `HOJA_ID`.
-3. `script.google.com` → Proyecto nuevo → pegar `maestro.gs` → llenar `HOJA_ID`.
-4. Implementar → Aplicación web (Ejecutar como: Yo · Acceso: cualquier persona).
-   **Una sola vez en la vida de la tienda:** después se actualiza esa misma.
-5. Ejecutar `instalar()` y pegar en la hoja el stub que imprime.
-6. Llenar la hoja y montar, con el flujo `montaje` o con `npm run montar`.
-7. Pull request, vista previa, merge. Cloudflare despliega.
+2. Cuenta de Google y hoja nuevas para ese comercio.
+3. Apps Script → proyecto nuevo → pegar `maestro.gs` → poner el id de la hoja.
+4. Implementar como aplicación web. **Una sola vez en la vida de la tienda:**
+   después se actualiza esa misma.
+5. Ejecutar `A0_instalar()` y pegar en la hoja el código que imprime.
+6. Llenar la configuración y montar, con el flujo de Actions.
+7. Entregar al comercio el enlace de su tienda y la clave de su panel.
 
-Para poner al día una tienda que **ya** está montada cuando sale una versión
-nueva: `docs/ACTUALIZAR-UNA-TIENDA.md`. Ninguna se mueve sola.
-
-El porqué de cada decisión, en `docs/ARQUITECTURA.md`. Lo que falta mirar antes
-del primer comprador real, en `docs/ANTES-DE-SALIR.md`.
+> Ese procedimiento cambia con el hito M3: a partir de ahí el comerciante
+> administra su tienda desde `publicar/admin.html` y la hoja deja de ser la
+> interfaz.
 
 ## Cómo trabajamos
 
@@ -59,8 +58,16 @@ GitHub Flow: `main` siempre desplegable, una rama por cambio, pull request
 corto, `./pruebas/todas.sh` en verde antes de abrirlo. El detalle —tipos de
 rama, mensaje de commit, cómo cortar una versión— en `CONTRIBUIR.md`.
 
+**El único pull request manual es el de esta semilla.** En los repositorios de
+las tiendas, las fusiones son automáticas: publicar lo que el comerciante cambió
+en su hoja no espera a nadie, y las baterías son la puerta. *Repartir una versión
+nueva de la semilla a una tienda ya montada sigue siendo manual hasta la 1.1
+(ver `docs/ROADMAP.md`, S3).*
+
 ## Lo que no se versiona
 
-La llave de pago, los ID de hoja y los tokens **no van en el repositorio**.
-La llave se entrega por la respuesta automática de WhatsApp Business; el token
-lo inventa el maestro y lo guarda en las propiedades de su proyecto.
+La llave de pago, los identificadores de hoja, los tokens y la clave del panel
+**no van en el repositorio**. La llave se entrega por la respuesta automática de
+WhatsApp Business; los tokens los inventa el maestro y los guarda en las
+propiedades de su proyecto; la clave del panel se guarda solo como hash con sal,
+también en las propiedades del proyecto.

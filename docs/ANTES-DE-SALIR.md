@@ -198,6 +198,9 @@ Dieciséis claves, en dos niveles:
 - **Rompen la venta** —`negocio`, `whatsapp`, `sitio_url`, `pago_llave`—: el
   flujo `montaje` **se niega** a escribir el `index.html`. Sin llave de pago, el
   comprador termina el pedido y no tiene cómo pagar.
+> **En la línea nueva esto cambia:** los datos que identifican al vendedor
+> **bloquean** la publicación (decisión 09). Aquí siguen avisando.
+
 - **Dejan la tienda a medias** —los `empresa_*`, `pago_titular`, `pago_entidad`,
   `repositorio`, `correo_resumen`, `respaldo_carpeta`, `sitio_titulo`,
   `sitio_descripcion`—: salen en el registro del montaje y en el panel, y **no**

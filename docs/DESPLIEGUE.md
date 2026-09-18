@@ -178,6 +178,13 @@ Pestaña `Configuración`. **Dieciséis claves**, y el sistema sabe cuáles falt
 `pago_entidad`, `repositorio`, `correo_resumen`, `respaldo_carpeta`,
 `sitio_titulo`, `sitio_descripcion` y los `empresa_*`.
 
+> **Esto cambia en la 1.0.0** (decisión 09 de `DECISIONES.md`, hito M0). Los
+> datos que identifican al vendedor —`empresa_razon`, `empresa_nit`,
+> `empresa_direccion`, `empresa_ciudad` y al menos uno de `empresa_correo` /
+> `empresa_tel`— pasan de avisar a **bloquear**: los textos legales se arman con
+> ellos, y un texto de retracto sin responsable no obliga a nadie. Mientras
+> tanto, llénalos igual.
+
 > **`repositorio` vale el doble de lo que parece.** No solo le dice a «Publicar
 > ahora» a quién disparar: es lo único con lo que un flujo puede comprobar que
 > la hoja que está leyendo es la de **esta** tienda. Montando dos a la vez, los
