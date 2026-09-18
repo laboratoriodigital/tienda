@@ -210,6 +210,8 @@ main.envoltura{padding-bottom:60px}
 .pie-grid{display:grid;gap:26px}
 @media(min-width:768px){.pie-grid{grid-template-columns:1.4fr 1fr 1fr}}
 .pie h4{color:var(--negro);font-size:.9rem;font-weight:600;margin-bottom:9px}
+.pie-abajo{margin-top:30px;padding-top:18px;border-top:1px solid var(--linea);font-size:.8rem;text-align:center}
+.pie-abajo a{text-decoration:underline}
 .pie a{text-decoration:none}
 .pie a:hover{color:var(--negro)}
 .pie ul{list-style:none;display:grid;gap:5px}
@@ -483,6 +485,12 @@ textarea.campo{resize:vertical;min-height:64px}
       <p style="margin-top:10px;font-size:.8rem">Tienes 5 días hábiles para retractarte de tu compra (Ley 1480 de 2011).</p>
     </div>
   </div>
+  <!-- ══ AUTORÍA ══
+       "Powered by Laboratorio Digital", discreto, con rel="noopener" y sin
+       cargar nada externo. f_autoria (encendido por defecto) lo apaga:
+       quitar la marca es algo que un cliente puede pedir, y entonces es una
+       decisión comercial con precio, no un cambio de código. ══ -->
+  <p class="pie-abajo" id="pieAbajo">Powered by <span id="autoriaNombre">Laboratorio Digital</span></p>
 </footer>
 
 <!-- ============================ CAPA ============================ -->
@@ -723,6 +731,26 @@ function aplicarConfiguracion(c){
   if(v("retracto_excepciones")){
     EXCEPCIONES_RETRACTO = v("retracto_excepciones").split("|")
       .map(x => x.trim()).filter(Boolean);
+  }
+
+  /* La autoría: apagada solo si la hoja dice "No" explícito — encendida por
+     defecto, incluso si la clave todavía no llegó (antes de que conteste el
+     maestro, o en una hoja instalada antes de que existiera esta clave). */
+  const pie = $("#pieAbajo");
+  if(pie){
+    if(v("f_autoria") === "No"){
+      pie.hidden = true;
+    } else if(v("autoria_url")){
+      const nombre = $("#autoriaNombre");
+      if(nombre && nombre.parentElement === pie){
+        const enlace = document.createElement("a");
+        enlace.href = v("autoria_url");
+        enlace.target = "_blank";
+        enlace.rel = "noopener";
+        enlace.textContent = "Laboratorio Digital";
+        nombre.replaceWith(enlace);
+      }
+    }
   }
 }
 

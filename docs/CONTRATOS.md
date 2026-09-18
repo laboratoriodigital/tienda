@@ -227,7 +227,7 @@ Lo que llegó y no se pudo entender, y lo que se leyó mal. Existe para que un f
 
 ## 5. Las claves de `Configuración`
 
-Son 39. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
+Son 41. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
 **todas pueden estar vacías**: una tienda a medio configurar tiene que seguir
 sirviendo lo que sí sabe.
 
@@ -250,6 +250,7 @@ no pisar lo que el comerciante puso.
 | **El pago — **no sale por ninguna puerta pública**** | `pago_llave` · `pago_titular` · `pago_entidad` · `pago_texto` · `pago_tope` |
 | **La venta** | `envio_gratis_desde` |
 | **Dónde vive el sitio** | `repositorio` — dueño/repositorio en GitHub. Lo usa «Publicar ahora». No es un secreto; el permiso sí, y ese vive en las propiedades del script |
+| **La autoría** | `f_autoria` · `autoria_url` — el pie "Powered by Laboratorio Digital". `f_autoria` = No lo apaga (decisión comercial, con precio); `autoria_url` vacía muestra el texto sin enlace |
 ---
 
 ## 6. Lo que sale por cada puerta

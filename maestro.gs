@@ -2203,7 +2203,14 @@ function semillaDeConfiguracion() {
          POSICIÓN para no pisar lo que el comerciante puso, así que meter una
          clave en medio le corre todos los valores de ahí para abajo. R1 del
          contrato no es una preferencia de estilo. */
-      ['repositorio',       '', 'Dónde vive el sitio, como dueño/repositorio. Ej.: tuempresa/tutienda. Lo usa «Publicar ahora»']
+      ['repositorio',       '', 'Dónde vive el sitio, como dueño/repositorio. Ej.: tuempresa/tutienda. Lo usa «Publicar ahora»'],
+
+      /* AL FINAL (R1), igual que repositorio. La autoría: un pie discreto
+         "Powered by Laboratorio Digital" enlazado a autoria_url. f_autoria
+         apagado es una decisión comercial —un cliente puede pedir que se
+         quite la marca— así que vive en Configuración, no en el código. */
+      ['f_autoria',         'Sí', 'Si dice Sí, la tienda muestra "Powered by Laboratorio Digital" al pie, enlazado a autoria_url. Sí = encendido, que es lo normal'],
+      ['autoria_url',       '', 'A dónde enlaza el pie de autoría. Vacío = se muestra el texto sin enlace']
   ];
 }
 
