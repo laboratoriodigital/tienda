@@ -156,9 +156,9 @@ const DE_ORGANICO = /Orgánico|Tomate chonto|Tomate cherry|Sofrito|Rionegro|5730
      «tomate» de reserva. Un producto que no estuviera en el respaldo —o una
      tienda que no vende tomate— se dibujaba con un tomate. Ahora lo decide la
      página a partir del formato y la categoría, en un solo sitio. */
-  ok('  ...y el dibujo del producto sin foto no es un tomate por descarte',
-     visto.formas[1] === 'frasco' && visto.formas[0] === 'tomate',
-     visto.formas.join(' · ') + ' — «tomate» es la forma redonda, no la fruta');
+  ok('  ...y el dibujo del producto sin foto no es el de otro comercio',
+     visto.formas[1] === 'frasco' && visto.formas[0] === 'redondo',
+     visto.formas.join(' · '));
 
   const texto = await p.locator('body').innerText();
   ok('NO QUEDA NI UNA PALABRA del comercio de la plantilla en la página',

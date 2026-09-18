@@ -80,7 +80,14 @@ nucleos=$(nproc 2>/dev/null || echo 2)
 TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 
 SALIDA=$(mktemp -d)
-trap 'pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"' EXIT
+# Guardia: en Windows (Git Bash) cada trabajo de fondo puede recibir esta
+# misma trampa EXIT al terminar el suyo, y no solo el proceso principal — si
+# el primero en terminar borra $SALIDA mientras las baterías mas lentas
+# (movil.js, e2e.js) todavía están escribiendo la suya, salen con
+# «No such file or directory» y la corrida completa se corta ahí. $BASHPID
+# identifica AL PROCESO que está saliendo; $$ sigue siendo el de la shell de
+# arriba pase lo que pase. Solo esa, la de arriba, tiene que limpiar.
+trap '[ "$BASHPID" = "$$" ] && { pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"; }' EXIT
 
 # Levanta un servidor y ESPERA A QUE CONTESTE, que no es lo mismo que esperar
 # dos segundos. El `sleep 2` de antes era una apuesta: en una máquina cargada
