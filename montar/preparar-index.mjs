@@ -1,5 +1,5 @@
 /**
- * LA SEMILLA — hornear publicar/index.html desde plantilla/index.html
+ * LA SEMILLA — hornear publicar/index.html y publicar/404.html desde plantilla/
  * ---------------------------------------------------------------------------
  * Le pregunta al maestro cómo debe quedar el <head>, la paleta y las cinco
  * constantes, y escribe publicar/index.html DESDE CERO, a partir de
@@ -8,14 +8,19 @@
  * y es exactamente lo que esta historia existe para dejar de hacer
  * (docs/PLAN-MVP.md, historia A-2).
  *
+ * Desde A-3 también hornea publicar/404.html desde plantilla/404.html, con el
+ * mismo NEGOCIO que ya viene en la misma respuesta del maestro: pedirlo dos
+ * veces sería la segunda lectura del mismo dato, y de las dos, una se queda
+ * atrás (patrón 2 de BITACORA.md).
+ *
  *   node montar/preparar-index.mjs
  *   node montar/preparar-index.mjs --revisar    (no escribe; falla si hay diferencia)
  *
  * DOS REGLAS QUE NO SE NEGOCIAN
- * 1. O se aplica todo, o no se aplica nada. El archivo se arma entero en
+ * 1. O se aplica todo, o no se aplica nada. Cada archivo se arma entero en
  *    memoria; si un solo reemplazo no encuentra su sitio, no se escribe ni
- *    una letra. Un publicar/index.html a medias es peor que uno viejo: el
- *    viejo funciona.
+ *    una letra de ESE archivo. Un publicar/index.html a medias es peor que
+ *    uno viejo: el viejo funciona.
  * 2. Si el maestro no contesta, esto FALLA en vez de escribir algo vacío. Una
  *    tienda publicada con SCRIPT_URL en blanco es una tienda muerta.
  *
@@ -35,9 +40,11 @@ import { laTienda, alMaestro } from './tienda.mjs';
 
 const PLANTILLA = 'plantilla/index.html';
 const PUBLICAR  = 'publicar/index.html';
+const PLANTILLA_404 = 'plantilla/404.html';
+const PUBLICAR_404  = 'publicar/404.html';
 const revisar = process.argv.includes('--revisar');
 
-export const ESCRIBE = [PUBLICAR];
+export const ESCRIBE = [PUBLICAR, PUBLICAR_404];
 
 /* Cada constante se reemplaza por su nombre, no por su posición ni dentro de un
    bloque: así el archivo conserva sus comentarios y el orden que tenga. */
@@ -58,6 +65,17 @@ const CONSTANTES = [
    propia marca de cierre. Las dos marcas las escribe el maestro, así que el
    contrato está en un solo lado. */
 const HEAD = /<meta http-equiv="Content-Security-Policy"[\s\S]*?<!-- ═══ FIN DE LA CONFIGURACIÓN ═══ -->/;
+
+/* El marcador que deja plantilla/404.html en su <title>, para el mismo comercio
+   que ya escribió NEGOCIO en el <script> de index.html. Escapado como HTML, no
+   como cadena de JS: aquí es texto de la página, no un literal dentro de una
+   etiqueta <script>. */
+const MARCADOR_404 = '[NOMBRE DE LA TIENDA — sin hornear]';
+
+function escaparHtml(t) {
+  return String(t).replace(/[&<>"]/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+}
 
 /* Cada constante que falta, falta por su propia razón, y decir la de
    SCRIPT_URL para todas mandaba al técnico al sitio equivocado. */
@@ -180,30 +198,63 @@ export function aplicar(plantillaHtml, datos) {
   return salida;
 }
 
-async function main() {
-  const tienda = await laTienda();
-  const datos = await alMaestro(tienda, 'bloques');
-  const plantilla = await readFile(PLANTILLA, 'utf8');
-  const nuevo = aplicar(plantilla, datos);
+/* Arma publicar/404.html ENTERO a partir de plantilla/404.html. Solo hornea el
+   nombre del comercio en el <title> — es la única palabra de esa página que
+   viene de un comercio en particular; el resto (el ícono, el mensaje) es igual
+   para cualquier tienda a propósito, así que no hace falta plantilla por color
+   ni por texto. */
+export function aplicar404(plantilla404Html, negocio) {
+  const buscado = '<title>' + MARCADOR_404 + ' — esa página no existe</title>';
+  if (!plantilla404Html.includes(buscado)) {
+    throw new Error(
+      'No encontré el título con su marcador en ' + PLANTILLA_404 + '.\n' +
+      'Tiene que decir exactamente:\n\n  ' + buscado);
+  }
+  const puesto = '<title>' + escaparHtml(negocio) + ' — esa página no existe</title>';
+  return plantilla404Html.replace(buscado, puesto);
+}
 
+async function escribirSiCambio(ruta, nuevo, etiqueta) {
   let actual = null;
-  try { actual = await readFile(PUBLICAR, 'utf8'); } catch { /* no existe: se crea */ }
+  try { actual = await readFile(ruta, 'utf8'); } catch { /* no existe: se crea */ }
 
   if (actual === nuevo) {
-    console.log('publicar/index.html ya está al día con la hoja. Nada que hacer.');
-    return;
+    console.log(etiqueta + ' ya está al día. Nada que hacer.');
+    return false;
   }
 
   if (revisar) {
-    console.error('\npublicar/index.html NO está al día con la hoja.\n');
+    console.error('\n' + etiqueta + ' NO está al día con la hoja.\n');
+    return true;   // hay diferencia: quien llama decide cómo fallar
+  }
+
+  await writeFile(ruta, nuevo);
+  console.log((actual === null ? etiqueta + ' creado' : etiqueta + ' actualizado') +
+              ' desde su plantilla y la hoja.');
+  return false;
+}
+
+async function main() {
+  const tienda = await laTienda();
+  const datos = await alMaestro(tienda, 'bloques');
+
+  const plantilla = await readFile(PLANTILLA, 'utf8');
+  const nuevo = aplicar(plantilla, datos);
+
+  const plantilla404 = await readFile(PLANTILLA_404, 'utf8');
+  const nuevo404 = aplicar404(plantilla404, datos.valores.NEGOCIO);
+
+  const difiereIndex = await escribirSiCambio(PUBLICAR, nuevo, PUBLICAR);
+  const difiere404   = await escribirSiCambio(PUBLICAR_404, nuevo404, PUBLICAR_404);
+
+  if (revisar && (difiereIndex || difiere404)) {
     console.error('Corre  npm run index  y vuelve a subir.\n');
     process.exit(1);
   }
 
-  await writeFile(PUBLICAR, nuevo);
-  console.log((actual === null ? 'publicar/index.html creado' : 'publicar/index.html actualizado') +
-              ' desde plantilla/index.html y la hoja.');
-  console.log('\nVersión del contrato: ' + datos.valores.SCRIPT_VERSION);
+  if (!revisar) {
+    console.log('\nVersión del contrato: ' + datos.valores.SCRIPT_VERSION);
+  }
 }
 
 /* pathToFileURL y no una plantilla `file://…`: en Windows argv[1] llega como

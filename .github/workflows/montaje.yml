@@ -111,6 +111,16 @@ jobs:
           key: npm-${{ runner.os }}-${{ hashFiles('package.json', 'pruebas/package.json') }}
           restore-keys: npm-${{ runner.os }}-
 
+      # ── EL SITIO TIENE QUE TENER NOMBRE PROPIO (A-3) ──
+      # No habla con el maestro, así que corre siempre, incluso antes de que
+      # existan los secretos: un repositorio creado desde la plantilla y
+      # empujado sin pasar por `npm run tienda` deja wrangler.jsonc con el
+      # marcador de la semilla, y dos sitios con ese mismo nombre son el
+      # MISMO Worker en Cloudflare para quien tenga más de una tienda en la
+      # misma cuenta.
+      - name: ¿El sitio de Cloudflare tiene nombre propio?
+        run: node montar/revisar-worker.mjs
+
       - name: ¿Está configurada esta tienda?
         id: hay
         env:
@@ -252,6 +262,16 @@ jobs:
           MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
         run: node montar/preparar-index.mjs
+
+      # La imagen que enseña WhatsApp al compartir el enlace (A-3): mismo
+      # nombre y color que acaba de escribir el paso de arriba, así que va
+      # justo después y con la misma condición.
+      - name: La imagen para compartir, con el nombre y el color de la tienda
+        if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
+        env:
+          MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
+          MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
+        run: node montar/preparar-compartir.mjs
 
       # ── 3. Lo que el comercio subió a su Drive ──
       - name: Las fotos nuevas

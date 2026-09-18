@@ -401,11 +401,15 @@ const configurar = (g, clave, valor) => {
 
   ok('CONFIGURAR LA TIENDA revisa el nombre del sitio contra el del comercio',
      /revisarNombreDelWorker/.test(src) && /wrangler\.jsonc/.test(src));
-  ok('  ...y dice por qué importa, no solo que no coincide',
-     /desplegar esta pisaría la otra/.test(src));
-  ok('  ...pregunta antes de tocar nada', /¿Lo cambio a/.test(src));
-  ok('  ...y si le dicen que no, avisa de que hay que hacerlo a mano',
-     /antes de desplegar/.test(src));
+  /* A-3: SIN preguntar por teclado — un flujo sin terminal delante (ej. un
+     script de aprovisionamiento) se quedaría esperando para siempre una
+     respuesta que nadie puede dar. Como el nombre se deriva del negocio que
+     el maestro ya contestó, no hay nada que decidir: se escribe solo. */
+  ok('  ...y lo corrige SOLO, sin preguntar por teclado',
+     !/preguntar\(/.test(src.match(/function revisarNombreDelWorker[\s\S]*?\n\}/)[0]),
+     'un flujo sin terminal delante no puede quedarse esperando una respuesta');
+  ok('  ...y explica el riesgo cuando el nombre YA tenía otra cosa (no el marcador de fábrica)',
+     /si dos tiendas comparten cuenta de/.test(src));
 
   /* El apodo tiene que dar un nombre válido para Cloudflare a partir de
      cualquier cosa que el comercio haya escrito en su hoja. */
@@ -3194,7 +3198,7 @@ const configurar = (g, clave, valor) => {
      'una tienda cortaría una etiqueta paralela a la de la plantilla');
   ok('  ...y el nombre de la semilla está escrito UNA sola vez',
      (rel.split('\n').filter(l => !/^\s*#/.test(l))
-         .join('\n').match(/laboratoriodigital\/organico/g) || []).length === 1,
+         .join('\n').match(/laboratoriodigital\/tienda/g) || []).length === 1,
      'dos copias y un día se separan');
   ok('  ...y DICE qué correr en su lugar, en vez de mandar a package.json',
      /montaje/.test(rel) && /Lo que sí se corre en una tienda/.test(rel),

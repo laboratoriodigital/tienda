@@ -14,8 +14,10 @@ const T = [];
 const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 
 (async () => {
-  const { aplicar } = await import('../montar/preparar-index.mjs');
+  const { aplicar, aplicar404 } = await import('../montar/preparar-index.mjs');
+  const { svg, partirEnLineas } = await import('../montar/preparar-compartir.mjs');
   const plantilla = readFileSync(path.join(RAIZ, 'plantilla/index.html'), 'utf8');
+  const plantilla404 = readFileSync(path.join(RAIZ, 'plantilla/404.html'), 'utf8');
 
   const inicioHead = plantilla.indexOf('<meta http-equiv="Content-Security-Policy"');
   const finHead = plantilla.indexOf('<!-- ═══ FIN DE LA CONFIGURACIÓN ═══ -->') +
@@ -99,6 +101,49 @@ const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -
          aplicar(plantilla, { ...datosOk, valores: { ...datosOk.valores, NEGOCIO: '[NOMBRE DEL COMERCIO]' } });
          return false;
        } catch (e) { return /sigue sin llenar/.test(e.message); }
+     })());
+
+  // ══ A-3: publicar/404.html se hornea con el nombre del comercio ══
+  const salida404 = aplicar404(plantilla404, 'Panadería Ejemplo');
+  ok('404: el título lleva el nombre del comercio',
+     salida404.includes('<title>Panadería Ejemplo — esa página no existe</title>'));
+  ok('  ...y el marcador sin hornear ya no está',
+     !salida404.includes('[NOMBRE DE LA TIENDA — sin hornear]'));
+  ok('  ...hornear dos veces con el mismo nombre da el mismo archivo',
+     aplicar404(plantilla404, 'Panadería Ejemplo') === salida404);
+  ok('  ...un nombre con caracteres de HTML no rompe la página',
+     (() => {
+       const r = aplicar404(plantilla404, 'Pan & Café "El Bueno" <2>');
+       return r.includes('Pan &amp; Café &quot;El Bueno&quot; &lt;2&gt;') &&
+              !r.includes('<2>');
+     })());
+  ok('  ...si el marcador del título no está, tira en vez de adivinar',
+     (() => {
+       try { aplicar404(plantilla404.replace('sin hornear', 'distinto'), 'x'); return false; }
+       catch (e) { return /marcador/.test(e.message); }
+     })());
+
+  // ══ A-3: publicar/compartir.jpg se arma con el nombre y el color de la tienda ══
+  ok('compartir: un nombre corto sale en una sola línea',
+     partirEnLineas('Pan').length === 1);
+  ok('  ...uno largo se reparte en dos, por una palabra completa',
+     (() => {
+       const l = partirEnLineas('Distribuidora de Insumos Agropecuarios del Oriente');
+       return l.length === 2 && l.join(' ').split(/\s+/).length ===
+              'Distribuidora de Insumos Agropecuarios del Oriente'.split(/\s+/).length;
+     })());
+  ok('  ...el SVG lleva el nombre del comercio, escapado',
+     svg('Pan & Café', '#8B4513').includes('Pan &amp; Café'));
+  ok('  ...con el color de la hoja cuando es un color válido',
+     svg('Pan', '#8B4513').includes('fill="#8B4513"'));
+  ok('  ...y con el gris de la plantilla si el color no es válido, sin tirar',
+     svg('Pan', 'no-es-un-color').includes('fill="#6E6E6E"'));
+  ok('  ...también sin color ninguno',
+     svg('Pan', undefined).includes('fill="#6E6E6E"'));
+  ok('  ...el SVG resultante es XML bien formado (mismo número de <svg y </svg>)',
+     (() => {
+       const s = svg('Tienda "Rara" & Cía. <raíz>', '#1B5E3A');
+       return (s.match(/<svg /g) || []).length === 1 && (s.match(/<\/svg>/g) || []).length === 1;
      })());
 
   console.log(T.join('\n'));

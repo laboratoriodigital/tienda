@@ -1,5 +1,5 @@
 /**
- * ORGÁNICO — apuntar esta copia del repositorio a una tienda
+ * TIENDA — apuntar esta copia del repositorio a una tienda
  * ---------------------------------------------------------------------------
  * Escribe los dos archivos de configuración que antes se creaban a mano:
  *
@@ -46,23 +46,24 @@ function nombreDelWorker() {
   } catch { return ''; }
 }
 
-async function revisarNombreDelWorker(negocio) {
+/* SIN PREGUNTAR POR TECLADO (A-3): el nombre se deriva del negocio que el
+   maestro acaba de contestar, así que no hay nada que decidir — y preguntar
+   s/n aquí es justo lo que deja esta herramienta colgada para siempre en un
+   flujo sin terminal delante (la razón de ser de esta historia). Si el sitio
+   ya tiene UN NOMBRE PROPIO (no el marcador de la semilla, no el de otro
+   comercio con el que por casualidad coincida el apodo), tampoco hay nada que
+   tocar: seguiría siendo el mismo apodo. Solo se escribe cuando cambia. */
+function revisarNombreDelWorker(negocio) {
   const actual = nombreDelWorker();
   const debido = apodo(negocio);
   if (!actual || actual === debido) return;
 
-  console.log('\n⚠ El sitio de este repositorio se llama "' + actual + '" y el' +
-              ' comercio es "' + negocio + '".');
-  console.log('  Dos tiendas con el mismo nombre son el MISMO sitio en Cloudflare:');
-  console.log('  desplegar esta pisaría la otra.\n');
-  const r = await preguntar('¿Lo cambio a "' + debido + '"? (s/n) ');
-  if (r.toLowerCase() !== 's') {
-    console.log('  Lo dejo. Cámbialo a mano en ' + WRANGLER + ' antes de desplegar.');
-    return;
-  }
   const t = readFileSync(WRANGLER, 'utf8');
   writeFileSync(WRANGLER, t.replace(/("name"\s*:\s*)"[^"]+"/, '$1"' + debido + '"'));
-  console.log('  ✓ ' + WRANGLER + '  ->  ' + debido);
+  console.log('  ✓ ' + WRANGLER + '  ->  ' + debido +
+              (actual === 'tienda-sin-configurar' ? '' :
+               '  (antes: "' + actual + '" — si dos tiendas comparten cuenta de' +
+               ' Cloudflare, revisa que no haya quedado ninguna con este nombre)'));
 }
 
 async function preguntar(pregunta) {
@@ -177,7 +178,7 @@ async function main() {
                 '    en la URL del proyecto, entre /projects/ y /edit.');
   }
 
-  await revisarNombreDelWorker(d.negocio);
+  revisarNombreDelWorker(d.negocio);
 
   console.log('\n' + (d.negocio || 'Tienda') + ' · versión ' + d.version);
   if (d.hoja) console.log(d.hoja);
