@@ -34,6 +34,11 @@ Thumbs.db
 desktop.ini
 *.tmp
 
+# Lo que mide montar/tiempos.mjs en cada corrida de Actions. Es de esa
+# corrida, no del repositorio: sube como artefacto y aquí no pinta nada.
+tiempos.json
+tiempos.md
+
 # ── Nada de secretos en el repositorio ──
 # La llave de pago, los ID de hoja y los tokens no se versionan.
 secretos.md

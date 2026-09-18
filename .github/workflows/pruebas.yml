@@ -148,3 +148,36 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit ${estado:-0}
+
+      # ── B-1 / B-6 · QUÉ SE LLEVÓ EL RELOJ, Y SI ESO CABE ─────────────────
+      # No hay que instrumentar un solo paso: GitHub ya los cronometra todos y
+      # lo publica en su API. Escribir un reloj a mano en treinta pasos serían
+      # treinta sitios donde olvidarse de uno, y el que se olvida es justo el
+      # que se come el tiempo (patrón 2).
+      #
+      # `always()` a propósito: cuando la corrida falla es cuando más importa
+      # saber dónde se fue el tiempo. Y si la API no contesta, esto NO tumba la
+      # corrida — medir es un servicio, no el trabajo.
+      - name: Los tiempos
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SIN_GUARDIA: '0'
+        run: |
+          estado=0
+          node montar/tiempos.mjs || estado=$?
+          # La herramienta imprime y escribe tiempos.md; el flujo lo pega en
+          # el resumen. Es como lo hacen todos los pasos de aquí, y deja que
+          # A-8 pueda declarar lo que se escribe (una ruta que sale del
+          # entorno no se puede declarar).
+          [ -f tiempos.md ] && cat tiempos.md >> "$GITHUB_STEP_SUMMARY"
+          exit $estado
+
+      - name: Guardar los tiempos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiempos-${{ github.run_id }}
+          path: tiempos.json
+          retention-days: 30
+          if-no-files-found: ignore

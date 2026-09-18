@@ -1072,3 +1072,39 @@ no es un detalle de implementación, es lo que separa una red de seguridad de un
 publicador automático: si el comerciante dejó seis fotos a medio subir, su
 tienda no debería salir a producción a las tres de la mañana con el trabajo a
 medias.
+
+---
+
+**28 · Las dos guardas que cazaron a quien las escribió.** El mismo día, al
+montar la medición de tiempos del hito M1, dos aserciones del propio
+repositorio se pusieron en rojo contra el cambio que las estaba estrenando. Las
+dos tenían razón, y por motivos distintos que conviene separar.
+
+La primera fue `escribe.js`, la batería de A-8 —«cada herramienta declara lo que
+escribe»—. La herramienta nueva declaraba escribir `tiempos.json`, y además
+abría `process.env.GITHUB_STEP_SUMMARY` para pegar ahí su tabla. Parecía
+inofensivo: es el archivo que el runner ofrece justo para eso. Pero **una ruta
+que sale del entorno no se puede declarar**, y una herramienta que escribe donde
+su declaración no llega es exactamente el agujero que A-8 existe para tapar. El
+arreglo dejó el diseño mejor de lo que estaba: la herramienta escribe un
+`tiempos.md` que sí declara, y el flujo lo concatena — que es, además, como
+funcionan todos los demás pasos de estos flujos desde siempre. La guarda no
+señaló un descuido: señaló que había dos formas de hacer lo mismo y se estaba
+usando la peor.
+
+La segunda fue más incómoda. Una aserción comprobaba que `DESPLIEGUE.md`
+documenta todos los campos del formulario de `montaje`, y lo hacía así:
+`campos.length === 4 && campos.every(...)`. Al añadir el campo `sin_guardia` se
+cayó — **y el documento estaba bien**. Lo que estaba mal era el `4`: una cifra
+escrita a mano dentro de la comprobación que existe precisamente para cazar
+cifras escritas a mano. El comentario encima de esa línea lleva meses contando
+que el runbook hablaba de dos campos cuando el formulario tenía cinco.
+
+La regla: **una guarda contra un número a mano no puede llevar un número a
+mano.** Y la general, que es la que vale para las dos: una aserción que se cae
+contra un cambio legítimo no siempre está defendiendo algo — a veces está
+pidiendo que la arreglen a ella. Distinguir los dos casos es el trabajo, y la
+respuesta está en qué se rompió: si lo que falla es el criterio, se corrige el
+código; si lo que falla es la forma de medirlo, se corrige la aserción. Darlas
+por buenas siempre y darlas por molestas siempre son el mismo error con distinto
+signo.

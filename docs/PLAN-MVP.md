@@ -565,10 +565,16 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 ### M1 · Rendimiento y cuota   · con repositorios privados, esto es dinero
 
 **B-1 · Medir antes de tocar nada**  · 3 pts
-- [ ] Cada paso del flujo registra su reloj; el resumen trae la tabla fase /
-      segundos / % y **los minutos de Actions consumidos**.
-- [ ] Artefacto `tiempos.json` por corrida.
-- [ ] `presupuesto.json` con el objetivo de tiempo y el de minutos al mes.
+- [x] Cada paso del flujo registra su reloj; el resumen trae la tabla fase /
+      segundos / % y **los minutos de Actions consumidos**. *(No hubo que
+      instrumentar un solo paso: GitHub ya los cronometra todos y lo publica en
+      su API. Treinta relojes a mano serían treinta sitios donde olvidarse de
+      uno — y el que se olvida es el que se come el tiempo.)*
+- [x] Artefacto `tiempos.json` por corrida. *(Y `if: always()`: la corrida que
+      falla es justo la que hay que mirar.)*
+- [x] `presupuesto.json` con el objetivo de tiempo y el de minutos al mes.
+      *(En los tres flujos, con la aserción de que ninguno lleva su propia
+      copia del número.)*
 
 **B-2 · Fuera el cron de cuatro horas**  · 2 pts
 > Es el 84 % del gasto de minutos y existe para cazar fotos subidas al Drive
@@ -612,9 +618,13 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
       ya no valía.)*
 
 **B-6 · El guardia del presupuesto**  · 2 pts · dep. B-1
-- [ ] Por encima del objetivo, avisa en grande y sigue.
-- [ ] Por encima del doble, falla y nombra la fase.
-- [ ] Se puede desactivar con un input para una corrida excepcional.
+- [x] Por encima del objetivo, avisa en grande y sigue. *(Una máquina lenta no
+      es un fallo.)*
+- [x] Por encima del doble, falla y nombra la fase. *(Un fallo que solo dice
+      «tardó mucho» obliga a abrir el log y buscar.)*
+- [x] Se puede desactivar con un input para una corrida excepcional.
+      *(`sin_guardia`. Sin interruptor, la salida es comentar el paso — y ahí
+      se queda.)*
 
 **B-7 · La batería que no corre, o corre o se borra**  · 1 pt
 - [x] `limites.js` levanta un navegador y no está en la lista: entra o se va.

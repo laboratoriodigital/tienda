@@ -313,7 +313,8 @@ todos como vienen salvo dos:
 | `que` | `todo` — como viene | `solo-la-hoja` o `solo-las-fotos` sirven para una corrida parcial más adelante |
 | `maestro` | **marcarlo** | Publica `maestro.gs` desde aquí. Pide los tres secretos de la sección anterior |
 | `confirmar` | escribir `PUBLICAR` | Solo hace falta si marcaste `maestro`: es la confirmación de que sí |
-| `aprobacion` | `automatica` — sin marcar lo contrario | El flujo fusiona solo cuando todo sale verde. `con-pull-request` deja el PR abierto para mirarlo antes |
+| `aprobacion` | `automatica` — sin marcar lo contrario | El flujo publica directo en `main` cuando todo sale verde. `con-pull-request` deja un pull request abierto para mirarlo antes |
+| `sin_guardia` | sin marcar | Se salta el guardia del presupuesto de tiempo (`presupuesto.json`). Para una corrida que se sabe que va a tardar de más — un catálogo enorme la primera vez, por ejemplo — y no se quiere que falle por eso |
 
 Hace, en este orden:
 

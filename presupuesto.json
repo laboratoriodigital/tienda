@@ -1,0 +1,16 @@
+{
+  "_que_es": "El presupuesto de tiempo y de minutos de Actions, en UN solo sitio. Lo leen montar/tiempos.mjs (que mide cada corrida y avisa) y pruebas/tiempos.js. Escrito dos veces, una copia se queda atras y el guardia deja de vigilar lo que se cree que vigila (BITACORA.md, patron 2).",
+
+  "_por_que_existe": "Con repositorios privados los minutos de Actions se pagan: 2.000 al mes para TODA la cuenta, repartidos entre todas las tiendas. Medido en la linea anterior, una tienda gastaba ~535 minutos al mes, casi todo en el cron de cuatro horas del flujo de publicacion. El hito M1 lo baja a ~100. Este archivo es lo que hace que ese numero deje de ser una intencion y pase a ser algo que se comprueba en cada corrida.",
+
+  "_como_se_lee": "segundos.<flujo> es el objetivo de reloj de pared de una corrida completa de ese flujo. Por encima, avisa y sigue. Por encima del DOBLE, falla y nombra la fase que se lo comio: a esas alturas ya no es una maquina lenta, es algo que se rompio. Un input del flujo lo desactiva para una corrida excepcional.",
+
+  "segundos": {
+    "fotos": 300,
+    "montaje": 330,
+    "pruebas": 180
+  },
+
+  "_minutos": "El techo mensual por tienda. No lo comprueba una corrida sola -nadie sabe desde dentro cuantas van en el mes-: lo comprueba quien mire tiempos.json, y es el numero contra el que se decide si cabe una tienda mas.",
+  "minutosAlMes": 100
+}

@@ -1430,9 +1430,16 @@ const configurar = (g, clave, valor) => {
     const flujo = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
     const campos = (flujo.match(/^      ([a-z_]+):$/gm) || [])
       .map(l => l.trim().replace(':', ''));
+    /* CUÁNTOS SON NO SE ESCRIBE AQUÍ. Decía `campos.length === 4`, y eso es
+       exactamente el defecto que este bloque existe para cazar: una cifra a
+       mano que hay que acordarse de subir. Al agregar `sin_guardia` se cayó
+       esta aserción — no porque el documento estuviera mal, sino porque el
+       número lo estaba. Lo que importa es que NINGUNO falte. */
+    const sinDocumentar = campos.filter(c => mapa.indexOf('`' + c + '`') === -1);
     ok('DESPLIEGUE.md nombra TODOS los campos del formulario de montaje',
-       campos.length === 4 && campos.every(c => mapa.indexOf('`' + c + '`') !== -1),
-       campos.join(', '));
+       campos.length > 0 && sinDocumentar.length === 0,
+       sinDocumentar.length ? 'sin documentar: ' + sinDocumentar.join(', ')
+                            : campos.length + ' campos: ' + campos.join(', '));
     ok('  ...y dice cuáles se dejan como vienen en un despliegue normal',
        /como vienen/.test(mapa) && /sin marcar/.test(mapa));
   }
@@ -3289,6 +3296,51 @@ const configurar = (g, clave, valor) => {
        /startsWith\(github\.head_ref, 'montaje\/'\)/.test(prue),
        'la retención es de la corrida: caduca y deja una X que no significa nada');
   }
+}
+
+/* ═══ B-1 / B-6. MEDIR ANTES DE TOCAR NADA, Y VIGILAR EL PRESUPUESTO ═══
+   El hito M1 se llama «medir antes de tocar nada» porque la primera vez que se
+   midió en serio, el número desmintió a la intuición por completo: las diez
+   baterías que uno quitaría primero costaban tres segundos y medio entre todas.
+   Sin ese número, el recorte habría caído sobre lo que no costaba nada.
+
+   Aquí se comprueba que la medición está puesta en los TRES flujos, que el
+   presupuesto vive en un solo archivo, y que el guardia se puede desactivar
+   para una corrida excepcional sin editar nada. */
+{
+  const flujos = ['fotos', 'montaje', 'pruebas'].map(n => ({
+    n, y: fs.readFileSync('../.github/workflows/' + n + '.yml', 'utf8')
+  }));
+
+  ok('LOS TRES FLUJOS miden lo que tardaron',
+     flujos.every(f => /node montar\/tiempos\.mjs/.test(f.y)),
+     flujos.filter(f => !/tiempos\.mjs/.test(f.y)).map(f => f.n).join(', ') || 'los tres');
+  /* CUANDO LA CORRIDA FALLA ES CUANDO MÁS IMPORTA SABER DÓNDE SE FUE EL TIEMPO:
+     una corrida que se cae a los veinte minutos es exactamente la que hay que
+     mirar, y con `if: success()` sería la única que no dejaría tabla. */
+  ok('  ...también cuando la corrida falló, que es cuando más importa',
+     flujos.every(f => /- name: Los tiempos\n        if: always\(\)/.test(f.y)),
+     'con success() la corrida que hay que mirar es la única sin tabla');
+  ok('  ...y se lo guardan como artefacto, no solo en el resumen',
+     flujos.every(f => /name: tiempos-\$\{\{ github\.run_id \}\}/.test(f.y)),
+     'el resumen caduca; el artefacto es contra lo que se compara el mes que viene');
+
+  const presu = JSON.parse(fs.readFileSync('../presupuesto.json', 'utf8'));
+  ok('EL PRESUPUESTO vive en un solo archivo, con objetivo por flujo',
+     presu.segundos && ['fotos', 'montaje', 'pruebas'].every(n => presu.segundos[n] > 0),
+     JSON.stringify(presu.segundos));
+  ok('  ...y con el techo de minutos al mes, que es la restricción de verdad',
+     presu.minutosAlMes > 0, presu.minutosAlMes + ' minutos/mes');
+  /* Ninguno de los tres flujos puede llevar su propio número: sería la segunda
+     copia del mismo criterio, y de las dos una se queda atrás. */
+  ok('  ...y ningún flujo lleva su propia copia del número',
+     flujos.every(f => !/SEGUNDOS_OBJETIVO|PRESUPUESTO_SEGUNDOS/.test(f.y)),
+     'dos presupuestos es como el guardia deja de vigilar lo que se cree');
+
+  ok('EL GUARDIA se puede desactivar para una corrida excepcional',
+     flujos.filter(f => f.n !== 'pruebas')
+           .every(f => /sin_guardia:/.test(f.y) && /SIN_GUARDIA:/.test(f.y)),
+     'sin interruptor, la salida es comentar el paso — y ahí se queda');
 }
 
 /* ═══ B-2. EL CRON DE CUATRO HORAS ERA EL 84 % DE LOS MINUTOS ═══
