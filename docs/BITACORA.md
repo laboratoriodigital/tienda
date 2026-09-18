@@ -902,13 +902,74 @@ documentada antes de esta sesión —`pedidos.js`, `correo.js`, `tablero.js`,
 `calendario.js`, con su propio catálogo simulado atado al de Orgánico— y una
 sola aserción de `montaje.js` que aparca el alta a propósito.
 
-De paso, otra vez el mismo patrón del ítem 6: `todas.sh` seguía cortándose en
-Windows/Git Bash apenas terminaba la primera batería corta, con «No such file
-or directory» — la guardia por PID puesta la sesión anterior (`$BASHPID =
-$$`) no alcanzaba, porque depende de una distinción que no se pudo confirmar
-fuera de Linux. El arreglo que reemplazó esa guardia no compara nada: cada
-trabajo de fondo empieza con `trap - EXIT`, que borra la trampa heredada SOLO
-en su propio subshell — garantizado por POSIX, no un detalle de plataforma. Es
-la misma lección de siempre en una forma nueva: una comprobación basada en
-"debería comportarse así" es más débil que una que no necesita que se
-comporte de ninguna forma en particular.
+De paso, `todas.sh` seguía cortándose en Windows/Git Bash con «No such file or
+directory», y aquí se dio por diagnosticado: una trampa EXIT que los subshells
+heredaban mal. **Ese diagnóstico era falso**, y costaron otras tres
+correcciones —cada una con su explicación convincente— antes de leer el mensaje
+por lo que decía. El ítem 25 lo cuenta.
+
+
+---
+
+**25 · El error decía el nombre del archivo equivocado, y lo dijo cuatro
+veces.** El 18 de septiembre de 2026, `npm test` llevaba cuatro intentos sin
+terminar solo en la máquina del operador —Windows, Git Bash—. Cada intento
+falló distinto, y cada uno dio pie a una explicación que se sostenía:
+
+```
+./todas.sh: line 132: /tmp/tmp.L7uZM86XYp/e2e.js: No such file or directory
+./todas.sh: line 140: /tmp/tmp.aQSIdscTwZ/movil.js: No such file or directory
+environment: line 18: /tmp/tmp.aQSIdscTwZ/e2e.js: No such file or directory
+ejecutar-bateria.sh: line 65: /tmp/tmp.PSNAF4aXSX/e2e.js: No such file or directory
+```
+
+Se leyó cuatro veces como «no encuentra la batería `e2e.js`», y de ahí salieron
+cuatro arreglos sobre la herencia entre subshells: una guardia por PID, después
+`trap - EXIT` al entrar a la función, después las funciones exportadas con
+`export -f`, después cada batería en su propio archivo. Cada uno cambió el
+número de línea del mensaje, ninguno lo quitó — que era exactamente la pista.
+
+Lo que decía el mensaje es otra cosa. Esas líneas son siempre las dos que
+redirigen la salida de la batería: `> "$SALIDA/$f"` y `>> "$SALIDA/$f"`. Bash
+monta las redirecciones ANTES de ejecutar el comando, y cuando no puede abrir
+el destino lo reporta con la ruta del DESTINO. No faltaba `e2e.js`: faltaba el
+directorio `/tmp/tmp.XXXX` donde había que escribirlo. En Git Bash el `/tmp` de
+la shell y el que usa `mktemp.exe` no son forzosamente la misma carpeta de
+Windows, así que `mktemp -d` creaba un directorio, imprimía una ruta de estilo
+Unix, y esa ruta no resolvía al mismo sitio. Ninguna batería llegaba a arrancar
+node, y como ninguna escribía una línea, el marcador salía vacío.
+
+El cuelgue de cinco minutos era una segunda avería, tapada por la primera: el
+portero del cupo de trabajadores preguntaba `$(jobs -rp | wc -l)`, y la tabla
+de trabajos que ve un `$( )` es la de su propio subshell. En Git Bash seguía
+enseñando corriendo a los dos trabajos ya muertos, la condición no bajaba
+nunca, `wait -n` volvía en el acto porque no quedaba a quién esperar, y el
+bucle giraba en vacío quemando un núcleo hasta que alguien apretaba Ctrl+C.
+
+El arreglo no es ingenioso y por eso funciona: la salida se guarda en
+`pruebas/.salida/`, una carpeta del repositorio que resuelve igual en toda
+máquina —y que además queda, así que la salida entera de la batería que falló
+se puede abrir después, en vez de borrarse sola—; el cupo se lleva anotando
+PIDs y esperando al más viejo con `wait <pid>`; y no hay trampa EXIT que
+heredar, porque lo que deje vivo una corrida cortada lo barre la siguiente por
+los PID que dejó anotados.
+
+La regla: **cuando un error nombra una ruta, la pregunta es qué se estaba
+haciendo CON esa ruta** —abrirla para leer, para escribir, ejecutarla— y no qué
+archivo del proyecto se llama parecido. El nombre de un archivo dentro de un
+mensaje no lo convierte en el sujeto de la frase. Y el corolario, que es el
+patrón 6 otra vez y duele más: **cuatro arreglos distintos que fallan igual no
+son cuatro hipótesis descartadas, son una hipótesis equivocada probada cuatro
+veces.** Cuando el segundo intento falla con la misma forma que el primero, lo
+que hay que volver a leer es el mensaje, no el código.
+
+Y en la misma corrida, la otra mitad del rojo: `pedidos.js`, `correo.js` y
+`tablero.js` colgaban de un catálogo que ya no existía. La historia A-5 cambió
+lo que siembra `instalar()` —dos filas de EJEMPLO inactivas, que es lo que
+debe ver un comercio recién instalado— y esas tres baterías llevaban años
+tomando prestado ese catálogo para probar inventario, agotados y más vendidos.
+El propio plan lo había advertido por escrito: «la hoja emulada de las baterías
+es otra cosa y no cambia; confundir las dos ya costó diez baterías en rojo una
+vez». Volvió a costar cuatro. Ahora cada una pide su tienda con `configurar()`
+y siembra a mano las existencias flojas que necesita mirar, en la prueba que
+las mira — no en la semilla, que es de otro dueño.

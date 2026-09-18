@@ -22,6 +22,26 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
 api.instalar();
 configurar(g);   // de fábrica no tiene nombre: el tablero se titularía con un corchete
 
+/* EL INVENTARIO QUE ESTA PRUEBA NECESITA, PUESTO AQUÍ Y NO EN LA SEMILLA.
+   configurar() deja los ocho productos de la panadería con existencias
+   holgadas, que es lo normal en una tienda que funciona; el bloque de
+   INVENTARIO del tablero solo dice algo si hay un agotado y dos con pocas
+   unidades. Se ponen aquí, en la prueba que los mira, y no en gas.js, donde le
+   cambiarían el inventario a las otras veintisiete baterías.
+
+   Y no se dejan en la semilla de instalar(): desde la historia A-5 esa semilla
+   es lo que ve un comercio recién instalado —dos filas de EJEMPLO inactivas— y
+   dejó de ser un catálogo del que una prueba pueda colgarse. Confundir las dos
+   es lo que dejó esta batería, correo.js y pedidos.js en rojo. */
+const POCAS = { 'torta-chocolate': 0, 'empanada-pollo': 4, 'galletas-avena': 3 };
+const sembrarInventario = libro => {
+  const hc = libro.hojas.get('Catálogo');
+  libro.filas('Catálogo').forEach((f, i) => {           // i = 0 es el encabezado
+    if (i > 0 && POCAS[f[0]] !== undefined) hc.getRange(i + 1, 6).setValue(POCAS[f[0]]);
+  });
+};
+sembrarInventario(g);
+
 // ---------- fechas de referencia ----------
 const ahora = new Date();
 const diaDelMes = ahora.getDate();
@@ -40,30 +60,30 @@ const linea = (fecha, codigo, estado, ciudad, id, nombre, cant, precio, total) =
                 cant, precio, cant * precio, total, '']);
 
 // Este mes
-linea(ahora, 'A001', 'Confirmado', 'Medellín', 'chonto', 'Tomate chonto', 3, 8900, 60000);
-linea(ahora, 'A001', 'Confirmado', 'Medellín', 'salsa',  'Salsa natural',  1, 14900, 60000);
-linea(ahora, 'A002', 'Confirmado', 'Bogotá',   'chonto', 'Tomate chonto', 2, 8900, 40000);
-linea(ahora, 'A003', 'Por confirmar', 'Cali',  'chonto', 'Tomate chonto', 1, 8900, 25000);
-linea(hace(48), 'A004', 'Por confirmar', 'Cali','salsa', 'Salsa natural', 1, 14900, 30000);
-linea(ahora, 'A005', 'Anulado', 'Pereira',     'jugo',   'Jugo prensado', 1, 12900, 99000);
+linea(ahora, 'A001', 'Confirmado', 'Medellín', 'pan-masa-madre', 'Pan de masa madre', 3, 8900, 60000);
+linea(ahora, 'A001', 'Confirmado', 'Medellín', 'croissant',  'Croissant de mantequilla',  1, 14900, 60000);
+linea(ahora, 'A002', 'Confirmado', 'Bogotá',   'pan-masa-madre', 'Pan de masa madre', 2, 8900, 40000);
+linea(ahora, 'A003', 'Por confirmar', 'Cali',  'pan-masa-madre', 'Pan de masa madre', 1, 8900, 25000);
+linea(hace(48), 'A004', 'Por confirmar', 'Cali','croissant', 'Croissant de mantequilla', 1, 14900, 30000);
+linea(ahora, 'A005', 'Anulado', 'Pereira',     'baguette',   'Baguette clásica', 1, 12900, 99000);
 
 // Mes anterior, día 1: cae dentro del tramo comparable cualquier día que se corra
 /* LAS UNIDADES DEL MES PASADO TIENEN QUE PERDER SIEMPRE CONTRA EL CHONTO.
    «Más vendidos» es una ventana rodante de 30 días, y el mes pasado entra o no
    entra en ella según el calendario: el 1 de marzo, febrero empieza hace 28
-   días. Con 4+2 unidades de cherry contra 5 de chonto, el ranking se daba la
+   días. Con 4+2 unidades de empanada-pollo contra 5 de pan-masa-madre, el ranking se daba la
    vuelta esos dos días del año y tres aserciones se caían.
 
    No se arregla saltándose la aserción cuando el calendario molesta —eso la
-   apaga justo los días en que serviría—. Se arregla sembrando 2+1: el chonto
+   apaga justo los días en que serviría—. Se arregla sembrando 2+1: el pan-masa-madre
    gana entre o no entre el mes pasado, y la aserción mide lo que dice medir,
    que es que el maestro ordena por unidades.
 
    Los totales siguen siendo 26.000 y 14.000: son los que suman los 40.000 de
    la comparación contra el mes pasado, y esos no se tocan. */
-linea(mesAnt, 'B001', 'Confirmado', 'Medellín', 'cherry', 'Tomate cherry', 2, 6500, 26000);
-linea(mesAnt, 'B002', 'Confirmado', 'Medellín', 'cherry', 'Tomate cherry', 1, 6500, 14000);
-linea(mesAnt, 'B003', 'Por confirmar', 'Cali',  'cherry', 'Tomate cherry', 1, 6500, 9000);
+linea(mesAnt, 'B001', 'Confirmado', 'Medellín', 'empanada-pollo', 'Empanada de pollo', 2, 6500, 26000);
+linea(mesAnt, 'B002', 'Confirmado', 'Medellín', 'empanada-pollo', 'Empanada de pollo', 1, 6500, 14000);
+linea(mesAnt, 'B003', 'Por confirmar', 'Cali',  'empanada-pollo', 'Empanada de pollo', 1, 6500, 9000);
 
 /* ESTE PEDIDO TIENE QUE QUEDAR FUERA DE TODO, Y «HACE 40 DÍAS» NO LO GARANTIZA.
    Decía `ahora - 40 días` con el comentario «fuera de todas las listas de 30
@@ -84,7 +104,7 @@ linea(mesAnt, 'B003', 'Por confirmar', 'Cali',  'cherry', 'Tomate cherry', 1, 65
    de confiar en este comentario. */
 const haceDosMeses = new Date(ahora.getFullYear(), ahora.getMonth() - 2, 15);
 linea(haceDosMeses,
-      'C001', 'Confirmado', 'Cartagena', 'secos', 'Tomates secos', 9, 22900, 200000);
+      'C001', 'Confirmado', 'Cartagena', 'galletas-avena', 'Galletas de avena', 9, 22900, 200000);
 
 const hv = H('Validaciones');
 const carrito = (fecha, codigo) => hv.appendRow([fecha, codigo, '', 0, 0, '', 0, 0, 0, '']);
@@ -152,8 +172,8 @@ ok('  ...en verde cuando sube', fmtDe('Ventas confirmadas', 4).color === '#1B5E3
   // mucho mejor que el actual.
   const c = require('./gas.js').crear('./as.js'); c.api.instalar();
   const chp = c.hojas.get('Pedidos');
-  chp.appendRow([ahora, 'Z1', 'V', 'Confirmado', 'Cali', '', 'x', 'chonto', 1, 1000, 1000, 10000, '']);
-  chp.appendRow([mesAnt, 'Z2', 'V', 'Confirmado', 'Cali', '', 'x', 'chonto', 1, 1000, 1000, 90000, '']);
+  chp.appendRow([ahora, 'Z1', 'V', 'Confirmado', 'Cali', '', 'x', 'pan-masa-madre', 1, 1000, 1000, 10000, '']);
+  chp.appendRow([mesAnt, 'Z2', 'V', 'Confirmado', 'Cali', '', 'x', 'pan-masa-madre', 1, 1000, 1000, 90000, '']);
   c.api.recalcularTablero();
   const ct = c.filas('Tablero');
   const f = ct.findIndex(x => String(x[0]).trim() === 'Ventas confirmadas') + 1;
@@ -233,14 +253,14 @@ ok('  ...con la razón al lado', /se enfría la venta/.test(String(nota('de más
 ok('Errores registrados = 1', val('Errores registrados') === 1, String(val('Errores registrados')));
 
 /* ══════════════════ INVENTARIO ══════════════════ */
-ok('Productos agotados = 1 (pasta, stock 0)', val('Productos agotados') === 1,
+ok('Productos agotados = 1 (la torta de chocolate, stock 0)', val('Productos agotados') === 1,
    String(val('Productos agotados')));
-ok('  ...y dice CUÁL', /Pasta de tomate concentrada/.test(String(nota('Productos agotados'))),
+ok('  ...y dice CUÁL', /Torta de chocolate/.test(String(nota('Productos agotados'))),
    String(nota('Productos agotados')));
-ok('Con 5 unidades o menos = 2 (cherry 4, secos 3)', val('Con 5 unidades o menos') === 2,
+ok('Con 5 unidades o menos = 2 (empanadas 4, galletas 3)', val('Con 5 unidades o menos') === 2,
    String(val('Con 5 unidades o menos')));
 ok('  ...con cuántas quedan de cada uno',
-   /Tomate cherry \(4\)/.test(String(nota('Con 5 unidades o menos'))),
+   /Empanada de pollo \(4\)/.test(String(nota('Con 5 unidades o menos'))),
    String(nota('Con 5 unidades o menos')));
 const sinVenderEsperado = antDentro30 ? 5 : 6;
 ok('Sin vender en 30 días = ' + sinVenderEsperado,
@@ -255,13 +275,13 @@ ok('  ...la lista se recorta para no desbordar la pantalla',
 const iTop = tab.findIndex(f => String(f[0]) === 'LO QUE MÁS SE VENDE');
 const top = [];
 for (let i = iTop + 1; i < tab.length && String(tab[i][0]).trim(); i++) top.push(tab[i]);
-ok('El más vendido es el chonto con 5 unidades (3 + 2)',
-   top[0] && top[0][0] === 'Tomate chonto' && top[0][1] === 5,
+ok('El más vendido es el pan-masa-madre con 5 unidades (3 + 2)',
+   top[0] && top[0][0] === 'Pan de masa madre' && top[0][1] === 5,
    top.map(f => f[0] + ':' + f[1]).join(', '));
 ok('  ...con sus ingresos reales (3+2) x 8.900 = 44.500', top[0] && top[0][3] === 44500,
    String(top[0] && top[0][3]));
 ok('  ...usa el nombre del CATÁLOGO, no el que venía en el pedido',
-   top[0] && top[0][0] === 'Tomate chonto');
+   top[0] && top[0][0] === 'Pan de masa madre');
 /* Y gana ENTRE O NO ENTRE el mes pasado en la ventana rodante de 30 días, que
    es lo que hace que esta aserción valga cualquier día del año. Las unidades se
    cuentan de la hoja sembrada, no se escriben aquí: si alguien vuelve a subir
@@ -276,8 +296,8 @@ ok('  ...usa el nombre del CATÁLOGO, no el que venía en el pedido',
 }
 ok('  ...y su barra llena el ancho, por ser el primero',
    top[0] && String(top[0][2]).length === 22, String(top[0] && String(top[0][2]).length));
-ok('Los tomates secos de hace dos meses NO aparecen',
-   !top.some(f => /secos/i.test(String(f[0]))), top.map(f => f[0]).join(', '));
+ok('Los tomates galletas-avena de hace dos meses NO aparecen',
+   !top.some(f => /galletas-avena/i.test(String(f[0]))), top.map(f => f[0]).join(', '));
 
 /* LA SIEMBRA SE COMPRUEBA, NO SE CONFÍA. Este pedido existe para quedar fuera
    de las dos ventanas; si un día alguien vuelve a escribirlo como un desfase en
@@ -293,7 +313,7 @@ ok('Los tomates secos de hace dos meses NO aparecen',
      ', y el mes pasado es el ' + (finMesPasado.getMonth() + 1));
 }
 ok('Lo que está "Por confirmar" no cuenta como vendido',
-   top.reduce((s, f) => s + (/chonto/i.test(f[0]) ? f[1] : 0), 0) === 5, 'si contara A003 serían 6');
+   top.reduce((s, f) => s + (/pan de masa madre/i.test(f[0]) ? f[1] : 0), 0) === 5, 'si contara A003 serían 6');
 ok('Nunca muestra más de 5 productos', top.length <= 5, top.length + ' filas');
 ok('Los ingresos van con formato de pesos',
    fmt(iTop + 2, 4).formato === '"$"#,##0', String(fmt(iTop + 2, 4).formato));
@@ -369,7 +389,7 @@ ok('  ...y baja el de por confirmar a 2', v2('Pedidos por confirmar') === 2,
 
 // ---- Hoja recién instalada, sin un solo pedido ----
 const limpio = require('./gas.js').crear('./as.js');
-limpio.api.instalar();
+limpio.api.instalar(); configurar(limpio); sembrarInventario(limpio);
 let sinDatos = null;
 try { limpio.api.recalcularTablero(); sinDatos = limpio.filas('Tablero'); }
 catch (e) { sinDatos = 'EXCEPCIÓN: ' + e.message; }

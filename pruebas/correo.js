@@ -21,6 +21,19 @@ function tienda(opciones) {
   const g = crear('./as.js');
   g.api.instalar();
   configurar(g);   // de fábrica no tiene ni nombre ni celular, a propósito
+
+  /* EL INVENTARIO FLOJO LO SIEMBRA LA PRUEBA, no la semilla. Los ocho
+     productos de configurar() tienen existencias holgadas —así es una tienda
+     que funciona—, y medio bloque de este correo solo dice algo cuando hay un
+     agotado y dos con pocas unidades. Ponerlo en gas.js se lo cambiaría a las
+     otras veintisiete baterías; ponerlo en instalar() rompería la historia
+     A-5, que manda que un comercio recién instalado vea dos EJEMPLO y nada
+     más. Va aquí, en la prueba que lo mira. */
+  const pocas = { 'torta-chocolate': 0, 'empanada-pollo': 4, 'galletas-avena': 3 };
+  const hc = g.hojas.get('Catálogo');
+  g.filas('Catálogo').forEach((f, i) => {               // i = 0 es el encabezado
+    if (i > 0 && pocas[f[0]] !== undefined) hc.getRange(i + 1, 6).setValue(pocas[f[0]]);
+  });
   const hp = g.hojas.get('Pedidos');
   const L = (fecha, cod, estado, ciudad, id, nombre, cant, precio, total) =>
     hp.appendRow([fecha, cod, 'V-' + cod, estado, ciudad, '', nombre, id,
@@ -30,12 +43,12 @@ function tienda(opciones) {
        diario habla de AYER, y media batería mide justo eso. Lo que estaba mal
        era la expectativa del CSV mensual, no el dato — ver el bloque 9. */
     const ayer = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1, 10, 0);
-    L(ayer, 'A001', 'Confirmado', 'Medellín', 'chonto', 'Tomate chonto', 3, 8900, 60000);
-    L(ayer, 'A002', 'Confirmado', 'Bogotá', 'chonto', 'Tomate chonto', 2, 8900, 40000);
-    L(new Date(ahora - 50 * 3600e3), 'A003', 'Por confirmar', 'Cali', 'salsa', 'Salsa', 1, 14900, 30000);
-    L(new Date(ahora - 3 * 3600e3), 'A004', 'Por confirmar', 'Pereira', 'salsa', 'Salsa', 1, 14900, 25000);
-    L(new Date(ahora - 2 * 3600e3), 'A005', 'Anulado', 'Cali', 'jugo', 'Jugo', 1, 12900, 99000);
-    L(mesAnt, 'B001', 'Confirmado', 'Medellín', 'cherry', 'Cherry', 4, 6500, 26000);
+    L(ayer, 'A001', 'Confirmado', 'Medellín', 'pan-masa-madre', 'Pan de masa madre', 3, 8900, 60000);
+    L(ayer, 'A002', 'Confirmado', 'Bogotá', 'pan-masa-madre', 'Pan de masa madre', 2, 8900, 40000);
+    L(new Date(ahora - 50 * 3600e3), 'A003', 'Por confirmar', 'Cali', 'croissant', 'Croissant de mantequilla', 1, 14900, 30000);
+    L(new Date(ahora - 3 * 3600e3), 'A004', 'Por confirmar', 'Pereira', 'croissant', 'Croissant de mantequilla', 1, 14900, 25000);
+    L(new Date(ahora - 2 * 3600e3), 'A005', 'Anulado', 'Cali', 'baguette', 'Baguette clásica', 1, 12900, 99000);
+    L(mesAnt, 'B001', 'Confirmado', 'Medellín', 'empanada-pollo', 'Empanada de pollo', 4, 6500, 26000);
     const hv = g.hojas.get('Validaciones');
     ['A001', 'A002', 'A003', 'A004', 'X05', 'X06'].forEach(c =>
       hv.appendRow([ahora, c, '', 0, 0, '', 0, 0, 0, '']));
@@ -178,10 +191,10 @@ let base;
      /carritos armados/.test(html) && /llegaron a WhatsApp/.test(html),
      (html.match(/De <strong>[^]{0,90}/) || [''])[0].replace(/<[^>]*>/g, ''));
   ok('Avisa los agotados POR NOMBRE, no solo cuántos',
-     /Agotados:<\/strong> Pasta de tomate concentrada/.test(html),
+     /Agotados:<\/strong> Torta de chocolate/.test(html),
      (html.match(/Agotados:<\/strong>[^<]*/) || [''])[0]);
   ok('  ...y los que quedan pocos, con cuántos quedan',
-     /Tomate cherry \(4\)/.test(html) && /Tomates secos en aceite de oliva \(3\)/.test(html),
+     /Empanada de pollo \(4\)/.test(html) && /Galletas de avena \(3\)/.test(html),
      (html.match(/pocas:<\/strong>[^<]*/) || [''])[0]);
   ok('Lleva el enlace a la hoja', /docs\.google\.com/.test(html));
   ok('Explica cómo dejar de recibirlo', /borra correo_resumen/.test(html));

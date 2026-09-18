@@ -63,7 +63,47 @@ node arnes.mjs || { echo "ERROR: no se pudo armar el arnés"; exit 1; }
 # baterías estuvieron dando verde sobre una tienda que ya no existía.
 sed 's|const SCRIPT_URL = "[^"]*";|const SCRIPT_URL = "";|' index.html > local.html
 
-pkill -f servidor.js 2>/dev/null; sleep 0.5
+# ── DÓNDE SE GUARDA LO QUE IMPRIME CADA BATERÍA ─────────────────────────────
+# Aquí, en el repositorio, y no en un directorio temporal del sistema. Esto es
+# lo que costó cuatro intentos de arreglo, porque el mensaje de error decía
+# exactamente qué pasaba y se leyó como si dijera otra cosa:
+#
+#   ejecutar-bateria.sh: line 65: /tmp/tmp.PSNAF4aXSX/e2e.js: No such file...
+#
+# Eso NO es «no encuentro la batería e2e.js». Es bash diciendo que no puede
+# abrir EL ARCHIVO AL QUE ESTÁ REDIRIGIENDO —`> "$SALIDA/$f"`— porque el
+# directorio que devolvió `mktemp -d` no existe donde dice existir. En Git Bash
+# el `/tmp` de la shell y el que usa `mktemp.exe` no son forzosamente la misma
+# carpeta de Windows: mktemp crea el directorio, imprime una ruta de estilo
+# Unix, y esa ruta no resuelve al mismo sitio. Como bash monta las
+# redirecciones ANTES de ejecutar, node no llegaba a arrancar nunca y ninguna
+# batería escribía una sola línea.
+#
+# Las cuatro corridas que fallaron en Windows dieron el mismo error en las dos
+# líneas que redirigen a $SALIDA —132 y 134, luego 140 y 142, luego
+# «environment» 18 y 20, luego 65 y 67—: cambiaba el número porque el código se
+# movía de sitio, no la causa. Se persiguió la herencia de trampas entre
+# subshells cuatro veces seguidas; la trampa nunca tuvo nada que ver.
+#
+# La regla: cuando un error nombra una ruta, la pregunta es qué se estaba
+# haciendo CON esa ruta —abrirla para leer, para escribir, ejecutarla— y no qué
+# archivo del proyecto se llama parecido.
+#
+# Un directorio del repositorio no tiene ese problema en ningún sistema, y de
+# paso queda: terminada la corrida se puede abrir `.salida/tablero.js.txt` y
+# leer entera la salida de la batería que falló, que antes se borraba sola.
+SALIDA=.salida
+
+# Servidores vivos de una corrida anterior —de una que se cortó con Ctrl+C,
+# típicamente—. Se matan por PID, anotado por la corrida que los levantó:
+# `pkill` no viene en Git Bash, así que preguntarle al sistema por nombre de
+# proceso no es portable. Si igual sobrevive alguno no rompe nada: cada batería
+# empieza pidiendo `/__reset`, que deja la hoja como recién instalada.
+for anotados in "$SALIDA"/pids-*; do
+  [ -f "$anotados" ] || continue
+  while read -r pid; do kill "$pid" 2>/dev/null; done < "$anotados"
+done
+rm -rf "$SALIDA"; mkdir -p "$SALIDA" || { echo "ERROR: no se pudo crear $SALIDA"; exit 1; }
 
 # De más lenta a más rápida. No es cosmético: con trabajadores fijos, empezar
 # por la más larga es lo que evita terminar esperando a una sola. e2e.js dura
@@ -79,44 +119,40 @@ BATERIAS="e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
 nucleos=$(nproc 2>/dev/null || echo 2)
 TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 
-SALIDA=$(mktemp -d)
-# NINGÚN trabajo de fondo puede compartir nada de la shell de arriba con
-# ella misma —esa fue la idea, tres veces, y las tres fallaron en Git Bash
-# (MSYS):
-#   1. Una guardia por PID ($BASHPID = $$) en la trampa EXIT: no alcanzó,
-#      porque depende de que $BASHPID distinga de verdad a la shell de
-#      arriba de sus subshells, algo que ahí no se pudo confirmar.
-#   2. `trap - EXIT` al entrar a la función que corre cada batería: tampoco
-#      alcanzó —se siguió viendo el mismo corte, con «No such file or
-#      directory» incluso antes de que node arrancara—.
-#   3. Las funciones exportadas con `export -f` y cada batería en su propio
-#      `bash -c`: rompió de una forma nueva todavía, «environment: line N:
-#      archivo.js: No such file or directory» — la firma de que algo en esa
-#      máquina no reconstruye bien una función pasada por variable de
-#      entorno (`BASH_FUNC_nombre%%`, el mecanismo que quedó marcado desde
-#      Shellshock y que distintos builds de bash tratan distinto).
+# ── EL CUPO DE TRABAJADORES, CONTANDO PIDs Y NADA MÁS ───────────────────────
+# El portero de antes era `while [ "$(jobs -rp | wc -l)" -ge "$TRABAJADORES" ];
+# do wait -n; done`, y esa fue la segunda mitad del fallo de Windows: la tabla
+# de trabajos que ve un `$(...)` es la de su propio subshell, y en Git Bash
+# seguía enseñando corriendo a los dos trabajos que ya habían muerto. La
+# condición no bajaba nunca de dos, `wait -n` volvía en el acto porque no
+# quedaba a quién esperar, y el bucle giraba en vacío para siempre. Eso es el
+# «no termina solo, toca Ctrl+C» — cinco minutos quemando un núcleo sin lanzar
+# la tercera batería.
 #
-# Las tres veces el arreglo dependía de que la shell de abajo heredara ALGO
-# de la de arriba —una trampa, una función— y se comportara con eso como se
-# supone. Esta vez no hereda nada de nada: `ejecutar-bateria.sh` es un
-# ARCHIVO aparte en el disco, y cada batería lo corre con
-# `bash ejecutar-bateria.sh <lo que necesite>`. Leer un archivo y correrlo es
-# lo más básico que hace un intérprete de comandos; no hay mecanismo de
-# herencia que adivinar porque no hay nada que heredar.
-trap 'pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"' EXIT
-
-indice=0
+# Aquí no hay tabla de trabajos: se anota el PID de cada batería y, cuando el
+# cupo está lleno, se espera al más viejo con `wait <pid>`, que es lo único que
+# hay que saber sobre esperar a un proceso y funciona igual en todas partes.
+# Tampoco hay trampa EXIT: lo que dejara viva una corrida cortada lo barre por
+# PID la siguiente, arriba.
+enVuelo=""; enCola=0; indice=0
 for f in $BATERIAS; do
   indice=$((indice + 1))
-  while [ "$(jobs -rp | wc -l)" -ge "$TRABAJADORES" ]; do wait -n; done
   bash ejecutar-bateria.sh "$f" "$indice" "$SALIDA" &
+  enVuelo="$enVuelo $!"; enCola=$((enCola + 1))
+
+  if [ "$enCola" -ge "$TRABAJADORES" ]; then
+    set -- $enVuelo
+    wait "$1" 2>/dev/null
+    shift
+    enVuelo="$*"; enCola=$((enCola - 1))
+  fi
 done
-wait
+for pid in $enVuelo; do wait "$pid" 2>/dev/null; done
 
 # ── El marcador, en el orden de siempre para que el log sea comparable ──
 total=0; buenas=0; rotas=""
 for f in $BATERIAS; do
-  salida=$(cat "$SALIDA/$f" 2>/dev/null)
+  salida=$(cat "$SALIDA/$f.txt" 2>/dev/null)
   linea=$(echo "$salida" | grep -E "^Resultado" | tail -1)
   printf "  %-16s %s\n" "$f" "${linea:-ERROR}"
   n=$(echo "$linea" | sed -n 's/.*: \([0-9]*\)\/\([0-9]*\).*/\1/p')
@@ -140,9 +176,9 @@ for f in $BATERIAS; do
   fi
 done
 
-pkill -f servidor.js 2>/dev/null
 echo
 echo "  TOTAL: $buenas/$total"
+echo "  (la salida entera de cada batería queda en pruebas/$SALIDA/)"
 if [ -n "$rotas" ]; then
   echo
   echo "  Baterías con problemas:"

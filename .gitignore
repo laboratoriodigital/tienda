@@ -17,6 +17,11 @@ pruebas/*.png
 pruebas/local.html
 pruebas/real.html
 
+# Lo que imprimió cada batería en la última corrida. Queda a propósito —es
+# donde se lee entero el fallo que el marcador solo resume—, pero no se
+# versiona: cambia en cada corrida y es de esta máquina.
+pruebas/.salida/
+
 # ── Dependencias y basura de sistema ──
 # package-lock.json SÍ se versiona, en la raíz y en pruebas/ (historia A-6):
 # es lo que hace que `npm ci` instale las MISMAS versiones en cada corrida, y

@@ -122,10 +122,12 @@ deja de recibir actualizaciones **solo en ese archivo** y lo dice en cada
 corrida, con su edad. **No se construye hasta que exista el primer caso real**:
 maquinaria sin uso es superficie de fallo.
 
-**3.3 Alta de una tienda desde un formulario**   [PENSADO]
+**3.3 Alta de una tienda desde un formulario**   [APARCADO · escrito, sin usar]
 Crear el repositorio, ponerle su nombre, habilitar lo que hay que habilitar y
-cargar sus secretos. Ya existió escrito y aparcado en la línea vieja; se retoma
-cuando montar una tienda a mano cueste más que mantener el flujo.
+cargar sus secretos. El flujo existe en este repositorio —`servicio/tienda-nueva.yml`—
+y está APARCADO a propósito: nunca se ha corrido de punta a punta, así que el
+camino documentado en `DESPLIEGUE.md` es el manual, que sí se ha corrido. Se
+retoma cuando montar una tienda a mano cueste más que mantener el flujo.
 
 **3.4 Sembrar los secretos desde el diagnóstico**   [MEDIDO]
 La mitad del tiempo de montaje se va copiando secretos de una pantalla a otra, y

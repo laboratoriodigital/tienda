@@ -2574,11 +2574,31 @@ const configurar = (g, clave, valor) => {
    levanta el suyo en su puerto. Cero aserciones tocadas; el marcador tiene que
    salir idéntico. */
 {
-  const sh = fs.readFileSync('todas.sh', 'utf8');
+  /* EL LANZADOR SON DOS ARCHIVOS. `todas.sh` decide el orden, el cupo y el
+     marcador; `ejecutar-bateria.sh` es lo que corre UNA batería con su
+     servidor. Se leen juntos porque lo que estas aserciones vigilan es el
+     mecanismo, y el mecanismo vive repartido entre los dos a propósito: cada
+     batería se lanza como un proceso suyo que lee su script del disco, sin
+     heredar de la corrida de arriba ni una trampa ni una función. */
+  const sh = fs.readFileSync('todas.sh', 'utf8') +
+             fs.readFileSync('ejecutar-bateria.sh', 'utf8');
 
   ok('LAS BATERÍAS corren a la vez, cada una con SU servidor',
-     /TRABAJADORES/.test(sh) && /8100 \+ i \* 2/.test(sh) && /wait -n/.test(sh),
+     /TRABAJADORES/.test(sh) && /8100 \+ i \* 2/.test(sh) &&
+     /bash ejecutar-bateria\.sh .*&/.test(sh),
      'el aislamiento no es un candado: es que no comparten nada');
+
+  /* Y LO QUE IMPRIME CADA BATERÍA NO SE GUARDA EN UN TEMPORAL DEL SISTEMA.
+     `mktemp -d` devolvía en Git Bash una ruta que no resolvía a la carpeta que
+     acababa de crear, así que la PRIMERA redirección de cada batería moría con
+     «No such file or directory» y ninguna llegaba a escribir una línea. El
+     mensaje nombraba el archivo .js del destino —`/tmp/tmp.XXXX/e2e.js`—, y eso
+     hizo buscar cuatro veces seguidas una batería que no faltaba, en vez del
+     directorio que sí. Patrón 8: la ruta del error se leyó como sujeto cuando
+     era complemento. */
+  ok('  ...y su salida se guarda en el repositorio, no en un temporal del sistema',
+     !/\$\(mktemp/.test(sh) && /SALIDA=\.salida/.test(sh),
+     'un temporal del sistema no resuelve igual en toda máquina; una carpeta del repositorio sí');
 
   /* LA LISTA DE QUÉ SERVIDOR NECESITA CADA BATERÍA SE LE PREGUNTA A ELLA.
      Escrita aparte sería la segunda copia del mismo dato (patrón 2): se agrega

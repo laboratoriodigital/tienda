@@ -63,7 +63,7 @@ gratis e ilimitado en repositorios públicos; en privados son 2.000 minutos al
 mes para toda la cuenta, repartidos entre todas las tiendas.
 
 > Hay un flujo que hace este paso solo, `servicio/tienda-nueva.yml`, y está
-> aparcado a propósito — ver `ROADMAP.md`, 4.6. Con pocas tiendas, hacerlo a
+> aparcado a propósito — ver `ROADMAP.md`, 3.3. Con pocas tiendas, hacerlo a
 > mano cuesta menos que mantenerlo.
 
 Y **la casilla que se olvida siempre**: Settings → Actions → General →

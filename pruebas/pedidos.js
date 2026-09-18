@@ -1,6 +1,6 @@
 // Pruebas del Apps Script sobre el emulador compartido (gas.js), que carga
 // apps-script.gs TAL CUAL. Nada de imitaciones escritas a mano.
-const crear = require('./gas.js').crear;
+const { crear, configurar } = require('./gas.js');
 const g = crear('./as.js');
 const api = g.api;
 const H = n => g.hojas.get(n);          // el objeto hoja
@@ -25,26 +25,33 @@ const pedidoJSON = (codigo, items) => JSON.stringify({
 const post = carga => doPost({ postData: { contents: carga } });
 const registrar = (codigo, items, envio) => doGet({ parameter: {
   a: 'registrar', pedido: codigo, ciudad: 'Bogotá', cupon: '',
-  envio: envio || 'medellin',
+  envio: envio || 'zona-norte',
   items: items.map(i => i[0] + ':' + i[1]).join(',') } });
 const validar = (codigo, items, cupon, envio) => doGet({ parameter: {
   a: 'validar', sellar: '1', pedido: codigo, cupon: cupon || '',
-  envio: envio === undefined ? 'medellin' : envio, sub: '1',
+  envio: envio === undefined ? 'zona-norte' : envio, sub: '1',
   items: items.map(i => i[0] + ':' + i[1]).join(',') } });
 const filasDe = h => D(h).length - 1;
 
 instalar();
+/* LA TIENDA DE PRUEBA LA PONE configurar(), NO instalar(). Desde la historia
+   A-5 instalar() siembra dos filas de EJEMPLO inactivas —lo que tiene que ver
+   un comercio recién instalado— y ya no un catálogo de ocho productos que esta
+   batería pudiera usar. El catálogo contra el que se prueba es el de gas.js, y
+   se pide explícitamente. Confundir las dos semillas es lo que dejó esta
+   batería reventando con «Cannot read properties of undefined». */
+configurar(g);
 ok('instalar() crea el disparador de edición',
    g.triggers.map(t => t.getHandlerFunction()).indexOf('alEditar') !== -1,
    g.triggers.map(t => t.getHandlerFunction()).join(', '));
 ok('Pedidos tiene la columna Inventario',
    D('Pedidos')[0][12] === 'Inventario', D('Pedidos')[0].join('|'));
-ok('Stock inicial de chonto = 24', stock('chonto') === 24, String(stock('chonto')));
+ok('Stock inicial del pan de masa madre = 30', stock('pan-masa-madre') === 30, String(stock('pan-masa-madre')));
 
 // ---- 1. El mismo pedido enviado tres veces solo entra una ----
-registrar('ABC12', [['chonto', 3], ['salsa', 1]]);
-registrar('ABC12', [['chonto', 3], ['salsa', 1]]);
-registrar('ABC12', [['chonto', 3], ['salsa', 1]]);
+registrar('ABC12', [['pan-masa-madre', 3], ['croissant', 1]]);
+registrar('ABC12', [['pan-masa-madre', 3], ['croissant', 1]]);
+registrar('ABC12', [['pan-masa-madre', 3], ['croissant', 1]]);
 let lineas = filasDe('Pedidos');
 ok('LA HOJA PEDIDOS SE LLENA (registro por GET)', lineas > 0, lineas + ' líneas');
 ok('Tres envíos del mismo código = 2 líneas (no 6)', lineas === 2, lineas + ' líneas');
@@ -64,18 +71,18 @@ ok('  ...y tres envíos del mismo código siguen dejando UNA sola acta',
 
 // ---- 1c. Validaciones: una fila por pedido, aunque el carrito cambie ----
 const actasAntes = filasDe('Validaciones');
-validar('QQQ11', [['chonto', 1]]);
-validar('QQQ11', [['chonto', 2]]);
-validar('QQQ11', [['chonto', 3]], 'ORGANICO10');
-validar('QQQ11', [['chonto', 3]], 'ORGANICO10');
+validar('QQQ11', [['pan-masa-madre', 1]]);
+validar('QQQ11', [['pan-masa-madre', 2]]);
+validar('QQQ11', [['pan-masa-madre', 3]], 'BIENVENIDA10');
+validar('QQQ11', [['pan-masa-madre', 3]], 'BIENVENIDA10');
 ok('Cuatro validaciones del mismo pedido = 1 fila',
    filasDe('Validaciones') === actasAntes + 1,
    filasDe('Validaciones') + ' filas, eran ' + actasAntes);
 ok('  ...y la fila guarda el ÚLTIMO estado (3 unidades)',
-   /chonto x3/.test(String(actaDe('QQQ11')[0][9])), String(actaDe('QQQ11')[0][9]));
+   /pan-masa-madre x3/.test(String(actaDe('QQQ11')[0][9])), String(actaDe('QQQ11')[0][9]));
 ok('  ...con el número del pedido como referencia',
    actaDe('QQQ11').length === 1 && actaDe('QQQ11')[0][1] === 'QQQ11');
-validar('WWW22', [['salsa', 1]]);
+validar('WWW22', [['croissant', 1]]);
 ok('Otro pedido sí abre su propia fila', filasDe('Validaciones') === actasAntes + 2,
    filasDe('Validaciones') + ' filas');
 
@@ -86,27 +93,27 @@ ok('Otro pedido sí abre su propia fila', filasDe('Validaciones') === actasAntes
    instante, así que el sello bueno llegaba tarde y el acta se quedaba con la
    zona de envío anterior. Mensaje y Pedidos decían una cosa, el acta otra. */
 {
-  validar('FRZ77', [['chonto', 1]], '', 'finca');
-  const conFinca = actaDe('FRZ77')[0][7];
-  registrar('FRZ77', [['chonto', 1]], 'medellin');
+  validar('FRZ77', [['pan-masa-madre', 1]], '', 'centro');
+  const conRecogida = actaDe('FRZ77')[0][7];
+  registrar('FRZ77', [['pan-masa-madre', 1]], 'zona-norte');
   const trasRegistrar = actaDe('FRZ77')[0][7];
-  validar('FRZ77', [['chonto', 1]], '', 'finca');
+  validar('FRZ77', [['pan-masa-madre', 1]], '', 'centro');
   const trasSelloTardio = actaDe('FRZ77')[0][7];
 
   ok('EL ACTA LA ESCRIBE QUIEN REGISTRA, no un sello que llega tarde',
-     conFinca === 0 && trasRegistrar === 9000,
-     'antes ' + conFinca + ', después de registrar ' + trasRegistrar);
+     conRecogida === 0 && trasRegistrar === 6000,
+     'antes ' + conRecogida + ', después de registrar ' + trasRegistrar);
   ok('  ...y el acta cuadra con lo que cobró Pedidos',
      actaDe('FRZ77')[0][8] === D('Pedidos').slice(1).filter(f => f[1] === 'FRZ77')[0][11]);
   ok('  ...y después de enviado, un sello de fuera YA NO la reescribe',
-     trasSelloTardio === 9000, String(trasSelloTardio));
+     trasSelloTardio === 6000, String(trasSelloTardio));
 }
 
 /* EL ACTA GUARDA LOS AVISOS. Sin esto la fila no distingue «eligió recoger en
    finca» de «la hoja no reconoció el envío y avisó»: las dos dejan el envío en
    0. Es la diferencia entre un acta y un recibo. */
 {
-  registrar('AVS01', [['chonto', 1]], 'ZONA-QUE-NO-EXISTE');
+  registrar('AVS01', [['pan-masa-madre', 1]], 'ZONA-QUE-NO-EXISTE');
   const acta = actaDe('AVS01')[0];
   ok('EL ACTA GUARDA LOS AVISOS que el maestro le dio al comprador',
      /no está disponible/.test(String(acta[10])), String(acta[10]));
@@ -126,8 +133,8 @@ ok('Más vendidos vacío mientras esté "Por confirmar"',
 D('Pedidos')[1][3] = 'Confirmado';
 D('Pedidos')[2][3] = 'Confirmado';
 alEditar({ range: { getSheet: () => H('Pedidos'), getColumn: () => 4, getNumColumns: () => 1 } });
-ok('Confirmar descuenta el stock (24 - 3 = 21)', stock('chonto') === 21, String(stock('chonto')));
-ok('  ...y también el del otro producto (9 - 1 = 8)', stock('salsa') === 8, String(stock('salsa')));
+ok('Confirmar descuenta el stock (30 - 3 = 27)', stock('pan-masa-madre') === 27, String(stock('pan-masa-madre')));
+ok('  ...y también el del otro producto (40 - 1 = 39)', stock('croissant') === 39, String(stock('croissant')));
 ok('  ...marcando la línea como Descontado', D('Pedidos')[1][12] === 'Descontado');
 ok('  ...y limpia la caché para que la tienda lo vea ya', !cache['catalogo']);
 ok('Más vendidos ya tiene datos', (D('Más vendidos').length - 1) === 2,
@@ -136,31 +143,31 @@ ok('Más vendidos ya tiene datos', (D('Más vendidos').length - 1) === 2,
 // ---- 4. Volver a disparar no descuenta dos veces ----
 alEditar({ range: { getSheet: () => H('Pedidos'), getColumn: () => 4, getNumColumns: () => 1 } });
 aplicarInventario(); aplicarInventario();
-ok('Ejecutarlo de nuevo NO vuelve a descontar', stock('chonto') === 21, String(stock('chonto')));
+ok('Ejecutarlo de nuevo NO vuelve a descontar', stock('pan-masa-madre') === 27, String(stock('pan-masa-madre')));
 
 // ---- 5. Anular devuelve el stock ----
 D('Pedidos')[1][3] = 'Anulado';
 alEditar({ range: { getSheet: () => H('Pedidos'), getColumn: () => 4, getNumColumns: () => 1 } });
-ok('Anular devuelve el stock (21 + 3 = 24)', stock('chonto') === 24, String(stock('chonto')));
+ok('Anular devuelve el stock (27 + 3 = 30)', stock('pan-masa-madre') === 30, String(stock('pan-masa-madre')));
 ok('  ...y marca la línea como Devuelto', D('Pedidos')[1][12] === 'Devuelto');
-ok('  ...sin tocar la línea que sigue confirmada', stock('salsa') === 8, String(stock('salsa')));
+ok('  ...sin tocar la línea que sigue confirmada', stock('croissant') === 39, String(stock('croissant')));
 
 // ---- 6. Volver a confirmar descuenta otra vez ----
 D('Pedidos')[1][3] = 'Confirmado';
 alEditar({ range: { getSheet: () => H('Pedidos'), getColumn: () => 4, getNumColumns: () => 1 } });
-ok('Confirmar de nuevo vuelve a descontar', stock('chonto') === 21, String(stock('chonto')));
+ok('Confirmar de nuevo vuelve a descontar', stock('pan-masa-madre') === 27, String(stock('pan-masa-madre')));
 
 // ---- 7. Editar otra columna no dispara nada ----
-const antes = stock('chonto');
+const antes = stock('pan-masa-madre');
 alEditar({ range: { getSheet: () => H('Pedidos'), getColumn: () => 5, getNumColumns: () => 1 } });
-ok('Editar la Ciudad no toca el inventario', stock('chonto') === antes);
+ok('Editar la Ciudad no toca el inventario', stock('pan-masa-madre') === antes);
 
 // ---- 8. Un pedido distinto sí entra ----
 /* Se cuenta contra lo que había, no contra un número fijo: las baterías de
    arriba registran pedidos propios y una cifra escrita a mano aquí se rompe
    cada vez que se agrega un caso. Patrón 2. */
 const lineasAntesDeXYZ = D('Pedidos').length - 1;
-registrar('XYZ99', [['chonto', 2]]);
+registrar('XYZ99', [['pan-masa-madre', 2]]);
 ok('Un código nuevo sí se registra', (D('Pedidos').length - 1) === lineasAntesDeXYZ + 1,
    (D('Pedidos').length - 1) + ' líneas');
 
@@ -170,24 +177,24 @@ ok('Un código nuevo sí se registra', (D('Pedidos').length - 1) === lineasAntes
    congelado. Antes se tomaba antes, y no se notaba porque registrar no tocaba
    el acta; eso era justamente el fallo: el acta podía quedarse con un sello
    anterior al que de verdad se envió. */
-validar('FRZ01', [['chonto', 2]]);
-registrar('FRZ01', [['chonto', 2]]);                      // el cliente envía el pedido
+validar('FRZ01', [['pan-masa-madre', 2]]);
+registrar('FRZ01', [['pan-masa-madre', 2]]);                      // el cliente envía el pedido
 const antesCongelar = JSON.stringify(D('Validaciones').find(f => f[1] === 'FRZ01'));
-validar('FRZ01', [['chonto', 99]]);                       // alguien intenta pisar la fila
+validar('FRZ01', [['pan-masa-madre', 99]]);                       // alguien intenta pisar la fila
 const despuesCongelar = JSON.stringify(D('Validaciones').find(f => f[1] === 'FRZ01'));
 ok('Una validación de pedido YA ENVIADO no se puede reescribir',
    antesCongelar === despuesCongelar,
    'antes: ' + (antesCongelar||'').slice(0,60));
 ok('  ...y antes de enviarlo sí se actualiza (como debe)', (() => {
-     validar('UPD02', [['chonto', 1]]);
+     validar('UPD02', [['pan-masa-madre', 1]]);
      const a = String(D('Validaciones').find(f => f[1] === 'UPD02')[9]);
-     validar('UPD02', [['chonto', 5]]);
+     validar('UPD02', [['pan-masa-madre', 5]]);
      const b = String(D('Validaciones').find(f => f[1] === 'UPD02')[9]);
-     return a !== b && b.includes('chonto x5');
+     return a !== b && b.includes('pan-masa-madre x5');
    })());
 
 // ---- 8c. Un envío que la hoja no conoce se avisa ----
-const rEnvioRaro = JSON.parse(doGet({ parameter: { a:'validar', items:'chonto:1',
+const rEnvioRaro = JSON.parse(doGet({ parameter: { a:'validar', items:'pan-masa-madre:1',
   envio:'sabana', cupon:'', sub:'8900' } })._texto);
 ok('Un envío desconocido se avisa, no se cobra cero en silencio',
    (rEnvioRaro.avisos || []).some(a => /ya no está disponible/.test(a)),
@@ -218,25 +225,25 @@ ok('Recorta a 60 caracteres', celdaSegura('x'.repeat(500)).length === 60);
 // ---- 11. Validación del POST ----
 ok('Rechaza no-objeto', validarRegistro(null) === null);
 ok('Rechaza sin items', validarRegistro({ items: [] }) === null);
-ok('Rechaza 31 items', validarRegistro({ items: Array(31).fill({ id: 'chonto', cantidad: 1, precio: 1 }) }) === null);
+ok('Rechaza 31 items', validarRegistro({ items: Array(31).fill({ id: 'pan-masa-madre', cantidad: 1, precio: 1 }) }) === null);
 ok('Descarta id que no esté en el catálogo',
-   validarRegistro({ items: [{ id: 'HACKEADO', cantidad: 1 }, { id: 'chonto', cantidad: 2 }] }).items.length === 1);
+   validarRegistro({ items: [{ id: 'HACKEADO', cantidad: 1 }, { id: 'pan-masa-madre', cantidad: 2 }] }).items.length === 1);
 ok('Elimina duplicados',
-   validarRegistro({ items: [{ id: 'chonto', cantidad: 1 }, { id: 'chonto', cantidad: 9 }] }).items.length === 1);
-const topes = validarRegistro({ items: [{ id: 'chonto', cantidad: 999999, precio: 9e9 }], total: 9e9, ciudad: 'x'.repeat(300) });
+   validarRegistro({ items: [{ id: 'pan-masa-madre', cantidad: 1 }, { id: 'pan-masa-madre', cantidad: 9 }] }).items.length === 1);
+const topes = validarRegistro({ items: [{ id: 'pan-masa-madre', cantidad: 999999, precio: 9e9 }], total: 9e9, ciudad: 'x'.repeat(300) });
 ok('Topa cantidad a 200', topes.items[0].cantidad === 200, String(topes.items[0].cantidad));
 ok('Topa total a 5.000.000', topes.total === 5000000);
 /* Un pedido nace en «Nuevo» y lo pone el maestro, no quien manda el POST. Si
    lo decidiera el comprador, mandar `estado: Pagado` descontaría inventario sin
    que nadie hubiera pagado nada. */
 ok('El Estado NO lo decide quien envía',
-   validarRegistro({ estado: 'Pagado', items: [{ id: 'chonto', cantidad: 1 }] }).estado === 'Nuevo',
-   validarRegistro({ estado: 'Pagado', items: [{ id: 'chonto', cantidad: 1 }] }).estado);
+   validarRegistro({ estado: 'Pagado', items: [{ id: 'pan-masa-madre', cantidad: 1 }] }).estado === 'Nuevo',
+   validarRegistro({ estado: 'Pagado', items: [{ id: 'pan-masa-madre', cantidad: 1 }] }).estado);
 ok('  ...y el que pone no descuenta inventario por sí solo',
    esVenta('Nuevo') === false && esVenta('Pagado') === true,
    'el stock se mueve al pagar, no al llegar el pedido');
 ok('Ciudad con fórmula queda como texto',
-   validarRegistro({ ciudad: '=IMPORTXML("http://x","//y")', items: [{ id: 'chonto', cantidad: 1 }] }).ciudad[0] === "'");
+   validarRegistro({ ciudad: '=IMPORTXML("http://x","//y")', items: [{ id: 'pan-masa-madre', cantidad: 1 }] }).ciudad[0] === "'");
 
 
 /* ============================================================================
@@ -253,7 +260,7 @@ ok('Ciudad con fórmula queda como texto',
    ============================================================================ */
 {
   const sucia = crear('./as.js');
-  sucia.api.instalar();
+  sucia.api.instalar(); configurar(sucia);
   const puerta = o => JSON.parse(sucia.api.doGet({
     parameter: Object.assign({ t: sucia.token }, o) })._texto);
 
@@ -261,12 +268,12 @@ ok('Ciudad con fórmula queda como texto',
   sucia.hojas.get('Envíos').getRange(3, 3, 1, 1).setValue('9,000');      // envío como texto
   sucia.hojas.get('Cupones').getRange(2, 4, 1, 1).setValue('50.000');    // mínimo como texto
 
-  const r = puerta({ a: 'validar', items: 'chonto:1,cherry:2', envio: 'medellin', sub: '1' });
+  const r = puerta({ a: 'validar', items: 'pan-masa-madre:1,empanada-pollo:2', envio: 'zona-norte', sub: '1' });
   const dice = (r.avisos || []).join(' | ');
 
   ok('UN PRECIO ILEGIBLE no deja el producto gratis: lo saca del catálogo',
-     r.items.map(i => i.id).indexOf('chonto') === -1 &&
-     r.items.map(i => i.id).indexOf('cherry') !== -1,
+     r.items.map(i => i.id).indexOf('pan-masa-madre') === -1 &&
+     r.items.map(i => i.id).indexOf('empanada-pollo') !== -1,
      r.items.map(i => i.id).join(', '));
   ok('UN ENVÍO ILEGIBLE no se cobra en cero callando',
      r.envio === 0 && /no se pudo leer/.test(dice), dice);
@@ -278,8 +285,8 @@ ok('Ciudad con fórmula queda como texto',
      sucia.filas('Errores').slice(1).some(f => /no se pudieron leer/.test(String(f[1]))),
      JSON.stringify(sucia.filas('Errores').slice(1).map(f => f[1])));
 
-  const cup = puerta({ a: 'validar', items: 'cherry:2', envio: 'finca',
-                       cupon: 'ORGANICO10', sub: '1' });
+  const cup = puerta({ a: 'validar', items: 'empanada-pollo:2', envio: 'nacional',
+                       cupon: 'BIENVENIDA10', sub: '1' });
   ok('UN CUPÓN CON UN DATO ILEGIBLE no se aplica',
      !cup.cupon.ok && /no pudimos leer/.test(String(cup.cupon.texto)),
      String(cup.cupon.texto));
@@ -288,10 +295,12 @@ ok('Ciudad con fórmula queda como texto',
 
   /* Vacío NO es ilegible: una celda en blanco es una decisión, y vale 0. */
   const limpia = crear('./as.js');
-  limpia.api.instalar();
-  limpia.hojas.get('Envíos').getRange(2, 3, 1, 1).setValue('');
+  limpia.api.instalar(); configurar(limpia);
+  /* Se vacía la zona norte, que vale 6.000: dejar en blanco la de recoger en
+     el local -que ya vale 0- no distinguiría el acierto del fallo. */
+  limpia.hojas.get('Envíos').getRange(3, 3, 1, 1).setValue('');
   const v = JSON.parse(limpia.api.doGet({ parameter: {
-    a: 'validar', t: limpia.token, items: 'chonto:1', envio: 'finca', sub: '1' } })._texto);
+    a: 'validar', t: limpia.token, items: 'pan-masa-madre:1', envio: 'zona-norte', sub: '1' } })._texto);
   ok('UNA CELDA VACÍA sigue valiendo cero, sin ruido',
      v.envio === 0 && (v.ilegibles || []).length === 0,
      JSON.stringify(v.avisos));
@@ -301,18 +310,18 @@ ok('Ciudad con fórmula queda como texto',
    de `if (idEnvio)`, así que avisaba cuando el id existía pero no se reconocía
    —el caso leve— y no cuando no llegaba ninguno —el caso peor—. */
 {
-  const g2 = crear('./as.js'); g2.api.instalar();
+  const g2 = crear('./as.js'); g2.api.instalar(); configurar(g2);
   const q = o => JSON.parse(g2.api.doGet({
     parameter: Object.assign({ t: g2.token }, o) })._texto);
 
-  const vacio = q({ a: 'validar', items: 'chonto:1', envio: '', sub: '1' });
+  const vacio = q({ a: 'validar', items: 'pan-masa-madre:1', envio: '', sub: '1' });
   ok('UN ENVÍO VACÍO cuesta 0 pero YA NO calla',
      vacio.envio === 0 && (vacio.avisos || []).some(a => /zona de envío/.test(a)),
      JSON.stringify(vacio.avisos));
 
-  const mayus = q({ a: 'validar', items: 'chonto:1', envio: 'MEDELLIN', sub: '1' });
+  const mayus = q({ a: 'validar', items: 'pan-masa-madre:1', envio: 'ZONA-NORTE', sub: '1' });
   ok('UN ID EN MAYÚSCULAS ya no rompe el envío del cliente',
-     mayus.envio === 9000, String(mayus.envio));
+     mayus.envio === 6000, String(mayus.envio));
   ok('  ...pero el comerciante se entera, que es quien puede arreglarlo',
      g2.filas('Errores').slice(1).some(f => /mayúsculas/.test(String(f[1]))),
      JSON.stringify(g2.filas('Errores').slice(1).map(f => f[1])));
@@ -331,7 +340,7 @@ ok('Ciudad con fórmula queda como texto',
     const x = crear('./as.js'); x.api.instalar(); configurar(x);
     const hp = x.hojas.get('Pedidos');
     hp.appendRow([new Date(), 'P1', 'V-P1', 'Nuevo', 'Medellín', '',
-                  'Tomate chonto', 'chonto', 5, 8900, 44500, 44500, '']);
+                  'Pan de masa madre', 'pan-masa-madre', 5, 8900, 44500, 44500, '']);
     return x;
   };
   const stockDe = (x, id) => (x.filas('Catálogo').find(r => r[0] === id) || [])[5];
@@ -339,7 +348,7 @@ ok('Ciudad con fórmula queda como texto',
                             x.api.aplicarInventario(); };
 
   /* LA REGLA, RECORRIDA ENTERA. Cada estado con lo que le pasa al stock. */
-  const inicial = stockDe(nueva(), 'chonto');
+  const inicial = stockDe(nueva(), 'pan-masa-madre');
   const recorrido = [
     ['Nuevo',             inicial,     'un carrito abierto en WhatsApp no es una venta'],
     ['Pendiente de pago', inicial,     'esperar el pago tampoco reserva stock'],
@@ -352,8 +361,8 @@ ok('Ciudad con fórmula queda como texto',
     const x = nueva();
     poner(x, estado);
     ok('«' + estado + '» deja el stock en ' + esperado + ' — ' + porque,
-       stockDe(x, 'chonto') === esperado,
-       'quedó en ' + stockDe(x, 'chonto'));
+       stockDe(x, 'pan-masa-madre') === esperado,
+       'quedó en ' + stockDe(x, 'pan-masa-madre'));
   });
 
   /* Y el recorrido de verdad, en una sola hoja y en orden: despachar un pedido
@@ -362,7 +371,7 @@ ok('Ciudad con fórmula queda como texto',
     const x = nueva();
     const visto = [];
     ['Nuevo', 'Pendiente de pago', 'Pagado', 'Despachado', 'Entregado']
-      .forEach(e => { poner(x, e); visto.push(stockDe(x, 'chonto')); });
+      .forEach(e => { poner(x, e); visto.push(stockDe(x, 'pan-masa-madre')); });
     ok('EL RECORRIDO COMPLETO descuenta UNA vez y no la deshace',
        visto.join(',') === [inicial, inicial, inicial - 5, inicial - 5, inicial - 5].join(','),
        visto.join(' → '));
@@ -400,10 +409,10 @@ ok('Ciudad con fórmula queda como texto',
   {
     const x = nueva();
     poner(x, 'Pagado');
-    const vendido = stockDe(x, 'chonto');
+    const vendido = stockDe(x, 'pan-masa-madre');
     poner(x, 'Pagdo');                      // errata
     ok('UNA ERRATA EN EL ESTADO no devuelve stock que ya se vendió',
-       stockDe(x, 'chonto') === vendido,
+       stockDe(x, 'pan-masa-madre') === vendido,
        'quedarse quieto es reversible; resucitar inventario vendido, no');
     ok('  ...y el diagnóstico la saca por su fila y con lo que dice',
        (() => { const t = x.api.diagnostico().texto;
@@ -425,7 +434,7 @@ ok('Ciudad con fórmula queda como texto',
     const hp = x.hojas.get('Pedidos');
     [['Por confirmar'], ['Confirmado'], ['Anulado'], ['Pagado'], ['vaya usted a saber']]
       .forEach((e, i) => hp.appendRow([new Date(), 'M' + i, 'V', e[0], 'Cali', '',
-                                       'x', 'chonto', 1, 100, 100, 100, '']));
+                                       'x', 'pan-masa-madre', 1, 100, 100, 100, '']));
     const cambios = x.api.migrarEstados();
     const col = x.filas('Pedidos').slice(1).map(f => String(f[3]));
     ok('MIGRAR reescribe los tres viejos y nada más', cambios === 3,
@@ -465,8 +474,8 @@ ok('Ciudad con fórmula queda como texto',
   const { crear, configurar } = require('./gas.js');
   const x = crear('./as.js'); x.api.instalar(); configurar(x);
   const reg = (codigo, tarde) => JSON.parse(x.api.doGet({ parameter: {
-    a: 'registrar', pedido: codigo, ciudad: 'Cali', cupon: '', envio: 'medellin',
-    items: 'chonto:1', sub: '8900', tarde: tarde } })._texto);
+    a: 'registrar', pedido: codigo, ciudad: 'Cali', cupon: '', envio: 'zona-norte',
+    items: 'pan-masa-madre:1', sub: '8900', tarde: tarde } })._texto);
 
   ok('UN REGISTRO NORMAL no cuenta como rescate',
      reg('N0001').ok && x.api.rescates().n === 0, JSON.stringify(x.api.rescates()));
@@ -491,7 +500,7 @@ ok('Ciudad con fórmula queda como texto',
   ok('  ...y `tarde` con basura no ensucia el contador',
      (() => { const y = crear('./as.js'); y.api.instalar(); configurar(y);
               JSON.parse(y.api.doGet({ parameter: { a: 'registrar', pedido: 'B0001',
-                ciudad: 'Cali', cupon: '', envio: 'medellin', items: 'chonto:1',
+                ciudad: 'Cali', cupon: '', envio: 'zona-norte', items: 'pan-masa-madre:1',
                 sub: '1', tarde: 'sandía' } })._texto);
               return y.api.rescates().n === 0; })(),
      'lo que no es un número de minutos no es un rescate');
@@ -510,7 +519,7 @@ ok('Ciudad con fórmula queda como texto',
   {
     const y = crear('./as.js'); y.api.instalar(); configurar(y);
     JSON.parse(y.api.doGet({ parameter: { a: 'registrar', pedido: 'C0001',
-      ciudad: 'Cali', cupon: '', envio: 'medellin', items: 'chonto:1',
+      ciudad: 'Cali', cupon: '', envio: 'zona-norte', items: 'pan-masa-madre:1',
       sub: '1', tarde: '3' } })._texto);
     ok('  ...y con minutos sueltos dice que son normales',
        /son normales/.test(y.api.diagnostico().texto) &&
