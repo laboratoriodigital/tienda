@@ -406,18 +406,19 @@ const COMERCIO = {
   sitio_titulo:     'Panadería La Espiga — pan de masa madre',
   sitio_descripcion:'Pan de masa madre horneado cada mañana. Pide por WhatsApp.',
   portada_titulo:   'Pan que huele a pan.',
-  empresa_razon:    'La Espiga de Rionegro S.A.S.',
+  empresa_razon:    'Panadería La Espiga S.A.S.',
   empresa_nit:      '900.000.000-0',
   empresa_correo:   'datos@la-espiga.ejemplo',
   empresa_direccion:'Calle Falsa 123',
-  empresa_ciudad:   'Rionegro, Antioquia',
+  empresa_ciudad:   'Sincelejo, Sucre',
   empresa_tel:      '300 111 2233',
   correo_resumen:   'dueno@la-espiga.ejemplo',
   respaldo_carpeta: 'CARPETA-DE-PRUEBA',
   repositorio:      'ejemplo/la-espiga',
   pago_llave:       'LLAVE-DE-PRUEBA',
-  pago_titular:     'La Espiga de Rionegro S.A.S.',
-  pago_entidad:     'Banco de prueba'
+  pago_titular:     'Panadería La Espiga S.A.S.',
+  pago_entidad:     'Banco de prueba',
+  retracto_excepciones: 'Pan del día|Pasteles por encargo'
 };
 
 /* Ocho productos y cinco zonas de envío para la tienda de prueba: los usa casi
