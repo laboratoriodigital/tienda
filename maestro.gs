@@ -243,27 +243,19 @@ function instalar() {
   var cat = hoja(H_CATALOGO, ENCABEZADO_CATALOGO);
   asegurarColumnas(H_CATALOGO, ENCABEZADO_CATALOGO);   // hojas viejas: agrega lo que falte
   if (cat.getLastRow() < 2) {
-    cat.getRange(2, 1, 8, 10).setValues([
-      ['chonto','Tomate chonto','Canasta 1 kg','Frescos',8900,24,
-       'El tomate de todos los días: pulpa jugosa, piel delgada y acidez media. Cortado la mañana del despacho. Ideal para guisos, sofritos y ensaladas.','','Sí','Sí'],
-      ['cherry','Tomate cherry','Bandeja 250 g','Frescos',6500,4,
-       'Dulce, firme y de piel brillante. Se cosecha en racimo y se empaca el mismo día. Va directo a la ensalada o al horno con aceite de oliva.','','No','Sí'],
-      ['rinon','Tomate riñón','Canasta 1 kg','Frescos',9800,14,
-       'Carnoso y de pocas semillas, el mejor para rodajas gruesas. Aguanta bien la nevera hasta cinco días sin perder textura.','','No','Sí'],
-      ['salsa','Salsa de tomate natural','Frasco 300 g','Salsas',14900,9,
-       'Solo tomate, sal marina, ajo y albahaca. Sin azúcar añadida, sin conservantes, sin almidones. Se cocina a fuego lento durante cuatro horas.','','Sí','Sí'],
-      ['sofrito','Sofrito base de tomate','Frasco 400 g','Salsas',18500,16,
-       'Tomate, cebolla larga, pimentón y aceite de oliva. La base de arroces, carnes y pastas, lista en un frasco. Rinde para seis platos.','','No','Sí'],
-      ['pasta','Pasta de tomate concentrada','Frasco 250 g','Salsas',16500,0,
-       'Reducción triple de tomate chonto. Una cucharada levanta cualquier caldo o estofado. Vuelve a estar disponible con la próxima cosecha.','','No','Sí'],
-      ['secos','Tomates secos en aceite de oliva','Frasco 200 g','Conservas',22900,3,
-       'Deshidratados al sol durante tres días y conservados en aceite de oliva extra virgen con orégano y laurel. Para panes, quesos y pastas.','','No','Sí'],
-      ['jugo','Jugo de tomate prensado en frío','Botella 500 ml','Bebidas',12900,7,
-       'Prensado sin calor para conservar el licopeno. Ligeramente salado, con un toque de limón y apio. Se conserva refrigerado hasta cinco días.','','No','Sí']
+    /* Dos filas de EJEMPLO, no un catálogo de otro comercio. Activo = No: se
+       ven en la hoja para que el comerciante entienda el formato, pero no en
+       la tienda hasta que él las active o —mejor— las reemplace por las
+       suyas. diagnostico() avisa mientras quede alguna EJEMPLO activa. */
+    cat.getRange(2, 1, 2, 10).setValues([
+      ['ejemplo1','Producto de ejemplo — edítalo o bórralo','Unidad','Ejemplos',19900,10,
+       'Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.','','No','No'],
+      ['ejemplo2','Segundo producto de ejemplo — edítalo o bórralo','Unidad','Ejemplos',29900,5,
+       'Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.','','No','No']
     ]);
     cat.setColumnWidth(7, 380);   // Descripción
     cat.setColumnWidth(8, 380);   // Imágenes
-    cat.getRange(2, 7, 8, 2).setWrap(true);
+    cat.getRange(2, 7, 2, 2).setWrap(true);
   }
 
   var cfg = hoja(H_CONFIG, ['Clave', 'Valor', 'Qué es']);
@@ -283,12 +275,10 @@ function instalar() {
 
   var env = hoja(H_ENVIOS, ['ID', 'Nombre', 'Valor']);
   if (env.getLastRow() < 2) {
-    env.getRange(2, 1, 5, 3).setValues([
-      ['finca',     'Recoger en finca (Rionegro)',      0],
-      ['medellin',  'Medellín y Valle de Aburrá',    9000],
-      ['oriente',   'Rionegro y Oriente antioqueño', 6000],
-      ['principal', 'Bogotá, Cali, Barranquilla',   15000],
-      ['resto',     'Resto del país',               19000]
+    // Una zona de EJEMPLO, con Valor 0 (recogida sin costo) para que se vea
+    // el caso especial: la tienda no pide dirección cuando el envío es $0.
+    env.getRange(2, 1, 1, 3).setValues([
+      ['ejemplo', 'Recoger sin costo — ejemplo, edítalo o bórralo', 0]
     ]);
   }
 
@@ -296,7 +286,7 @@ function instalar() {
                              'Usos máximos', 'Usos confirmados', 'Activo', 'Notas']);
   if (cup.getLastRow() < 2) {
     cup.getRange(2, 1, 3, 9).setValues([
-      ['ORGANICO10',  'porcentaje', 10,   50000, '2026-12-31', 0, 0, 'Sí', 'General. 0 usos máximos = sin tope.'],
+      ['BIENVENIDA10', 'porcentaje', 10,   50000, '2026-12-31', 0, 0, 'Sí', 'General. 0 usos máximos = sin tope.'],
       ['PRIMERA5000', 'fijo',       5000, 40000, '2026-12-31', 0, 0, 'Sí', 'Primera compra.'],
       ['ENVIOGRATIS', 'envio',      0,   120000, '2026-10-31', 0, 0, 'Sí', 'Envío sin costo.']
     ]);
@@ -758,6 +748,23 @@ function diagnostico(mostrarSecretos) {
   if (!cat.productos.length) {
     marcar('PROBLEMA');
     decir('Vacío. Revisa que la pestaña Catálogo tenga filas con ID, Nombre y Activo = Sí.');
+  }
+  /* LOS EJEMPLOS QUE DEJA instalar() SON PARA MIRAR, NO PARA VENDER.
+     Si alguno sigue Activo = Sí, la tienda los muestra tal cual: con el ID
+     "ejemplo1" y el precio de mentira. Avisa aquí, no solo en la hoja, para
+     que se note ANTES de compartir el enlace. */
+  /* activo=true, no basta con el ID: catalogoPublico() devuelve TAMBIÉN los
+     inactivos (la tienda los filtra ella misma al pintar), así que sin este
+     filtro el aviso saldría en cualquier instalación nueva, antes de que el
+     comerciante haya podido ver ni un producto. */
+  var ejemplos = cat.productos.filter(function (p) { return p.activo && /^ejemplo/i.test(p.id); });
+  if (ejemplos.length) {
+    marcar('REVISAR');
+    decir('');
+    decir('Hay ' + ejemplos.length + ' producto(s) de EJEMPLO activos y visibles en la tienda:');
+    ejemplos.forEach(function (p) { decir('   ' + p.id + ' — ' + p.nombre); });
+    decir('Son los que deja instalar() para mostrar cómo se ve una ficha. Bórralos');
+    decir('o cámbiales el ID y el nombre antes de compartir el enlace.');
   }
   if (datos.caidos.length) {
     marcar('REVISAR');
