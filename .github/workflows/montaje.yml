@@ -142,7 +142,7 @@ jobs:
 
       - name: Dependencias
         if: steps.hay.outputs.sigue == 'si'
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       # ── 0. ¿Es esta la tienda de este repositorio? ──
       # Aquí importa más que en `fotos`: este flujo reescribe el <head>, la
@@ -407,7 +407,7 @@ jobs:
 
       - name: Navegador para las pruebas
         if: steps.cambios.outputs.hay == 'si'
-        run: cd pruebas && npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+        run: cd pruebas && npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
 
       # SI ESTO FALLA, EL RESUMEN TIENE QUE DECIR QUÉ. Una corrida roja que
       # obliga a abrir el log, buscar el paso y desplegarlo es una corrida que

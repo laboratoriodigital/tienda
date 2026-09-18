@@ -3181,7 +3181,6 @@ function generarInventario() {
     return String(f[0]).trim() && esSi(f[9]);
   });
   var envios = filas(H_ENVIOS).filter(function (f) { return String(f[0]).trim(); });
-  var ahora = new Date();
 
   var txt = function (v) {
     return '"' + String(v === undefined || v === null ? '' : v)
@@ -3198,7 +3197,11 @@ function generarInventario() {
   var claves = Object.keys(cfg).sort();
 
   var lineas = [];
-  lineas.push('/* ═══ CATÁLOGO DE RESPALDO — escrito el ' + fechaCorta(ahora) + ' ═══');
+  /* LA VERSIÓN, NO LA FECHA (historia A-6): el mismo cambio que
+     montar/sembrar-respaldo.mjs, y por la misma razón -un archivo horneado
+     dos veces sin tocar la hoja tiene que salir igual, y una fecha cambia
+     sola con solo dejar pasar la medianoche-. */
+  lineas.push('/* ═══ CATÁLOGO DE RESPALDO — versión ' + VERSION + ' ═══');
   lineas.push('   Lo que la página pinta ANTES de que conteste nadie, y lo único que le');
   lineas.push('   queda si no contesta nadie. Normalmente lo escribe el flujo montaje;');
   lineas.push('   esto queda para una tienda que todavía no puede correrlo. La opción');

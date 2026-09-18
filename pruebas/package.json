@@ -1,5 +1,5 @@
 {
-  "name": "organico-pruebas",
+  "name": "tienda-pruebas",
   "private": true,
   "description": "Banco de pruebas de la tienda: corre contra maestro.gs e index.html reales.",
   "scripts": {

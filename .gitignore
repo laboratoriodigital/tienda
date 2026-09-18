@@ -18,8 +18,12 @@ pruebas/local.html
 pruebas/real.html
 
 # ── Dependencias y basura de sistema ──
+# package-lock.json SÍ se versiona, en la raíz y en pruebas/ (historia A-6):
+# es lo que hace que `npm ci` instale las MISMAS versiones en cada corrida, y
+# sin eso "la misma foto convertida en enero da el mismo archivo" no se
+# sostiene si una dependencia sale más nueva sola entre una corrida y la
+# siguiente.
 node_modules/
-package-lock.json
 .DS_Store
 Thumbs.db
 desktop.ini

@@ -211,7 +211,7 @@ jobs:
 
       - name: Dependencias
         if: steps.mirar.outputs.hay == 'si'
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Bajarlas y convertirlas
         if: steps.mirar.outputs.hay == 'si'
@@ -324,7 +324,7 @@ jobs:
 
       - name: Navegador para las pruebas
         if: steps.mirar.outputs.hay == 'si'
-        run: cd pruebas && npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+        run: cd pruebas && npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
 
       - name: Todas las baterías sobre las fotos ya publicadas
         if: steps.mirar.outputs.hay == 'si'

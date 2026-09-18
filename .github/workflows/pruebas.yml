@@ -102,7 +102,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pruebas/package.json') }}
 
       - name: Dependencias
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Navegador
         run: npx playwright install --with-deps chromium

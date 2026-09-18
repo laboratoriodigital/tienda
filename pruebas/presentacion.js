@@ -8,6 +8,11 @@
    esto se rompe, el cliente vuelve a depender de nosotros.
    ============================================================================ */
 const { crear, configurar } = require('./gas.js');
+/* La versión no se escribe a mano aquí: se saca del maestro, igual que en
+   panel.js. Patrón 2 de la bitácora: dos sitios con el mismo dato y uno se
+   queda atrás. */
+const LA_VERSION = (require('fs').readFileSync('./as.js', 'utf8')
+  .match(/var VERSION = '([^']+)'/) || [])[1];
 const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 
 const nuevo = () => { const g = crear('./as.js'); g.api.instalar(); return g; };
@@ -167,8 +172,9 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
 
   ok('Genera el bloque con sus dos marcas',
      /CATÁLOGO DE RESPALDO/.test(b) && /FIN DEL CATÁLOGO DE RESPALDO/.test(b));
-  ok('  ...y dice de qué día es', /escrito el \d\d\/\d\d\/\d{4}/.test(b),
-     (b.match(/escrito el [^ ]+ /) || [''])[0]);
+  ok('  ...y dice la VERSIÓN del maestro, no la fecha del día (A-6)',
+     b.includes('versión ' + LA_VERSION) && !/\d{4}-\d{2}-\d{2}\s*═══/.test(b),
+     (b.match(/CATÁLOGO DE RESPALDO[^\n]*/) || [''])[0]);
   /* LA MISMA FORMA QUE ESCRIBE EL FLUJO. Este es el camino de a mano y aquel el
      automático: si dejan el archivo distinto, un día la expresión regular del
      montaje encuentra una marca y no la otra. */

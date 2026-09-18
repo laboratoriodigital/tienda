@@ -66,7 +66,7 @@ export function literal(v) {
     .replace(/<\/script/gi, '<\\/script');
 }
 
-export function bloque(catalogo, cuando) {
+export function bloque(catalogo, version) {
   const productos = Array.isArray(catalogo.productos) ? catalogo.productos : [];
   const envios    = Array.isArray(catalogo.envios)    ? catalogo.envios    : [];
   const config    = catalogo.config && typeof catalogo.config === 'object'
@@ -96,7 +96,10 @@ export function bloque(catalogo, cuando) {
   });
 
   const L = [];
-  L.push('/* ═══ CATÁLOGO DE RESPALDO — escrito el ' + cuando + ' ═══');
+  /* LA VERSIÓN, NO LA FECHA (historia A-6): un archivo horneado dos veces sin
+     tocar la hoja tiene que salir IGUAL, y una fecha cambia sola con solo
+     dejar pasar la medianoche UTC -aunque nadie haya tocado nada-. */
+  L.push('/* ═══ CATÁLOGO DE RESPALDO' + (version ? ' — versión ' + version : '') + ' ═══');
   L.push('   Lo que la página pinta ANTES de que conteste nadie, y lo único que le');
   L.push('   queda si no contesta nadie. Sale de la hoja de ESTA tienda: lo repone');
   L.push('   `montar/sembrar-respaldo.mjs` desde el catalogo.json que hornea el mismo');
@@ -131,7 +134,7 @@ export function bloque(catalogo, cuando) {
   return L.join('\n');
 }
 
-export function aplicar(html, catalogo, cuando) {
+export function aplicar(html, catalogo, version) {
   const desde = marcaDeApertura(html);
   const hasta = html.indexOf('FIN DEL CATÁLOGO DE RESPALDO');
   if (desde === -1 || hasta === -1 || hasta < desde) {
@@ -159,7 +162,7 @@ export function aplicar(html, catalogo, cuando) {
     inicio = anterior;
   }
 
-  const nuevo = bloque(catalogo, cuando);
+  const nuevo = bloque(catalogo, version);
   const salida = html.slice(0, inicio) + nuevo + html.slice(finLinea);
 
   /* Que el bloque escrito sea JavaScript válido y declare las tres cosas que la
@@ -199,8 +202,7 @@ async function main() {
   }
 
   const html = await readFile(INDEX, 'utf8');
-  const fecha = new Date().toISOString().slice(0, 10);
-  const r = aplicar(html, catalogo, fecha);
+  const r = aplicar(html, catalogo, catalogo.version || '');
 
   if (!r.cambio) {
     console.log('El respaldo de index.html ya es el de esta tienda. Nada que hacer.');
