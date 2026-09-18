@@ -80,20 +80,25 @@ nucleos=$(nproc 2>/dev/null || echo 2)
 TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 
 SALIDA=$(mktemp -d)
-# Esta trampa SOLO tiene que correr una vez, cuando termina la shell de
-# arriba — no en cada trabajo de fondo, que también hereda cualquier trampa
-# EXIT puesta antes de nacer. En Linux normal eso casi nunca se nota porque
-# $BASHPID distingue a la shell de arriba de sus subshells; en Git Bash
-# (MSYS) esa distinción no fue confiable en la práctica: el primer trabajo
-# corto en terminar disparaba esta misma trampa, borraba $SALIDA y mataba
-# TODOS los servidor.js mientras las baterías largas (movil.js, e2e.js)
-# seguían corriendo — la corrida se cortaba con «No such file or directory»
-# apenas terminaba la primera batería rápida, sin llegar al marcador final.
+export SALIDA
+# NINGÚN trabajo de fondo puede compartir trampa con la shell de arriba —esa
+# fue la idea, dos veces, y las dos fallaron en Git Bash (MSYS). Primero se
+# probó una guardia por PID ($BASHPID = $$): no alcanzó, porque depende de
+# que $BASHPID distinga de verdad a la shell de arriba de sus subshells, algo
+# que ahí no se pudo confirmar. Después se probó borrar la trampa heredada
+# con `trap - EXIT` al entrar a ejecutar(): tampoco alcanzó —se siguió viendo
+# el mismo corte, ahora con «No such file or directory» ANTES incluso de que
+# node arrancara—, lo que dice que en el fork que usa Git Bash para un
+# trabajo de fondo (`comando &`) la trampa heredada no se estaba borrando
+# como debía, o se estaba dis parando por otro camino.
 #
-# La solución no depende de comparar PIDs: cada trabajo de fondo empieza
-# ejecutar() con `trap - EXIT`, que BORRA la trampa heredada en SU subshell
-# nada más. Eso es semántica de shell garantizada por POSIX, no un detalle
-# de Linux — así que no hace falta adivinar cómo se comporta $BASHPID aquí.
+# Las dos veces el arreglo intentaba controlar CÓMO se comporta un subshell
+# heredado. Esta vez no se hereda nada: cada batería corre en un `bash -c`
+# aparte, un PROCESO NUEVO por `exec`, no un fork de esta shell. Un `exec`
+# resetea las trampas a su valor por defecto SIEMPRE —es lo que dice POSIX
+# para cualquier programa que reemplaza su imagen de proceso—, así que no hay
+# nada que adivinar sobre cómo lo implementa Git Bash: la trampa de abajo
+# sencillamente no existe todavía cuando ese proceso nuevo empieza a correr.
 trap 'pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"' EXIT
 
 # Levanta un servidor y ESPERA A QUE CONTESTE, que no es lo mismo que esperar
@@ -120,9 +125,6 @@ arrancar() {   # arrancar <puerto> <viejo|nuevo>  → deja el PID en $PID_SERVID
 # sería la segunda copia del mismo dato, y ya sabemos cómo acaba eso (patrón 2):
 # se agrega una batería, nadie toca la lista, y arranca sin servidor.
 ejecutar() {   # ejecutar <archivo> <indice>
-  # Ver la nota junto al trap de arriba: esto es lo que de verdad evita que
-  # una batería corta borre la salida de una que todavía está corriendo.
-  trap - EXIT
   local f=$1 i=$2
   local puerto=$((8100 + i * 2)) viejo=$((8101 + i * 2))
   local estado pids=""
@@ -145,12 +147,16 @@ ejecutar() {   # ejecutar <archivo> <indice>
   # que no hace falta, y en un runner de Actions la memoria sí se acaba.
   for pid in $pids; do kill "$pid" 2>/dev/null; done
 }
+export -f arrancar ejecutar
 
 indice=0
 for f in $BATERIAS; do
   indice=$((indice + 1))
   while [ "$(jobs -rp | wc -l)" -ge "$TRABAJADORES" ]; do wait -n; done
-  ejecutar "$f" "$indice" &
+  # `bash -c` en vez de `ejecutar ... &`: ver la nota junto a la trampa de
+  # arriba. `_` ocupa el lugar de $0 dentro de ese bash nuevo; "$f" y
+  # "$indice" le llegan como $1 y $2, que es lo que ejecutar() espera.
+  bash -c 'ejecutar "$1" "$2"' _ "$f" "$indice" &
 done
 wait
 
