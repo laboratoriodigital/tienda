@@ -20,6 +20,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { alMaestro } from './tienda.mjs';
+import { revisarNombreDelWorker } from './nombrar-worker.mjs';
 
 const TIENDA   = 'tienda.json';
 const CLASP    = 'montar/.clasp.json';
@@ -27,46 +28,10 @@ const WRANGLER = 'wrangler.jsonc';
 
 export const ESCRIBE = [WRANGLER, TIENDA, CLASP];
 
-/* El nombre del Worker es lo ÚNICO de este repositorio que puede hacer daño
-   fuera de él: dos tiendas con el mismo nombre son el mismo Worker en
-   Cloudflare, así que desplegar la segunda PISA la primera. Y es justo lo que
-   pasa al crear un repositorio desde una plantilla y no acordarse de cambiarlo.
-
-   Por eso se comprueba aquí, que es el paso donde por primera vez se sabe cómo
-   se llama el comercio. */
-function apodo(negocio) {
-  return String(negocio || '').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // fuera los acentos
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    .slice(0, 40) || 'tienda';
-}
-
-function nombreDelWorker() {
-  try {
-    const t = readFileSync(WRANGLER, 'utf8');
-    return (t.match(/"name"\s*:\s*"([^"]+)"/) || [])[1] || '';
-  } catch { return ''; }
-}
-
-/* SIN PREGUNTAR POR TECLADO (A-3): el nombre se deriva del negocio que el
-   maestro acaba de contestar, así que no hay nada que decidir — y preguntar
-   s/n aquí es justo lo que deja esta herramienta colgada para siempre en un
-   flujo sin terminal delante (la razón de ser de esta historia). Si el sitio
-   ya tiene UN NOMBRE PROPIO (no el marcador de la semilla, no el de otro
-   comercio con el que por casualidad coincida el apodo), tampoco hay nada que
-   tocar: seguiría siendo el mismo apodo. Solo se escribe cuando cambia. */
-function revisarNombreDelWorker(negocio) {
-  const actual = nombreDelWorker();
-  const debido = apodo(negocio);
-  if (!actual || actual === debido) return;
-
-  const t = readFileSync(WRANGLER, 'utf8');
-  writeFileSync(WRANGLER, t.replace(/("name"\s*:\s*)"[^"]+"/, '$1"' + debido + '"'));
-  console.log('  ✓ ' + WRANGLER + '  ->  ' + debido +
-              (actual === 'tienda-sin-configurar' ? '' :
-               '  (antes: "' + actual + '" — si dos tiendas comparten cuenta de' +
-               ' Cloudflare, revisa que no haya quedado ninguna con este nombre)'));
-}
+/* El nombre del Worker y su apodo viven en montar/nombrar-worker.mjs, que es
+   quien lo hace también desde el flujo (historia A-3). Aquí solo se llama: dos
+   copias de la misma regla de apodo es como dos tiendas acaban compartiendo
+   nombre de Worker, que es justo el daño que esto evita. */
 
 async function preguntar(pregunta) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });

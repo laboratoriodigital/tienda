@@ -341,12 +341,41 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # ── EL NOMBRE DEL WORKER, QUE ES LO ÚNICO QUE PUEDE PISAR A OTRA TIENDA ──
+      # Dos tiendas con el mismo `name` en wrangler.jsonc son el mismo Worker en
+      # Cloudflare: la segunda que despliegue PISA a la primera, y nada avisa —
+      # las dos siguen desplegando en verde. Crear el repositorio desde la
+      # plantilla y no acordarse de cambiarlo es el camino normal, no el raro.
+      #
+      # Hasta la historia A-3 esto solo lo arreglaba `npm run tienda`, con una
+      # persona delante, y `DESPLIEGUE.md` lo compensaba con un aviso en negrita.
+      # Un paso manual que hay que recordar es un paso que un día no se recuerda.
+      #
+      # Va DESPUÉS de hornear el catálogo porque el nombre del comercio sale de
+      # ahí, no de una cuarta pregunta al maestro.
+      - name: El nombre del Worker, desde la hoja
+        if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
+        run: |
+          set -o pipefail
+          node montar/nombrar-worker.mjs 2>&1 | tee /tmp/worker.txt
+          {
+            echo "### El nombre del Worker"
+            echo '```'
+            cat /tmp/worker.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: ¿Cambió algo?
         if: steps.hay.outputs.sigue == 'si'
         id: cambios
         run: |
-          git add -A -- publicar/
-          if git diff --cached --quiet -- publicar/; then
+          # LO QUE ESTE FLUJO PUBLICA, ESCRITO UNA SOLA VEZ. Lo leen el `git add`
+          # y las comprobaciones de abajo; en dos copias, una se queda atrás.
+          # wrangler.jsonc entra desde la historia A-3: el nombre del Worker lo
+          # pone ahora el flujo, y si no se publicara no serviría de nada.
+          PUBLICA="publicar/ wrangler.jsonc"
+          git add -A -- $PUBLICA
+          if git diff --cached --quiet -- $PUBLICA; then
             # UN "NO" TIENE QUE MOSTRAR SU TRABAJO. La primera vez que este paso
             # dijo "nada cambió" era mentira, y averiguar por qué costó ir a
             # buscar ramas al remoto. Ahora la respuesta trae consigo lo que
@@ -356,7 +385,7 @@ jobs:
               echo ""
               echo "Esto es lo que hay en \`publicar/\`, por si el \"no\" sorprende:"
               echo '```'
-              git status --porcelain -- publicar/ || true
+              git status --porcelain -- $PUBLICA || true
               echo "(vacío = ni un archivo nuevo, ni uno modificado)"
               echo ""
               ls -la publicar/catalogo.json 2>&1 || true
@@ -367,7 +396,7 @@ jobs:
             {
               echo "### Cambió esto"
               echo '```'
-              git diff --cached --stat -- publicar/
+              git diff --cached --stat -- $PUBLICA
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "hay=si" >> "$GITHUB_OUTPUT"
@@ -386,6 +415,9 @@ jobs:
             if ! git diff --cached --quiet -- publicar/catalogo.json; then
               partes="${partes:+$partes · }el catálogo"
             fi
+            if ! git diff --cached --quiet -- wrangler.jsonc; then
+              partes="${partes:+$partes · }el nombre del Worker"
+            fi
             [ -z "$partes" ] && partes="archivos de publicar/"
             echo "resumen=$partes" >> "$GITHUB_OUTPUT"
 
@@ -393,7 +425,7 @@ jobs:
             # sin que nadie tenga que abrir la pestaña de archivos.
             {
               echo 'detalle<<FIN_DEL_DETALLE'
-              git diff --cached --stat -- publicar/
+              git diff --cached --stat -- $PUBLICA
               echo 'FIN_DEL_DETALLE'
             } >> "$GITHUB_OUTPUT"
           fi

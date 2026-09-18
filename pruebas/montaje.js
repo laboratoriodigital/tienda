@@ -397,10 +397,43 @@ const configurar = (g, clave, valor) => {
    puede hacer fuera de sí mismo, y por eso se comprueba en el paso donde por
    primera vez se sabe cómo se llama el comercio. */
 {
-  const src = fs.readFileSync('../montar/configurar-tienda.mjs', 'utf8');
+  /* A-3: LA REGLA DEL APODO VIVE EN UN SOLO ARCHIVO. La escribían dos —el
+     flujo no la tenía y `configurar-tienda.mjs` sí—, y dos copias de esta
+     regla en concreto es como dos tiendas acaban compartiendo nombre de
+     Worker: basta con que una recorte a 40 caracteres y la otra a 30. */
+  const src = fs.readFileSync('../montar/nombrar-worker.mjs', 'utf8');
+  const cfg = fs.readFileSync('../montar/configurar-tienda.mjs', 'utf8');
 
   ok('CONFIGURAR LA TIENDA revisa el nombre del sitio contra el del comercio',
-     /revisarNombreDelWorker/.test(src) && /wrangler\.jsonc/.test(src));
+     /revisarNombreDelWorker/.test(cfg) && /nombrar-worker\.mjs/.test(cfg));
+  ok('  ...sin llevar su propia copia de la regla del apodo',
+     !/function apodo\(/.test(cfg),
+     'dos apodos distintos es como dos tiendas comparten Worker');
+
+  /* A-3, LA MITAD QUE FALTABA: el nombre lo pone EL FLUJO, no una persona.
+     `npm run tienda` ya lo hacía bien y sin teclado, pero es una herramienta
+     con alguien delante; `DESPLIEGUE.md` compensaba el hueco con un aviso en
+     negrita —«editar wrangler.jsonc con el lápiz antes del primer
+     despliegue»—, y un paso manual que hay que recordar es un paso que un día
+     no se recuerda. */
+  {
+    const flujo = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
+    ok('EL FLUJO le pone su nombre al Worker, sin que nadie edite nada a mano',
+       /node montar\/nombrar-worker\.mjs/.test(flujo),
+       'el único daño que este repositorio puede hacer fuera de sí mismo');
+    ok('  ...y lo publica, que si no daría igual haberlo escrito',
+       /PUBLICA="publicar\/ wrangler\.jsonc"/.test(flujo),
+       'renombrarlo en el runner y no empujarlo es no renombrarlo');
+    ok('  ...después de hornear el catálogo, que es de donde sale el nombre',
+       flujo.indexOf('catalogo-estatico.mjs') < flujo.indexOf('nombrar-worker.mjs'),
+       'sin catálogo no hay nombre de comercio que leer');
+    ok('  ...sin volver a preguntárselo al maestro',
+       /publicar\/catalogo\.json/.test(src) && !/alMaestro/.test(src),
+       'sería la cuarta lectura del mismo dato en una corrida (patrón 2)');
+    ok('  ...y si el catálogo no dice el nombre, NO se inventa uno',
+       /No se renombra el Worker a ciegas/.test(src),
+       'un Worker con el nombre equivocado pisa a otra tienda en silencio');
+  }
   /* A-3: SIN preguntar por teclado — un flujo sin terminal delante (ej. un
      script de aprovisionamiento) se quedaría esperando para siempre una
      respuesta que nadie puede dar. Como el nombre se deriva del negocio que
@@ -1712,23 +1745,30 @@ const configurar = (g, clave, valor) => {
    la herramienta que existe justamente para no perder trabajo. */
 {
   const flujo = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
+  /* La lista de lo publicable se escribe una vez, en $PUBLICA, y la leen el
+     `git add` y todas las comprobaciones. Antes iba `publicar/` a mano en cada
+     línea; desde A-3 también entra wrangler.jsonc, y cinco copias de la lista
+     es cómo una se queda atrás y el flujo escribe algo que nunca publica. */
+  ok('LO PUBLICABLE está escrito UNA sola vez, y wrangler.jsonc entra (A-3)',
+     /PUBLICA="publicar\/ wrangler\.jsonc"/.test(flujo),
+     'renombrar el Worker en el runner y no empujarlo es no renombrarlo');
   ok('«¿CAMBIÓ ALGO?» ve también los archivos nuevos',
-     /git add -A -- publicar\//.test(flujo) &&
-     /git diff --cached --quiet -- publicar\//.test(flujo),
+     /git add -A -- \$PUBLICA/.test(flujo) &&
+     /git diff --cached --quiet -- \$PUBLICA/.test(flujo),
      'git diff a secas no ve lo que no está en el índice');
-  ok('  ...y ya no queda ningún `git diff --quiet` sin índice sobre publicar/',
-     !/git diff --quiet -- publicar\//.test(flujo),
+  ok('  ...y ya no queda ningún `git diff --quiet` sin índice',
+     !/git diff --quiet -- (publicar\/|\$PUBLICA)/.test(flujo),
      'la forma vieja diría «nada cambió» ante un archivo recién creado');
   ok('  ...y lo que resume también sale del índice',
-     !/git diff --stat -- publicar\//.test(flujo) &&
-     /git diff --cached --stat -- publicar\//.test(flujo),
+     !/git diff --stat -- (publicar\/|\$PUBLICA)/.test(flujo) &&
+     /git diff --cached --stat -- \$PUBLICA/.test(flujo),
      'si el resumen mira otra cosa que la decisión, mienten por turnos');
 
   /* UN «NO» TIENE QUE MOSTRAR SU TRABAJO. La primera vez que este paso dijo
      «nada cambió» era mentira, y averiguar por qué costó ir a buscar ramas al
      remoto. Un paso que decide en silencio obliga a hacer arqueología. */
   ok('  ...y cuando dice que NO, enseña lo que miró',
-     /git status --porcelain -- publicar\//.test(flujo),
+     /git status --porcelain -- \$PUBLICA/.test(flujo),
      'un «no» sin pruebas obliga a ir a buscarlas afuera');
   ok('EL HORNEADO deja en el resumen lo que hizo',
      /tee \/tmp\/catalogo\.txt/.test(flujo) && /### El catálogo/.test(flujo),

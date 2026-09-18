@@ -449,93 +449,118 @@ entrar, productos, pedidos, publicar, y lo demás cede antes que eso.
 > Como equipo, queremos que el código y los datos de un comercio vivan en
 > archivos distintos, para que actualizar deje de ser fusionar.
 
-- [ ] `plantilla/index.html` es el `index.html` de hoy con **huecos** donde hay
+- [x] `plantilla/index.html` es el `index.html` de hoy con **huecos** donde hay
       datos de un comercio: `<head>`, paleta, las constantes, el respaldo,
       `EMPRESA`, el pie y el flotante.
-- [ ] Los huecos son marcas explícitas, no valores de ejemplo.
-- [ ] Ninguna palabra de ningún comercio queda en `plantilla/`. Aserción que lo
+- [x] Los huecos son marcas explícitas, no valores de ejemplo.
+- [x] Ninguna palabra de ningún comercio queda en `plantilla/`. Aserción que lo
       comprueba con una lista de términos prohibidos derivada de la hoja.
-- [ ] Abrir `plantilla/index.html` en un navegador **no** enseña una tienda:
+- [x] Abrir `plantilla/index.html` en un navegador **no** enseña una tienda:
       enseña que falta hornear.
 
 **A-2 · El horneado genera `publicar/` desde `plantilla/`**  · 5 pts · dep. A-1
-- [ ] `preparar-index.mjs` genera el archivo **desde cero**, no reemplazando
+- [x] `preparar-index.mjs` genera el archivo **desde cero**, no reemplazando
       bloques dentro del publicado.
-- [ ] Sigue en pie: o se escribe entero, o no se escribe nada.
-- [ ] Borrar `publicar/index.html` y hornear lo reconstruye idéntico.
-- [ ] Hornear con la hoja de una tienda real da el mismo resultado visible que
+- [x] Sigue en pie: o se escribe entero, o no se escribe nada.
+- [x] Borrar `publicar/index.html` y hornear lo reconstruye idéntico.
+- [x] Hornear con la hoja de una tienda real da el mismo resultado visible que
       hoy. Se compara antes/después a ojo y con una batería.
 
-**A-3 · También se hornean `404.html`, `compartir.jpg`, `wrangler.jsonc`, `sitemap.xml` y `robots.txt`**  · 3 pts · dep. A-2
-- [ ] Ninguno queda con datos de otro comercio.
-- [ ] `wrangler.jsonc` recibe su `name` **en el flujo**, sin preguntar nada por
+**A-3 · También se hornean `404.html`, `compartir.jpg` y `wrangler.jsonc`**  · 3 pts · dep. A-2
+> `sitemap.xml` y `robots.txt` los nombraba antes este título, y los pide con
+> sus criterios la historia **C-2 (M2, SEO horneado)**. Un entregable en dos
+> hitos es el patrón 2 dentro del plan: se queda en C-2, que es quien lo
+> describe entero.
+- [x] Ninguno queda con datos de otro comercio.
+- [x] `wrangler.jsonc` recibe su `name` **en el flujo**, sin preguntar nada por
       teclado (hoy solo lo arregla una herramienta interactiva).
-- [ ] Aserción: `name` distinto de la semilla en cualquier repositorio de tienda.
+- [x] Aserción: `name` distinto de la semilla en cualquier repositorio de tienda.
 
 **A-4 · Los textos legales salen de la hoja**  · 5 pts
 > Como comerciante, quiero que mi texto legal hable de mi negocio y no de una
 > finca de tomates que no es mía.
 
-- [ ] Datos, retracto y términos se arman con `empresa_*`, el nombre del
+- [x] Datos, retracto y términos se arman con `empresa_*`, el nombre del
       comercio y una lista de excepciones al retracto que sale de la hoja.
-- [ ] **Sin los datos básicos de empresa no se publica** (D10): `empresa_razon`,
+- [x] **Sin los datos básicos de empresa no se publica** (D10): `empresa_razon`,
       `empresa_nit`, `empresa_direccion`, `empresa_ciudad` y al menos uno de
       `empresa_correo` / `empresa_tel` suben de *avisan* a *bloquean*, y el
       flujo se niega a escribir el `index.html` como ya hace con el WhatsApp.
-- [ ] El mensaje dice **qué falta y por qué bloquea**, no solo el nombre de la
+- [x] El mensaje dice **qué falta y por qué bloquea**, no solo el nombre de la
       clave — igual que los cuatro bloqueos que ya existen.
-- [ ] El diagnóstico y la columna «Sin terminar» del panel del operador lo
+- [x] El diagnóstico y la columna «Sin terminar» del panel del operador lo
       reflejan.
-- [ ] Las leyes citadas siguen siendo las correctas: Ley 1581 de 2012, y
+- [x] Las leyes citadas siguen siendo las correctas: Ley 1581 de 2012, y
       Estatuto del Consumidor art. 47 (retracto) y 51 (reversión).
-- [ ] Batería `legal.js`: montar una panadería y comprobar que ningún texto
+- [x] Batería `legal.js`: montar una panadería y comprobar que ningún texto
       nombra un tomate, una finca ni una ciudad ajena.
 - **Ojo:** esto entrega la mecánica, no asesoría jurídica. Que un abogado mire
   el machote sigue pendiente y no lo cierra esta historia.
 
 **A-5 · `instalar()` deja de sembrar una tienda de tomates**  · 3 pts
-- [ ] Dos filas de ejemplo neutras, marcadas `EJEMPLO`, con `Activo = No`. Una
+- [x] Dos filas de ejemplo neutras, marcadas `EJEMPLO`, con `Activo = No`. Una
       zona de envío de ejemplo.
-- [ ] El diagnóstico avisa mientras quede un `EJEMPLO` activo.
-- [ ] Sigue siendo idempotente.
+- [x] El diagnóstico avisa mientras quede un `EJEMPLO` activo.
+- [x] Sigue siendo idempotente.
 - **Ojo:** la hoja emulada de las baterías es otra cosa y no cambia. Confundir
   las dos ya costó diez baterías en rojo una vez.
 
 **A-6 · El horneado es determinista**  · 3 pts
-- [ ] Ni marcas de tiempo ni fecha del día dentro de los archivos generados; si
+- [x] Ni marcas de tiempo ni fecha del día dentro de los archivos generados; si
       hace falta trazabilidad, se escribe la **versión**, que cambia cuando algo
       cambia.
-- [ ] Claves, productos y envíos en orden estable y declarado.
-- [ ] Hornear dos veces sin tocar la hoja deja `git status` limpio. **También
+- [x] Claves, productos y envíos en orden estable y declarado.
+- [x] Hornear dos veces sin tocar la hoja deja `git status` limpio. **También
       pasada la medianoche UTC.**
-- [ ] `package-lock.json` versionado en las dos carpetas, y los flujos con
+- [x] `package-lock.json` versionado en las dos carpetas, y los flujos con
       `npm ci`: la misma foto convertida en enero da el mismo archivo.
-- [ ] Batería `determinismo.js`, con el reloj falseado.
+- [x] Batería `determinismo.js`, con el reloj falseado.
 
 **A-7 · La autoría al pie**  · 1 pt
-- [ ] *Powered by Laboratorio Digital*, enlazado a `autoria_url`, con
+- [x] *Powered by Laboratorio Digital*, enlazado a `autoria_url`, con
       `rel="noopener"`, sin cargar nada externo.
-- [ ] Interruptor `f_autoria`, encendido por defecto.
+- [x] Interruptor `f_autoria`, encendido por defecto.
 
 **A-8 · Cada herramienta declara lo que escribe**  · 2 pts
-- [ ] Cada `montar/*.mjs` exporta `ESCRIBE` con sus rutas.
-- [ ] Una aserción falla si una herramienta escribe algo que no declaró.
-- [ ] La lista de «qué se hornea» del flujo de actualización (M6) se deriva de
+- [x] Cada `montar/*.mjs` exporta `ESCRIBE` con sus rutas.
+- [x] Una aserción falla si una herramienta escribe algo que no declaró.
+- [x] La lista de «qué se hornea» del flujo de actualización (M6) se deriva de
       ahí. Una sola lista, no dos.
 
 ---
 
 **A-9 · El producto se llama «tienda», y empieza en 0.1.0**  · 1 pt
-- [ ] `package.json` en `0.1.0`. El MVP saldrá como `1.0.0`.
-- [ ] Ni el repositorio ni el código nombran al comercio de la línea anterior;
+- [x] `package.json` en `0.1.0`. El MVP saldrá como `1.0.0`.
+- [x] Ni el repositorio ni el código nombran al comercio de la línea anterior;
       donde hoy dice su nombre como marca del producto, dice **tienda**.
-- [ ] `wrangler.jsonc` de la semilla no lleva el nombre de una tienda de nadie.
-- [ ] Aserción: una lista de términos prohibidos —el nombre del comercio
+- [x] `wrangler.jsonc` de la semilla no lleva el nombre de una tienda de nadie.
+- [x] Aserción: una lista de términos prohibidos —el nombre del comercio
       anterior, su ciudad, su teléfono, sus productos— que falla si alguno
       aparece en `plantilla/`, `maestro.gs`, `panel.gs` o la configuración
       sembrada.
 
 ---
+
+
+---
+
+**M0 CERRADO — 18 de septiembre de 2026.** Las nueve historias, con su
+evidencia en baterías que corren en cada empujón:
+
+| Historia | Dónde se comprueba |
+|---|---|
+| A-1 `plantilla/` sin marca | `marca.js` contra `terminos-prohibidos.json`; los huecos son marcadores `[… — sin hornear]`, no valores de ejemplo |
+| A-2 el horneado genera `publicar/` | `plantilla.js` — `aplicar()` parte de `plantilla/index.html` y **nunca lee `publicar/`**, que es una garantía más fuerte que borrar y rehornear |
+| A-3 404, compartir y wrangler | `montaje.js`; el nombre del Worker lo pone el flujo con `montar/nombrar-worker.mjs`, sin teclado |
+| A-4 textos legales desde la hoja | `legal.js` — monta una panadería y comprueba que ningún texto nombra un tomate ni una finca |
+| A-5 `instalar()` sin tomates | dos filas `EJEMPLO` inactivas; el diagnóstico avisa mientras quede alguna activa |
+| A-6 horneado determinista | `determinismo.js` con el reloj falseado; `catalogo-estatico.mjs` no reescribe el archivo cuando lo único que cambia es el sello `generado` |
+| A-7 autoría al pie | `f_autoria` encendido por defecto, enlace desde `autoria_url` |
+| A-8 cada herramienta declara | `escribe.js` — falla si una herramienta escribe algo que no declaró |
+| A-9 el producto se llama «tienda» | `package.json` en `0.1.0`, `wrangler.jsonc` en `tienda-sin-configurar`, `marca.js` |
+
+**Lo que NO cierra M0 y sigue abierto a propósito:** que un abogado mire el
+machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 
 ### M1 · Rendimiento y cuota   · con repositorios privados, esto es dinero
 
