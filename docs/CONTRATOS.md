@@ -227,7 +227,7 @@ Lo que llegó y no se pudo entender, y lo que se leyó mal. Existe para que un f
 
 ## 5. Las claves de `Configuración`
 
-Son 41. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
+Son 42. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
 **todas pueden estar vacías**: una tienda a medio configurar tiene que seguir
 sirviendo lo que sí sabe.
 
@@ -243,7 +243,7 @@ no pisar lo que el comerciante puso.
 | **La portada** | `portada_titulo` · `portada_texto` · `portada_puntos` |
 | **Los colores** | `color_principal` · `color_secundario` · `color_alterno` |
 | **Los textos** | `pie_descripcion` · `como_compras` · `legal_actualizado` · `horario` |
-| **Los datos legales** | `empresa_razon` · `empresa_nit` · `empresa_correo` · `empresa_direccion` · `empresa_ciudad` · `empresa_tel` — **desde la 1.0.0 bloquean la publicación**: razón social, NIT, dirección, ciudad y al menos uno de correo o teléfono (decisión 09) |
+| **Los datos legales** | `empresa_razon` · `empresa_nit` · `empresa_correo` · `empresa_direccion` · `empresa_ciudad` · `empresa_tel` — **bloquean la publicación**: razón social, NIT, dirección, ciudad y al menos uno de correo o teléfono (decisión 09). Los arman los textos de tratamiento de datos y de retracto |
 | **El sitio publicado** | `sitio_url` · `sitio_titulo` · `sitio_descripcion` |
 | **El correo del resumen** | `correo_resumen` · `correo_hora` · `correo_siempre` · `correo_ultimo` |
 | **Las fotos y el respaldo** | `fotos_origen` · `fotos_cdn` · `respaldo_carpeta` · `fotos_drive` · `fotos_webp` |
@@ -251,6 +251,7 @@ no pisar lo que el comerciante puso.
 | **La venta** | `envio_gratis_desde` |
 | **Dónde vive el sitio** | `repositorio` — dueño/repositorio en GitHub. Lo usa «Publicar ahora». No es un secreto; el permiso sí, y ese vive en las propiedades del script |
 | **La autoría** | `f_autoria` · `autoria_url` — el pie "Powered by Laboratorio Digital". `f_autoria` = No lo apaga (decisión comercial, con precio); `autoria_url` vacía muestra el texto sin enlace |
+| **El retracto** | `retracto_excepciones` — productos que no admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por \|. Vacío = ninguno queda excluido |
 ---
 
 ## 6. Lo que sale por cada puerta

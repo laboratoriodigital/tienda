@@ -2210,7 +2210,14 @@ function semillaDeConfiguracion() {
          apagado es una decisión comercial —un cliente puede pedir que se
          quite la marca— así que vive en Configuración, no en el código. */
       ['f_autoria',         'Sí', 'Si dice Sí, la tienda muestra "Powered by Laboratorio Digital" al pie, enlazado a autoria_url. Sí = encendido, que es lo normal'],
-      ['autoria_url',       '', 'A dónde enlaza el pie de autoría. Vacío = se muestra el texto sin enlace']
+      ['autoria_url',       '', 'A dónde enlaza el pie de autoría. Vacío = se muestra el texto sin enlace'],
+
+      /* AL FINAL (R1), otra vez. Los productos que no admiten cambio de
+         opinión por ser perecederos (art. 47, Ley 1480), en las palabras del
+         propio comercio: separados por "|". Vacío = ningún producto queda
+         excluido, y el texto de retracto ni siquiera menciona la excepción —
+         no se puede inventar QUÉ es perecedero por él (historia A-4). */
+      ['retracto_excepciones', '', 'Productos que NO admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por |. Vacío = ninguno queda excluido']
   ];
 }
 
@@ -3316,17 +3323,31 @@ var LISTA_DE_ALTA = [
   { clave: 'pago_llave',        bloquea: true,
     porQue: 'el comprador termina el pedido y no tiene cómo pagar' },
 
+  /* DECISIÓN 09 (docs/DECISIONES.md): sin quién responde, un texto de
+     tratamiento de datos o de retracto no obliga a nadie. Suben a bloquear el
+     mismo día en que los textos legales empiezan a usar estas claves de
+     verdad (historia A-4) — antes de eso, bloquear no tenía sentido. */
+  { clave: 'empresa_razon',     bloquea: true,
+    porQue: 'el texto de tratamiento de datos queda sin responsable' },
+  { clave: 'empresa_nit',       bloquea: true,
+    porQue: 'la Ley 1581 pide identificar al responsable del tratamiento' },
+  { clave: 'empresa_direccion', bloquea: true,
+    porQue: 'el aviso de privacidad queda incompleto' },
+  { clave: 'empresa_ciudad',    bloquea: true,
+    porQue: 'el aviso de privacidad no dice dónde se ejercen los derechos' },
+  /* AL MENOS UNO de los dos, no los dos: exigir ambos sería pedir más de lo
+     que pide la propia ley. La clave que se reporta no es una columna de la
+     hoja: es el par completo, para que el mensaje no mienta sobre qué falta. */
+  { clave: 'empresa_correo_o_tel', bloquea: true,
+    evaluar: function (c) { return sinLlenar(c.empresa_correo) && sinLlenar(c.empresa_tel); },
+    porQue: 'no hay ningún modo de contactar al responsable de los datos personales: falta empresa_correo y también empresa_tel' },
+
   { clave: 'pago_titular',      porQue: 'el comprador no sabe a nombre de quién transfiere' },
   { clave: 'pago_entidad',      porQue: 'ni a qué banco o billetera' },
   { clave: 'repositorio',       porQue: '«Publicar ahora» no puede disparar nada' },
   { clave: 'correo_resumen',    porQue: 'no llega el resumen diario del negocio' },
   { clave: 'sitio_titulo',      porQue: 'el enlace se comparte sin decir qué es' },
   { clave: 'sitio_descripcion', porQue: 'el texto que se ve debajo del enlace compartido queda en blanco' },
-  { clave: 'empresa_razon',     porQue: 'el texto de tratamiento de datos queda sin responsable' },
-  { clave: 'empresa_nit',       porQue: 'la Ley 1581 pide identificar al responsable del tratamiento' },
-  { clave: 'empresa_correo',    porQue: 'no hay dónde ejercer los derechos de datos personales' },
-  { clave: 'empresa_direccion', porQue: 'el aviso de privacidad queda incompleto' },
-  { clave: 'empresa_ciudad',    porQue: 'el aviso de privacidad no dice dónde se ejercen los derechos' },
   { clave: 'respaldo_carpeta',  porQue: 'no se guarda copia semanal de la hoja' }
 ];
 
@@ -3339,7 +3360,11 @@ function revisarTienda(cfg) {
   var c = cfg || leerConfiguracion();
   var bloquean = [], avisan = [];
   LISTA_DE_ALTA.forEach(function (x) {
-    if (!sinLlenar(c[x.clave])) return;
+    /* La mayoría se miran por su propia clave; alguna —«al menos uno de
+       correo o teléfono»— no es una sola celda, y trae su propio evaluar(c)
+       en vez de sinLlenar(c[x.clave]). */
+    var falta = x.evaluar ? x.evaluar(c) : sinLlenar(c[x.clave]);
+    if (!falta) return;
     (x.bloquea ? bloquean : avisan).push({ clave: x.clave, porQue: x.porQue });
   });
   return { lista: !bloquean.length && !avisan.length,

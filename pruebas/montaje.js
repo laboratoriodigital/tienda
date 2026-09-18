@@ -2313,7 +2313,13 @@ const configurar = (g, clave, valor) => {
    El montaje miraba CINCO claves —las cinco constantes del index— y las otras
    once no las miraba nadie. Una tienda podía salir al aire sin llave de pago:
    el comprador terminaba el pedido y no tenía cómo pagar, que es exactamente el
-   agujero que abre a propósito sacar la llave de la página. */
+   agujero que abre a propósito sacar la llave de la página.
+
+   DECISIÓN 09 / A-4: los `empresa_*` que identifican al responsable —razón,
+   NIT, dirección, ciudad y al menos uno de correo o teléfono— suben de avisar
+   a bloquear el mismo día en que los textos legales empiezan a usarlos de
+   verdad. Sin quién responde, un texto de tratamiento de datos o de retracto
+   no obliga a nadie. */
 {
   const g = yaConfigurada(nuevo());
   const fuente = fs.readFileSync('../montar/preparar-index.mjs', 'utf8');
@@ -2339,9 +2345,10 @@ const configurar = (g, clave, valor) => {
   const alta = vacia.api.revisarTienda();
   ok('UNA TIENDA RECIÉN INSTALADA no está terminada', !alta.lista && !alta.puedeVender,
      alta.bloquean.map(x => x.clave).join(', '));
-  ok('  ...y lo que bloquea es lo que rompe la VENTA, no lo que queda feo',
-     alta.bloquean.every(x => ['negocio','whatsapp','sitio_url','pago_llave']
-       .indexOf(x.clave) !== -1),
+  ok('  ...y lo que bloquea es lo que rompe la VENTA o deja los textos legales sin responsable',
+     alta.bloquean.every(x => ['negocio','whatsapp','sitio_url','pago_llave',
+       'empresa_razon','empresa_nit','empresa_direccion','empresa_ciudad',
+       'empresa_correo_o_tel'].indexOf(x.clave) !== -1),
      alta.bloquean.map(x => x.clave).join(', '));
   ok('  ...cada falta con su porqué, que es lo accionable',
      alta.bloquean.concat(alta.avisan).every(x => x.porQue && x.porQue.length > 15),
@@ -2356,6 +2363,26 @@ const configurar = (g, clave, valor) => {
      vacia.api.sinLlenar('[NOMBRE DEL COMERCIO]') === true &&
      vacia.api.sinLlenar('La Espiga') === false,
      'es lo que deja la instalación para que se vea que falta');
+
+  /* AL MENOS UNO de empresa_correo / empresa_tel, no los dos: exigir ambos
+     sería pedir más de lo que pide la propia ley. */
+  {
+    const celda = (h, clave, valor) => {
+      const fila = h.filas('Configuración').findIndex(f => String(f[0]).trim() === clave);
+      if (fila >= 1) h.hojas.get('Configuración').getRange(fila + 1, 2).setValue(valor);
+    };
+    const t2 = crear('./as.js'); t2.api.instalar();
+    ['negocio', 'whatsapp', 'sitio_url', 'pago_llave', 'empresa_razon', 'empresa_nit',
+     'empresa_direccion', 'empresa_ciudad'].forEach(k => celda(t2, k, 'x'));
+    const sinNinguno = t2.api.revisarTienda();
+    celda(t2, 'empresa_correo', 'datos@x.co');
+    const conCorreo = t2.api.revisarTienda();
+    ok('  ...basta con UNO de empresa_correo / empresa_tel para no bloquear por eso',
+       sinNinguno.bloquean.some(x => x.clave === 'empresa_correo_o_tel') &&
+       !conCorreo.bloquean.some(x => x.clave === 'empresa_correo_o_tel'),
+       sinNinguno.bloquean.map(x => x.clave).join(', ') + ' → ' +
+       conCorreo.bloquean.map(x => x.clave).join(', '));
+  }
 
   const d = g.api.diagnostico();
   ok('EL DIAGNÓSTICO lo pregunta ARRIBA, antes que nada',

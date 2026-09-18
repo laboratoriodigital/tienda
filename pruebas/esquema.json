@@ -126,7 +126,8 @@
     "horario",
     "repositorio",
     "f_autoria",
-    "autoria_url"
+    "autoria_url",
+    "retracto_excepciones"
   ],
   "puertas": {
     "version": [
