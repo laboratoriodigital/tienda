@@ -1332,18 +1332,18 @@ const configurar = (g, clave, valor) => {
      /allow_squash_merge=true/.test(alta) && /delete_branch_on_merge=true/.test(alta),
      'fotos fusiona con --squash --delete-branch cada cuatro horas');
 
-  /* CUANDO EL PULL REQUEST NO SE ABRE, HAY QUE DECIR POR QUÉ. GitHub contesta
-     «GitHub Actions is not permitted to create or approve pull requests» en una
-     anotación al pie, y para verla hay que saber que existe. Costó tres vueltas
-     averiguarlo, con el flujo diciendo que todo iba bien hasta la última línea. */
+  /* CUANDO NO SE PUEDE PUBLICAR, HAY QUE DECIR POR QUÉ. GitHub contesta con un
+     error de permisos en una anotación al pie, y para verla hay que saber que
+     existe. Costó tres vueltas averiguarlo, con el flujo diciendo que todo iba
+     bien hasta la última línea. */
   {
     const m = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
-    ok('EL MONTAJE explica por qué no se abrió el pull request',
-       /El pull request no se abrió/.test(m) &&
-       /Allow GitHub Actions to create and approve pull requests/.test(m) &&
+    ok('EL MONTAJE explica por qué no pudo publicar',
+       /No se pudo publicar/.test(m) &&
+       /Read and write permissions/.test(m) &&
        /if: failure\(\)/.test(m),
        'la anotación de GitHub no la ve quien no sabe que existe');
-    ok('  ...y guarda lo horneado aunque el pull request falle',
+    ok('  ...y guarda lo horneado aunque publicar falle',
        /upload-artifact/.test(m) && /if: always\(\)/.test(m),
        'ya se perdió un catálogo con el runner una vez');
   }
@@ -2280,21 +2280,25 @@ const configurar = (g, clave, valor) => {
    era que lo dijera donde se decide fusionar. */
 {
   const flujo = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
-  const bloquePR = flujo.slice(flujo.indexOf('create-pull-request'));
+  const bloquePR = flujo.slice(flujo.indexOf('- name: Publicar en main'));
 
-  ok('EL TÍTULO del pull request NO es una frase fija',
-     /title: "montaje: \$\{\{ steps\.cambios\.outputs\.resumen \}\}"/.test(bloquePR),
-     'un título que no cambia nunca se deja de leer');
-  ok('  ...y el cuerpo lleva QUÉ archivos cambiaron',
-     /\$\{\{ steps\.cambios\.outputs\.detalle \}\}/.test(bloquePR),
-     'sin esto hay que abrir la pestaña de archivos para saberlo');
-  ok('  ...y el commit también, que es lo que queda en el historial',
-     /commit-message: "refactor\/frontend: \$\{\{ steps\.cambios\.outputs\.resumen \}\}"/.test(bloquePR));
+  /* EL COMMIT es hoy lo que antes era el título del pull request: desde que el
+     montaje publica directo en main, el historial es el único sitio donde queda
+     escrito qué trajo esta corrida. El pull request de reserva -cuando main
+     está protegida- lleva lo mismo. */
+  ok('EL COMMIT del montaje NO es una frase fija',
+     /-m "refactor\/frontend: \$RESUMEN"/.test(bloquePR),
+     'un mensaje que no cambia nunca se deja de leer');
+  ok('  ...y lleva QUÉ archivos cambiaron',
+     /-m "\$DETALLE"/.test(bloquePR),
+     'sin esto hay que abrir el diff para saberlo');
+  ok('  ...y el pull request de reserva dice lo mismo',
+     /--title "montaje: \$RESUMEN"/.test(bloquePR) && /cuerpo\+="\$DETALLE"/.test(bloquePR));
 
   /* Los dos valores se calculan donde ya se sabe la respuesta, no otra vez.
      Calcularlo dos veces es como empiezan a decir cosas distintas. */
   const bloqueCambios = flujo.slice(flujo.indexOf('id: cambios'),
-                                    flujo.indexOf('create-pull-request'));
+                                    flujo.indexOf('- name: Publicar en main'));
   ok('  ...y los calcula el paso que YA miró el diff, no un paso aparte',
      /echo "resumen=\$partes" >> "\$GITHUB_OUTPUT"/.test(bloqueCambios) &&
      /detalle<<FIN_DEL_DETALLE/.test(bloqueCambios),
@@ -3202,27 +3206,49 @@ const configurar = (g, clave, valor) => {
      (sinComentarios.match(/publicar\/index\.html/g) || []).length === 1,
      'la usan el guardia y el git add; dos copias es el patrón 2');
 
-  /* EL MONTAJE FUSIONA SOLO. Pedía que una persona aprobara el pull request, y
-     la razón era buena mientras el montaje traía la PÁGINA de la semilla: subir
-     de versión a una tienda es una decisión. Ese paso se retiró en la 2.13.0 y
-     con él el motivo. Lo que escribe hoy es, entero, lo que dice la hoja de ese
-     comercio — la misma clase de cambio que `fotos` fusiona solo. */
-  ok('EL MONTAJE fusiona solo, como `fotos`',
-     /gh pr merge "\$rama" --squash --delete-branch/.test(mont) &&
-     /inputs\.aprobacion != 'con-pull-request'/.test(mont),
+  /* EL MONTAJE PUBLICA SOLO, Y SIN PASAR POR UN PULL REQUEST.
+     Primero pedía que una persona aprobara, y la razón era buena mientras el
+     montaje traía la PÁGINA de la semilla: subir de versión a una tienda es una
+     decisión. Ese paso se retiró en la 2.13.0 y con él el motivo — pero quedó
+     abriendo un pull request para fusionarlo en el mismo segundo, y eso no era
+     ceremonia inofensiva: un pull request del bot deja una corrida de `pruebas`
+     RETENIDA esperando la aprobación de un mantenedor, que caduca y deja una X
+     roja sobre un montaje que salió perfecto. Pasó en el primer montaje de este
+     repositorio. `fotos` ya lo había aprendido; este flujo no recibió el
+     arreglo (patrón 2). */
+  const PUSH = 'git push --quiet origin HEAD:main';
+  ok('EL MONTAJE publica solo, directo en main, como `fotos`',
+     mont.includes(PUSH) && /inputs\.aprobacion != 'con-pull-request'/.test(mont),
      'el comerciante no espera a que alguien mire');
+  ok('  ...sin abrir un pull request que nadie pidió',
+     !/create-pull-request/.test(mont),
+     'el pull request del bot deja una corrida retenida que caduca en X roja');
   ok('  ...y se puede volver al pull request cuando se quiera',
      /options: \[automatica, con-pull-request\]/.test(mont));
   ok('  ...pero NO sin haber corrido todas las baterías sobre lo ya escrito',
-     mont.indexOf('todas.sh') < mont.indexOf('gh pr merge'),
-     'fusionar sin probar es lo que ninguna de las dos guardas puede recuperar');
+     mont.indexOf('todas.sh') < mont.indexOf(PUSH),
+     'publicar sin probar es lo que ninguna de las dos guardas puede recuperar');
   ok('  ...ni sin comprobar que la hoja es la de esta tienda',
-     mont.indexOf('misma-tienda.mjs') < mont.indexOf('gh pr merge'),
+     mont.indexOf('misma-tienda.mjs') < mont.indexOf(PUSH),
      'dos tiendas montadas a la vez y los cambios de una salen en la otra');
-  ok('  ...y si no puede fusionar, lo DICE en vez de dejarlo colgado',
-     /::warning::No se pudo fusionar solo/.test(mont) &&
-     /Allow GitHub Actions to create/.test(mont),
-     'un pull request abierto que nadie espera es una tienda que no se actualizó');
+  ok('  ...y si no puede publicar, lo DICE en vez de dejarlo colgado',
+     /::warning::No se pudo publicar directo en main/.test(mont) &&
+     /Read and write permissions/.test(mont),
+     'una tienda que no se actualizó y no lo dice es una tienda desactualizada callada');
+
+  /* Y LA OTRA MITAD DE LA MISMA LECCIÓN, EN EL OTRO ARCHIVO. La retención es de
+     la CORRIDA, no del trabajo: pasa antes de que se evalúe ninguna condición.
+     Así que la única forma de no comerse la X es que `pruebas` no se dispare
+     con el pull request de un bot — venga de `fotos` o de `montaje`. Esta
+     condición decía solo `fotos` porque cuando se escribió el de `montaje`
+     todavía esperaba a una persona; dejó de esperarla y nadie volvió aquí. */
+  {
+    const prue = fs.readFileSync('../.github/workflows/pruebas.yml', 'utf8');
+    ok('  ...y `pruebas` no se cuelga del pull request de un bot, venga de donde venga',
+       /startsWith\(github\.head_ref, 'fotos\/nuevas-'\)/.test(prue) &&
+       /startsWith\(github\.head_ref, 'montaje\/'\)/.test(prue),
+       'la retención es de la corrida: caduca y deja una X que no significa nada');
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

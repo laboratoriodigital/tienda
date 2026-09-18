@@ -67,11 +67,18 @@ mes para toda la cuenta, repartidos entre todas las tiendas.
 > mano cuesta menos que mantenerlo.
 
 Y **la casilla que se olvida siempre**: Settings → Actions → General →
-*Allow GitHub Actions to create and approve pull requests*. Sin ella el flujo
-`montaje` corre entero, funciona, y falla en la última línea al abrir el pull
-request — GitHub lo dice en una anotación al pie de la corrida, que solo ve
-quien sabe que está ahí. **Esto vale también para `organico`, el repositorio
-semilla**, si algún día abre su propio pull request.
+Workflow permissions → *Read and write permissions*. Sin ella `montaje` y
+`fotos` corren enteros, funcionan, y fallan en la última línea al empujar a
+`main` — GitHub lo dice en una anotación al pie de la corrida, que solo ve
+quien sabe que está ahí. Los dos flujos lo dicen también en su propio resumen,
+que es lo primero que se ve.
+
+> Hasta el 18 de septiembre de 2026 aquí decía *Allow GitHub Actions to create
+> and approve pull requests*, porque `montaje` publicaba abriendo un pull
+> request y fusionándolo. Ya no: publica directo en `main`, y esa casilla dejó
+> de hacer falta para el camino normal. Sigue haciendo falta si se dispara el
+> flujo con **Cómo publicar lo que salga → con-pull-request**, o si `main` está
+> protegida y el push cae al pull request de reserva.
 
 > **⚠ Editar `wrangler.jsonc` antes del primer despliegue.** En el editor web
 > de GitHub (el lápiz), cambiar `"name": "organico"` por

@@ -10,7 +10,7 @@
 #   2. index.html   →  el <head> y las 5 constantes, desde la hoja
 #   3. fotos        →  las nuevas del Drive del comercio, ya convertidas
 #   4. todas las baterías, SOBRE LOS ARCHIVOS YA MODIFICADOS
-#   5. el pull request
+#   5. publicar en main
 #
 # EL PASO 4 ES EL QUE JUSTIFICA EL ORDEN. Los pasos 2 y 3 escriben dentro de
 # index.html a partir de lo que el comercio puso en su hoja. Si esa
@@ -324,10 +324,11 @@ jobs:
       # tomates un instante — y se quedaba con ellos para siempre el día que
       # Google no contestara.
       #
-      # El flujo `fotos` NO hace esto a propósito: ese fusiona sin una persona
-      # en medio, y lo que puede publicar está acotado a `publicar/fotos` y
-      # `publicar/catalogo.json`. El index.html solo lo escribe un flujo que
-      # termina en un pull request que alguien aprueba.
+      # El flujo `fotos` NO hace esto a propósito: lo que ese puede publicar
+      # está acotado a `publicar/fotos` y `publicar/catalogo.json`, y el
+      # index.html solo lo escribe este flujo. Los dos fusionan sin una persona
+      # en medio; lo que separa a uno del otro es el alcance de lo que tocan,
+      # no quién mira.
       - name: El respaldo del index, desde el catálogo recién horneado
         if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
         run: |
@@ -427,103 +428,97 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit ${estado:-0}
 
-      # ── 5. Recién ahora, el pull request ──
-      - name: Abrir el pull request
+      # ── 5. Y SE PUBLICA, DIRECTO EN main ──────────────────────────────────
+      # ESTE FLUJO ABRÍA UN PULL REQUEST Y LO FUSIONABA EN EL MISMO SEGUNDO.
+      # Parecía ceremonia inofensiva y era una X roja garantizada: un pull
+      # request abierto por el bot dispara `pruebas`, y GitHub RETIENE esa
+      # corrida esperando que un mantenedor la apruebe. Nadie la aprueba —el
+      # flujo ya siguió solo—, caduca, y deja «This workflow run required
+      # approval but was not approved before it expired» colgando de un pull
+      # request que se fusionó perfectamente. Una marca roja que no significa
+      # nada es peor que ninguna marca: enseña a no mirarlas.
+      #
+      # `fotos` aprendió esto y lo dejó escrito en su propio archivo. Este flujo
+      # nunca recibió el arreglo: es el patrón 2 otra vez, la misma lección
+      # viviendo en dos sitios y solo uno al día. Y la retención NO se esquiva
+      # con una condición en `pruebas.yml`, porque es de la CORRIDA: pasa antes
+      # de que se evalúe ninguna condición del trabajo.
+      #
+      # El plan lo dice sin rodeos (PLAN-MVP §4.7): «se hornea, se prueba y se
+      # empuja a main sin que nadie apruebe nada». Las baterías ya corrieron
+      # ENTERAS sobre estos mismos bytes, en el paso 4; el pull request no
+      # añadía una sola comprobación.
+      #
+      # Las guardas que sí protegen siguen todas puestas: solo se indexa
+      # `publicar/` —`git add -A -- publicar/`, así que no hay forma de que se
+      # cuele otra cosa—, la identidad de la hoja se comprobó arriba, y ninguna
+      # batería puede estar en rojo para llegar hasta aquí.
+      #
+      # Quien quiera el pull request lo pide: el formulario ya tiene la casilla
+      # «Cómo publicar lo que salga», que hasta hoy no servía para nada.
+      - name: Publicar en main
         if: steps.cambios.outputs.hay == 'si'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          branch: montaje/desde-la-hoja
-          base: main
-          commit-message: "refactor/frontend: ${{ steps.cambios.outputs.resumen }}"
-          title: "montaje: ${{ steps.cambios.outputs.resumen }}"
-          body: |
-            Lo abrió el flujo `montaje` con lo que cambió en la hoja del comercio
-            y en su carpeta de Drive.
-
-            ### Qué trae
-
-            ```
-            ${{ steps.cambios.outputs.detalle }}
-            ```
-
-            Todas las baterías ya corrieron **sobre estos archivos**, no sobre
-            los anteriores.
-          delete-branch: true
-          add-paths: |
-            publicar/
-
-      # ── 5b. Y SE FUSIONA SOLO ─────────────────────────────────────────────
-      # Este flujo pedía que una persona aprobara el pull request, y la razón
-      # era buena mientras existió: el montaje traía la PÁGINA de la semilla, y
-      # subir de versión a una tienda es una decisión, no un trámite. Ese paso
-      # se retiró en la 2.13.0 —una tienda nueva se crea a partir de la
-      # plantilla y nace con la página dentro—, y con él se fue el motivo.
-      #
-      # Lo que escribe hoy el montaje es, entero, lo que dice la hoja de ESTE
-      # comercio: su <head>, sus constantes, su paleta, su catálogo, sus fotos.
-      # Exactamente la misma clase de cambio que `fotos` fusiona solo desde la
-      # 2.6.0. Pedir una aprobación para eso no protegía de nada y dejaba al
-      # comerciante esperando a que alguien mirara.
-      #
-      # Las guardas que sí protegen siguen todas puestas, y son las mismas que
-      # usa `fotos`: la identidad de la hoja, que solo cambie lo que este flujo
-      # publica, y TODAS las baterías en verde sobre los archivos ya escritos.
-      # Con `aprobacion: con-pull-request` se vuelve al camino de antes.
-      - name: Fusionar
-        if: >-
-          steps.cambios.outputs.hay == 'si' &&
-          inputs.aprobacion != 'con-pull-request'
         env:
           GH_TOKEN: ${{ github.token }}
+          RESUMEN: ${{ steps.cambios.outputs.resumen }}
+          DETALLE: ${{ steps.cambios.outputs.detalle }}
+          AUTO: ${{ inputs.aprobacion != 'con-pull-request' }}
         run: |
-          rama=montaje/desde-la-hoja
-          # A DIFERENCIA DE `fotos`, AQUÍ EL PULL REQUEST YA EXISTE cuando se
-          # llega: lo abre la acción del paso anterior. Así que esto lo fusiona
-          # en vez de empujar a main. La X roja de la corrida de `pruebas`
-          # retenida no aparece aquí porque `pruebas.yml` no se salta este pull
-          # request a propósito — es el que puede reescribir el <head>, la
-          # política de seguridad y SCRIPT_URL, y corre una vez por semana.
-          if gh pr merge "$rama" --squash --delete-branch; then
-            echo "Fusionado. Cloudflare despliega solo." >> "$GITHUB_STEP_SUMMARY"
-          else
+          git config user.name  "montaje"
+          git config user.email "noreply@github.com"
+          git commit --quiet -m "refactor/frontend: $RESUMEN" -m "$DETALLE"
+
+          if [ "$AUTO" = "true" ]; then
+            if git push --quiet origin HEAD:main; then
+              echo "Publicado en \`main\`. Cloudflare despliega solo." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            # Si `main` está protegida, el push se rechaza y eso NO es un fallo:
+            # es que este repositorio pide pull request. Se hace, y se dice.
+            echo "::warning::No se pudo publicar directo en main; va por pull request."
             {
-              echo "### El pull request quedó abierto"
+              echo "### Va por pull request"
               echo ""
-              echo "El trabajo está hecho y las baterías pasaron: lo único que"
-              echo "faltó fue la fusión. Suele ser que el repositorio exige una"
-              echo "revisión, o que la casilla **Allow GitHub Actions to create"
-              echo "and approve pull requests** está desmarcada."
-              echo ""
-              echo "Settings > Actions > General > Workflow permissions."
-              echo ""
-              echo "Se puede fusionar a mano sin perder nada."
+              echo "El push directo a \`main\` se rechazó — normalmente porque la"
+              echo "rama está protegida. No se perdió nada: queda el pull request."
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "::warning::No se pudo fusionar solo; el pull request quedó abierto."
           fi
 
-      # ── 6. Si el pull request no se pudo abrir, DECIR POR QUÉ ──
-      # GitHub contesta «GitHub Actions is not permitted to create or approve
-      # pull requests» en una anotación al pie, y para verla hay que saber que
-      # existe. El runbook ya avisaba de esta casilla —«sin ella, montaje corre
-      # entero, funciona, y falla en la última línea»— pero avisaba en el bloque
-      # de crear una tienda NUEVA, y este repositorio es el primero: nunca pasó
-      # por su propio runbook. La respuesta va aquí, donde se ve el fallo.
-      - name: El pull request no se abrió
+          # La rama lleva la hora: dos montajes seguidos rehacen los mismos
+          # archivos generados, y con un nombre fijo el segundo choca contra la
+          # rama del primero pase lo que pase.
+          rama="montaje/desde-la-hoja-$(date +%Y%m%d-%H%M)"
+          git push -u origin HEAD:"$rama"
+
+          cuerpo="Lo que cambió el comercio desde su hoja y su carpeta de Drive."
+          cuerpo+=$'\n\n### Qué trae\n```\n'
+          cuerpo+="$DETALLE"
+          cuerpo+=$'\n```\n\nTodas las baterías ya corrieron **sobre estos archivos**.'
+          gh pr create --base main --head "$rama" \
+            --title "montaje: $RESUMEN" --body "$cuerpo"
+          echo "Pull request abierto: \`$rama\`." >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 6. Si publicar falló, DECIR POR QUÉ ──
+      # GitHub contesta con un error de permisos en una anotación al pie, y para
+      # verla hay que saber que existe. La respuesta va aquí, donde se ve el
+      # fallo, y no en un runbook por el que este repositorio nunca pasó.
+      - name: No se pudo publicar
         if: failure() && steps.cambios.outputs.hay == 'si'
         run: |
           {
-            echo "### El pull request no se abrió"
+            echo "### No se pudo publicar"
             echo ""
             echo "El trabajo NO se perdió: está en el artefacto de abajo."
             echo ""
-            echo "Si el error dice **\`GitHub Actions is not permitted to create"
-            echo "or approve pull requests\`**, es una casilla de ESTE repositorio:"
+            echo "Si el error habla de **permisos** o de **\`protected branch\`**,"
+            echo "es una casilla de ESTE repositorio:"
             echo ""
             echo "> Settings → Actions → General → Workflow permissions →"
-            echo "> **Allow GitHub Actions to create and approve pull requests** ✔"
+            echo "> **Read and write permissions** ✔"
             echo ""
-            echo "Se marca una vez por repositorio y no vuelve a estorbar."
-            echo "Después, vuelve a disparar este flujo."
+            echo "Y si \`main\` está protegida y quieres que siga estándolo,"
+            echo "dispara este flujo con **Cómo publicar lo que salga →"
+            echo "con-pull-request**."
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Lo que se horneó no se tira aunque el pull request falle. Ya pasó una

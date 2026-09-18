@@ -18,11 +18,12 @@ on:
 
 jobs:
   pruebas:
-    # NO SOBRE EL PULL REQUEST QUE ABRE `fotos`, Y NO POR AHORRAR MINUTOS.
+    # NO SOBRE LOS PULL REQUESTS QUE ABREN `fotos` NI `montaje`, Y NO POR
+    # AHORRAR MINUTOS.
     #
-    # Ese flujo corre todas las baterías sobre los archivos ya escritos y solo
-    # después abre el pull request y lo fusiona. Volver a correrlas aquí prueba
-    # exactamente lo mismo sobre exactamente los mismos bytes.
+    # Los dos flujos corren TODAS las baterías sobre los archivos ya escritos, y
+    # solo después publican. Volver a correrlas aquí prueba exactamente lo mismo
+    # sobre exactamente los mismos bytes.
     #
     # Y no sale gratis: una corrida disparada por el pull request de un bot
     # queda **esperando la aprobación de un mantenedor**, y si nadie la aprueba
@@ -30,14 +31,19 @@ jobs:
     # marca roja que no significa nada es peor que ninguna marca: enseña a no
     # mirarlas.
     #
-    # El de `montaje` SÍ se sigue comprobando aquí, a propósito: ese pull
-    # request espera a una persona, corre una vez por semana, no está en el
-    # camino de publicar una foto, y es el que puede reescribir el <head>, la
-    # política de seguridad y SCRIPT_URL.
+    # ANTES AQUÍ DECÍA que el de `montaje` sí se comprobaba a propósito, porque
+    # «ese pull request espera a una persona». Dejó de ser cierto cuando
+    # `montaje` empezó a fusionar solo, y nadie corrigió esta frase: el
+    # resultado fue justo la X roja que el párrafo de arriba describe, en el
+    # primer montaje de este repositorio. Hoy `montaje` publica directo en main
+    # y no abre pull request ninguno salvo que se le pida a mano; cuando se le
+    # pide, quien lo pidió está mirando, y esta condición le ahorra la
+    # retención igual.
     if: >-
       !(github.event_name == 'pull_request' &&
         github.event.pull_request.user.login == 'github-actions[bot]' &&
-        startsWith(github.head_ref, 'fotos/nuevas-'))
+        (startsWith(github.head_ref, 'fotos/nuevas-') ||
+         startsWith(github.head_ref, 'montaje/')))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:

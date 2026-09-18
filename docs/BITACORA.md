@@ -973,3 +973,57 @@ es otra cosa y no cambia; confundir las dos ya costó diez baterías en rojo una
 vez». Volvió a costar cuatro. Ahora cada una pide su tienda con `configurar()`
 y siembra a mano las existencias flojas que necesita mirar, en la prueba que
 las mira — no en la semilla, que es de otro dueño.
+
+---
+
+**26 · Una X roja que no significaba nada, y la frase que la mantuvo viva.** El
+18 de septiembre de 2026 corrió el primer `montaje` de este repositorio. Hizo
+todo bien: leyó la hoja, bajó las fotos, horneó el catálogo, corrió las 29
+baterías sobre los archivos ya escritos, abrió el pull request #1 y lo fusionó.
+Y dejó una X roja: la corrida de `pruebas` disparada por ese pull request quedó
+**retenida esperando la aprobación de un mantenedor**, nadie la aprobó —el flujo
+ya había seguido— y caducó con «This workflow run required approval but was not
+approved before it expired».
+
+El daño no es la X: es lo que enseña. Una marca roja sobre un trabajo que salió
+perfecto entrena a no mirar las marcas rojas, y la siguiente sí va a importar.
+
+Lo desconcertante es que **esta lección ya estaba aprendida y escrita**, con
+todas sus letras, dentro de este mismo repositorio. `fotos.yml` la lleva en un
+comentario de dieciséis líneas: «abrir uno y fusionarlo en el mismo segundo no
+era ceremonia inútil: era una X roja garantizada […] la retención es de la
+CORRIDA: pasa antes de que se evalúe ninguna condición del trabajo». `fotos`
+dejó de abrir pull request y empezó a empujar directo a `main`. `montaje` nunca
+recibió el arreglo.
+
+Y hay un tercer archivo en la historia, que es lo que la vuelve un caso de
+manual. `pruebas.yml` se salta el pull request de `fotos` por esta razón
+exacta, y a continuación explica por qué el de `montaje` sí se sigue
+comprobando: «ese pull request espera a una persona». Era verdad cuando se
+escribió. Dejó de serlo cuando `montaje` empezó a fusionar solo, y nadie volvió
+a esa frase. Así que el comentario que describía la excepción **se convirtió en
+la causa**: mientras dijera eso, la condición no cubría a `montaje`, y mientras
+no lo cubriera, la X estaba garantizada.
+
+Tres archivos, una sola regla, y solo uno al día: es el patrón 2 otra vez, pero
+con una vuelta de tuerca que conviene anotar aparte. Aquí la copia atrasada no
+era un dato duplicado —una lista, una versión, un menú—: era **una
+justificación**. Un comentario que explica por qué algo es una excepción tiene
+la misma obligación de estar al día que el código, y falla peor, porque una
+justificación obsoleta no se ve obsoleta: se lee como una decisión pensada y
+frena a quien iba a corregirlo.
+
+El arreglo es el que el plan ya pedía por escrito (`PLAN-MVP.md` §4.7: «se
+hornea, se prueba y se empuja a main sin que nadie apruebe nada»): `montaje`
+publica directo en `main`, no abre pull request ninguno salvo que se le pida a
+mano —la casilla del formulario ya existía y no servía para nada—, y `pruebas`
+se salta los pull requests del bot vengan de `fotos` o de `montaje`. Las guardas
+que sí protegen no se tocaron: solo se indexa `publicar/`, la identidad de la
+hoja se comprueba antes, y ninguna batería puede estar en rojo para llegar a
+publicar.
+
+La regla: **cuando se retira el motivo de una excepción, hay que ir a buscar
+dónde está escrita esa excepción.** El código que la implementaba se corrigió
+—`montaje` dejó de esperar a una persona— y el comentario que la razonaba
+sobrevivió en otro archivo, sosteniendo el comportamiento viejo. Un `grep` del
+motivo, no del mecanismo, es lo que lo habría encontrado.
