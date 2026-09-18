@@ -35,6 +35,8 @@ const INDEX = 'publicar/index.html';
 const CATALOGO = 'publicar/catalogo.json';
 const revisar = process.argv.includes('--revisar');
 
+export const ESCRIBE = [INDEX];
+
 /* Las marcas son las mismas que emite el menú de la hoja, para que el camino
    automático y el manual dejen el archivo con LA MISMA forma. Dos formas del
    mismo bloque es lo que hace falta para que un día la expresión regular

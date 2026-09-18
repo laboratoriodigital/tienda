@@ -61,6 +61,11 @@ const MANIFIESTO = {
 
 const EN_WINDOWS = process.platform === 'win32';
 
+/* Todo lo que este archivo escribe va a una carpeta temporal del sistema
+   (mkdtempSync + tmpdir(), mas abajo): es lo que clasp sube, no un archivo
+   del repositorio. Por eso ESCRIBE queda vacio a proposito. */
+export const ESCRIBE = [];
+
 /* En Windows, lo que instala npm globalmente es clasp.cmd, y Node NO ejecuta
    un .cmd directamente: desde la 18.20 lanzarlo sin shell falla con EINVAL, y
    lanzar "clasp" a secas falla con ENOENT porque no existe ningún clasp.exe.
@@ -257,7 +262,7 @@ async function main() {
   /* Una carpeta temporal con lo único que debe existir en ese proyecto: el
      maestro y su manifiesto. Sin esto clasp le subiría a Google las pruebas,
      los docs y el index. */
-  const tmp = mkdtempSync(join(tmpdir(), 'organico-'));
+  const tmp = mkdtempSync(join(tmpdir(), 'tienda-'));
   try {
     const hojaId = idDeLaHoja();
     const fuente = readFileSync('maestro.gs', 'utf8');

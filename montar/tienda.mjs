@@ -14,6 +14,10 @@
  */
 import { readFile } from 'node:fs/promises';
 
+/* Biblioteca compartida: helpers de red y de lectura de tienda.json. No
+   escribe nada por su cuenta. */
+export const ESCRIBE = [];
+
 export async function laTienda() {
   let url = process.env.MAESTRO_URL || '';
   let token = process.env.MAESTRO_TOKEN || '';

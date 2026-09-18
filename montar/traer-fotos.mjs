@@ -29,6 +29,11 @@ const ANCHOS  = [160, 600, 900];
 const CALIDAD = 82;
 const revisar = process.argv.includes('--revisar');
 
+/* 'originales/' es cache local de las fotos que trae de Drive (gitignored);
+   'publicar/fotos/' es donde deja las versiones convertidas -incluye
+   REGISTRO, que vive adentro-. */
+export const ESCRIBE = ['originales/', 'publicar/fotos/'];
+
 const kb = n => Math.round(n / 1024) + ' KB';
 
 async function leerRegistro() {

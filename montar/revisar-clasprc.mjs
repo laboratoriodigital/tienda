@@ -32,6 +32,10 @@
  */
 import { pathToFileURL } from 'node:url';
 
+/* No escribe nada: solo mira la FORMA de lo que ya hay en el archivo
+   .clasprc.json. */
+export const ESCRIBE = [];
+
 /** Qué es lo que hay ahí. No valida el token: mira la FORMA. */
 export function queEs(texto) {
   const crudo = String(texto || '').trim();

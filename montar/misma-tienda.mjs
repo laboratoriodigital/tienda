@@ -31,6 +31,10 @@ import { laTienda, alMaestro } from './tienda.mjs';
 const limpio = s => String(s || '').trim().replace(/^https?:\/\/github\.com\//i, '')
                      .replace(/\.git$/i, '').replace(/\/+$/, '').toLowerCase();
 
+/* No escribe nada: solo compara lo que dice el maestro con el repositorio
+   donde corre. */
+export const ESCRIBE = [];
+
 export function veredicto(dice, aqui) {
   const a = limpio(dice), b = limpio(aqui);
   if (!b) return { estado: 'sin-contexto' };   // corriendo fuera de Actions

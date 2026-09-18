@@ -25,6 +25,8 @@ const TIENDA   = 'tienda.json';
 const CLASP    = 'montar/.clasp.json';
 const WRANGLER = 'wrangler.jsonc';
 
+export const ESCRIBE = [WRANGLER, TIENDA, CLASP];
+
 /* El nombre del Worker es lo ÚNICO de este repositorio que puede hacer daño
    fuera de él: dos tiendas con el mismo nombre son el mismo Worker en
    Cloudflare, así que desplegar la segunda PISA la primera. Y es justo lo que

@@ -36,6 +36,10 @@ const CAMPOS = {
   correo_resumen:   'CORREO_RESUMEN'
 };
 
+/* No escribe ningun archivo local: manda la configuracion al maestro por
+   HTTP. */
+export const ESCRIBE = [];
+
 export function loQueSeMando(entorno) {
   const d = {};
   for (const [clave, variable] of Object.entries(CAMPOS)) {

@@ -42,6 +42,8 @@ const CARPETA_FOTOS = join('publicar', 'fotos');
 const ANCHOS = [160, 600, 900];
 const revisar = process.argv.includes('--revisar');
 
+export const ESCRIBE = [ARCHIVO];
+
 /* Lo que se hornea NO es la respuesta cruda del maestro. Se copia campo por
    campo, por dos razones: que un campo nuevo del maestro no se cuele al sitio
    sin que nadie lo mire, y que el archivo publicado tenga una forma estable

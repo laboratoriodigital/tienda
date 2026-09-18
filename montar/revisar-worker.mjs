@@ -31,6 +31,9 @@ const WRANGLER = 'wrangler.jsonc';
 const MARCADOR = 'tienda-sin-configurar';
 const SEMILLA  = 'laboratoriodigital/tienda';
 
+/* No escribe nada: solo lee wrangler.jsonc y compara nombres. */
+export const ESCRIBE = [];
+
 export function nombreEnWrangler(texto) {
   return (String(texto || '').match(/"name"\s*:\s*"([^"]+)"/) || [])[1] || '';
 }
