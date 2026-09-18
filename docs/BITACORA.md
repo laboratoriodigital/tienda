@@ -848,3 +848,67 @@ una decisión de diseño deliberada— y se le da una sola casa nueva. El objeti
 declarado no es "mantener las guías al día": es que **cada procedimiento tenga
 un solo documento que lo cuente**, porque un documento que no puede fallar en
 rojo solo se corrige si deja de tener con quién competir.
+
+---
+
+**24 · La primera corrida de verdad, y lo que solo ella podía enseñar.** El 18
+de septiembre de 2026, `npm test` se corrió por primera vez con un Chromium de
+verdad —no la lectura de código, no el cálculo a mano contra el emulador: el
+navegador real, el mismo motor que corre en `montar.yml`— sobre las diez
+baterías que la sesión anterior había reescrito para dejar de nombrar el
+catálogo de Orgánico. Tres cosas se cayeron, y ninguna se había visto antes
+porque nada, hasta ese momento, las había ejercitado de verdad:
+
+Un typo en `e2e.js` —`=== 24` donde debía decir `=== 18`— sobrevivió a la
+lectura porque *leer* una aserción y *ejecutarla* no es lo mismo: la primera
+solo pregunta si el texto tiene sentido, la segunda pregunta si es cierto. Un
+cálculo mal hecho en `val.js` —el total esperado era el subtotal con descuento
+y sin envío, no el total— sobrevivió por la misma razón. Y `servidor.js`
+tenía un bug de verdad, no de la sesión anterior: `/__reiniciar` limpiaba la
+hoja emulada pero nunca volvía a llamar `configurar()`, así que cada sección de
+`e2e.js` arrancaba sobre una tienda de fábrica —sin nombre, sin cupones, sin
+tarifas— y el pedido se perdía en silencio. Nueve baterías más lo usan sin
+darse cuenta cada vez que `todas.sh` arranca el servidor por primera vez, que
+sí llama `configurar()`; solo `e2e.js`, reiniciando a mitad de su propia
+corrida, podía tropezar con la ausencia.
+
+`respaldo.js` enseñó algo más incómodo: dos de sus propias aserciones —una
+escrita esta misma semana— estaban comprobando el archivo equivocado.
+`plantilla/index.html` ya había cambiado «tomate» por «redondo», y esta
+bitácora ya lo daba por corregido en todas partes. Pero lo que de verdad sirve
+`arnes.mjs` a las baterías es `publicar/index.html` —el snapshot de Orgánico,
+sin rehornear— y ESE archivo seguía diciendo «tomate». Revisar el código fuente
+correcto y comprobar el archivo servido incorrecto puede dar el mismo
+diagnóstico por casualidad, o el contrario por la misma casualidad; esta vez
+dio el contrario, y solo abrir la página de verdad lo mostró. El canario
+«ESTA BATERÍA DISTINGUE» —el que existe justamente para probar que la
+comprobación de arriba prueba algo— había dejado de distinguir por una razón
+parecida: su control negativo leía el mismo `index.html` que `arnes.mjs` ya
+había sobrescrito con el respaldo de la hoja emulada, así que para cuando
+llegaba ahí ya no quedaba nada de Orgánico que detectar. El control negativo
+que sí sigue siendo negativo es `publicar/index.html` directo del
+repositorio, el único archivo de la corrida al que nada le escribe un
+respaldo antes de que esta batería lo lea.
+
+La regla, que ya estaba en el ítem 22 y que esto vuelve a confirmar desde el
+otro lado: **una suite verde en la lectura es una hipótesis sobre una
+hipótesis.** No alcanza con que el código parezca correcto ni con que el
+cálculo a mano cuadre: hay una clase de error —el typo que el ojo salta, la
+función que dejó de llamar a la que la completaba, el control negativo que
+dejó de ser negativo— que solo se ve corriendo la cosa de verdad, con las
+piezas de verdad, de punta a punta. 1350 de 1364 aserciones en rojo o verde
+sobre un Chromium real; lo que falta son cuatro baterías con deuda ya
+documentada antes de esta sesión —`pedidos.js`, `correo.js`, `tablero.js`,
+`calendario.js`, con su propio catálogo simulado atado al de Orgánico— y una
+sola aserción de `montaje.js` que aparca el alta a propósito.
+
+De paso, otra vez el mismo patrón del ítem 6: `todas.sh` seguía cortándose en
+Windows/Git Bash apenas terminaba la primera batería corta, con «No such file
+or directory» — la guardia por PID puesta la sesión anterior (`$BASHPID =
+$$`) no alcanzaba, porque depende de una distinción que no se pudo confirmar
+fuera de Linux. El arreglo que reemplazó esa guardia no compara nada: cada
+trabajo de fondo empieza con `trap - EXIT`, que borra la trampa heredada SOLO
+en su propio subshell — garantizado por POSIX, no un detalle de plataforma. Es
+la misma lección de siempre en una forma nueva: una comprobación basada en
+"debería comportarse así" es más débil que una que no necesita que se
+comporte de ninguna forma en particular.
