@@ -64,7 +64,16 @@ const LOCAL = pathToFileURL(path.join(__dirname, 'local.html')).href;
     return decodeURIComponent(document.querySelector('#btnFinalizar').href.split('text=')[1]);
   });
   ok('La llave ya NO viaja en el mensaje', !/Llave|Nequi|Bancolombia|transfier|consigna|Sebastián Urrego/i.test(msg));
-  ok('Abre con el número de pedido', /^\*PEDIDO #[A-Z0-9]+\* 🍅/.test(msg),
+  /* SIN EMOJI DE PRODUCTO. Esta aserción exigía un 🍅 detrás del número, que
+     era la firma del comercio de la línea anterior: una panadería mandando un
+     tomate en cada mensaje. `plantilla/index.html` ya no lo lleva, pero
+     `publicar/index.html` es un horneado viejo que sí, así que esto pasaba en
+     una máquina cualquiera y fallaba en el flujo `montar` —el único sitio que
+     corre las baterías sobre el archivo RECIÉN horneado—. Lo que importa aquí
+     es que el mensaje abra identificando el pedido; el adorno no es de nadie
+     en particular y por eso no se exige. 🍅 está desde hoy en
+     terminos-prohibidos.json, que es quien impide que vuelva. */
+  ok('Abre con el número de pedido', /^\*PEDIDO #[A-Z0-9]+\*/.test(msg),
      String(msg).split('\n')[0]);
   /* El nombre lo pone la tienda, no este archivo: en la panadería el mensaje
      decía "Orgánico lo confirma" y nadie lo vio hasta que falló aquí. */

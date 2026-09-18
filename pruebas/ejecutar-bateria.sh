@@ -9,6 +9,7 @@
 # comandos, y por eso es lo que se comporta igual en todas partes.
 set -u
 f="$1"; i="$2"; SALIDA="$3"
+inicio=$(date +%s)
 puerto=$((8100 + i * 2))
 viejo=$((8101 + i * 2))
 registro="$SALIDA/$f.txt"
@@ -61,4 +62,18 @@ estado=$?
 # no hace falta, y en un runner de Actions la memoria sí se acaba.
 for pid in $pids; do kill "$pid" 2>/dev/null; done
 rm -f "$anotados"
+
+# SEÑAL DE VIDA. Todo lo que imprime una batería va a su archivo, así que la
+# pantalla se quedaba muda de punta a punta: en una máquina lenta son varios
+# minutos sin una línea, y eso es indistinguible de una corrida colgada —de
+# hecho se confundió con una, y se cortó con Ctrl+C a mitad—. Cada batería
+# avisa aquí, cuando termina, con lo que tardó: si una se está comiendo el
+# reloj, se ve mientras pasa y no después.
+#
+# El marcador ordenado de todas.sh sigue siendo el que manda; esto es el pulso,
+# y sale desordenado a propósito, porque el orden en que terminan es justamente
+# el dato.
+printf '  · %-16s %-18s %ss\n' "$f" \
+       "$(grep -E '^Resultado' "$registro" 2>/dev/null | tail -1 | sed 's/Resultado: //')" \
+       "$(( $(date +%s) - inicio ))"
 exit 0

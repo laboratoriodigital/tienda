@@ -116,7 +116,11 @@ BATERIAS="e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
 
 # Por defecto, uno por núcleo hasta cuatro. Más no ayuda: cada trabajador es un
 # Chromium, y a partir de ahí compiten por CPU y el reloj deja de bajar.
-nucleos=$(nproc 2>/dev/null || echo 2)
+#
+# Git Bash no siempre trae `nproc`, y ahí caer a 2 es dejar la mitad de la
+# máquina parada durante toda la corrida. Windows publica los núcleos en
+# NUMBER_OF_PROCESSORS y esa variable llega al intérprete tal cual.
+nucleos=$(nproc 2>/dev/null || echo "${NUMBER_OF_PROCESSORS:-2}")
 TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 
 # ── EL CUPO DE TRABAJADORES, CONTANDO PIDs Y NADA MÁS ───────────────────────
@@ -134,6 +138,9 @@ TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 # hay que saber sobre esperar a un proceso y funciona igual en todas partes.
 # Tampoco hay trampa EXIT: lo que dejara viva una corrida cortada lo barre por
 # PID la siguiente, arriba.
+echo "  $(echo $BATERIAS | wc -w) baterías, $TRABAJADORES a la vez. Cada una avisa al terminar."
+echo
+
 enVuelo=""; enCola=0; indice=0
 for f in $BATERIAS; do
   indice=$((indice + 1))
@@ -150,6 +157,7 @@ done
 for pid in $enVuelo; do wait "$pid" 2>/dev/null; done
 
 # ── El marcador, en el orden de siempre para que el log sea comparable ──
+echo
 total=0; buenas=0; rotas=""
 for f in $BATERIAS; do
   salida=$(cat "$SALIDA/$f.txt" 2>/dev/null)
