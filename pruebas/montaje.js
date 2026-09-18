@@ -93,19 +93,24 @@ const configurar = (g, clave, valor) => {
 
   const r = aplicar(html, datos);
   ok('APLICAR deja el index apuntando al maestro de esta tienda',
-     r.html.indexOf('const SCRIPT_URL = "' + datos.valores.SCRIPT_URL + '";') !== -1);
+     r.indexOf('const SCRIPT_URL = "' + datos.valores.SCRIPT_URL + '";') !== -1);
   ok('  ...con la versión del contrato al día',
-     r.html.indexOf('const SCRIPT_VERSION = "' + datos.valores.SCRIPT_VERSION + '";') !== -1);
-  ok('  ...y el <head> que armó el maestro', r.html.indexOf(datos.head) !== -1);
+     r.indexOf('const SCRIPT_VERSION = "' + datos.valores.SCRIPT_VERSION + '";') !== -1);
+  ok('  ...y el <head> que armó el maestro', r.indexOf(datos.head) !== -1);
   ok('  ...sin tocar nada más del archivo',
-     r.html.length > html.length - 4000 && r.html.indexOf('</html>') !== -1 &&
-     r.html.split('<script>').length === html.split('<script>').length);
+     r.length > html.length - 4000 && r.indexOf('</html>') !== -1 &&
+     r.split('<script>').length === html.split('<script>').length);
   ok('  ...y conservando los comentarios que explican el código',
-     /Respaldo mínimo por si la hoja no contesta/.test(r.html));
+     /Respaldo mínimo por si la hoja no contesta/.test(r));
 
+  /* Desde A-2, aplicar() devuelve el texto directamente: hornear dos veces
+     con los MISMOS datos tiene que dar carácter por carácter el mismo
+     archivo. La lista `cambios` que esto comprobaba antes ya no existe —el
+     pull request de montaje.yml enseña el diff completo, no una lista de
+     claves (ver preparar-index.mjs). */
   ok('DOS VECES SEGUIDAS no cambia nada la segunda',
-     aplicar(r.html, datos).cambios.length === 0,
-     aplicar(r.html, datos).cambios.join(', ') || 'sin cambios');
+     aplicar(r, datos) === r,
+     aplicar(r, datos) === r ? 'sin cambios' : 'el segundo horneado no fue idéntico al primero');
 
   /* ── LA PALETA, EN EL ARCHIVO ──────────────────────────────────────────
      La página aplica los colores de la hoja al recibir la configuración, y
@@ -120,7 +125,7 @@ const configurar = (g, clave, valor) => {
     const otra = JSON.parse(JSON.stringify(datos));
     otra.colores = { principal: '#7A4A21', secundario: '#2F5D3A',
                      alterno: '#3E2A14', ilegibles: [] };
-    const pintado = aplicar(html, otra).html;
+    const pintado = aplicar(html, otra);
     const raiz = (pintado.match(/:root\{[\s\S]*?\}/) || [''])[0];
     ok('LA PALETA DEL ARCHIVO es la de esta tienda, no la de la plantilla',
        /--rojo:#7A4A21/.test(raiz) && /--verde:#2F5D3A/.test(raiz) &&
@@ -135,7 +140,7 @@ const configurar = (g, clave, valor) => {
        el de la plantilla. */
     const mala = JSON.parse(JSON.stringify(datos));
     mala.colores = { principal: 'rojo', secundario: '', alterno: '#D21', ilegibles: ['x'] };
-    const conMala = (aplicar(html, mala).html.match(/:root\{[\s\S]*?\}/) || [''])[0];
+    const conMala = (aplicar(html, mala).match(/:root\{[\s\S]*?\}/) || [''])[0];
     /* CONTRA EL COLOR QUE TENGA EL ARCHIVO, no contra el de Orgánico. Decía
        `#D0211C` a pelo y se cayó en el repositorio de una tienda cuyo montaje
        ya le había escrito su paleta: es el patrón 4, el mismo que cerró la
@@ -155,10 +160,14 @@ const configurar = (g, clave, valor) => {
        })(), 'un repintado que no repinta es exactamente el fallo que se arregla');
   }
 
-  ok('Dice QUÉ cambió, para que el pull request se entienda',
+  /* Antes esto medía QUÉ constantes habían cambiado, con un arreglo
+     `cambios` que aplicar() ya no calcula. Lo que sigue importando es que
+     hornear con datos distintos SÍ produzca un archivo distinto y con el
+     valor nuevo adentro. */
+  ok('Hornear con una versión distinta SÍ deja el archivo con la versión nueva',
      aplicar(html.replace(/const SCRIPT_VERSION\s*=\s*"[^"]*";/,
-             'const SCRIPT_VERSION = "vieja";'), datos).cambios
-       .indexOf('SCRIPT_VERSION') !== -1);
+             'const SCRIPT_VERSION = "vieja";'), datos)
+       .indexOf('const SCRIPT_VERSION = "' + datos.valores.SCRIPT_VERSION + '";') !== -1);
 
   ok('SI EL MAESTRO NO DIO LA URL, falla y NO escribe una tienda muerta', (() => {
        const sinUrl = JSON.parse(JSON.stringify(datos));
@@ -733,9 +742,13 @@ const configurar = (g, clave, valor) => {
      })(), g.api.lecturasDeHoy() + ' lecturas');
 
   ok('CONTAR NUNCA PUEDE TUMBAR UNA VISITA', (() => {
+       // nuevo() sin configurar(): una tienda recién instalada trae los dos
+       // EJEMPLO de instalar() (A-5), no el catálogo de prueba de 8. Lo que
+       // importa aquí no es CUÁNTOS productos hay, sino que contar la visita
+       // no le rompa la respuesta a la siguiente.
        const g2 = nuevo();
        const cat = g2.api.doGet({ parameter: { a: 'catalogo' } });
-       return JSON.parse(cat._texto).productos.length === 8;
+       return JSON.parse(cat._texto).productos.length === 2;
      })(), 'el catálogo sigue saliendo completo');
 
   /* EL PICO, NO EL TOTAL. El límite de Apps Script es de concurrencia —30

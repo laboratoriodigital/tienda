@@ -420,6 +420,53 @@ const COMERCIO = {
   pago_entidad:     'Banco de prueba'
 };
 
+/* Ocho productos y cinco zonas de envío para la tienda de prueba: los usa casi
+   toda la batería, así que viven en un solo sitio y con nombres de panadería
+   -que es el negocio de COMERCIO- y no de ningún comercio real.
+
+   instalar() deja de fábrica un catálogo mínimo A PROPÓSITO -dos EJEMPLO
+   inactivos, ver la historia A-5 en docs/PLAN-MVP.md-: es lo que tiene que
+   ver un comercio recién instalado, no lo que necesita una prueba. Las dos
+   cosas son distintas y NO cambian juntas; confundirlas ya costó diez
+   baterías en rojo una vez. */
+const PRODUCTOS = [
+  ['pan-masa-madre',  'Pan de masa madre',        'Unidad',     'Panes',   12000, 30,
+   'Horneado cada mañana con masa madre de cinco años.',   '', 'Sí', 'Sí'],
+  ['croissant',       'Croissant de mantequilla',  'Unidad',     'Panes',    6500, 40,
+   'Hojaldre laminado a mano, mantequilla de verdad.',      '', 'No', 'Sí'],
+  ['baguette',        'Baguette clásica',          'Unidad',     'Panes',    8000, 25,
+   'Corteza crujiente, miga aireada.',                       '', 'No', 'Sí'],
+  ['pan-integral',    'Pan integral',              'Unidad',     'Panes',    9000, 18,
+   'Con semillas de girasol y linaza.',                      '', 'No', 'Sí'],
+  ['torta-chocolate', 'Torta de chocolate',        'Porción',    'Postres',  9500, 15,
+   'Con chocolate al 70%.',                                  '', 'Sí', 'Sí'],
+  ['galletas-avena',  'Galletas de avena',         'Paquete x6', 'Postres', 11000, 20,
+   'Con pasas y canela.',                                    '', 'No', 'Sí'],
+  ['cafe-grano',      'Café en grano',             '500 g',      'Bebidas', 28000, 12,
+   'Tostión media, origen Huila.',                           '', 'No', 'Sí'],
+  ['empanada-pollo',  'Empanada de pollo',         'Unidad',     'Salado',   4500, 50,
+   'Horneada, no frita.',                                    '', 'No', 'Sí']
+];
+
+const ENVIOS = [
+  ['centro',       'Recoger en el local — Centro',    0],
+  ['zona-norte',   'Domicilio zona norte',         6000],
+  ['zona-sur',     'Domicilio zona sur',           6000],
+  ['zona-oriente', 'Domicilio zona oriente',       8000],
+  ['nacional',     'Envío nacional (transportadora)', 15000]
+];
+
+/* Reemplaza TODO el cuerpo de una hoja (sin el encabezado) por `filas`: lo que
+   haya escrito instalar() —o una corrida anterior de esta misma prueba— se
+   borra primero, para que el ancho de las filas nuevas no se mezcle con el de
+   las viejas. */
+function reemplazarFilas(h, filas) {
+  const anchas = Math.max.apply(null, filas.map(function (f) { return f.length; }));
+  const actuales = h.getLastRow() - 1;   // sin encabezado
+  if (actuales > 0) h.getRange(2, 1, actuales, h.getLastColumn()).clearContent();
+  h.getRange(2, 1, filas.length, anchas).setValues(filas);
+}
+
 /** Una tienda ya configurada, que es contra lo que se prueba casi todo. */
 function configurar(g, extra) {
   const valores = Object.assign({}, COMERCIO, extra || {});
@@ -431,7 +478,11 @@ function configurar(g, extra) {
     // filas() del maestro), así que la fila 1-based es i + 1 y la 0 es el rótulo.
     if (i >= 1) h.getRange(i + 1, 2).setValue(valores[clave]);
   });
+
+  reemplazarFilas(g.hojas.get('Catálogo'), PRODUCTOS);
+  reemplazarFilas(g.hojas.get('Envíos'), ENVIOS);
+
   return g;
 }
 
-module.exports = { crear, COMERCIO, configurar };
+module.exports = { crear, COMERCIO, configurar, PRODUCTOS, ENVIOS };

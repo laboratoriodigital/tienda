@@ -7,7 +7,7 @@
    hexadecimal, y copia un bloque en vez de editar código a mano. Si algo de
    esto se rompe, el cliente vuelve a depender de nosotros.
    ============================================================================ */
-const crear = require('./gas.js').crear;
+const { crear, configurar } = require('./gas.js');
 const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 
 const nuevo = () => { const g = crear('./as.js'); g.api.instalar(); return g; };
@@ -93,8 +93,10 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
      (val('Cupones', 2, 2) || {})._lista.join(', '));
   ok('  ...y Activo del cupón también', (val('Cupones', 2, 8) || {})._lista.join() === 'Sí,No');
 
+  // instalar() (A-5) siembra dos EJEMPLO en la categoría «Ejemplos» -no
+  // «Frescos», que era del catálogo de tomates de antes de A-5-.
   const cat = val('Catálogo', 2, 4);
-  ok('La categoría sugiere las que ya existen', !!cat && cat._lista.indexOf('Frescos') !== -1,
+  ok('La categoría sugiere las que ya existen', !!cat && cat._lista.indexOf('Ejemplos') !== -1,
      cat ? cat._lista.join(', ') : 'sin lista');
   ok('  ...pero SÍ deja escribir una nueva: el negocio crece', cat._permiteOtros === true);
 
@@ -155,8 +157,12 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
 }
 
 // ═══ 6. El catálogo de respaldo se genera solo ═══
+/* instalar() (A-5) deja solo dos EJEMPLO inactivos -no hay respaldo que
+   generar con eso-, así que esta sección usa el catálogo de prueba de
+   gas.js (ocho panes) en vez de nuevo() a secas. Son dos cosas distintas
+   a propósito: ver el comentario en gas.js. */
 {
-  const g = nuevo();
+  const g = configurar(nuevo());
   const b = g.api.generarInventario().bloque;
 
   ok('Genera el bloque con sus dos marcas',
@@ -184,7 +190,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
      String(PRODUCTOS && PRODUCTOS.length));
   ok('  ...y las 5 zonas de envío', ENVIOS && ENVIOS.length === 5, String(ENVIOS && ENVIOS.length));
   ok('  ...con los precios y el stock de HOY',
-     PRODUCTOS && PRODUCTOS[0].precio === 8900 && PRODUCTOS[0].stock === 24,
+     PRODUCTOS && PRODUCTOS[0].precio === 12000 && PRODUCTOS[0].stock === 30,
      PRODUCTOS ? PRODUCTOS[0].precio + ' / ' + PRODUCTOS[0].stock : '');
   /* EL DIBUJO DEL PRODUCTO SIN FOTO YA NO LO ESCRIBE EL MAESTRO.
      Lo calculaba aquí y lo metía dentro del respaldo; la página, para lo que
@@ -199,14 +205,14 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
      PRODUCTOS ? PRODUCTOS.map(p => p.forma).join(' ') || '(ninguno)' : '');
 
   ok('Un producto apagado NO entra al respaldo', (() => {
-       const g2 = nuevo();
-       g2.hojas.get('Catálogo').getRange(3, 10).setValue('No');   // cherry
+       const g2 = configurar(nuevo());
+       g2.hojas.get('Catálogo').getRange(3, 10).setValue('No');   // croissant
        const r = new Function(g2.api.generarInventario().bloque + '\n; return PRODUCTOS;')();
-       return r.length === 7 && !r.some(p => p.id === 'cherry');
+       return r.length === 7 && !r.some(p => p.id === 'croissant');
      })());
 
   ok('Las comillas de una descripción no rompen el bloque', (() => {
-       const g2 = nuevo();
+       const g2 = configurar(nuevo());
        g2.hojas.get('Catálogo').getRange(2, 7)
          .setValue('Dice "el mejor" y usa \\ barra y\nsalto de línea');
        try {
@@ -216,7 +222,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
      })());
 
   ok('Las fotos salen separadas, no en un solo texto con barras', (() => {
-       const g2 = nuevo();
+       const g2 = configurar(nuevo());
        g2.hojas.get('Catálogo').getRange(2, 8)
          .setValue('https://res.cloudinary.com/a.jpg|https://res.cloudinary.com/b.jpg');
        const r = new Function(g2.api.generarInventario().bloque + '\n; return PRODUCTOS;')();
@@ -238,10 +244,11 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   ok('presentarHojas() se puede ejecutar mil veces', (() => {
        try { g.api.presentarHojas(); g.api.presentarHojas(); g.api.presentarHojas(); }
        catch (e) { return false; }
-       return g.filas('Catálogo').length === 9;    // encabezado + 8
+       return g.filas('Catálogo').length === 3;    // encabezado + 2 EJEMPLO (A-5)
      })(), (g.filas('Catálogo').length - 1) + ' productos');
   ok('  ...y no toca ni un dato',
-     g.filas('Catálogo')[1][1] === 'Tomate chonto' && g.filas('Catálogo')[1][4] === 8900);
+     g.filas('Catálogo')[1][1] === 'Producto de ejemplo — edítalo o bórralo' &&
+     g.filas('Catálogo')[1][4] === 19900);
   ok('El menú la llama al actualizar', (() => {
        const g2 = nuevo();
        g2.hojas.get('Catálogo')._formato.clear();
