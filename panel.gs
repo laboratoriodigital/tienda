@@ -1,5 +1,5 @@
 /**
- * ORGÁNICO — PANEL DE TIENDAS
+ * TIENDA — PANEL DE TIENDAS
  * =============================================================================
  * El archivo de gestión del negocio: una fila por tienda vendida, las cifras de
  * todas ellas en un solo tablero, y un correo diario que dice qué atender.
@@ -669,7 +669,7 @@ function tokenGitHub() {
     .getProperty('GITHUB_TOKEN') || '').trim();
 }
 
-/* owner/repo, venga como venga: "laboratoriodigital/organico" o la URL entera. */
+/* owner/repo, venga como venga: "tuempresa/tutienda" o la URL entera. */
 function repoDe(texto) {
   var t = String(texto || '').trim().replace(/\.git$/, '');
   var m = t.match(/github\.com[\/:]([^\/]+\/[^\/\s]+)/i);

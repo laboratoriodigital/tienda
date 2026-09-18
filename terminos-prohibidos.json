@@ -1,0 +1,21 @@
+{
+  "_que_es": "La lista unica de palabras que identifican al comercio de la linea anterior (Organico): su nombre, su ciudad, su telefono, su repositorio y sus productos. La usan pruebas/marca.js y cualquier otra asercion que compruebe que la semilla no nombra a un comercio. Es UNA SOLA lista a proposito, ver docs/PLAN-MVP.md historias A-1 y A-9, y BITACORA.md patron 2 (dos listas del mismo criterio, una se queda atras).",
+  "terminos": [
+    "orgánico",
+    "organico",
+    "tomate",
+    "tomates",
+    "chonto",
+    "cherry",
+    "riñón",
+    "rinon",
+    "recoger en finca",
+    "recoger en la finca",
+    "rionegro",
+    "laboratoriodigital/organico",
+    "organico.laboratoriodigital",
+    "3008610480",
+    "300 861 0480",
+    "laboratoriodigital.la@gmail.com"
+  ]
+}

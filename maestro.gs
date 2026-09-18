@@ -1,5 +1,5 @@
 /**
- * ORGÁNICO — PROYECTO MAESTRO
+ * TIENDA — PROYECTO MAESTRO
  * ---------------------------------------------------------------------------
  * Este archivo NO va dentro de la hoja del cliente. Va en un proyecto de Apps
  * Script INDEPENDIENTE (script.google.com > Proyecto nuevo), en tu cuenta.
@@ -164,7 +164,7 @@ var H_ERRORES      = 'Errores';
    una fila aquí: no hay que tocar index.html. Las fotos van todas en la misma
    celda, separadas por una barra vertical:
 
-     https://res.cloudinary.com/tu-cuenta/image/upload/v1/chonto-1.jpg|https://res.cloudinary.com/tu-cuenta/image/upload/v1/chonto-2.jpg
+     https://res.cloudinary.com/tu-cuenta/image/upload/v1/producto-1.jpg|https://res.cloudinary.com/tu-cuenta/image/upload/v1/producto-2.jpg
 
    Pega la URL tal como te la da Cloudinary. La tienda le inyecta sola las
    transformaciones (f_auto,q_auto para que pesen menos, c_fill,ar_1:1 para
@@ -194,7 +194,7 @@ var ENCABEZADO_PEDIDOS = ['Fecha', 'Pedido', 'Validación', 'Estado', 'Ciudad', 
    solo identificador para todo: el que llega en el mensaje de WhatsApp. */
 /* La última columna, Avisos, guarda lo que el maestro le dijo al comprador
    —envío no reconocido, stock justo, una celda que no se pudo leer—. Sin ella
-   el acta no distingue «eligió recoger en finca» de «la hoja no reconoció el
+   el acta no distingue «eligió una zona de envío sin costo» de «la hoja no reconoció el
    envío y avisó»: las dos dejan el envío en 0. Un acta que no guarda las
    advertencias no es un acta, es un recibo. Va al final: R1 del contrato. */
 var ENCABEZADO_VALIDACIONES = ['Fecha', 'Pedido', 'Cupón', 'Subtotal según la hoja',
@@ -1173,7 +1173,7 @@ function json(obj) {
 }
 
 /* ==========================================================================
-   VALIDACIÓN  —  GET ?a=validar&items=chonto:2,salsa:1&cupon=X&envio=medellin
+   VALIDACIÓN  —  GET ?a=validar&items=abc:2,def:1&cupon=X&envio=zona1
                       &total=<lo que calculó la página>&sellar=1
    ========================================================================== */
 function doGet(e) {
@@ -2170,8 +2170,8 @@ function semillaDeConfiguracion() {
       ['fotos_cdn',         '', 'CÓMO se transforman. Vacío = se sirven tal cual. Cloudflare (mismo dominio, no toca la política de seguridad): https://TUDOMINIO/cdn-cgi/image/format=auto,quality=82,width={ancho},fit=cover/fotos/{ruta} — ImageKit: https://ik.imagekit.io/tucuenta/{ruta}?tr=w-{ancho},q-auto,f-auto'],
       ['respaldo_carpeta',  '', 'La carpeta de Drive del administrador donde cae la copia semanal de esta hoja. Pega el enlace de la carpeta. Vacío = no se respalda nada'],
       ['fotos_drive',       '', 'La carpeta de Drive donde el comercio sube sus fotos CRUDAS. Pega el enlace de la carpeta o solo su identificador. Vacío = el montaje no baja fotos'],
-      ['fotos_webp',        'No', 'Sí = las fotos se prepararon con preparar-fotos.mjs y existen en varios tamaños (chonto-1-600.webp). Recupera el formato moderno cuando NO hay proveedor de transformación. Si no se generaron, la tienda vuelve sola al archivo original'],
-      ['favicon',           '', 'El iconito de la pestaña del navegador. Vacío = se dibuja un tomate con los colores de la marca. Si quieres el tuyo, pon aquí una URL de Cloudinary (cuadrada, 512x512)'],
+      ['fotos_webp',        'No', 'Sí = las fotos se prepararon con preparar-fotos.mjs y existen en varios tamaños (producto-1-600.webp). Recupera el formato moderno cuando NO hay proveedor de transformación. Si no se generaron, la tienda vuelve sola al archivo original'],
+      ['favicon',           '', 'El iconito de la pestaña del navegador. Vacío = se dibuja un marcador redondo con los colores de la marca. Si quieres el tuyo, pon aquí una URL de Cloudinary (cuadrada, 512x512)'],
 
       /* EL PAGO. Estas claves NO viajan a la página: el comprador recibe los
          datos de pago por la respuesta automática de WhatsApp, después de que
@@ -2196,7 +2196,7 @@ function semillaDeConfiguracion() {
          POSICIÓN para no pisar lo que el comerciante puso, así que meter una
          clave en medio le corre todos los valores de ahí para abajo. R1 del
          contrato no es una preferencia de estilo. */
-      ['repositorio',       '', 'Dónde vive el sitio, como dueño/repositorio. Ej.: laboratoriodigital/organico. Lo usa «Publicar ahora»']
+      ['repositorio',       '', 'Dónde vive el sitio, como dueño/repositorio. Ej.: tuempresa/tutienda. Lo usa «Publicar ahora»']
   ];
 }
 
@@ -3223,7 +3223,7 @@ function generarInventario() {
    es una decisión de la página, y la página ya la toma para lo que llega en
    vivo. Tenerla también aquí eran dos implementaciones del mismo criterio
    con el respaldo heredando la de este lado por id — y un producto que no
-   estuviera en el respaldo se dibujaba con un tomate. */
+   estuviera en el respaldo se dibujaba con el marcador por defecto. */
 
 function ventanaInventario(bloque, cuantos, envios) {
   var caja = 'width:100%;box-sizing:border-box;font:12px/1.5 Menlo,Consolas,monospace;' +
@@ -4244,7 +4244,7 @@ function publicacionDeLaTienda() {
 /* ==========================================================================
    LOS DATOS QUE LA HOJA NO PUDO LEER, CON FILA Y COLUMNA EXACTAS.
    --------------------------------------------------------------------------
-   `cifra()` ya venía anotando la celda —«Catálogo E7 (Precio de chonto)»—
+   `cifra()` ya venía anotando la celda —«Catálogo E7 (Precio de un producto)»—
    pero solo la anotaba quien estuviera leyendo en ese momento, y el
    diagnóstico leía el catálogo POR EL CACHÉ: con el caché caliente
    CELDAS_ILEGIBLES quedaba vacío y el informe decía que todo estaba bien
@@ -4386,7 +4386,7 @@ function publicarAhora() {
       'Todavía no sé dónde vive tu tienda.\n\n' +
       'En la pestaña Configuración, en la fila «repositorio», escribe:\n' +
       '    dueño/repositorio\n\n' +
-      'Por ejemplo: laboratoriodigital/organico\n\n' +
+      'Por ejemplo: tuempresa/tutienda\n\n' +
       (repo ? 'Ahora dice: ' + repo : '') };
   }
   if (!tk) {
