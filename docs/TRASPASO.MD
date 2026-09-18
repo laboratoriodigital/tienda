@@ -14,13 +14,31 @@ romper) y `BITACORA.md` (por qué el código es raro donde es raro).
 
 Este repositorio es **la semilla de la segunda versión de la tienda virtual**.
 El producto se llama **tienda**. Nació como copia de la semilla de la línea
-anterior en su versión 3.0.0 y **todavía no se ha tocado nada**: el código es el
-de aquella línea, incluidos sus defectos. Lo que existe es el plan.
+anterior en su versión 3.0.0, con sus defectos dentro.
 
 El repositorio arranca en **0.1.0** y el MVP sale como **1.0.0**. El MVP son
 **cuatro hitos, M0 a M3** — el tablero gráfico, el rastreo del pedido y la
 actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
-La primera sesión de trabajo empieza por el hito M0 de `PLAN-MVP.md`.
+
+**Dónde va el trabajo (18 de septiembre de 2026):**
+
+| Hito | Estado |
+|---|---|
+| **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
+| **M1** · Rendimiento y cuota | **Cinco de siete.** Hechas B-1, B-5, B-6 y B-7; B-2 hecha salvo sus dos criterios de panel, que son M3. **Faltan B-3 y B-4** |
+| **M2** · La tienda para todo producto | Sin empezar |
+| **M3** · El panel del comerciante | Sin empezar |
+
+Lo que falta de M1, y es por donde sigue una sesión nueva:
+
+- **B-3 · Una sola pregunta al maestro** (5 pts). Al maestro se le pregunta tres
+  veces lo mismo por corrida, y con el arranque en frío de Apps Script —40 s o
+  más— eso está en el camino crítico. `montar/sondear.mjs` pediría en paralelo
+  lo que hoy se pide duplicado. Es la historia más grande y la más delicada:
+  toca el protocolo con el maestro.
+- **B-4 · Fotos en paralelo** (3 pts). Se bajan y se convierten en serie, y los
+  cuatro tamaños de cada foto también. Está acotada a `montar/traer-fotos.mjs`,
+  así que es la más segura de las dos.
 
 La línea anterior —`laboratoriodigital/organico`— se queda donde está, con tres
 tiendas en producción (un comercio de verduras, uno de cosmética y una
@@ -94,8 +112,10 @@ razonamiento; aquí en corto:
 
 ## 4 · El estado real del código, sin adornos
 
-Ocho hallazgos de la medición del 18 de septiembre. **El código heredado los
-tiene todos**, y los cinco primeros son el hito M0:
+Ocho hallazgos de la medición del 18 de septiembre. Los cinco primeros eran el
+hito M0 y **están cerrados**; el 8 se cerró en M1 (B-7). Quedan vivos el **6**
+(B-3) y el **7** (B-4). Se dejan escritos enteros porque explican por qué el
+código es como es donde todavía lo es:
 
 1. **`publicar/index.html` es fuente y producto a la vez.** No hay plantilla
    separada: las herramientas reemplazan bloques marcados dentro del archivo que
@@ -222,13 +242,15 @@ En este orden, y sin saltarse el primero:
 2. **Confirmar el presupuesto de minutos de Actions** en Settings → Billing de
    la cuenta de GitHub. Es el único número del plan que depende de un tercero, y
    decide si el hito M1 es urgente o solo conveniente.
-3. **Empezar M0 por A-9 y A-1.** A-9 es media sesión —bajar la versión a
-   `0.1.0` y quitar del código el nombre del comercio anterior— y deja el
-   repositorio hablando de este producto y no del otro. A-1 es el refactor del
-   que cuelga todo lo demás, y se hace mejor al principio, con el repositorio
-   quieto.
-4. **Correr las baterías antes de tocar nada**, para tener el verde de partida:
-   `cd pruebas && PLAYWRIGHT_BROWSERS_PATH=/home/claude/pw ./todas.sh`
+3. **Seguir por B-4 y después B-3**, que es lo que queda de M1. B-4 está
+   acotada a `montar/traer-fotos.mjs` y se puede probar en el banco; B-3 toca el
+   protocolo con el maestro y conviene hacerla con tiempo y con los tiempos de
+   `tiempos.json` de varias corridas delante, que para eso se midieron.
+4. **Correr las baterías antes de tocar nada**, para tener el verde de partida
+   (hoy, 1519/1519):
+   `cd pruebas && PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers ./todas.sh`
+   La salida entera de cada batería queda en `pruebas/.salida/`, que es donde se
+   lee el fallo que el marcador solo resume.
 
 ---
 
