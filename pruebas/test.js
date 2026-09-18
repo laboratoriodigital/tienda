@@ -6,7 +6,12 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   const errs = [];
   p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
-  await p.goto('http://localhost:' + (process.env.PUERTO || 8099));
+  const U = 'http://localhost:' + (process.env.PUERTO || 8099);
+  // Ninguna fila del catálogo actual nace con stock 0 -antes la traía de
+  // fábrica una de las de Orgánico-, así que se agota una a propósito para
+  // poder probar la tarjeta agotada.
+  await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=7&c=6&v=0');
+  await p.goto(U);
   await catalogoListo(p);
 
   const T = [];
@@ -27,7 +32,7 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   ok('Stepper vuelve a 1', (await p.locator('.rejilla .tarjeta').first().locator('.cantidad-elegir span').innerText()).trim() === '1');
 
   // agotado
-  const agotado = p.locator('.rejilla .tarjeta').filter({ hasText: 'Pasta de tomate' });
+  const agotado = p.locator('.rejilla .tarjeta').filter({ hasText: 'Galletas de avena' });
   ok('Agotado: + deshabilitado', await agotado.locator('.cantidad-elegir button').nth(1).isDisabled());
   ok('Agotado: Agregar deshabilitado', await agotado.locator('.btn-solido').isDisabled());
 
@@ -35,14 +40,14 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   await p.click('.btn-carrito');
   await pintado(p);
 
-  // subtotal 3 x 8900 = 26700 -> por debajo del mínimo de 50000
-  await p.fill('#cupon', 'organico10');
+  // subtotal 3 x 12.000 = 36.000 -> por debajo del mínimo de 50000
+  await p.fill('#cupon', 'bienvenida10');
   await p.click('.cupon-fila .btn-linea');
   await pintado(p);
   let aviso = await p.locator('#avisoCupon').innerText();
   ok('Mínimo no alcanzado muestra aviso', /Aplica desde/.test(aviso));
   ok('Aviso en rojo', (await p.locator('#avisoCupon').getAttribute('class')).includes('mal'));
-  ok('Campo pasa a mayúsculas', (await p.inputValue('#cupon')) === 'ORGANICO10');
+  ok('Campo pasa a mayúsculas', (await p.inputValue('#cupon')) === 'BIENVENIDA10');
 
   // código inexistente
   await p.fill('#cupon', 'NOEXISTE');
@@ -50,20 +55,20 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   await pintado(p);
   ok('Código inexistente avisa', /no existe/.test(await p.locator('#avisoCupon').innerText()));
 
-  // subir el carrito por encima de 50000: 6 unidades mas = 9 x 8900 = 80100
+  // subir el carrito por encima de 50000: 6 unidades mas = 9 x 12.000 = 108.000
   await p.click('#panel .cerrar');
   await pintado(p);
   for (let i = 0; i < 6; i++) await p.locator('.rejilla .tarjeta').first().locator('.btn-solido').click();
   await p.click('.btn-carrito');
   await pintado(p);
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.press('#cupon', 'Enter');   // Enter tambien aplica
   await pintado(p);
   const tot = await p.locator('#totales').innerText();
   ok('Enter aplica el cupón', /Cupón aplicado/.test(await p.locator('#avisoCupon').innerText()));
-  ok('Descuento aparece en totales', /Descuento \(ORGANICO10\)/.test(tot));
-  ok('Descuento = $8.010 (10% de 80.100)', tot.includes('8.010'));
-  ok('Total = 80.100 - 8.010 + 9.000 = 81.090', tot.includes('81.090'));
+  ok('Descuento aparece en totales', /Descuento \(BIENVENIDA10\)/.test(tot));
+  ok('Descuento = $10.800 (10% de 108.000)', tot.includes('10.800'));
+  ok('Total = 108.000 - 10.800 + 6.000 = 103.200', tot.includes('103.200'));
 
   // el aviso sobrevive a un cambio en el carrito
   await p.locator('.linea-item .cantidad button').nth(1).click();
@@ -96,11 +101,10 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   ok('Botón Enviar se habilita', await p.locator('#btnFinalizar').isEnabled());
   const url = await p.evaluate(() => { return document.querySelector('#btnFinalizar').href; });
   const msg = decodeURIComponent(url.split('text=')[1]);
-  /* El tomate va al FINAL de la primera línea, no al principio: al remitente
-     se le rompía la caja de escritura de WhatsApp cuando el mensaje empezaba
-     con un emoji. Esta aserción venía comprobando lo contrario porque corría
-     contra una copia congelada del index. */
-  ok('Mensaje abre con el pedido', /^\*PEDIDO #[A-Z0-9]+\* 🍅/.test(msg),
+  /* El encabezado ya no lleva ningún emoji: el 🍅 estaba hardcodeado para
+     TODAS las tiendas en plantilla/index.html, un resto de Orgánico horneado
+     en lo que debía ser una plantilla neutral. Se quitó ahí, no solo aquí. */
+  ok('Mensaje abre con el pedido', /^\*PEDIDO #[A-Z0-9]+\*/.test(msg),
      msg.split('\n')[0]);
   ok('El mensaje NO lleva datos de pago', !/Llave|Nequi|Bancolombia|transfier|consigna|Sebastián Urrego/i.test(msg));
   ok('Remite los datos de pago al chat', /datos de pago por este chat/.test(msg));
@@ -138,7 +142,7 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   ok('HACER OTRO PEDIDO vacía el carrito', /carrito está vacío/i.test(vacio),
      vacio.split('\n')[0]);
   ok('  ...y el siguiente pedido estrena número', await p.evaluate(() => {
-       agregar('chonto', 1);
+       agregar('pan-masa-madre', 1);
        return codigoDelPedido();
      }) !== codigo);
   /* Contra un Apps Script que contesta, el total va SELLADO, y entonces la

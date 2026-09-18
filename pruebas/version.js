@@ -22,7 +22,7 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
      (await p.locator('.rejilla .tarjeta').count()) === 8,
      (await p.locator('.rejilla .tarjeta').count()) + ' productos');
 
-  await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+  await p.evaluate(() => { agregar('pan-masa-madre', 7); abrirPanel(); });
   await selloListo(p);
   ok('NO muestra el pedido como verificado',
      !/Pedido verificado/.test(await p.locator('#totales').innerText()),

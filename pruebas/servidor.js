@@ -77,8 +77,8 @@ const servidor = http.createServer((req, res) => {
   if (u.pathname === '/__drift') {           // la hoja cambia bajo los pies del cliente
     const h = gas.hojas.get('Catálogo');
     h._datos.slice(1).forEach((f, i) => {
-      if (f[0] === 'chonto') h.getRange(i + 2, 5).setValue(9500);
-      if (f[0] === 'cherry') h.getRange(i + 2, 10).setValue('No');
+      if (f[0] === 'baguette') h.getRange(i + 2, 5).setValue(9500);
+      if (f[0] === 'croissant') h.getRange(i + 2, 10).setValue('No');
     });
     delete gas.cache['catalogo'];
     return responderJson(res, { ok: true });

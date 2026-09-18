@@ -188,7 +188,7 @@ const foto = async (p, nombre, uso) =>
   });
   ok('EN LA HOJA SE ESCRIBE SOLO EL NOMBRE y la tarjeta arma la URL',
      src === U + '/fotos/chonto-1.jpg', src);
-  await p.evaluate(() => abrirFicha('chonto'));
+  await p.evaluate(() => abrirFicha('pan-masa-madre'));
   await hasta(p, () => document.querySelector('#ficha').classList.contains('abierta'));
   const galeria = await p.evaluate(() =>
     [...document.querySelectorAll('#fichaCaja .miniaturas img')].map(i => i.getAttribute('src')));
@@ -198,7 +198,7 @@ const foto = async (p, nombre, uso) =>
      galeria.every(u => /chonto-[12]\.jpg$/.test(u)), galeria[0] || '');
 
   const sinFotos = await p.evaluate(() => {
-    const p2 = producto('rinon');
+    const p2 = producto('croissant');
     return fotosDe(p2, 'tarjeta')[0].slice(0, 30);
   });
   ok('Un producto sin fotos sigue mostrando su dibujo',

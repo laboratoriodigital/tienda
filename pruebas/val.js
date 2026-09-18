@@ -26,14 +26,14 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
      "'self' es lo que deja leer catalogo.json; sin él el fetch se bloquea callado");
 
   // ---- 1. Cupón válido: el descuento lo pone la hoja ----
-  await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+  await p.evaluate(() => { agregar('baguette', 7); abrirPanel(); });
   await selloListo(p);
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.click('.cupon-fila .btn-linea');
   await selloListo(p);
   let t = await totales();
-  ok('Descuento aplicado por la hoja', /Descuento \(ORGANICO10\)/.test(t) && t.includes('6.230'));
-  ok('Total de la hoja ($65.070)', t.includes('65.070'));
+  ok('Descuento aplicado por la hoja', /Descuento \(BIENVENIDA10\)/.test(t) && t.includes('5.600'));
+  ok('Total de la hoja ($50.400)', t.includes('50.400'));
   ok('Avisa que el total lo verificó la hoja', /Total verificado con la tienda/.test(t),
      t.split('\n').pop());
   ok('Aviso verde del servidor', /10% de descuento/.test(await avisoCup()));
@@ -52,11 +52,11 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
   // ---- 3. Precios manipulados: la hoja manda ----
   await abrir();
   const tramp = await p.evaluate(async () => {
-    agregar('chonto', 7); abrirPanel();
+    agregar('baguette', 7); abrirPanel();
     await new Promise(r => setTimeout(r, 1400));
     // el atacante intenta rebajar el subtotal que la página reporta
     const orig = window.subtotal; window.subtotal = () => 100;
-    document.getElementById('cupon').value = 'ORGANICO10';
+    document.getElementById('cupon').value = 'BIENVENIDA10';
     aplicarCupon();
     await new Promise(r => setTimeout(r, 900));
     const t = calcular();
@@ -76,11 +76,11 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
   ok('Marcado para que lo revises a mano', /calculado por la página/.test(tramp.msg));
   const pets = await (await fetch(U + '/__peticiones')).json();
   const conSub = pets.filter(q => q.sub === '100');
-  ok('La hoja recibe el subtotal falso y puede marcarlo', conSub.length > 0, 'sub reportado=100 vs real=62300');
+  ok('La hoja recibe el subtotal falso y puede marcarlo', conSub.length > 0, 'sub reportado=100 vs real=56000');
 
   // ---- 4. Cupón inactivo y cupón agotado ----
   await abrir();
-  await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+  await p.evaluate(() => { agregar('baguette', 7); abrirPanel(); });
   await selloListo(p);
   await fetch(U + '/__celda?hoja=Cupones&f=3&c=8&v=No');          // PRIMERA5000 apagado
   await fetch(U + '/__usar?codigo=ENVIOGRATIS');                   // ENVIOGRATIS agotado
@@ -93,9 +93,9 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
   // ---- 5. Fallo cerrado: la hoja no responde ----
   await fetch(U + '/__modo?m=caido');
   await abrir();
-  await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+  await p.evaluate(() => { agregar('baguette', 7); abrirPanel(); });
   await selloListo(p);
-  await p.fill('#cupon','ORGANICO10'); await p.click('.cupon-fila .btn-linea');
+  await p.fill('#cupon','BIENVENIDA10'); await p.click('.cupon-fila .btn-linea');
   await selloListo(p);                 // reintenta dos veces y se rinde: eso es asentarse
   ok('Sin red NO se aplica descuento', !/Descuento/.test(await totales()));
   ok('Invita a pedirlo por WhatsApp', /te lo aplicamos por WhatsApp/.test(await avisoCup()));
@@ -129,7 +129,7 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
      desde el primer instante —el catálogo de respaldo—. */
   await p.goto(U);
   await hasta(p, () => document.querySelectorAll('.rejilla .tarjeta').length > 0);
-  await p.evaluate(() => { agregar('chonto', 2); abrirPanel(); });
+  await p.evaluate(() => { agregar('baguette', 2); abrirPanel(); });
   /* MODO LENTO A PROPÓSITO: lo que se mira es la pantalla MIENTRAS valida, así
      que se espera a que esté validando, no a que termine. */
   await hasta(p, () => validando === true);
@@ -145,8 +145,8 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
   await fetch(U + '/__modo?m=ok');
   await abrir();
   await p.evaluate(async () => {
-    agregar('chonto',1); abrirPanel();
-    for (let i=0;i<8;i++){ cambiarCantidad('chonto',1); await new Promise(r=>setTimeout(r,60)); }
+    agregar('baguette',1); abrirPanel();
+    for (let i=0;i<8;i++){ cambiarCantidad('baguette',1); await new Promise(r=>setTimeout(r,60)); }
   });
   await selloListo(p); await p.waitForLoadState('networkidle');
   const nPets = (await (await fetch(U + '/__peticiones')).json()).length;
@@ -154,10 +154,10 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
 
   // ---- 8. El foco no se pierde al llegar la respuesta ----
   await abrir();
-  await p.evaluate(() => { agregar('chonto',2); abrirPanel(); });
+  await p.evaluate(() => { agregar('baguette',2); abrirPanel(); });
   await selloListo(p);
   await p.click('#fDir'); await p.type('#fDir', 'Calle 100 #');
-  await p.evaluate(() => { cambiarCantidad('chonto',1); });   // dispara validación
+  await p.evaluate(() => { cambiarCantidad('baguette',1); });   // dispara validación
   await selloListo(p);
   const foco = await p.evaluate(() => ({ id: document.activeElement.id, val: document.getElementById('fDir').value }));
   ok('El cursor sigue en la dirección', foco.id === 'fDir', 'foco=' + foco.id);

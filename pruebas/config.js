@@ -39,7 +39,7 @@ const cfg = async (clave, valor) => {
     const l = document.querySelector('link[rel="icon"]');
     return l ? decodeURIComponent(l.getAttribute('href')) : '';
   });
-  ok('La pestaña del navegador muestra un tomate',
+  ok('La pestaña del navegador dibuja un icono propio',
      /^data:image\/svg\+xml,<svg/.test(icono) && /circle/.test(icono),
      icono.slice(0, 46));
   ok('  ...dibujado dentro del propio archivo, sin pedir nada al servidor',
@@ -130,7 +130,7 @@ const cfg = async (clave, valor) => {
   await p.evaluate(() => cerrarLegal());
 
   // ═══ 4. El pedido usa el WhatsApp nuevo ═══
-  await p.evaluate(() => { agregar('chonto', 2); abrirPanel(); });
+  await p.evaluate(() => { agregar('croissant', 2); abrirPanel(); });
   await selloListo(p);
   await p.fill('#fNombre', 'Ana Ruiz'); await p.fill('#fTel', '3001234567');
   await p.fill('#fCiudad', 'Envigado'); await p.fill('#fDir', 'Calle 1');

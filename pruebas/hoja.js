@@ -13,14 +13,14 @@ const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -
   p.on('console', m => { if (/Refused to load|Content Security/i.test(m.text())) bloqueos.push(m.text().slice(0,100)); });
   p.on('pageerror', e => bloqueos.push('PAGEERROR: ' + e.message));
   // --- montamos el escenario EN LA HOJA, que es lo que se está probando ---
-  // chonto: cuatro fotos de Cloudinary (fila 2, columna Imágenes)
-  await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=2&c=8&v=' + encodeURIComponent("https://res.cloudinary.com/organico/image/upload/v1/chonto-1.jpg|https://res.cloudinary.com/organico/image/upload/v1/chonto-2.jpg|https://res.cloudinary.com/organico/image/upload/v1/chonto-3.jpg|https://res.cloudinary.com/organico/image/upload/v1/chonto-4.jpg"));
+  // pan-masa-madre: cuatro fotos de Cloudinary (fila 2, columna Imágenes)
+  await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=2&c=8&v=' + encodeURIComponent("https://res.cloudinary.com/tienda/image/upload/v1/pan-masa-madre-1.jpg|https://res.cloudinary.com/tienda/image/upload/v1/pan-masa-madre-2.jpg|https://res.cloudinary.com/tienda/image/upload/v1/pan-masa-madre-3.jpg|https://res.cloudinary.com/tienda/image/upload/v1/pan-masa-madre-4.jpg"));
   // un producto que NO existe en index.html, creado solo con una fila
   await fetch(U + '/__producto?' + new URLSearchParams({
-    id:'mermelada', nombre:'Mermelada de tomate y jengibre', formato:'Frasco 220 g',
+    id:'mermelada', nombre:'Mermelada de mora y jengibre', formato:'Frasco 220 g',
     categoria:'Conservas', precio:'19900', stock:'6', destacado:'S\u00ed',
     desc:'Dulce con punto picante, para quesos maduros y carnes fr\u00edas.',
-    imagenes: "https://res.cloudinary.com/organico/image/upload/w_400,f_auto/v1/mermelada-ya-optimizada.jpg" }).toString());
+    imagenes: "https://res.cloudinary.com/tienda/image/upload/w_400,f_auto/v1/mermelada-ya-optimizada.jpg" }).toString());
   await p.goto(U); await catalogoListo(p);
 
   // ===== 1. Producto nuevo creado SOLO desde la hoja =====
@@ -48,7 +48,7 @@ const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -
 
   // ===== 3. Fotos: la hoja escribe nombres, la tienda arma la URL =====
   const urls = await p.evaluate(() => {
-    const ch = producto('chonto'), me = producto('mermelada');
+    const ch = producto('pan-masa-madre'), me = producto('mermelada');
     return { tarjeta: fotosDe(ch,'tarjeta')[0], galeria: fotosDe(ch,'galeria')[0],
              mini: fotosDe(ch,'miniatura')[0], completa: fotosDe(me,'tarjeta')[0],
              origen: FOTOS.origen };
@@ -151,7 +151,7 @@ const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -
   const extremo = await p.evaluate(() => {
     let u = document.querySelector('#btnFinalizar').href;
     const orig = carrito.slice();
-    carrito = []; for(let k=0;k<14;k++) carrito.push({id:'chonto',cantidad:1});
+    carrito = []; for(let k=0;k<14;k++) carrito.push({id:'pan-masa-madre',cantidad:1});
     // forzamos 14 líneas saltando sanear con nombres largos
     const armado = (()=>{  return u; })();
     carrito = orig;     return armado ? { url:armado.length, msg:decodeURIComponent(armado.split('text=')[1]) } : null;

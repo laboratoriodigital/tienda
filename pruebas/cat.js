@@ -22,25 +22,25 @@ const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -
   await abrir();
   let vis = await p.evaluate(() => VISIBLES.map(x => x.id + '@' + x.precio));
   ok('La tienda muestra los 8 productos de la hoja', vis.length === 8, vis.join(' '));
-  // apagamos el sofrito EN LA HOJA (fila 6, columna Activo) y debe desaparecer
+  // apagamos la torta de chocolate EN LA HOJA (fila 6, columna Activo) y debe desaparecer
   await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=6&c=10&v=No');
   await abrir();
   ok('Un producto con Activo=No desaparece de la tienda',
-     !(await p.locator('#rejilla').innerText()).includes('Sofrito'),
+     !(await p.locator('#rejilla').innerText()).includes('Torta de chocolate'),
      (await p.evaluate(() => VISIBLES.length)) + ' productos visibles');
   await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=6&c=10&v=S%C3%AD');
   ok('Las tarifas también salen de la hoja',
-     (await p.evaluate(() => TARIFAS.map(e => e.id).join(','))) === 'finca,medellin,oriente,principal,resto',
+     (await p.evaluate(() => TARIFAS.map(e => e.id).join(','))) === 'centro,zona-norte,zona-sur,zona-oriente,nacional',
      await p.evaluate(() => TARIFAS.map(e => e.id).join(',')));
 
   // ===== 2. EL CASO A DE ANTES: la hoja sube el precio =====
-  await fetch(U + '/__drift');       // chonto -> 9500, cherry desactivado
+  await fetch(U + '/__drift');       // baguette -> 9500, croissant desactivado
   await abrir();
   vis = await p.evaluate(() => VISIBLES.map(x => x.id + '@' + x.precio));
-  ok('CASO A: el precio nuevo llega a la tarjeta', vis.includes('chonto@9500'), vis.join(' '));
-  ok('CASO B: el producto desactivado desaparece de la tienda', !vis.some(v => v.startsWith('cherry')), vis.join(' '));
+  ok('CASO A: el precio nuevo llega a la tarjeta', vis.includes('baguette@9500'), vis.join(' '));
+  ok('CASO B: el producto desactivado desaparece de la tienda', !vis.some(v => v.startsWith('croissant')), vis.join(' '));
 
-  await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+  await p.evaluate(() => { agregar('baguette', 7); abrirPanel(); });
   await selloListo(p);
   const linea = (await p.locator('.linea-item').innerText()).replace(/\n+/g,' ');
   const tot = await totales();
@@ -50,7 +50,7 @@ const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -
 
   // ===== 3. Red de seguridad: precios cambian con la página abierta =====
   await fetch(U + '/__reset');       // la hoja vuelve a 8.900 mientras el cliente mira
-  await p.evaluate(() => { cambiarCantidad('chonto', 1); });   // fuerza revalidación
+  await p.evaluate(() => { cambiarCantidad('baguette', 1); });   // fuerza revalidación
   await selloListo(p);
   const tot2 = await totales();
   const sub2 = await p.evaluate(() => ({ pagina: subtotal(), sello: sello && sello.sub, vigente: selloVigente() }));

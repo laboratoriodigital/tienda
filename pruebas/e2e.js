@@ -22,7 +22,7 @@ const celda = (h, n, f, c) => ((h[n] || [])[f] || [])[c];
 async function comprar(p, { cupon, envio, notas } = {}) {
   await p.goto(U);
   await catalogoListo(p);
-  await p.evaluate(() => { agregar('chonto', 6); agregar('salsa', 1); abrirPanel(); });
+  await p.evaluate(() => { agregar('pan-integral', 6); agregar('croissant', 1); abrirPanel(); });
   await selloListo(p);
   if (envio) { await p.selectOption('#fEnvio', envio); await selloListo(p); }
   if (cupon) {
@@ -54,7 +54,7 @@ async function comprar(p, { cupon, envio, notas } = {}) {
 
   // ══════════ 1. Un pedido completo, de principio a fin ══════════
   await reiniciar();
-  let r = await comprar(p, { cupon: 'ORGANICO10' });
+  let r = await comprar(p, { cupon: 'BIENVENIDA10' });
   ok('El botón queda habilitado', r.habilitado);
   ok('El mensaje trae el número del pedido', r.mensaje.includes('PEDIDO #' + r.codigo),
      (r.mensaje.match(/PEDIDO #\w+/) || [''])[0]);
@@ -63,7 +63,7 @@ async function comprar(p, { cupon, envio, notas } = {}) {
   ok('  ...y por ir sellado, tampoco lleva el aviso de "sin verificar"',
      !/calculado por la página/.test(r.mensaje));
   ok('El emoji NO abre el mensaje: en la caja de escritura no siempre resuelve',
-     /^\*PEDIDO #\w+\* 🍅/.test(r.mensaje.trim()), r.mensaje.split('\n')[0]);
+     /^\*PEDIDO #\w+\*/.test(r.mensaje.trim()), r.mensaje.split('\n')[0]);
 
   await p.click('#btnFinalizar');
   let H = await filasEn(U, 'Pedidos', 2);
@@ -78,8 +78,8 @@ async function comprar(p, { cupon, envio, notas } = {}) {
      maestro y no quien manda el pedido. */
   ok('  ...en estado "Nuevo"', linea[3] === 'Nuevo', String(linea[3]));
   ok('  ...con la ciudad', linea[4] === 'Bogotá', String(linea[4]));
-  ok('  ...con el cupón que aplicó', linea[5] === 'ORGANICO10', String(linea[5]));
-  ok('  ...con el precio que dice la HOJA, no el navegador', linea[9] === 8900, String(linea[9]));
+  ok('  ...con el cupón que aplicó', linea[5] === 'BIENVENIDA10', String(linea[5]));
+  ok('  ...con el precio que dice la HOJA, no el navegador', linea[9] === 9000, String(linea[9]));
   ok('  ...y SIN datos personales', !JSON.stringify(H['Pedidos']).includes('María') &&
      !JSON.stringify(H['Pedidos']).includes('3115558899'));
 
@@ -88,12 +88,12 @@ async function comprar(p, { cupon, envio, notas } = {}) {
   ok('  ...con el mismo número', celda(H, 'Validaciones', 1, 1) === r.codigo,
      String(celda(H, 'Validaciones', 1, 1)));
   ok('  ...sin discrepancia', !celda(H, 'Validaciones', 1, 5), String(celda(H, 'Validaciones', 1, 5)));
-  ok('  ...con el subtotal correcto (6×8.900 + 14.900 = 68.300)',
-     celda(H, 'Validaciones', 1, 3) === 68300, String(celda(H, 'Validaciones', 1, 3)));
-  ok('  ...con el descuento del 10% (6.830)',
-     celda(H, 'Validaciones', 1, 6) === 6830, String(celda(H, 'Validaciones', 1, 6)));
-  ok('  ...y el total con envío (68.300 − 6.830 + 9.000 = 70.470)',
-     celda(H, 'Validaciones', 1, 8) === 70470, String(celda(H, 'Validaciones', 1, 8)));
+  ok('  ...con el subtotal correcto (6×9.000 + 6.500 = 60.500)',
+     celda(H, 'Validaciones', 1, 3) === 60500, String(celda(H, 'Validaciones', 1, 3)));
+  ok('  ...con el descuento del 10% (6.050)',
+     celda(H, 'Validaciones', 1, 6) === 6050, String(celda(H, 'Validaciones', 1, 6)));
+  ok('  ...y el total con envío (60.500 − 6.050 + 6.000 = 60.450)',
+     celda(H, 'Validaciones', 1, 8) === 60450, String(celda(H, 'Validaciones', 1, 8)));
 
   ok('Sin errores en la hoja Errores', filas(H, 'Errores').length === 0,
      JSON.stringify(filas(H, 'Errores')[0] || ''));
@@ -125,29 +125,29 @@ async function comprar(p, { cupon, envio, notas } = {}) {
   await reiniciar();
   await p.goto(U); await catalogoListo(p);
   await p.evaluate(async () => {
-    agregar('chonto', 1); abrirPanel();
-    for (let i = 0; i < 6; i++) { cambiarCantidad('chonto', 1); await new Promise(r => setTimeout(r, 250)); }
+    agregar('pan-integral', 1); abrirPanel();
+    for (let i = 0; i < 6; i++) { cambiarCantidad('pan-integral', 1); await new Promise(r => setTimeout(r, 250)); }
   });
   await selloListo(p); await quieto(p);
   H = await hojas();
   ok('Siete cambios de carrito = UNA fila en Validaciones', filas(H, 'Validaciones').length === 1,
      filas(H, 'Validaciones').length + ' filas');
   ok('  ...y guarda el último estado (7 unidades)',
-     String(celda(H, 'Validaciones', 1, 9)).includes('chonto x7'), String(celda(H, 'Validaciones', 1, 9)));
+     String(celda(H, 'Validaciones', 1, 9)).includes('pan-integral x7'), String(celda(H, 'Validaciones', 1, 9)));
 
   // ══════════ 4. Confirmar el pedido mueve el inventario ══════════
   await reiniciar();
   r = await comprar(p);
   await p.click('#btnFinalizar');
   H = await filasEn(U, 'Pedidos', 2);
-  const stockAntes = H['Catálogo'].slice(1).find(f => f[0] === 'chonto')[5];
-  ok('Stock de chonto antes de confirmar', stockAntes === 24, String(stockAntes));
+  const stockAntes = H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5];
+  ok('Stock de pan-integral antes de confirmar', stockAntes === 18, String(stockAntes));
 
   // el dueño marca Confirmado en la primera línea
   await fetch(U + '/__celda?hoja=Pedidos&f=2&c=4&v=Confirmado&disparar=1');
   H = await hojaCuando(U, h => h['Pedidos'][1][12] === 'Descontado');
-  const stockDespues = H['Catálogo'].slice(1).find(f => f[0] === 'chonto')[5];
-  ok('CONFIRMAR DESCUENTA EL STOCK (24 − 6 = 18)', stockDespues === 18, String(stockDespues));
+  const stockDespues = H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5];
+  ok('CONFIRMAR DESCUENTA EL STOCK (18 − 6 = 12)', stockDespues === 12, String(stockDespues));
   ok('  ...y marca la línea como Descontado', celda(H, 'Pedidos', 1, 12) === 'Descontado',
      String(celda(H, 'Pedidos', 1, 12)));
   ok('MÁS VENDIDOS se llena al confirmar', filas(H, 'Más vendidos').length >= 1,
@@ -157,15 +157,15 @@ async function comprar(p, { cupon, envio, notas } = {}) {
 
   // ══════════ 5. La tienda ve el stock nuevo ══════════
   await p.goto(U); await catalogoListo(p);
-  const stockTienda = await p.evaluate(() => producto('chonto').stock);
-  ok('LA TIENDA MUESTRA EL STOCK NUEVO', stockTienda === 18, String(stockTienda));
+  const stockTienda = await p.evaluate(() => producto('pan-integral').stock);
+  ok('LA TIENDA MUESTRA EL STOCK NUEVO', stockTienda === 12, String(stockTienda));
 
   // ══════════ 6. Anular devuelve el stock ══════════
   await fetch(U + '/__celda?hoja=Pedidos&f=2&c=4&v=Anulado&disparar=1');
-  H = await hojaCuando(U, h => h['Catálogo'].slice(1).find(f => f[0] === 'chonto')[5] === 24);
-  ok('ANULAR DEVUELVE EL STOCK (18 + 6 = 24)',
-     H['Catálogo'].slice(1).find(f => f[0] === 'chonto')[5] === 24,
-     String(H['Catálogo'].slice(1).find(f => f[0] === 'chonto')[5]));
+  H = await hojaCuando(U, h => h['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5] === 18);
+  ok('ANULAR DEVUELVE EL STOCK (12 + 6 = 18)',
+     H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5] === 24,
+     String(H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5]));
   ok('  ...y Más vendidos queda vacía', filas(H, 'Más vendidos').length === 0,
      filas(H, 'Más vendidos').length + ' filas');
 
@@ -173,22 +173,22 @@ async function comprar(p, { cupon, envio, notas } = {}) {
   await reiniciar();
   await p.goto(U); await catalogoListo(p);
   await p.evaluate(() => {
-    agregar('chonto', 3); abrirPanel();
+    agregar('pan-integral', 3); abrirPanel();
     window.subtotal = () => 100;          // el atacante miente sobre el subtotal
   });
   await p.evaluate(() => { cuponTexto = ''; sello = null; firmaFallida = null; validarEnLaHoja(); });
   H = await filasEn(U, 'Validaciones', 1);
   ok('La hoja MARCA la discrepancia', String(celda(H, 'Validaciones', 1, 5)).includes('La página dijo'),
      String(celda(H, 'Validaciones', 1, 5)));
-  ok('  ...guardando el subtotal real de la hoja', celda(H, 'Validaciones', 1, 3) === 26700,
+  ok('  ...guardando el subtotal real de la hoja', celda(H, 'Validaciones', 1, 3) === 27000,
      String(celda(H, 'Validaciones', 1, 3)));
 
   // ══════════ 7b. El mínimo del cupón se respeta ══════════
   await reiniciar();
   await p.goto(U); await catalogoListo(p);
-  await p.evaluate(() => { agregar('chonto', 2); abrirPanel(); });   // 17.800 < 50.000
+  await p.evaluate(() => { agregar('pan-integral', 2); abrirPanel(); });   // 18.000 < 50.000
   await selloListo(p);
-  await p.fill('#cupon', 'ORGANICO10'); await p.click('.cupon-fila .btn-linea');
+  await p.fill('#cupon', 'BIENVENIDA10'); await p.click('.cupon-fila .btn-linea');
   await selloListo(p);
   ok('Por debajo del mínimo el cupón no aplica',
      /Aplica desde \$50\.000/.test(await p.locator('#avisoCupon').innerText()),
@@ -196,11 +196,11 @@ async function comprar(p, { cupon, envio, notas } = {}) {
 
   // ══════════ 8. Cupón inválido y cupón agotado ══════════
   await reiniciar();
-  await fetch(U + '/__celda?hoja=Cupones&f=2&c=8&v=No');    // apagamos ORGANICO10
+  await fetch(U + '/__celda?hoja=Cupones&f=2&c=8&v=No');    // apagamos BIENVENIDA10
   await p.goto(U); await catalogoListo(p);
-  await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+  await p.evaluate(() => { agregar('pan-integral', 7); abrirPanel(); });
   await selloListo(p);
-  await p.fill('#cupon', 'ORGANICO10'); await p.click('.cupon-fila .btn-linea');
+  await p.fill('#cupon', 'BIENVENIDA10'); await p.click('.cupon-fila .btn-linea');
   await selloListo(p);
   ok('Un cupón apagado en la hoja se rechaza',
      /no existe o ya no está activo/.test(await p.locator('#avisoCupon').innerText()),
@@ -210,7 +210,7 @@ async function comprar(p, { cupon, envio, notas } = {}) {
   // ══════════ 9. Si la hoja no responde, el pedido sale marcado ══════════
   await reiniciar();
   await fetch(U + '/__fallar?n=99');
-  r = await comprar(p, { cupon: 'ORGANICO10' });
+  r = await comprar(p, { cupon: 'BIENVENIDA10' });
   ok('Sin hoja el pedido se puede enviar igual', r.habilitado);
   ok('  ...marcado como no verificado',
      !/Verificación:/.test(r.mensaje) && /calculado por la página/.test(r.mensaje));
@@ -242,8 +242,8 @@ async function comprar(p, { cupon, envio, notas } = {}) {
        (await p.evaluate(() => TOPE_PAGO)) === 50000,
        String(await p.evaluate(() => TOPE_PAGO)));
 
-    // 6 chontos a 8.900 = 53.400, más el envío: por encima de 50.000.
-    await p.evaluate(() => { agregar('chonto', 6); abrirPanel(); });
+    // 6 pan-integral a 9.000 = 54.000, más el envío: por encima de 50.000.
+    await p.evaluate(() => { agregar('pan-integral', 6); abrirPanel(); });
     await selloListo(p);
     await p.fill('#fNombre', 'María Rodríguez');
     await p.fill('#fTel', '3115558899');
@@ -276,7 +276,7 @@ async function comprar(p, { cupon, envio, notas } = {}) {
        blanco, así que se rellenan otra vez: si no, esta comprobación diría
        «bloqueado» por el motivo equivocado y parecería que el tope sigue
        actuando cuando lo que falta es el nombre. */
-    await p.evaluate(() => { quitar('chonto'); agregar('chonto', 1); });
+    await p.evaluate(() => { quitar('pan-integral'); agregar('pan-integral', 1); });
     await selloListo(p);
     await p.fill('#fNombre', 'María Rodríguez');
     await p.fill('#fTel', '3115558899');
@@ -352,7 +352,7 @@ async function comprar(p, { cupon, envio, notas } = {}) {
     ok('  ...y al volver a abrir la tienda, EL PEDIDO LLEGA',
        rescatado.length > 0, rescatado.length + ' línea(s) para ' + r.codigo);
     ok('  ...con los mismos productos que salieron por WhatsApp',
-       rescatado.some(f => String(f[7]) === 'chonto'),
+       rescatado.some(f => String(f[7]) === 'pan-integral'),
        rescatado.map(f => f[7]).join(', '));
     ok('  ...y la bandeja queda vacía, que es como se sabe que llegó',
        (await p.evaluate(() => localStorage.getItem('pendientes'))) === null,

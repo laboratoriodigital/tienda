@@ -18,14 +18,14 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
   const aviso = () => p.locator('#avisoCupon').innerText();
   const prep = async () => {
     await p.goto(U); await catalogoListo(p);
-    await p.evaluate(() => { agregar('chonto', 7); abrirPanel(); });
+    await p.evaluate(() => { agregar('baguette', 7); abrirPanel(); });
     await selloListo(p);
   };
 
   // ===== 1. Una caída: antes fallaba, ahora se recupera solo =====
   await prep();
   await fetch(U + '/__fallar?n=1');
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.click('.cupon-fila .btn-linea');
   /* AQUÍ SE MIRA UN ESTADO INTERMEDIO, no el final: hay que llegar mientras
      todavía reintenta. Esperar a que el sello se asiente se pasaría de largo y
@@ -34,7 +34,7 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
   ok('Mientras reintenta sigue diciendo "Validando"', /Validando tu pedido/.test(await totales()));
   await selloListo(p);
   ok('Se recupera solo tras UNA caída', /Cupón aplicado/.test(await aviso()), await aviso());
-  ok('  ...y el descuento entra', /Descuento \(ORGANICO10\)/.test(await totales()));
+  ok('  ...y el descuento entra', /Descuento \(BIENVENIDA10\)/.test(await totales()));
   ok('  ...y el total queda verificado', /Total verificado con la tienda/.test(await totales()));
   ok('  ...sin que el cliente viera ningún error', true);
   let pets = (await (await fetch(U + '/__peticiones')).json()).filter(q => q.a === 'validar');
@@ -43,7 +43,7 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
   // ===== 2. Dos caídas seguidas: también se recupera =====
   await prep();
   await fetch(U + '/__fallar?n=2');
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.click('.cupon-fila .btn-linea');
   await selloListo(p);
   ok('Se recupera tras DOS caídas', /Cupón aplicado/.test(await aviso()), await aviso());
@@ -51,7 +51,7 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
   // ===== 3. Tres caídas: se rinde, pero con un mensaje que invita a reintentar =====
   await prep();
   await fetch(U + '/__fallar?n=5');
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.click('.cupon-fila .btn-linea');
   await selloListo(p);
   ok('Tras agotar los intentos avisa', /No pudimos validar/.test(await aviso()), await aviso());
@@ -69,7 +69,7 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
   await p.fill('#fCiudad', 'Bogotá'); await p.fill('#fDir', 'Calle 100 #10-20');
   await p.check('#consiento'); await selloListo(p);
   await fetch(U + '/__fallar?n=5');
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.click('.cupon-fila .btn-linea');
   await hasta(p, () => validando === true);   // otro estado intermedio a propósito
   const validando = /Validando tu pedido/.test(await totales());
@@ -84,7 +84,7 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
   // ===== 5. No se duplican peticiones =====
   await fetch(U + '/__modo?m=ok');   // limpia también las fallas que quedaron pendientes
   await prep();
-  await p.fill('#cupon', 'ORGANICO10');
+  await p.fill('#cupon', 'BIENVENIDA10');
   await p.click('.cupon-fila .btn-linea');
   await selloListo(p); await p.waitForLoadState('networkidle');
   pets = (await (await fetch(U + '/__peticiones')).json()).filter(q => q.a === 'validar');

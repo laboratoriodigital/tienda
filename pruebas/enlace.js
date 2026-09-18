@@ -1,5 +1,5 @@
 /* ============================================================================
-   Enlace por producto:  .../?p=chonto
+   Enlace por producto:  .../?p=pan-masa-madre
    ----------------------------------------------------------------------------
    Lo que tiene que pasar sí o sí:
    - Abrir el enlace muestra ESA ficha, aunque el catálogo de la hoja llegue
@@ -31,11 +31,11 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
   await fetch(U + '/__reset');
 
   // ═══ 1. Entrar directo al enlace de un producto ═══
-  await p.goto(U + '/?p=chonto'); await catalogoListo(p);
-  ok('ENTRAR A ?p=chonto abre la ficha sola', await abierta(p));
-  ok('  ...y es la del producto correcto', /chonto/i.test(await titulo(p)), await titulo(p));
+  await p.goto(U + '/?p=pan-masa-madre'); await catalogoListo(p);
+  ok('ENTRAR A ?p=pan-masa-madre abre la ficha sola', await abierta(p));
+  ok('  ...y es la del producto correcto', /masa madre/i.test(await titulo(p)), await titulo(p));
   ok('  ...con el precio de la HOJA, no el del archivo',
-     /8\.900/.test(await p.locator('#fichaCaja .ficha-precio').innerText()),
+     /12\.000/.test(await p.locator('#fichaCaja .ficha-precio').innerText()),
      await p.locator('#fichaCaja .ficha-precio').innerText());
   ok('  ...y detrás la tienda quedó pintada igual',
      (await p.locator('.rejilla .tarjeta').count()) === 8,
@@ -50,12 +50,12 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
   // ═══ 3. Abrir una ficha desde la tienda pone el enlace en la barra ═══
   await p.goto(U); await catalogoListo(p);
   ok('Sin ?p= la tienda abre normal, sin ficha', !(await abierta(p)));
-  await p.evaluate(() => abrirFicha('salsa')); await hasta(p, () => document.querySelector('#ficha').classList.contains('abierta'));
-  ok('ABRIR UNA FICHA pone ?p=salsa en la dirección',
-     (await p.evaluate(() => location.search)) === '?p=salsa',
+  await p.evaluate(() => abrirFicha('croissant')); await hasta(p, () => document.querySelector('#ficha').classList.contains('abierta'));
+  ok('ABRIR UNA FICHA pone ?p=croissant en la dirección',
+     (await p.evaluate(() => location.search)) === '?p=croissant',
      await p.evaluate(() => location.search));
   ok('  ...para que se pueda copiar de la barra del navegador',
-     /\?p=salsa$/.test(await p.evaluate(() => location.href)), await p.evaluate(() => location.href));
+     /\?p=croissant$/.test(await p.evaluate(() => location.href)), await p.evaluate(() => location.href));
 
   // ═══ 4. ATRÁS cierra la ficha, no saca de la tienda ═══
   await p.goBack(); await hasta(p, () => !document.querySelector('#ficha').classList.contains('abierta'));
@@ -68,14 +68,14 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
   // ═══ 5. ADELANTE la vuelve a abrir ═══
   await p.goForward(); await hasta(p, () => document.querySelector('#ficha').classList.contains('abierta'));
   ok('ADELANTE vuelve a abrir la misma ficha',
-     (await abierta(p)) && /salsa/i.test(await titulo(p)), await titulo(p));
+     (await abierta(p)) && /croissant/i.test(await titulo(p)), await titulo(p));
 
   // ═══ 6. Compartir ═══
   await p.evaluate(() => { navigator.share = undefined; });   // forzamos la ruta de copiar
   await p.evaluate(() => compartirProducto());
   await hasta(p, () => document.querySelector('#brindis').classList.contains('visible'));
   const copiado = await p.evaluate(() => navigator.clipboard.readText());
-  ok('COMPARTIR copia un enlace con el producto', /\?p=salsa$/.test(copiado), copiado);
+  ok('COMPARTIR copia un enlace con el producto', /\?p=croissant$/.test(copiado), copiado);
   ok('  ...y avisa que quedó copiado',
      /copiado/i.test(await p.locator('#brindis').innerText()),
      await p.locator('#brindis').innerText());
@@ -85,7 +85,7 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
   // El enlace copiado tiene que funcionar de verdad, no solo verse bien.
   await p.goto(copiado); await catalogoListo(p);
   ok('EL ENLACE COPIADO abre esa ficha al pegarlo',
-     (await abierta(p)) && /salsa/i.test(await titulo(p)), await titulo(p));
+     (await abierta(p)) && /croissant/i.test(await titulo(p)), await titulo(p));
 
   // ═══ 7. El botón está donde el cliente lo va a buscar ═══
   const boton = p.locator('#fichaCaja .ficha-compartir');
@@ -107,9 +107,9 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
 
   // ═══ 9. Un producto apagado en la hoja (Activo = No) ═══
   const H = await (await fetch(U + '/__hojas')).json();
-  const fCherry = H['Catálogo'].findIndex(f => f[0] === 'cherry');
+  const fCherry = H['Catálogo'].findIndex(f => f[0] === 'empanada-pollo');
   await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=' + (fCherry + 1) + '&c=10&v=No');
-  await p.goto(U + '/?p=cherry'); await catalogoListo(p);
+  await p.goto(U + '/?p=empanada-pollo'); await catalogoListo(p);
   ok('Un producto apagado en la hoja tampoco abre',
      !(await abierta(p)), await titulo(p));
   ok('  ...y se avisa igual',
@@ -140,16 +140,16 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
      que conteste la hoja. Por eso se espera a que se abra, y NO a que el
      catálogo se resuelva: esperar el final se pasaría por encima de lo que se
      quiere ver. */
-  await p.goto(U + '/?p=chonto');
+  await p.goto(U + '/?p=pan-masa-madre');
   await hasta(p, () => document.querySelector('#ficha').classList.contains('abierta'));
   ok('Mientras la hoja responde, la ficha YA está abierta', await abierta(p));
   await fetch(U + '/__demora?ms=0');
   await catalogoListo(p);
   ok('  ...y sigue abierta cuando llega el catálogo de la hoja',
-     (await abierta(p)) && /chonto/i.test(await titulo(p)), await titulo(p));
+     (await abierta(p)) && /masa madre/i.test(await titulo(p)), await titulo(p));
 
   // ═══ 12. Agregar al carrito desde un enlace ═══
-  await p.goto(U + '/?p=chonto'); await catalogoListo(p);
+  await p.goto(U + '/?p=pan-masa-madre'); await catalogoListo(p);
   await p.click('#fichaCaja .ficha-agregar .btn-solido'); await selloListo(p);
   ok('AGREGAR desde la ficha del enlace mete el producto al carrito',
      (await p.evaluate(() => carrito.length)) === 1,
@@ -159,16 +159,16 @@ const titulo  = p => p.evaluate(() => { const h = document.querySelector('#ficha
      await p.evaluate(() => location.search));
 
   // ═══ 13. El enlace no rompe nada de lo que ya andaba ═══
-  await p.goto(U + '/?p=chonto'); await catalogoListo(p);
+  await p.goto(U + '/?p=pan-masa-madre'); await catalogoListo(p);
   await p.evaluate(() => cerrarTodo());
-  await p.evaluate(() => { agregar('chonto', 2); abrirPanel(); });
+  await p.evaluate(() => { agregar('pan-masa-madre', 2); abrirPanel(); });
   await selloListo(p);
   await p.fill('#fNombre', 'Ana Ruiz'); await p.fill('#fTel', '3001234567');
   await p.fill('#fCiudad', 'Medellín'); await p.fill('#fDir', 'Calle 1');
   await p.check('#consiento'); await selloListo(p);
   const href = await p.evaluate(() => document.querySelector('#btnFinalizar').href);
   ok('El pedido sigue saliendo bien después de entrar por un enlace',
-     /wa\.me\//.test(href) && /chonto|Tomate/i.test(decodeURIComponent(href)),
+     /wa\.me\//.test(href) && /masa madre/i.test(decodeURIComponent(href)),
      href.slice(0, 40));
   ok('  ...y va sellado por la hoja (sin el aviso de "sin verificar")',
      !/calculado por la página/.test(decodeURIComponent(href.split('text=')[1] || '')),
