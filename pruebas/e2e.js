@@ -164,7 +164,7 @@ async function comprar(p, { cupon, envio, notas } = {}) {
   await fetch(U + '/__celda?hoja=Pedidos&f=2&c=4&v=Anulado&disparar=1');
   H = await hojaCuando(U, h => h['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5] === 18);
   ok('ANULAR DEVUELVE EL STOCK (12 + 6 = 18)',
-     H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5] === 24,
+     H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5] === 18,
      String(H['Catálogo'].slice(1).find(f => f[0] === 'pan-integral')[5]));
   ok('  ...y Más vendidos queda vacía', filas(H, 'Más vendidos').length === 0,
      filas(H, 'Más vendidos').length + ' filas');

@@ -33,7 +33,7 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
   await selloListo(p);
   let t = await totales();
   ok('Descuento aplicado por la hoja', /Descuento \(BIENVENIDA10\)/.test(t) && t.includes('5.600'));
-  ok('Total de la hoja ($50.400)', t.includes('50.400'));
+  ok('Total de la hoja ($56.400)', t.includes('56.400'));
   ok('Avisa que el total lo verificó la hoja', /Total verificado con la tienda/.test(t),
      t.split('\n').pop());
   ok('Aviso verde del servidor', /10% de descuento/.test(await avisoCup()));

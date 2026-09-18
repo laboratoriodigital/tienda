@@ -80,14 +80,21 @@ nucleos=$(nproc 2>/dev/null || echo 2)
 TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 
 SALIDA=$(mktemp -d)
-# Guardia: en Windows (Git Bash) cada trabajo de fondo puede recibir esta
-# misma trampa EXIT al terminar el suyo, y no solo el proceso principal — si
-# el primero en terminar borra $SALIDA mientras las baterías mas lentas
-# (movil.js, e2e.js) todavía están escribiendo la suya, salen con
-# «No such file or directory» y la corrida completa se corta ahí. $BASHPID
-# identifica AL PROCESO que está saliendo; $$ sigue siendo el de la shell de
-# arriba pase lo que pase. Solo esa, la de arriba, tiene que limpiar.
-trap '[ "$BASHPID" = "$$" ] && { pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"; }' EXIT
+# Esta trampa SOLO tiene que correr una vez, cuando termina la shell de
+# arriba — no en cada trabajo de fondo, que también hereda cualquier trampa
+# EXIT puesta antes de nacer. En Linux normal eso casi nunca se nota porque
+# $BASHPID distingue a la shell de arriba de sus subshells; en Git Bash
+# (MSYS) esa distinción no fue confiable en la práctica: el primer trabajo
+# corto en terminar disparaba esta misma trampa, borraba $SALIDA y mataba
+# TODOS los servidor.js mientras las baterías largas (movil.js, e2e.js)
+# seguían corriendo — la corrida se cortaba con «No such file or directory»
+# apenas terminaba la primera batería rápida, sin llegar al marcador final.
+#
+# La solución no depende de comparar PIDs: cada trabajo de fondo empieza
+# ejecutar() con `trap - EXIT`, que BORRA la trampa heredada en SU subshell
+# nada más. Eso es semántica de shell garantizada por POSIX, no un detalle
+# de Linux — así que no hace falta adivinar cómo se comporta $BASHPID aquí.
+trap 'pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"' EXIT
 
 # Levanta un servidor y ESPERA A QUE CONTESTE, que no es lo mismo que esperar
 # dos segundos. El `sleep 2` de antes era una apuesta: en una máquina cargada
@@ -113,6 +120,9 @@ arrancar() {   # arrancar <puerto> <viejo|nuevo>  → deja el PID en $PID_SERVID
 # sería la segunda copia del mismo dato, y ya sabemos cómo acaba eso (patrón 2):
 # se agrega una batería, nadie toca la lista, y arranca sin servidor.
 ejecutar() {   # ejecutar <archivo> <indice>
+  # Ver la nota junto al trap de arriba: esto es lo que de verdad evita que
+  # una batería corta borre la salida de una que todavía está corriendo.
+  trap - EXIT
   local f=$1 i=$2
   local puerto=$((8100 + i * 2)) viejo=$((8101 + i * 2))
   local estado pids=""

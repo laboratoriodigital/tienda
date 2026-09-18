@@ -43,7 +43,14 @@ const servidor = http.createServer((req, res) => {
   }
   if (u.pathname === '/__peticiones') return responderJson(res, peticiones);
   if (u.pathname === '/__reiniciar') {
-    gas.reiniciar(); gas.api.instalar();
+    // «Reiniciar» tiene que dejar la tienda lista para vender de nuevo, no en
+    // estado de fábrica: gas.reiniciar() BORRA todas las hojas -incluida
+    // Configuración-, así que sin volver a llamar configurar(gas) esto dejaba
+    // el negocio sin nombre, sin cupones y sin tarifas de envío reales. Solo
+    // e2e.js usa esta ruta, y siempre para arrancar una sección nueva de un
+    // pedido de verdad -nunca para probar una tienda sin configurar, que es
+    // el trabajo de sec2.js-.
+    gas.reiniciar(); gas.api.instalar(); configurar(gas);
     fallasPendientes = 0; demoraMs = 0; tumbarTodo = false; peticiones = [];
     return responderJson(res, { ok: true });
   }

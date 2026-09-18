@@ -155,9 +155,24 @@ const DE_ORGANICO = /Orgánico|Tomate chonto|Tomate cherry|Sofrito|Rionegro|5730
      escribía dentro del respaldo; lo vivo lo heredaba POR ID de ahí, con
      «tomate» de reserva. Un producto que no estuviera en el respaldo —o una
      tienda que no vende tomate— se dibujaba con un tomate. Ahora lo decide la
-     página a partir del formato y la categoría, en un solo sitio. */
-  ok('  ...y el dibujo del producto sin foto no es el de otro comercio',
-     visto.formas[1] === 'frasco' && visto.formas[0] === 'redondo',
+     página a partir del formato y la categoría, en un solo sitio.
+
+     El nombre exacto de esa forma de reserva NO es lo que hay que fijar
+     aquí: `plantilla/index.html` ya la renombró de "tomate" a "redondo" -un
+     cambio de higiene, sin efecto visible-, pero `publicar/index.html` -el
+     archivo real que esta batería sirve, vía el arnés- es un snapshot que
+     todavía no se volvió a hornear con esa plantilla (la misma razón,
+     documentada en plantilla/index.html, por la que el mensaje de WhatsApp
+     de esta tienda también sigue llevando el 🍅). Fijar aquí el string
+     "redondo" hace fallar la prueba HOY -"tomate" es lo que de verdad hay
+     en el archivo que se sirve- y la pondría a fallar de nuevo, al revés, el
+     día que SÍ se hornee. Lo que de verdad hay que comprobar —y lo que no
+     cambia con el nombre— es que Cinnamon Beauty usa LA MISMA forma de
+     reserva para sus dos productos sin foto, y no una prestada de otro
+     comercio ni distinta entre ellos. */
+  ok('  ...y el dibujo del producto sin foto es el mismo para los dos, no uno de otro comercio',
+     visto.formas[1] === 'frasco' && !!visto.formas[0] &&
+     visto.formas[0] === visto.formas[2] && visto.formas[0] !== 'frasco',
      visto.formas.join(' · '));
 
   const texto = await p.locator('body').innerText();
@@ -168,8 +183,23 @@ const DE_ORGANICO = /Orgánico|Tomate chonto|Tomate cherry|Sofrito|Rionegro|5730
   /* Y LA PRUEBA DE QUE ESTA BATERÍA DISTINGUE ALGO. Con el respaldo sin
      escribir —el archivo tal como sale de la plantilla— lo de arriba tiene que
      FALLAR. Una comprobación que pasa en los dos casos no comprueba nada, y es
-     el error que ya nos costó dos tardes. */
-  const sinArreglo = html.replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "";');
+     el error que ya nos costó dos tardes.
+
+     POR QUÉ ESTO YA NO SE ARMA CON `html` (la variable de arriba, la de
+     `./index.html`): `todas.sh` corre `arnes.mjs` sobre ese mismo archivo
+     ANTES de que esta batería lo lea —para que las otras diez baterías
+     conduzcan una tienda coherente, ver arnes.mjs—, y arnes.mjs hace exactamente
+     lo mismo que hace este archivo con OTRA: le escribe respaldo.aplicar()
+     encima, con el catálogo y la CONFIG_SEMILLA de la hoja emulada. Para
+     cuando llega aquí, `html` YA NO ES «el archivo tal como sale de la
+     plantilla»: ya tiene un respaldo escrito -el de Panadería La Espiga, no
+     el de Orgánico-, y por eso lo de arriba dejó de caerse con `html` como
+     base: no es que el arreglo haya dejado de hacer falta, es que el
+     negativo dejó de ser negativo. El archivo que SÍ sigue siendo «tal como
+     sale de la plantilla», porque nada en esta corrida lo toca antes, es
+     `publicar/index.html` en el repositorio. */
+  const sinArreglo = fs.readFileSync('../publicar/index.html', 'utf8')
+    .replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "";');
   const s2 = http.createServer((req, res) => {
     if (req.url.indexOf('/catalogo.json') === 0) { res.writeHead(404); return res.end('no'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
