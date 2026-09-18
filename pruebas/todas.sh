@@ -80,83 +80,36 @@ nucleos=$(nproc 2>/dev/null || echo 2)
 TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
 
 SALIDA=$(mktemp -d)
-export SALIDA
-# NINGÚN trabajo de fondo puede compartir trampa con la shell de arriba —esa
-# fue la idea, dos veces, y las dos fallaron en Git Bash (MSYS). Primero se
-# probó una guardia por PID ($BASHPID = $$): no alcanzó, porque depende de
-# que $BASHPID distinga de verdad a la shell de arriba de sus subshells, algo
-# que ahí no se pudo confirmar. Después se probó borrar la trampa heredada
-# con `trap - EXIT` al entrar a ejecutar(): tampoco alcanzó —se siguió viendo
-# el mismo corte, ahora con «No such file or directory» ANTES incluso de que
-# node arrancara—, lo que dice que en el fork que usa Git Bash para un
-# trabajo de fondo (`comando &`) la trampa heredada no se estaba borrando
-# como debía, o se estaba dis parando por otro camino.
+# NINGÚN trabajo de fondo puede compartir nada de la shell de arriba con
+# ella misma —esa fue la idea, tres veces, y las tres fallaron en Git Bash
+# (MSYS):
+#   1. Una guardia por PID ($BASHPID = $$) en la trampa EXIT: no alcanzó,
+#      porque depende de que $BASHPID distinga de verdad a la shell de
+#      arriba de sus subshells, algo que ahí no se pudo confirmar.
+#   2. `trap - EXIT` al entrar a la función que corre cada batería: tampoco
+#      alcanzó —se siguió viendo el mismo corte, con «No such file or
+#      directory» incluso antes de que node arrancara—.
+#   3. Las funciones exportadas con `export -f` y cada batería en su propio
+#      `bash -c`: rompió de una forma nueva todavía, «environment: line N:
+#      archivo.js: No such file or directory» — la firma de que algo en esa
+#      máquina no reconstruye bien una función pasada por variable de
+#      entorno (`BASH_FUNC_nombre%%`, el mecanismo que quedó marcado desde
+#      Shellshock y que distintos builds de bash tratan distinto).
 #
-# Las dos veces el arreglo intentaba controlar CÓMO se comporta un subshell
-# heredado. Esta vez no se hereda nada: cada batería corre en un `bash -c`
-# aparte, un PROCESO NUEVO por `exec`, no un fork de esta shell. Un `exec`
-# resetea las trampas a su valor por defecto SIEMPRE —es lo que dice POSIX
-# para cualquier programa que reemplaza su imagen de proceso—, así que no hay
-# nada que adivinar sobre cómo lo implementa Git Bash: la trampa de abajo
-# sencillamente no existe todavía cuando ese proceso nuevo empieza a correr.
+# Las tres veces el arreglo dependía de que la shell de abajo heredara ALGO
+# de la de arriba —una trampa, una función— y se comportara con eso como se
+# supone. Esta vez no hereda nada de nada: `ejecutar-bateria.sh` es un
+# ARCHIVO aparte en el disco, y cada batería lo corre con
+# `bash ejecutar-bateria.sh <lo que necesite>`. Leer un archivo y correrlo es
+# lo más básico que hace un intérprete de comandos; no hay mecanismo de
+# herencia que adivinar porque no hay nada que heredar.
 trap 'pkill -f servidor.js 2>/dev/null; rm -rf "$SALIDA"' EXIT
-
-# Levanta un servidor y ESPERA A QUE CONTESTE, que no es lo mismo que esperar
-# dos segundos. El `sleep 2` de antes era una apuesta: en una máquina cargada
-# se quedaba corto y la batería fallaba con un ECONNREFUSED que no significaba
-# nada. Aquí se pregunta hasta que responde, con un tope.
-arrancar() {   # arrancar <puerto> <viejo|nuevo>  → deja el PID en $PID_SERVIDOR
-  local puerto=$1 modo=$2 i=0
-  if [ "$modo" = viejo ]; then
-    VERSION_VIEJA=1 PUERTO=$puerto node servidor.js > /dev/null 2>&1 < /dev/null &
-  else
-    PUERTO=$puerto node servidor.js > /dev/null 2>&1 < /dev/null &
-  fi
-  PID_SERVIDOR=$!
-  while [ $i -lt 300 ]; do
-    curl -sf "http://localhost:$puerto/__reset" > /dev/null 2>&1 && return 0
-    kill -0 "$PID_SERVIDOR" 2>/dev/null || return 1   # se murió al arrancar
-    sleep 0.1; i=$((i + 1))
-  done
-  return 1
-}
-
-# QUÉ SERVIDORES NECESITA CADA BATERÍA, PREGUNTÁNDOSELO A ELLA. Una lista aquí
-# sería la segunda copia del mismo dato, y ya sabemos cómo acaba eso (patrón 2):
-# se agrega una batería, nadie toca la lista, y arranca sin servidor.
-ejecutar() {   # ejecutar <archivo> <indice>
-  local f=$1 i=$2
-  local puerto=$((8100 + i * 2)) viejo=$((8101 + i * 2))
-  local estado pids=""
-
-  if grep -q 'process.env.PUERTO ||' "$f"; then
-    arrancar "$puerto" nuevo || { echo "ERROR: no arrancó el servidor del puerto $puerto" > "$SALIDA/$f"; return; }
-    pids="$pids $PID_SERVIDOR"
-    [ "$f" = "pag.js" ] && curl -s "http://localhost:$puerto/__muchos" > /dev/null
-  fi
-  if grep -q 'process.env.PUERTO_VIEJO ||' "$f"; then
-    arrancar "$viejo" viejo || { echo "ERROR: no arrancó el servidor del puerto $viejo" > "$SALIDA/$f"; return; }
-    pids="$pids $PID_SERVIDOR"
-  fi
-
-  PUERTO=$puerto PUERTO_VIEJO=$viejo timeout 240 node "$f" > "$SALIDA/$f" 2>&1
-  estado=$?
-  [ $estado -ne 0 ] && echo "(salió con código $estado)" >> "$SALIDA/$f"
-
-  # Se apagan aquí y no al final: doce emuladores vivos a la vez son memoria
-  # que no hace falta, y en un runner de Actions la memoria sí se acaba.
-  for pid in $pids; do kill "$pid" 2>/dev/null; done
-}
-export -f arrancar ejecutar
 
 indice=0
 for f in $BATERIAS; do
   indice=$((indice + 1))
   while [ "$(jobs -rp | wc -l)" -ge "$TRABAJADORES" ]; do wait -n; done
-  # `bash -c` en vez de `ejecutar ... &`: ver la nota junto a la trampa de
-  # arriba. `_` ocupa el lugar de $0 dentro de ese bash nuevo; "$f" y
-  # "$indice" le llegan como $1 y $2, que es lo que ejecutar() espera.
-  bash -c 'ejecutar "$1" "$2"' _ "$f" "$indice" &
+  bash ejecutar-bateria.sh "$f" "$indice" "$SALIDA" &
 done
 wait
 
