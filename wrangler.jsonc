@@ -7,7 +7,7 @@
   //
   // La carpeta que se publica es publicar/. Todo lo demás del repositorio
   // —pruebas, docs, el maestro, los originales de las fotos— se queda fuera.
-  "name": "tienda-sin-configurar",
+  "name": "tienda",
   "compatibility_date": "2026-09-05",
 
   "assets": {
