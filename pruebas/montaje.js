@@ -3291,6 +3291,78 @@ const configurar = (g, clave, valor) => {
   }
 }
 
+/* ═══ B-2. EL CRON DE CUATRO HORAS ERA EL 84 % DE LOS MINUTOS ═══
+   `fotos` corría cada cuatro horas —seis veces al día— para cazar fotos que el
+   comerciante sube al Drive sin avisar. Casi siempre no había nada que hacer, y
+   arrancar seis veces para no hacer nada es, medido, el 84 % de los minutos de
+   Actions de una tienda. Con repositorios privados eso es dinero, y es lo que
+   hace que la cuarta tienda no quepa en el plan gratuito.
+
+   El camino normal pasa a ser «Publicar ahora», desde el menú de la hoja, que
+   dispara este mismo flujo cuando el comerciante decide publicar. Lo que queda
+   del reloj es una RED DE SEGURIDAD diaria que mira y AVISA.
+
+   Que no publique no es un detalle de implementación: es la diferencia entre
+   una red de seguridad y un publicador automático. Si el comerciante dejó seis
+   fotos a medio subir, la tienda no debería salir a producción a las tres de la
+   mañana con el trabajo a medias. */
+{
+  const f = fs.readFileSync('../.github/workflows/fotos.yml', 'utf8');
+  const cron = (f.match(/cron: '([^']+)'/) || [])[1] || '';
+
+  ok('FOTOS ya no corre cada cuatro horas', !/\*\/\d/.test(cron), 'cron: ' + cron);
+  ok('  ...sino una vez al día', /^\d+ \d+ \* \* \*$/.test(cron), 'cron: ' + cron);
+  ok('  ...y cuando la dispara el reloj, NO publica',
+     /github\.event_name \}\} != "schedule"/.test(f) || /!= 'schedule'/.test(f) ||
+     /"\$\{\{ github\.event_name \}\}" != "schedule"/.test(f),
+     'una red de seguridad que publica sola no es una red de seguridad');
+  ok('  ...lo dice en el resumen y como aviso, no en silencio',
+     /Hay algo sin publicar/.test(f) && /::warning::Hay cambios sin publicar/.test(f),
+     'un aviso que no se ve es lo mismo que no avisar');
+  ok('  ...y nada de lo caro cuelga ya de «hay fotos nuevas» a secas',
+     !/if: steps\.mirar\.outputs\.hay == 'si'/.test(f) &&
+     /steps\.publicar\.outputs\.seguir == 'si'/.test(f),
+     'bajar y convertir fotos antes de decidir es gastar los minutos igual');
+}
+
+/* ═══ B-5. LAS CACHÉS DEJAN DE PERDERSE ENTERAS ═══
+   En un repositorio privado los minutos de Actions se pagan, y bajar Chromium
+   otra vez son minutos. La caché del navegador tenía dos agujeros, los dos del
+   mismo tipo: se tiraba entera cuando no hacía falta.
+
+   1. La clave salía de `package.json`. Ahí Playwright está como `^1.47.0`, un
+      RANGO: la versión real la fija `package-lock.json`. Así que el rango podía
+      resolver a una versión nueva —que necesita otro navegador— sin que la
+      clave cambiara, y la caché servía un navegador que ya no valía.
+   2. Sin `restore-keys`, cambiar cualquier dependencia dejaba la caché sin
+      ningún candidato: no es que se invalidara la parte que cambió, es que se
+      empezaba de cero.
+
+   Y `--with-deps` —que instala paquetes apt— corría siempre, también cuando la
+   caché había acertado y el navegador ya estaba puesto. */
+{
+  const flujos = ['fotos', 'montaje', 'pruebas'].map(n => ({
+    n, y: fs.readFileSync('../.github/workflows/' + n + '.yml', 'utf8')
+  }));
+
+  ok('LA CACHÉ DEL NAVEGADOR se clava a la versión EXACTA, no a un rango',
+     flujos.every(f => /key: playwright-.*hashFiles\('pruebas\/package-lock\.json'\)/.test(f.y)),
+     flujos.filter(f => !/package-lock\.json'\)/.test(f.y)).map(f => f.n).join(', ') || 'los tres');
+  ok('  ...y ninguno se quedó con package.json, que es el rango',
+     flujos.every(f => !/key: playwright-.*hashFiles\('pruebas\/package\.json'\)/.test(f.y)),
+     'un ^1.47.0 que resuelve a otra versión no cambia la clave');
+  ok('  ...y cuando la clave cambia, se recupera la caché anterior',
+     flujos.every(f => /restore-keys: playwright-/.test(f.y)),
+     'sin esto, subir una dependencia cualquiera tira el navegador entero');
+  ok('  ...sin meter la rama en la clave, que multiplica el almacenamiento',
+     flujos.every(f => !/key: playwright-[^\n]*github\.(ref|head_ref)/.test(f.y)),
+     'en privado el almacenamiento también se paga');
+  ok('LAS DEPENDENCIAS DEL SISTEMA solo se instalan cuando la caché falla',
+     flujos.every(f => /steps\.navegador\.outputs\.cache-hit/.test(f.y) &&
+                       /npx playwright install chromium/.test(f.y)),
+     '`--with-deps` son paquetes apt: con la caché acertada no aportan nada');
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    `release` NO ES UN FLUJO DE TIENDA (4.19)
    --------------------------------------------------------------------------

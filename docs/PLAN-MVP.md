@@ -574,10 +574,15 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 > Es el 84 % del gasto de minutos y existe para cazar fotos subidas al Drive
 > sin avisar — un caso que el panel (M3) elimina.
 
-- [ ] Publicación **a demanda** desde el panel del comerciante.
-- [ ] Red de seguridad **diaria** que solo comprueba si hay cambios sin publicar
-      y avisa; no publica sola.
+- [ ] Publicación **a demanda** desde el panel del comerciante. *(El camino a
+      demanda ya existe: «Publicar ahora», en el menú de la hoja. Desde el
+      PANEL es M3.)*
+- [x] Red de seguridad **diaria** que solo comprueba si hay cambios sin publicar
+      y avisa; no publica sola. *(El cron de `fotos` pasa de `17 */4 * * *` a
+      `17 6 * * *`, y cuando lo dispara el reloj mira, avisa y se retira sin
+      bajar una sola foto. Guarda en `montaje.js`.)*
 - [ ] El panel dice cuándo se publicó por última vez y si hay algo pendiente.
+      *(M3.)*
 
 **B-3 · Una sola pregunta al maestro**  · 5 pts · dep. B-1
 - [ ] `montar/sondear.mjs` pide en paralelo lo que hoy se pide tres veces
@@ -595,11 +600,16 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 - [ ] Una foto que falla no impide publicar lo demás.
 
 **B-5 · Las cachés dejan de perderse enteras**  · 2 pts
-- [ ] `restore-keys` en la caché del navegador de pruebas.
-- [ ] La instalación con dependencias del sistema corre **solo** cuando la caché
-      falla.
-- [ ] Una sola clave de caché por versión de dependencias, no una por rama: en
-      privado, el almacenamiento también se paga.
+- [x] `restore-keys` en la caché del navegador de pruebas. *(En los tres
+      flujos.)*
+- [x] La instalación con dependencias del sistema corre **solo** cuando la caché
+      falla. *(`--with-deps` son paquetes apt; con la caché acertada no
+      aportan.)*
+- [x] Una sola clave de caché por versión de dependencias, no una por rama: en
+      privado, el almacenamiento también se paga. *(Y la clave pasa a salir de
+      `package-lock.json`: con `package.json` el rango `^1.47.0` podía resolver
+      a otra versión sin cambiar la clave, y la caché servía un navegador que
+      ya no valía.)*
 
 **B-6 · El guardia del presupuesto**  · 2 pts · dep. B-1
 - [ ] Por encima del objetivo, avisa en grande y sigue.
@@ -607,8 +617,15 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 - [ ] Se puede desactivar con un input para una corrida excepcional.
 
 **B-7 · La batería que no corre, o corre o se borra**  · 1 pt
-- [ ] `limites.js` levanta un navegador y no está en la lista: entra o se va.
-- [ ] La aserción que vigila eso cubre también este caso.
+- [x] `limites.js` levanta un navegador y no está en la lista: entra o se va.
+      *(**Entra.** Medido antes de decidir: la corrida entera cuesta menos de
+      tres segundos, porque reutiliza un navegador. No había razón de coste
+      para dejarla fuera; solo se había quedado fuera.)*
+- [x] La aserción que vigila eso cubre también este caso. *(Se quitó de las dos
+      listas de exclusión escritas a mano. Y al entrar se le pusieron
+      aserciones deterministas —bytes del catálogo y tarjetas en la primera
+      pantalla—; los milisegundos se imprimen pero no se afirman, que el reloj
+      de una máquina cargada es una entrada que nadie declaró.)*
 
 ---
 

@@ -1027,3 +1027,48 @@ dónde está escrita esa excepción.** El código que la implementaba se corrigi
 —`montaje` dejó de esperar a una persona— y el comentario que la razonaba
 sobrevivió en otro archivo, sosteniendo el comportamiento viejo. Un `grep` del
 motivo, no del mecanismo, es lo que lo habría encontrado.
+
+---
+
+**27 · Medir antes de decidir, con una batería que llevaba meses sin correr.**
+El 18 de septiembre de 2026, al empezar el hito M1, había que resolver una
+historia binaria: `limites.js` levanta un navegador, mide cinco tamaños de
+catálogo y **no estaba en la lista de `todas.sh`**, así que no corría nunca. La
+historia decía «o entra o se va», y la intuición decía que se va: M1 existe para
+recortar minutos de Actions, y una batería con navegador es lo caro.
+
+La intuición estaba equivocada por un factor grande. Medida, la corrida entera
+cuesta **menos de tres segundos**: reutiliza un solo navegador para los cinco
+tamaños y la página pinta rápido en todos. El número que sostenía la intuición
+—«las doce baterías con navegador son el 99 % de la suite»— es cierto y no
+aplicaba: lo caro de esas doce no es abrir el navegador, es todo lo que hacen
+después.
+
+Así que entra, y entrando resultó valer más de lo que parecía. La afirmación que
+justifica tenerla es una que ninguna otra batería podía hacer: **a la primera
+pantalla llegan 25 tarjetas tanto con 50 productos como con 1000.** Todas las
+demás prueban con ocho productos, así que el día que alguien rompa la
+paginación, ninguna se entera — y la tienda de un comercio con catálogo grande
+le pide mil tarjetas de golpe al teléfono de su cliente.
+
+Lo que NO se afirma también es una decisión: los milisegundos se imprimen y no
+se comprueban. Una aserción sobre tiempos se cae sola un martes por la tarde en
+un runner cargado, y una comprobación que falla por algo que está bien enseña a
+ignorarla — que es el mismo daño del ítem 26, la marca roja que no significa
+nada. El reloj es una entrada que nadie declaró (patrón 8): sirve para informar,
+no para decidir.
+
+La regla: **una historia binaria —«o entra o se va»— se contesta midiendo, no
+razonando por categoría.** «Es una batería con navegador, luego es cara» es un
+razonamiento sobre la clase, y la clase tenía dentro un caso que costaba tres
+segundos. El hito entero se llama «medir antes de tocar nada»; la primera cosa
+que midió fue una decisión propia.
+
+Y de paso, la otra mitad de M1 que sí salió de un número: el cron de `fotos`
+corría **cada cuatro horas** —seis arranques diarios, medidos como el 84 % de
+los minutos de una tienda— para cazar fotos subidas al Drive sin avisar. Ahora
+corre una vez al día y **no publica**: mira, avisa y se retira. Que no publique
+no es un detalle de implementación, es lo que separa una red de seguridad de un
+publicador automático: si el comerciante dejó seis fotos a medio subir, su
+tienda no debería salir a producción a las tres de la mañana con el trabajo a
+medias.

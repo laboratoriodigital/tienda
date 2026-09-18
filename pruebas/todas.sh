@@ -112,7 +112,7 @@ BATERIAS="e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
           cat.js version.js hoja.js sec2.js exif.js montaje.js panel.js \
           pedidos.js correo.js presentacion.js menu.js tablero.js esquema.js \
           calendario.js respaldo.js marca.js plantilla.js worker.js legal.js \
-          determinismo.js escribe.js"
+          determinismo.js escribe.js limites.js"
 
 # Por defecto, uno por núcleo hasta cuatro. Más no ayuda: cada trabajador es un
 # Chromium, y a partir de ahí compiten por CPU y el reloj deja de bajar.

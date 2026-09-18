@@ -102,16 +102,38 @@ jobs:
       # Chromium pesa y no cambia entre corridas: se guarda en caché para que
       # una corrida normal tarde en pruebas, no en descargar el navegador.
       - name: Caché del navegador
+        id: navegador
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pruebas/package.json') }}
+          # B-5 · LA CACHÉ QUE NO SE PIERDE ENTERA. La clave sale del
+          # package-lock.json, que es lo que fija la versión EXACTA de
+          # Playwright: con package.json, un rango `^1.47.0` que resuelve a una
+          # versión nueva dejaba la clave igual y el navegador cacheado dejaba
+          # de servir. Y `restore-keys` recupera la caché anterior cuando la
+          # clave cambia: sin ella, subir una dependencia cualquiera tira a la
+          # basura el navegador entero y hay que bajarlo de nuevo — minutos que
+          # en un repositorio privado se pagan.
+          #
+          # La clave NO lleva la rama a propósito: una caché por rama multiplica
+          # el almacenamiento, que en privado también se paga, y no protege de
+          # nada porque la clave ya cambia cuando cambian las dependencias.
+          key: playwright-${{ runner.os }}-${{ hashFiles('pruebas/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Dependencias
         run: npm ci --no-audit --no-fund
 
       - name: Navegador
-        run: npx playwright install --with-deps chromium
+        run: |
+          # B-5 · LAS DEPENDENCIAS DEL SISTEMA, SOLO CUANDO HACEN FALTA.
+          # `--with-deps` instala paquetes apt y tarda; con la caché acertada el
+          # navegador ya está en su sitio y esa instalación no aporta nada.
+          if [ "${{ steps.navegador.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       # todas.sh copia maestro.gs e index.html reales antes de correr, y sale
       # con código 1 si falla una sola aserción.
