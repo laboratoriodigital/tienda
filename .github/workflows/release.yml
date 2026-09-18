@@ -8,7 +8,7 @@
 # la rama del cambio, fusiona, y entonces corre esto desde la pestaña Actions.
 #
 #   Los clientes piden la última con:
-#   https://github.com/laboratoriodigital/organico/releases/latest/download/index.html
+#   https://github.com/laboratoriodigital/tienda/releases/latest/download/index.html
 name: release
 
 on:
@@ -16,7 +16,7 @@ on:
 
 # DE DÓNDE SALE LA PLANTILLA, ESCRITO UNA SOLA VEZ.
 env:
-  SEMILLA: laboratoriodigital/organico
+  SEMILLA: laboratoriodigital/tienda
 
 permissions:
   contents: write
