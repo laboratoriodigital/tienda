@@ -124,11 +124,22 @@ export function bloque(catalogo, version) {
   L.push(productos.map(p => {
     const fotos = (Array.isArray(p.imagenes) ? p.imagenes : [])
       .map(u => String(u || '').trim()).filter(u => u);
+    /* C-1 · LAS VARIANTES VIAJAN EN EL RESPALDO. Sin red, la tienda pinta
+       desde aquí: si no fueran, el día que Google no conteste el comprador
+       vería el labial sin poder elegir el tono — y agregaría al carrito una
+       elección que nadie hizo. Los campos se listan uno a uno a propósito
+       (nada de volcar el producto entero), así que uno nuevo hay que nombrarlo
+       o se queda fuera en silencio: esta es esa línea. */
+    const variantes = (Array.isArray(p.variantes) ? p.variantes : [])
+      .filter(v => v && v.nombre && Array.isArray(v.opciones) && v.opciones.length)
+      .map(v => '{ nombre:' + literal(v.nombre) + ', opciones:[' +
+                v.opciones.map(literal).join(', ') + '] }');
     return '  { id:' + literal(p.id) + ', nombre:' + literal(p.nombre) +
            ', formato:' + literal(p.formato) + ', categoria:' + literal(p.categoria) + ',\n' +
            '    precio:' + (Number(p.precio) || 0) +
            ', stock:' + Math.max(0, Math.floor(Number(p.stock) || 0)) + ',\n' +
            '    imagenes:[' + (fotos.length ? fotos.map(literal).join(', ') : '""') + '],\n' +
+           (variantes.length ? '    variantes:[' + variantes.join(', ') + '],\n' : '') +
            '    descripcion:' + literal(p.descripcion) + ' }';
   }).join(',\n\n'));
   L.push('];');

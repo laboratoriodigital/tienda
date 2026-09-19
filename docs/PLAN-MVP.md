@@ -681,18 +681,39 @@ del **panel** del comerciante. No son deuda: son M3.
 > Como comerciante de cosmética, quiero vender un labial en tres tonos sin
 > crear tres productos.
 
-- [ ] Columna `Variantes` **al final** de `Catálogo` (regla: solo se agrega, y
+> **Partida en tres, como decía el título. El CONTRATO y el MAESTRO están
+> cerrados; la PÁGINA queda.** Lo que falta es solo interfaz: el selector, que
+> obligue a elegir, y que la elección viaje en el mensaje de WhatsApp. Todo lo
+> que hay debajo de eso ya funciona y está probado.
+
+- [x] Columna `Variantes` **al final** de `Catálogo` (regla: solo se agrega, y
       solo al final), opcional, con sintaxis corta y explicada en la hoja:
-      `Talla: S|M|L ; Color: Rosa|Nude`.
-- [ ] El maestro las devuelve estructuradas; lo ilegible se reporta con su celda
-      y **no se adivina**.
+      `Talla: S|M|L ; Color: Rosa|Nude`. *(Tope de cuatro grupos y veinticuatro
+      opciones. Documentada en `CONTRATOS.md`, que es lo que `esquema.js` exige:
+      el contrato escrito y el que corre son dos copias del mismo procedimiento
+      y están atadas.)*
+- [x] El maestro las devuelve estructuradas; lo ilegible se reporta con su celda
+      y **no se adivina**. *(Y **el catálogo falla abierto**: una celda que no se
+      entiende deja el producto a la venta sin variantes, porque perder la venta
+      callando es peor. El precio es lo contrario y por eso ese sí tumba el
+      producto — la batería fija esa diferencia a propósito.)*
 - [ ] La página obliga a elegir antes de agregar al carrito; la elección viaja
       en el mensaje de WhatsApp y al pedido (columna `Variante`, al final).
-- [ ] El catálogo de respaldo las lleva: sin red, las variantes siguen ahí.
-- [ ] Interruptor `f_variantes`.
-- [ ] **El stock es del producto, no de la variante** — decisión consciente, con
+      *(**La mitad del maestro está hecha:** la columna `Variante` se escribe al
+      final de `Pedidos`, con el texto del CATÁLOGO y no con el que mande la
+      página, y una opción que el comercio no ofrece tumba la línea. Falta el
+      selector y que la elección viaje en el mensaje.)*
+- [x] El catálogo de respaldo las lleva: sin red, las variantes siguen ahí.
+      *(Los campos del respaldo se listan uno a uno a propósito, así que uno
+      nuevo hay que nombrarlo o se queda fuera en silencio.)*
+- [ ] Interruptor `f_variantes`. *(La clave está sembrada, documentada y
+      encendida por defecto; **todavía no la lee nadie** — su consumidor es la
+      página.)*
+- [x] **El stock es del producto, no de la variante** — decisión consciente, con
       su disparador para revisarla: el primer comercio que pierda una venta por
-      una talla agotada.
+      una talla agotada. *(Con su consecuencia resuelta: dos tonos del mismo
+      labial son dos líneas que compiten por las mismas existencias. Con la
+      clave puesta solo en el id, la segunda se perdía en silencio.)*
 
 **C-2 · SEO horneado**  · 5 pts · dep. A-2
 - [x] JSON-LD de organización y sitio en la portada; de producto con oferta,

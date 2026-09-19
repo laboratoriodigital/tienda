@@ -91,6 +91,26 @@ Lo que el comercio vende. Es la única pestaña que el comerciante edita todos l
 | 11 | `Referencia` |
 | 12 | `Precio antes` |
 | 13 | `Umbral bajo` |
+| 14 | `Variantes` |
+
+**`Variantes` (C-1).** Opcional. Grupos separados por `;`, el nombre antes de
+`:`, y las opciones con `|` — el mismo separador que ya usa `Imágenes`, para no
+tener dos convenciones en la misma hoja:
+
+```
+Talla: S|M|L ; Color: Rosa|Nude
+```
+
+Tope: cuatro grupos y veinticuatro opciones por grupo. **El catálogo falla
+abierto**: una celda que no se entiende no saca el producto de la tienda, lo deja
+sin variantes y reporta la celda — vender un labial sin tono deja un pedido que
+el comerciante resuelve con un mensaje, y no venderlo es una venta perdida y
+callada. El precio es lo contrario y por eso ese sí tumba el producto.
+
+Y **el stock es del producto, no de la variante**: es una decisión consciente,
+con su disparador escrito para revisarla — el primer comercio que pierda una
+venta por una talla agotada. Dos líneas del mismo producto compiten por las
+mismas existencias.
 
 
 ### `Configuración`
@@ -178,6 +198,13 @@ Una fila por línea de pedido, no por pedido. La columna Inventario la escribe e
 | 14 | `Fecha de pago` |
 | 15 | `Fecha de despacho` |
 | 16 | `Guía` |
+| 17 | `Variante` |
+
+**`Variante` (C-1).** Qué eligió el comprador, ya comprobado contra la hoja y
+escrito con el texto del catálogo —no con el que mandó la página—: `Talla: M ·
+Color: Rosa`. Vacía en los pedidos sin variantes. Una elección que el comercio no
+ofrece **no se guarda**: tumba la línea, porque sería un pedido que nadie puede
+despachar.
 
 
 ### `Más vendidos`
@@ -251,6 +278,7 @@ no pisar lo que el comerciante puso.
 | **La venta** | `envio_gratis_desde` |
 | **Dónde vive el sitio** | `repositorio` — dueño/repositorio en GitHub. Lo usa «Publicar ahora». No es un secreto; el permiso sí, y ese vive en las propiedades del script |
 | **La autoría** | `f_autoria` · `autoria_url` — el pie "Powered by Laboratorio Digital". `f_autoria` = No lo apaga (decisión comercial, con precio); `autoria_url` vacía muestra el texto sin enlace |
+| **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
 | **El retracto** | `retracto_excepciones` — productos que no admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por \|. Vacío = ninguno queda excluido |
 ---
 

@@ -1257,3 +1257,49 @@ que nadie lo decidiera, que la tienda fuera invisible. Esas consecuencias no
 aparecen en ninguna prueba, porque no son fallos de nada: hay que ir a
 buscarlas preguntando qué ve cada uno de los que miran —el comprador, el
 comerciante, y el que no ejecuta JavaScript.
+
+---
+
+**32 · Las dos direcciones del fallo no son la misma, y hay que elegir cuál para
+cada dato.** El 19 de septiembre de 2026 se empezó C-1, las variantes: un labial
+en tres tonos sin crear tres productos. La parte interesante no fue la sintaxis
+ni el parseo — fue darse cuenta de que el mismo cambio necesita las DOS reglas de
+fallo de esta casa, en sitios distintos y a propósito.
+
+**El catálogo falla abierto.** Una celda `Variantes` que no se entiende NO saca
+el producto de la tienda: lo deja a la venta sin variantes y reporta la celda.
+Porque vender un labial sin tono deja un pedido que el comerciante resuelve con
+un mensaje, y no venderlo es una venta perdida y callada.
+
+**El pedido falla cerrado.** Una elección que el comercio no ofrece TUMBA LA
+LÍNEA. Porque guardarla sería dejar un pedido que nadie puede despachar, y
+adivinar cuál tono quiso decir es peor todavía.
+
+Las dos son la misma regla vieja —«fallo abierto en el catálogo, fallo cerrado
+en los cupones»— aplicada a un dato nuevo, y el trabajo fue decidir de qué lado
+cae cada mitad. La batería las fija juntas, una al lado de la otra, con una
+aserción que comprueba que un PRECIO ilegible sigue tumbando el producto: sin
+esa aserción de contraste, alguien podría «unificar el criterio» algún día y
+romper una de las dos sin notarlo.
+
+Y una consecuencia que no estaba en el plan y salió sola al escribir la prueba.
+La clave que evita líneas duplicadas en un pedido era el id del producto. Con
+variantes eso significa que **dos tonos del mismo labial se convertían en uno**:
+el comprador pedía Rosa y Nude, y recibía Rosa. La clave pasó a ser producto +
+variante — y eso, a su vez, obligó a llevar la cuenta del stock por producto,
+porque las dos líneas compiten por las mismas existencias (el stock es del
+producto, no de la variante: decisión consciente de C-1, con su disparador
+escrito para revisarla). Tres cambios encadenados que nadie había listado,
+descubiertos por escribir la aserción antes de darla por buena.
+
+La regla: **una decisión de diseño no se aplica a un dato nuevo copiándola,
+sino preguntándole al dato cuál de sus mitades va de cada lado.** «Fallo abierto»
+no es una propiedad del proyecto: es una propiedad de cada campo, y el mismo
+cambio puede necesitar las dos.
+
+Y el apunte de método: `esquema.js` cazó dos cosas el mismo día. Que la clave
+nueva de `Configuración` se había metido EN MEDIO —R1 dice «solo se agrega, y
+solo al final»— y que las columnas nuevas no estaban en `CONTRATOS.md`. El
+contrato escrito y el contrato que corre son dos copias del mismo procedimiento,
+y esa batería es la cuerda que los ata: sin ella, el documento se habría quedado
+atrás ese mismo día.

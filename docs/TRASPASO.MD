@@ -26,7 +26,7 @@ actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 |---|---|
 | **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
 | **M1** · Rendimiento y cuota | **Cerrado.** Las siete historias. De B-2 quedan abiertos sus dos criterios de panel, que son M3 y no deuda |
-| **M2** · La tienda para todo producto | **Empezado.** C-2 (SEO horneado) cerrado. Faltan C-1 (variantes, 8 pts, hay que partirla), C-3 y C-4 |
+| **M2** · La tienda para todo producto | **Empezado.** C-2 cerrado. C-1 (variantes) va por el contrato y el maestro; falta la página. Faltan C-3 y C-4 |
 | **M3** · El panel del comerciante | Sin empezar |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
@@ -39,15 +39,21 @@ Los números de M1, que son los que deciden si cabe una tienda más:
 - Cada corrida deja su tabla de tiempos y un `tiempos.json`, y hay un guardia
   contra `presupuesto.json` que falla si algo tarda más del doble de lo previsto.
 
-**Medido en producción el 19 de septiembre de 2026:** el montaje que antes
-tardaba **3 min 08 s** corrió en **46 segundos**. No es una estimación ni un
-promedio de banco: es la corrida del flujo real, con la hoja real.
+**Medido en producción el 19 de septiembre de 2026**, en corridas del flujo
+real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
+**46 segundos** sin cambios que publicar, y en **2 min 19 s** con el horneado
+entero por delante. Los dos, holgadamente dentro del presupuesto de
+`presupuesto.json`.
 
-Por donde sigue una sesión nueva: lo que queda de **M2**. **C-3** (envío gratis
-anunciado, horario, tienda cerrada, mínimo de pedido) y **C-4** (orden del
-catálogo) son chicas y no dependen de nada. **C-1**, las variantes, es de 8
-puntos y el plan mismo dice que hay que partirla en contrato / maestro / página:
-esa conviene empezarla con la sesión entera por delante.
+Por donde sigue una sesión nueva: **C-1c, la página de las variantes**. Todo lo
+que hay debajo ya funciona y está probado —la columna, la lectura, la validación
+contra la hoja, la columna `Variante` en `Pedidos` y el respaldo—, así que lo que
+falta es interfaz: el selector en la ficha, que obligue a elegir antes de agregar
+al carrito, que la elección viaje en el mensaje de WhatsApp, y que la página
+respete `f_variantes` (la clave está sembrada y todavía no la lee nadie).
+
+Después, **C-3** (envío gratis anunciado, horario, tienda cerrada, mínimo de
+pedido) y **C-4** (orden del catálogo), que son chicas y no dependen de nada.
 
 ---
 

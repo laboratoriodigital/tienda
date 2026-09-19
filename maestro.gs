@@ -177,7 +177,11 @@ var H_ERRORES      = 'Errores';
    hojas el mismo día. */
 var ENCABEZADO_CATALOGO = ['ID', 'Nombre', 'Formato', 'Categoría', 'Precio', 'Stock',
                            'Descripción', 'Imágenes', 'Destacado', 'Activo',
-                           'Referencia', 'Precio antes', 'Umbral bajo'];
+                           'Referencia', 'Precio antes', 'Umbral bajo',
+                           /* C-1: al final y opcional, como manda R1 del
+                              contrato. El maestro lee por POSICIÓN, así que una
+                              columna en medio descuadra todo en silencio. */
+                           'Variantes'];
 
 /* La última columna, Inventario, la escribe el script solo. Dice si el stock de
    esa línea ya se descontó del catálogo. Existe para que confirmar un pedido dos
@@ -188,7 +192,10 @@ var ENCABEZADO_CATALOGO = ['ID', 'Nombre', 'Formato', 'Categoría', 'Precio', 'S
 var ENCABEZADO_PEDIDOS = ['Fecha', 'Pedido', 'Validación', 'Estado', 'Ciudad', 'Cupón',
                           'Producto', 'ID', 'Cantidad', 'Precio unitario',
                           'Subtotal línea', 'Total del pedido', 'Inventario',
-                          'Fecha de pago', 'Fecha de despacho', 'Guía'];
+                          'Fecha de pago', 'Fecha de despacho', 'Guía',
+                          /* C-1: qué eligió el comprador. Al final, opcional, y
+                             vacía en los pedidos sin variantes. */
+                          'Variante'];
 
 /* La columna Pedido de Validaciones es el MISMO número que el de Pedidos. Un
    solo identificador para todo: el que llega en el mensaje de WhatsApp. */
@@ -1054,6 +1061,122 @@ function cifra(valor, donde) {
     CELDAS_ILEGIBLES.push(donde + ' dice "' + String(valor).slice(0, 24) + '"');
   }
   return null;                       // null es «no se sabe», que no es cero
+}
+
+/* LAS VARIANTES DE UN PRODUCTO, LEÍDAS DE SU CELDA (C-1).
+   ----------------------------------------------------------------------------
+   Sintaxis corta, para escribirse en una celda sin aprender nada:
+
+       Talla: S|M|L ; Color: Rosa|Nude
+
+   Grupos separados por `;`, el nombre antes de `:`, y las opciones con `|` — el
+   mismo separador que ya usa la columna Imágenes, para no inventar una segunda
+   convención en la misma hoja.
+
+   EL CATÁLOGO FALLA ABIERTO, y aquí eso importa. Una celda que no se entiende NO
+   saca el producto de la tienda: lo deja sin variantes y reporta la celda. Es la
+   regla de la casa —«fallo abierto en el catálogo, fallo cerrado en los
+   cupones»— y el cálculo es claro: vender un labial sin tono deja un pedido que
+   el comerciante resuelve con un mensaje, y no venderlo es una venta perdida y
+   callada. El PRECIO es lo contrario y por eso ese sí tumba el producto: ahí el
+   error se paga en plata.
+
+   Y NO SE ADIVINA. No se intenta partir `S M L` por espacios ni tratar el `;`
+   como `|`: cada intento de adivinar es una forma de que el comprador elija algo
+   que el comerciante no quiso ofrecer. */
+var MAX_GRUPOS_VARIANTE = 4;
+var MAX_OPCIONES_VARIANTE = 24;
+
+function variantesDeCelda(valor, donde) {
+  var t = String(valor === null || valor === undefined ? '' : valor).trim();
+  if (!t) return [];
+
+  var quejas = [];
+  var grupos = [];
+  t.split(';').forEach(function (trozo) {
+    var s = String(trozo).trim();
+    if (!s) return;
+    var i = s.indexOf(':');
+    if (i === -1) { quejas.push(s); return; }
+    var nombre = s.slice(0, i).trim();
+    var opciones = s.slice(i + 1).split('|').map(function (o) {
+      return String(o).trim();
+    }).filter(function (o) { return o; });
+    /* Un nombre sin opciones no es un grupo: es media frase. Y unas opciones
+       sin nombre no se pueden pintar: el selector no tendría rótulo. */
+    if (!nombre || !opciones.length) { quejas.push(s); return; }
+    if (opciones.length > MAX_OPCIONES_VARIANTE) {
+      quejas.push(nombre + ' tiene ' + opciones.length + ' opciones');
+      opciones = opciones.slice(0, MAX_OPCIONES_VARIANTE);
+    }
+    grupos.push({ nombre: nombre, opciones: opciones });
+  });
+
+  if (grupos.length > MAX_GRUPOS_VARIANTE) {
+    quejas.push('son ' + grupos.length + ' grupos y el tope es ' + MAX_GRUPOS_VARIANTE);
+    grupos = grupos.slice(0, MAX_GRUPOS_VARIANTE);
+  }
+
+  if (quejas.length && CELDAS_ILEGIBLES.length < 20) {
+    CELDAS_ILEGIBLES.push(donde + ': ' + quejas[0].slice(0, 40) +
+      '. Se escribe así -> Talla: S|M|L ; Color: Rosa|Nude');
+  }
+  return grupos;
+}
+
+/* QUÉ ELIGIÓ EL COMPRADOR, COMPROBADO CONTRA LA HOJA (C-1).
+   ----------------------------------------------------------------------------
+   Llega en la misma línea del pedido:  id:cantidad:Talla=M;Color=Rosa
+   y se devuelve normalizado —«Talla: M · Color: Rosa»— para escribirlo tal cual
+   en la columna Variante y en el mensaje de WhatsApp.
+
+   SE COMPRUEBA, no se cree. Confiar en la elección que manda la página es lo
+   mismo que confiar en el precio que manda la página, y eso es exactamente lo
+   que este maestro no hace desde el primer día. Una opción que este comercio no
+   ofrece TUMBA LA LÍNEA: guardarla sería dejar un pedido que nadie puede
+   despachar, y adivinar cuál quiso decir es peor todavía.
+
+   Lo que sí falla abierto es la ELECCIÓN QUE FALTA. Un producto con variantes
+   cuyo pedido llega sin ninguna viene de una página vieja en caché o de alguien
+   toqueteando la dirección; la venta se acepta y se avisa, porque el comerciante
+   resuelve eso con un mensaje y rechazarla es perder la venta callando. Que la
+   elección sea obligatoria es trabajo de la página. */
+function variantePedida(crudo, grupos, avisos, nombre) {
+  var ofrecidos = grupos || [];
+  var texto = String(crudo === null || crudo === undefined ? '' : crudo).trim();
+
+  if (!ofrecidos.length) return '';              // el producto no tiene variantes
+  if (!texto) {
+    avisos.push('Falta elegir en ' + nombre + '. Confírmalo por WhatsApp.');
+    return '';
+  }
+
+  var pedido = {};
+  texto.split(';').forEach(function (par) {
+    var i = String(par).indexOf('=');
+    if (i === -1) return;
+    pedido[String(par).slice(0, i).trim().toLowerCase()] = String(par).slice(i + 1).trim();
+  });
+
+  var partes = [];
+  for (var g = 0; g < ofrecidos.length; g++) {
+    var grupo = ofrecidos[g];
+    var elegida = pedido[grupo.nombre.toLowerCase()];
+    if (elegida === undefined || elegida === '') {
+      avisos.push('Falta elegir ' + grupo.nombre + ' en ' + nombre + '.');
+      continue;
+    }
+    /* Se compara sin distinguir mayúsculas y se guarda LA DE LA HOJA: así la
+       columna Variante dice siempre lo mismo que el catálogo, escriba como
+       escriba la página. */
+    var buena = null;
+    for (var o = 0; o < grupo.opciones.length; o++) {
+      if (grupo.opciones[o].toLowerCase() === elegida.toLowerCase()) buena = grupo.opciones[o];
+    }
+    if (buena === null) return null;             // eligió algo que no se ofrece
+    partes.push(grupo.nombre + ': ' + buena);
+  }
+  return partes.join(' \u00b7 ');
 }
 
 /* La pestaña Configuración es un almacén de TEXTO: leerConfiguracion() convierte
@@ -2233,7 +2356,8 @@ function semillaDeConfiguracion() {
          propio comercio: separados por "|". Vacío = ningún producto queda
          excluido, y el texto de retracto ni siquiera menciona la excepción —
          no se puede inventar QUÉ es perecedero por él (historia A-4). */
-      ['retracto_excepciones', '', 'Productos que NO admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por |. Vacío = ninguno queda excluido']
+      ['retracto_excepciones', '', 'Productos que NO admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por |. Vacío = ninguno queda excluido'],
+      ['f_variantes',      'Sí', 'Si dice Sí, los productos con la columna Variantes piden elegir antes de agregar al carrito (ej: Talla: S|M|L ; Color: Rosa|Nude). No = se ignoran y el producto se vende sin elección']
   ];
 }
 
@@ -2273,7 +2397,13 @@ function leerCatalogo() {
                     hoy. Si no, es un error de captura y se ignora: mostrar un
                     «antes» más barato es peor que no mostrar nada. */
                  precioAntes: (antes && antes > precio) ? antes : 0,
-                 umbralBajo: (umbral && umbral > 0) ? Math.floor(umbral) : 0 };
+                 umbralBajo: (umbral && umbral > 0) ? Math.floor(umbral) : 0,
+                 /* Las mismas variantes que ve el comprador, para poder
+                    comprobar que lo que eligió es algo que este comercio
+                    ofrece de verdad. Una elección que no está en la hoja no se
+                    guarda: sería un pedido que nadie puede despachar. */
+                 variantes: variantesDeCelda(f[13],
+                   'Catálogo N' + fila + ' (Variantes de ' + id + ')') };
   });
   return mapa;
 }
@@ -2348,21 +2478,41 @@ function validarPedido(p) {
   var crudo = String(p.items || '').slice(0, 600).split(',');
   if (crudo.length > MAX_ITEMS) return { ok: false, error: 'Demasiadas líneas.' };
 
-  var vistos = {}, items = [], sub = 0;
+  var vistos = {}, usado = {}, items = [], sub = 0;
   crudo.forEach(function (par) {
     var t = par.split(':');
     var id = String(t[0] || '').trim();
     var prod = catalogo[id];
-    if (!prod || vistos[id]) return;
-    vistos[id] = true;
+    if (!prod) return;
+
+    /* C-1 · La elección viaja en la misma línea y se comprueba contra la hoja.
+       null = pidió algo que este comercio no ofrece: la línea se cae. */
+    var elegido = variantePedida(t[2], prod.variantes, avisos, prod.nombre);
+    if (elegido === null) return;
+
+    /* LA CLAVE ES PRODUCTO + VARIANTE. Dos tonos del mismo labial son dos
+       líneas, no una: con la clave puesta solo en el id, la segunda se perdía
+       en silencio y el comprador recibía la mitad de lo que pidió. */
+    var clave = id + '\u0000' + elegido;
+    if (vistos[clave]) return;
+    vistos[clave] = true;
+
     var cant = numeroSeguro(t[1], MAX_CANTIDAD);
     if (cant < 1) return;
-    if (cant > prod.stock) {
+
+    /* EL STOCK ES DEL PRODUCTO, NO DE LA VARIANTE (decisión de C-1), así que
+       las líneas del mismo producto compiten por las mismas existencias. Sin
+       llevar la cuenta, dos tonos de tres unidades cada uno pasaban con un
+       stock de cuatro. */
+    var yaPedido = usado[id] || 0;
+    if (cant + yaPedido > prod.stock) {
       avisos.push('De ' + prod.nombre + ' solo quedan ' + prod.stock + '.');
-      cant = prod.stock;
+      cant = Math.max(0, prod.stock - yaPedido);
     }
+    if (cant >= 1) usado[id] = yaPedido + cant;
     if (cant < 1) return;
-    items.push({ id: id, nombre: prod.nombre, cantidad: cant, precio: prod.precio });
+    items.push({ id: id, nombre: prod.nombre, cantidad: cant, precio: prod.precio,
+                 variante: elegido });
     sub += cant * prod.precio;
   });
   if (!items.length) return { ok: false, error: 'No hay productos válidos en el pedido.' };
@@ -2561,7 +2711,11 @@ function registrarPedido(p) {
     cupon: celdaSegura(r.cupon.ok ? r.cupon.codigo : ''),
     total: r.total,
     items: r.items.map(function (i) {
-      return { id: i.id, nombre: celdaSegura(i.nombre), cantidad: i.cantidad, precio: i.precio };
+      /* `variante` viaja hasta aquí o no llega a la hoja: este map es el punto
+         donde la línea validada se convierte en fila, y lo que no se nombre se
+         pierde sin que nada falle. */
+      return { id: i.id, nombre: celdaSegura(i.nombre), cantidad: i.cantidad,
+               precio: i.precio, variante: i.variante || '' };
     })
   });
 
@@ -2692,7 +2846,9 @@ function catalogoPublico() {
       activo:      esSi(f[9]),
       referencia:  String(f[10] || '').trim(),
       precioAntes: (antes && precio !== null && antes > precio) ? antes : 0,
-      umbralBajo:  (umbral && umbral > 0) ? Math.floor(umbral) : 0
+      umbralBajo:  (umbral && umbral > 0) ? Math.floor(umbral) : 0,
+      variantes:   variantesDeCelda(f[13],
+                     'Catálogo N' + fila + ' (Variantes de ' + (id || fila) + ')')
     };
   }).filter(function (p) { return p.id && p.nombre && p.precio !== null; });
 
@@ -2784,9 +2940,15 @@ function guardarPedido(d) {
     throw new Error('La hoja llegó a ' + MAX_FILAS + ' filas. Archívala y vacíala.');
 
   var ahora = new Date();
+  /* Las cuatro del medio —Inventario, Fecha de pago, Fecha de despacho, Guía—
+     van vacías a propósito: las llena después el script o el comerciante. Y la
+     fila llega hasta Variante porque escribir por POSICIÓN obliga a nombrar
+     todas las de en medio; saltárselas correría la elección cuatro columnas a
+     la izquierda y la dejaría en «Inventario». */
   var f = d.items.map(function (i) {
     return [ahora, d.pedido, d.ref, d.estado, d.ciudad, d.cupon, i.nombre, i.id,
-            i.cantidad, i.precio, i.cantidad * i.precio, d.total];
+            i.cantidad, i.precio, i.cantidad * i.precio, d.total,
+            '', '', '', '', celdaSegura(i.variante || '')];
   });
   h.getRange(h.getLastRow() + 1, 1, f.length, f[0].length).setValues(f);
 }
