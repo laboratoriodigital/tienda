@@ -86,6 +86,23 @@
      "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
     }
    }
+  },
+  {
+   "@type": "Product",
+   "sku": "ejemplo2",
+   "name": "Segundo producto de ejemplo — edítalo o bórralo",
+   "description": "Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.",
+   "category": "Ejemplos",
+   "offers": {
+    "@type": "Offer",
+    "price": "29900",
+    "priceCurrency": "COP",
+    "availability": "https://schema.org/InStock",
+    "url": "https://tienda.laboratoriodigital-la.workers.dev/?p=ejemplo2",
+    "seller": {
+     "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
+    }
+   }
   }
  ]
 }
@@ -694,6 +711,7 @@ const CONFIG_SEMILLA = {
   "legal_actualizado": "Fri Sep 18 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "logo": "",
   "negocio": "TIENDA",
+  "orden_catalogo": "Precio: de menor a mayor",
   "pie_descripcion": "Se vende de todo",
   "portada_puntos": "Producto de la semana|Entregas a todo el país|Pides y confirmas por WhatsApp",
   "portada_texto": "Tu tienda Virtual",
@@ -717,7 +735,12 @@ const PRODUCTOS = [
     precio:19900, stock:10,
     imagenes:["tienda-virtual.png"],
     variantes:[{ nombre:"Talla", opciones:["S", "M", "L"] }, { nombre:"Color", opciones:["Rosa", "verde"] }],
-    descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." }
+    descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." },
+
+  { id:"ejemplo2", nombre:"Segundo producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",
+    precio:29900, stock:5,
+    imagenes:[""],
+    descripcion:"Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala." }
 ];
 /* ═══ FIN DEL CATÁLOGO DE RESPALDO ═══ */
 

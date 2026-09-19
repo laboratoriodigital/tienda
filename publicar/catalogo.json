@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-12-1",
- "generado": "2026-09-19T06:55:39.206Z",
+ "generado": "2026-09-19T07:48:37.607Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -35,6 +35,20 @@
      ]
     }
    ]
+  },
+  {
+   "id": "ejemplo2",
+   "nombre": "Segundo producto de ejemplo — edítalo o bórralo",
+   "formato": "Unidad",
+   "categoria": "Ejemplos",
+   "precio": 29900,
+   "stock": 5,
+   "descripcion": "Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.",
+   "imagenes": [],
+   "destacado": false,
+   "referencia": "",
+   "precioAntes": 0,
+   "umbralBajo": 0
   }
  ],
  "envios": [
@@ -83,6 +97,7 @@
   "autoria_url": "laboratoriodigital.co",
   "retracto_excepciones": "",
   "f_variantes": "Sí",
+  "orden_catalogo": "Precio: de menor a mayor",
   "tope_pago": "12110000"
  },
  "fotos": {
