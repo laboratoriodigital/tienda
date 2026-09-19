@@ -644,8 +644,20 @@ const configurar = (g, clave, valor) => {
   const r = g.api.respaldarHoja();
   ok('LA HOJA SE COPIA a la carpeta del administrador',
      /^Copia_de_Orgánico — pedidos_\d{4}-\d{2}-\d{2}$/.test(r.nombre), r.nombre);
+  /* LA FECHA SE LE PREGUNTA AL MAESTRO, NO SE CALCULA AQUÍ.
+     Esto decía `new Date().toISOString().slice(0, 10)` —la fecha UTC— mientras
+     el maestro nombra la copia con `diaDeHoy()`, que usa la fecha LOCAL. Las
+     dos coinciden en un runner de Actions, que va en UTC, y NO coinciden en
+     una máquina en horario de Colombia entre las 19:00 y la medianoche: ahí
+     son días distintos y esta aserción se caía. Cinco horas en rojo todos los
+     días, invisibles desde CI.
+
+     Y el maestro tiene razón: un comercio colombiano quiere sus respaldos
+     fechados con SU día, no con el de Greenwich. Lo que estaba mal era la
+     segunda copia de la regla (patrón 2), así que ya no hay segunda copia. */
   ok('  ...con la fecha en el nombre, para saber de cuándo es',
-     r.nombre.endsWith(new Date().toISOString().slice(0, 10)));
+     r.nombre.endsWith(g.api.diaDeHoy()),
+     r.nombre + ' · hoy es ' + g.api.diaDeHoy());
   ok('  ...y queda dentro de esa carpeta, no en el Drive de la tienda',
      g.api.respaldarHoja() && true);
 
@@ -677,7 +689,8 @@ const configurar = (g, clave, valor) => {
   ok('LA CARPETA NO CRECE PARA SIEMPRE: quedan ocho copias, no doce',
      mias.length === 8, mias.length + ' copias de esta tienda tras 12 semanas');
   ok('  ...y la que queda arriba es la más nueva, no una vieja',
-     mias.some(f => f.nombre.endsWith(new Date().toISOString().slice(0, 10))));
+     mias.some(f => f.nombre.endsWith(doceSemanas.g.api.diaDeHoy())),
+     'hoy, para el maestro, es ' + doceSemanas.g.api.diaDeHoy());
   ok('  ...NUNCA borra las copias de OTRA tienda de la misma carpeta',
      ajenas.length === 2, ajenas.map(f => f.nombre).join(', ') || 'las borró');
   ok('  ...y la poda ignora cualquier archivo que no sea un respaldo suyo',

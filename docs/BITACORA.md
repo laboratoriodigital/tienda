@@ -1108,3 +1108,52 @@ respuesta está en qué se rompió: si lo que falla es el criterio, se corrige e
 código; si lo que falla es la forma de medirlo, se corrige la aserción. Darlas
 por buenas siempre y darlas por molestas siempre son el mismo error con distinto
 signo.
+
+---
+
+**29 · La prueba que solo fallaba donde nadie la miraba.** El 18 de septiembre
+de 2026, midiendo cuántas baterías conviene correr a la vez, la suite se puso en
+rojo a las 19:02 hora de Colombia. Dos aserciones de `montaje.js`, sobre el
+nombre de los respaldos de la hoja. A las 18:00 estaban verdes. No se había
+tocado una línea.
+
+El maestro nombra cada copia con `diaDeHoy()`, que arma la fecha con
+`getFullYear/getMonth/getDate` — la fecha **local**. Las dos aserciones
+comparaban contra `new Date().toISOString().slice(0, 10)` — la fecha **UTC**.
+Colombia va cinco horas por detrás, así que desde las 19:00 hasta la medianoche
+las dos fechas son días distintos, y la comparación se caía.
+
+Lo importante no es el error: es **dónde no se veía**. Los runners de GitHub van
+en UTC, donde las dos fechas coinciden siempre. Así que esto era verde en CI las
+veinticuatro horas del día, todos los días, y rojo cinco horas diarias en la
+máquina de cualquiera que trabaje desde Colombia — que es donde está el equipo.
+Una prueba que solo falla donde nadie la mira es peor que una que falla siempre:
+la que falla siempre se arregla el primer día.
+
+Y el maestro tenía razón. Un comercio colombiano quiere sus respaldos fechados
+con SU día, no con el de Greenwich. Lo que sobraba era la segunda copia de la
+regla dentro de la prueba (patrón 2), así que se quitó: las aserciones le
+preguntan la fecha al maestro con `g.api.diaDeHoy()` en vez de recalcularla.
+
+`calendario.js` existía justamente para esta familia de fallos —«una prueba que
+depende de qué día se corre no prueba nada»— y no lo cazó, porque movía el DÍA
+y dejaba el HUSO quieto. Ahora corre `montaje.js` a tres horas distintas con
+`TZ=America/Bogota`, dos de ellas en la franja en que allá ya es otro día que en
+UTC. Con el defecto puesto se cae en dos de las tres; sin él, en ninguna — que
+es la condición para dar una comprobación por buena en esta casa.
+
+La regla: **una prueba que depende del reloj no depende solo de la fecha.**
+Depende de la fecha, de la hora y del huso, y las tres tienen que moverse en la
+prueba que dice cubrir el reloj. Y el corolario, que es el que duele: cuando una
+comprobación es verde en CI y roja en una máquina de verdad, la sospecha por
+defecto no es «la máquina está rara» — es que CI está mirando un solo punto de
+un espacio con más dimensiones.
+
+De paso, la medición que destapó todo esto. `todas.sh` decía «un trabajador por
+núcleo, hasta cuatro», razonando que cada trabajador es un Chromium y más
+competirían por CPU. Medido en una máquina de DOS núcleos: 151 s con uno, 94 s
+con dos, **73 s con cuatro**, 71 s con seis. Con el doble de trabajadores que de
+núcleos el reloj sigue bajando, porque estas baterías no gastan CPU: **esperan**
+—a que arranque su servidor, a que cargue la página, a que se cumpla un
+`waitFor`—. Atarlos a los núcleos era contar el recurso equivocado. Ahora son
+cuatro por defecto, que es donde está la rodilla.

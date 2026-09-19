@@ -114,14 +114,27 @@ BATERIAS="e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
           calendario.js respaldo.js marca.js plantilla.js worker.js legal.js \
           determinismo.js escribe.js limites.js tiempos.js"
 
-# Por defecto, uno por núcleo hasta cuatro. Más no ayuda: cada trabajador es un
-# Chromium, y a partir de ahí compiten por CPU y el reloj deja de bajar.
+# ── CUATRO, Y NO UNO POR NÚCLEO ─────────────────────────────────────────────
+# Esto decía «uno por núcleo hasta cuatro», con el razonamiento de que cada
+# trabajador es un Chromium y a partir de ahí compiten por CPU. Suena bien y es
+# falso. Medido en una máquina de DOS núcleos, la suite entera:
 #
-# Git Bash no siempre trae `nproc`, y ahí caer a 2 es dejar la mitad de la
-# máquina parada durante toda la corrida. Windows publica los núcleos en
-# NUMBER_OF_PROCESSORS y esa variable llega al intérprete tal cual.
-nucleos=$(nproc 2>/dev/null || echo "${NUMBER_OF_PROCESSORS:-2}")
-TRABAJADORES=${TRABAJADORES:-$(( nucleos > 4 ? 4 : nucleos ))}
+#     1 trabajador  → 151 s
+#     2             →  94 s
+#     4             →  73 s      ← 22 % menos que con 2, en media máquina
+#     6             →  71 s
+#
+# Con el doble de trabajadores que de núcleos, el reloj sigue bajando. La razón
+# es que estas baterías no gastan CPU: ESPERAN. Esperan a que arranque su
+# servidor, a que la página cargue, a que un `waitFor` se cumpla. Un trabajador
+# parado esperando no le quita nada a los otros, y atarlos a los núcleos es
+# contar el recurso equivocado.
+#
+# La rodilla está en 4: de 4 a 6 se ganan dos segundos, y cada trabajador de más
+# es un Chromium más en memoria, que en un runner de Actions sí se acaba.
+#
+# TRABAJADORES sigue siendo el interruptor: =1 lo vuelve serial para depurar.
+TRABAJADORES=${TRABAJADORES:-4}
 
 # ── EL CUPO DE TRABAJADORES, CONTANDO PIDs Y NADA MÁS ───────────────────────
 # El portero de antes era `while [ "$(jobs -rp | wc -l)" -ge "$TRABAJADORES" ];

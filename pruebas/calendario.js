@@ -40,7 +40,7 @@ const DIAS = [1, 2, 3, 10, 11, 12, 15, 27, 28, 29, 30, 31];
 /* Se falsea `Date` antes de cargar la batería: `new Date()` sin argumentos
    devuelve el día que se está probando, y `new Date(a, b, c)` sigue siendo el
    de siempre. Así la batería no se entera de nada y no hay que tocarla. */
-function correr(bateria, cuando) {
+function correr(bateria, cuando, entorno) {
   const pre = 'const R = Date; const F = ' + cuando.getTime() + ';' +
     'global.Date = class extends R {' +
     '  constructor(...a) { return a.length ? new R(...a) : new R(F); }' +
@@ -49,7 +49,8 @@ function correr(bateria, cuando) {
   try {
     const salida = execFileSync(process.execPath,
       ['-e', pre + "require('./" + bateria + "');"],
-      { encoding: 'utf8', cwd: __dirname, timeout: 60000 });
+      { encoding: 'utf8', cwd: __dirname, timeout: 60000,
+        env: Object.assign({}, process.env, entorno || {}) });
     const m = salida.match(/^Resultado: (\d+)\/(\d+)/m);
     if (!m) return { ok: false, detalle: 'no imprimió marcador' };
     return { ok: m[1] === m[2], detalle: m[1] + '/' + m[2],
@@ -85,6 +86,50 @@ CALENDARIO.forEach(function (bateria) {
                     malos.slice(0, 6).join('\n     ')
                   : corridas + ' días del ' + ANO + ', todos iguales');
 });
+
+/* ── NO SOLO QUÉ DÍA: TAMBIÉN A QUÉ HORA Y EN QUÉ HUSO ──────────────────────
+   Lo de arriba mueve el DÍA y deja el huso quieto. Eso deja fuera una familia
+   entera de fallos, y el 18 de septiembre de 2026 se cobró dos aserciones de
+   `montaje.js`.
+
+   El maestro nombra los respaldos con `diaDeHoy()`, que usa la fecha LOCAL —y
+   tiene razón: un comercio colombiano quiere sus copias fechadas con SU día, no
+   con el de Greenwich—. Las dos aserciones comparaban contra
+   `new Date().toISOString()`, que es la fecha UTC. En un runner de Actions las
+   dos coinciden siempre, porque va en UTC. En una máquina en horario de
+   Colombia NO coinciden entre las 19:00 y la medianoche: son días distintos.
+
+   Cinco horas en rojo todos los días, y ni una sola desde CI. Una prueba que
+   solo falla en la máquina de quien la escribe, y nunca donde se mira, es peor
+   que una que falla siempre.
+
+   Así que aquí se corre a las horas en que el huso y UTC discrepan, con el
+   huso puesto a mano: si alguien vuelve a mezclar las dos fechas, se cae aquí
+   a cualquier hora del día, también en CI. */
+{
+  const HUSO = 'America/Bogota';          // UTC-5, el de las tiendas
+  /* 23:30 y 19:05 locales ya son el día siguiente en UTC; 09:00 no. Con las
+     tres, una comparación contra la fecha equivocada no tiene dónde esconderse. */
+  const HORAS = [[23, 30], [19, 5], [9, 0]];
+  const CON_HUSO = ['montaje.js'];
+
+  CON_HUSO.forEach(function (bateria) {
+    const malos = [];
+    HORAS.forEach(function (h) {
+      const f = new Date(2028, 5, 15, h[0], h[1]);
+      const r = correr(bateria, f, { TZ: HUSO });
+      if (!r.ok) malos.push(h[0] + ':' + ('0' + h[1]).slice(-2) + ' ' + HUSO +
+                            '  ' + r.detalle +
+                            (r.fallas && r.fallas.length ? '\n        ' +
+                             r.fallas.slice(0, 2).join('\n        ') : ''));
+    });
+    ok(bateria.toUpperCase() + ' da el mismo marcador a cualquier hora, y en horario de Colombia',
+       malos.length === 0,
+       malos.length ? malos.length + ' de ' + HORAS.length + ' horas en rojo:\n     ' +
+                      malos.join('\n     ')
+                    : HORAS.length + ' horas, incluidas dos en que allá es otro día que en UTC');
+  });
+}
 
 /* Y la trampa concreta, nombrada, para que no vuelva por la puerta de atrás:
    ningún pedido de la siembra puede estar fechado con un desfase en DÍAS que
