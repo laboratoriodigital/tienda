@@ -3346,6 +3346,27 @@ const configurar = (g, clave, valor) => {
   ok('  ...también cuando la corrida falló, que es cuando más importa',
      flujos.every(f => /- name: Los tiempos\n        if: always\(\)/.test(f.y)),
      'con success() la corrida que hay que mirar es la única sin tabla');
+  /* Y CORRE DESDE LA RAÍZ. `pruebas.yml` tiene
+     `defaults.run.working-directory: pruebas` —todas sus baterías viven ahí— y
+     el paso de los tiempos lo heredó sin que nadie lo pensara: buscaba
+     `pruebas/montar/tiempos.mjs`, que no existe, y tumbó una corrida que había
+     salido 1600/1600. La herramienta, `presupuesto.json` y el resumen viven en
+     la raíz. Un `defaults` es una decisión tomada para los pasos que estaban
+     cuando se escribió, no para los que vengan después. */
+  ok('  ...desde la RAÍZ, aunque el flujo tenga otro directorio por defecto',
+     flujos.every(f => {
+       const tiene = /^    defaults:\n      run:\n        working-directory:/m.test(f.y);
+       if (!tiene) return true;
+       const paso = f.y.slice(f.y.indexOf('- name: Los tiempos'));
+       /* LA CLAVE, no la palabra. La primera versión de esto buscaba
+          `working-directory:` en cualquier parte del paso y se encontró a sí
+          misma: el comentario que explica el arreglo NOMBRA la clave, así que
+          la comprobación pasaba con el arreglo quitado. Un regex sobre texto
+          fuente encuentra prosa igual que código; hay que anclarlo. */
+       return /^        working-directory:/m.test(paso.slice(0, paso.indexOf('run: |')));
+     }),
+     'ahí viven la herramienta, el presupuesto y el resumen');
+
   ok('  ...y se lo guardan como artefacto, no solo en el resumen',
      flujos.every(f => /name: tiempos-\$\{\{ github\.run_id \}\}/.test(f.y)),
      'el resumen caduca; el artefacto es contra lo que se compara el mes que viene');

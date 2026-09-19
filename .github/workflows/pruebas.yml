@@ -160,6 +160,14 @@ jobs:
       # corrida — medir es un servicio, no el trabajo.
       - name: Los tiempos
         if: always()
+        # DESDE LA RAÍZ, y no desde `pruebas/`. Este flujo tiene
+        # `defaults.run.working-directory: pruebas` —todas sus baterías viven
+        # ahí— y este paso lo heredó sin que nadie lo pensara: buscaba
+        # `pruebas/montar/tiempos.mjs`, que no existe, y tumbaba una corrida que
+        # había salido 1600/1600. La herramienta, el presupuesto y el resumen
+        # viven en la raíz del repositorio; un `defaults` es una decisión para
+        # los pasos que estaban cuando se escribió, no para los que vengan.
+        working-directory: .
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SIN_GUARDIA: '0'
