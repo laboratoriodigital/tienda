@@ -121,8 +121,64 @@ export function mensajeDePlanton(accion, extra = {}) {
    «esto ya está descartado» en vez de mandar a revisar algo que funciona. */
 const RESPONDIO = new Map();
 
+/* ══ B-3 · LO QUE YA SE PREGUNTÓ EN ESTA CORRIDA NO SE VUELVE A PREGUNTAR ══
+   `montar/sondear.mjs` pide de una vez, y en paralelo, las cuatro acciones que
+   el flujo pide siempre, y las deja en sondeo.json. Una herramienta lanzada con
+   `--desde` las lee de ahí.
+
+   ESTO VIVE AQUÍ Y NO EN CADA HERRAMIENTA a propósito. Por `alMaestro` pasan
+   TODAS las preguntas; ponerlo en cada una serían siete sitios donde acordarse,
+   y el que se olvida vuelve a preguntar sin que nadie lo note. Así ninguna
+   herramienta tuvo que cambiar una línea, y `--desde` no puede quedarse a
+   medias.
+
+   SIN `--desde`, NADA DE ESTO PASA. Cada herramienta sigue funcionando sola,
+   que es como se usan a mano y como se prueban.
+
+   Y NO ES UNA CACHÉ. Caduca a los diez minutos. La diferencia no es de grado:
+   una caché sobrevive entre corridas, y entonces un montaje puede publicar el
+   catálogo de hace una hora sin que nadie se entere. Esto vale para la corrida
+   que lo escribió. Cuando está vencido se dice en voz alta y se pregunta al
+   maestro — el camino lento, nunca el dato viejo. */
+export const SONDEO = 'sondeo.json';
+export const VIGENCIA_SONDEO = 10 * 60 * 1000;
+
+let sondeoEnMemoria;          // se lee una vez por proceso, no una por pregunta
+
+async function delSondeo(accion, extra) {
+  if (!process.argv.includes('--desde')) return null;
+  /* Una pregunta con parámetros —`foto` con su id— no tiene una respuesta
+     guardable: son N peticiones distintas y seguirán siendo N. */
+  if (extra && Object.keys(extra).length) return null;
+
+  if (sondeoEnMemoria === undefined) sondeoEnMemoria = (async () => {
+    let s;
+    try { s = JSON.parse(await readFile(SONDEO, 'utf8')); }
+    catch { return null; }                      // no hay sondeo: se pregunta
+    const edad = Date.now() - Date.parse(s.cuando || '');
+    if (!(edad >= 0 && edad < VIGENCIA_SONDEO)) {
+      console.log(`  · ${SONDEO} está vencido (${Math.round(edad / 60000)} min). ` +
+                  `Se le pregunta al maestro.`);
+      return null;
+    }
+    return s;
+  })();
+
+  const s = await sondeoEnMemoria;
+  if (!s || !s.respuestas) return null;
+  return Object.prototype.hasOwnProperty.call(s.respuestas, accion)
+    ? s.respuestas[accion] : null;
+}
+
 /** Una llamada al maestro, con los errores dichos en cristiano. */
 export async function alMaestro({ url, token }, accion, extra = {}) {
+  const guardada = await delSondeo(accion, extra);
+  if (guardada !== null && guardada !== undefined) {
+    console.log(`  · «${accion}» sale del sondeo de esta corrida, sin volver a preguntar.`);
+    RESPONDIO.set(url, (RESPONDIO.get(url) || new Set()).add(accion));
+    return guardada;
+  }
+
   const q = new URLSearchParams({ a: accion, t: token, ...extra });
   const tope = topeDe(accion);
   let r;

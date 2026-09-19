@@ -1157,3 +1157,55 @@ núcleos el reloj sigue bajando, porque estas baterías no gastan CPU: **esperan
 —a que arranque su servidor, a que cargue la página, a que se cumpla un
 `waitFor`—. Atarlos a los núcleos era contar el recurso equivocado. Ahora son
 cuatro por defecto, que es donde está la rodilla.
+
+---
+
+**30 · Lo que se repite no se nota; lo que se repite en otro archivo, menos.** El
+18 de septiembre de 2026, cerrando el hito M1, se contaron las peticiones que el
+flujo `fotos` le hace al maestro en una corrida. Salieron **siete**, y tres eran
+la misma pregunta hecha dos veces: `bloques`, `fotos` y `catalogo`.
+
+Nadie las duplicó a propósito ni por descuido. El flujo tiene dos pasadas —una
+de `--revisar`, que mira si hay algo que hacer, y otra de publicar, que lo hace—
+y cada herramienta pregunta lo suyo cuando le toca. Cada una, por separado, está
+bien escrita. La duplicación no vive dentro de ninguna: vive en el hecho de que
+se llaman dos veces, y eso no se ve leyendo ninguno de los archivos.
+
+Y costaba caro por una razón que tampoco está escrita en ellos: **Apps Script
+arranca en frío**. La primera llamada después de actualizar una implementación
+tarda cuarenta segundos o más, documentados, y siete llamadas en serie son siete
+oportunidades de pagarlo — en el camino crítico de publicar una foto, que es la
+queja con la que empezó todo este hito.
+
+El arreglo tiene dos decisiones que vale la pena separar de la mecánica.
+
+La primera: **dónde vive la lectura del sondeo**. La tentación era darle a cada
+herramienta un `--desde` propio. Serían siete sitios donde acordarse, y la que
+se olvidara seguiría preguntando sin que nadie lo notara, porque funcionaría
+igual. Se puso dentro de `alMaestro`, por donde pasan TODAS las preguntas. Ni
+una sola herramienta cambió una línea, y no hay forma de que el mecanismo quede
+a medias.
+
+La segunda: **caduca a los diez minutos**, y eso es lo que lo separa de una
+caché. Una caché sobrevive entre corridas, y entonces un montaje puede publicar
+el catálogo de hace una hora sin que nadie se entere — un modo de fallo que este
+proyecto lleva persiguiendo desde el primer día, porque no rompe nada: funciona,
+y miente. Vencido, se dice en voz alta y se pregunta al maestro. El camino
+lento, nunca el dato viejo.
+
+Se cuenta de verdad. `sondeo.js` levanta un maestro de mentira que anota qué le
+piden y corre las herramientas contra él, con `--desde` y sin. Una aserción
+sobre el texto del archivo habría dicho que la llamada está escrita; solo quien
+la recibe sabe si se hizo.
+
+La regla: **una redundancia entre dos llamadas no se ve en el código de
+ninguna de las dos.** Se ve contando lo que sale por el cable. Y la forma barata
+de contarlo es la misma de siempre: poner al otro lado algo que lleve la cuenta,
+en vez de leer más atentamente.
+
+Un apunte de método, del mismo día: la primera versión de esa batería se plantó
+entera. El maestro de mentira vivía en el proceso de la batería y los hijos se
+lanzaban con `execFileSync` — que bloquea el bucle de eventos, así que el
+servidor no podía contestar y todos esperaban el tope de noventa segundos. Un
+servidor y una espera síncrona no caben en el mismo bucle. El síntoma —«se
+cuelga»— no se parecía en nada a la causa, otra vez.

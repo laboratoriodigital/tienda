@@ -25,25 +25,24 @@ actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 | Hito | Estado |
 |---|---|
 | **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
-| **M1** · Rendimiento y cuota | **Cinco de siete.** Hechas B-1, B-5, B-6 y B-7; B-2 hecha salvo sus dos criterios de panel, que son M3. **Faltan B-3 y B-4** |
+| **M1** · Rendimiento y cuota | **Cerrado.** Las siete historias. De B-2 quedan abiertos sus dos criterios de panel, que son M3 y no deuda |
 | **M2** · La tienda para todo producto | Sin empezar |
 | **M3** · El panel del comerciante | Sin empezar |
 
-Lo que falta de M1, y es por donde sigue una sesión nueva:
+Los números de M1, que son los que deciden si cabe una tienda más:
 
-- **B-3 · Una sola pregunta al maestro** (5 pts). Al maestro se le pregunta tres
-  veces lo mismo por corrida, y con el arranque en frío de Apps Script —40 s o
-  más— eso está en el camino crítico. `montar/sondear.mjs` pediría en paralelo
-  lo que hoy se pide duplicado. Es la historia más grande y la más delicada:
-  toca el protocolo con el maestro.
-- **B-4 · Fotos en paralelo** (3 pts). Se bajan y se convierten en serie, y los
-  cuatro tamaños de cada foto también. Está acotada a `montar/traer-fotos.mjs`,
-  así que es la más segura de las dos.
+- El flujo `fotos` pasó de **seis arranques diarios a uno**, y el diario no
+  publica: mira y avisa. Era el 84 % de los minutos de una tienda.
+- De **siete peticiones fijas al maestro a cuatro**, y las cuatro a la vez.
+- Las fotos van en tandas de cuatro, y **una rota ya no impide publicar las
+  demás** —antes, doce fotos con una corrupta publicaban cero—.
+- Cada corrida deja su tabla de tiempos y un `tiempos.json`, y hay un guardia
+  contra `presupuesto.json` que falla si algo tarda más del doble de lo previsto.
 
-La línea anterior —`laboratoriodigital/organico`— se queda donde está, con tres
-tiendas en producción (un comercio de verduras, uno de cosmética y una
-panadería). **Las dos líneas no se sincronizan**: aquella solo recibe
-correcciones; todo lo nuevo pasa aquí.
+Por donde sigue una sesión nueva: **M2**, en `PLAN-MVP.md`. Empieza por C-2 (SEO
+horneado: JSON-LD, `sitemap.xml` y `robots.txt`), que es la que menos depende de
+decisiones nuevas — C-1, las variantes, es de 8 puntos y el plan mismo dice que
+hay que partirla.
 
 ---
 

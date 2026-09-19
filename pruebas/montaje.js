@@ -3230,7 +3230,7 @@ const configurar = (g, clave, valor) => {
      /PUBLICA: publicar\/fotos publicar\/catalogo\.json publicar\/index\.html/.test(fotos),
      'sin esto, un cambio de título no llega nunca y el botón miente');
   ok('  ...y ESCRIBE el <head> desde la hoja antes de publicarlo',
-     /node montar\/preparar-index\.mjs\s+2>&1/.test(fotos),
+     /node montar\/preparar-index\.mjs[^\n|]*2>&1/.test(fotos),
      'publicar el archivo sin reescribirlo sería publicar lo de antes');
   ok('  ...y lo MIRA al decidir si hay algo nuevo',
      /preparar-index\.mjs\s+--revisar/.test(fotos),
@@ -3491,10 +3491,10 @@ const configurar = (g, clave, valor) => {
   const t = fs.readFileSync('../montar/tienda.mjs', 'utf8');
 
   ok('UNA FOTO QUE NO BAJA no impide publicar lo de la hoja',
-     /traer-fotos\.mjs\s+2>&1 \| tee [^|]*\|\| fallo_fotos=/.test(f),
+     /traer-fotos\.mjs[^\n|]*2>&1 \| tee [^|]*\|\| fallo_fotos=/.test(f),
      'el título del comercio no depende de que el Drive conteste');
   ok('  ...pero el <head> sigue siendo o todo o nada',
-     /preparar-index\.mjs\s+2>&1 \| tee [^|]*\|\| estado=/.test(f),
+     /preparar-index\.mjs[^\n|]*2>&1 \| tee [^|]*\|\| estado=/.test(f),
      'un <head> a medias es una tienda publicada y muda');
   ok('  ...y el fallo se DICE, en el resumen y en el commit',
      /::warning::Las fotos no se pudieron traer/.test(f) &&

@@ -165,6 +165,28 @@ ARCHIVOS.forEach(nombre => {
   const ctx = { constantes: constantes(src) };
   ctx.parametros = llamadas(src, funciones(src));
 
+  /* LAS CONSTANTES QUE VIENEN DE OTRO MÓDULO TAMBIÉN CUENTAN.
+     Este guardia solo sabía leer las constantes declaradas en el propio
+     archivo, y eso era un punto ciego en las dos direcciones: una herramienta
+     que declara `ESCRIBE = [RUTA]` con RUTA importada salía acusada de escribir
+     algo sin declarar (falso positivo), y —peor— una que ESCRIBE en una ruta
+     importada se le colaba sin resolver.
+
+     Sigue siendo lectura estática: se busca de qué módulo viene el nombre y se
+     lee esa constante allí. Un módulo que no esté en montar/ no se persigue. */
+  (src.match(/^import\s*\{([^}]+)\}\s*from\s*'\.\/([\w.-]+)'/gm) || []).forEach(linea => {
+    const m = linea.match(/^import\s*\{([^}]+)\}\s*from\s*'\.\/([\w.-]+)'/);
+    let vecino;
+    try { vecino = constantes(fs.readFileSync(path.join(MONTAR, m[2]), 'utf8')); }
+    catch { return; }
+    m[1].split(',').map(s => s.trim().split(/\s+as\s+/)).forEach(([suyo, mio]) => {
+      const local = mio || suyo;
+      if (!ctx.constantes.has(local) && vecino.has(suyo)) {
+        ctx.constantes.set(local, vecino.get(suyo));
+      }
+    });
+  });
+
   const declarado = ctx.constantes.get('ESCRIBE') || '';
   const items = (declarado.match(/^\[(.*)\]$/s) || [, ''])[1]
     .split(',').map(s => s.trim()).filter(Boolean);

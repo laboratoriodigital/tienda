@@ -39,6 +39,10 @@ desktop.ini
 tiempos.json
 tiempos.md
 
+# Lo que montar/sondear.mjs le preguntó al maestro en ESTA corrida. Caduca a
+# los diez minutos a propósito: no es una cache entre corridas.
+sondeo.json
+
 # ── Nada de secretos en el repositorio ──
 # La llave de pago, los ID de hoja y los tokens no se versionan.
 secretos.md

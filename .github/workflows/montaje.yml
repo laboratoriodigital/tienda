@@ -153,6 +153,31 @@ jobs:
       # política de seguridad y SCRIPT_URL. Apuntado a la hoja equivocada, deja
       # una tienda pidiéndole el catálogo al maestro de otro comercio, y lo
       # hace en verde.
+      # ── B-3 · UNA SOLA PREGUNTA AL MAESTRO ───────────────────────────────
+      # Aquí la duplicada es `bloques`: la piden preparar-index y
+      # preparar-compartir, cada una por su cuenta. Con el sondeo, las cinco
+      # preguntas fijas de este flujo bajan a cuatro, y las cuatro salen A LA
+      # VEZ en vez de una detrás de otra — que contra un Apps Script frío, con
+      # 40 segundos de arranque documentados, es la diferencia que se nota.
+      #
+      # Caduca a los diez minutos, así que si el horneado de fotos se alarga,
+      # las herramientas de abajo vuelven a preguntar solas. Y si el sondeo
+      # falla entero, cada una pregunta lo suyo como siempre: por eso este paso
+      # no puede tumbar la corrida.
+      - name: Sondear el maestro, una vez
+        if: steps.hay.outputs.sigue == 'si'
+        env:
+          MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
+          MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
+        run: |
+          node montar/sondear.mjs 2>&1 | tee /tmp/sondeo.txt || true
+          {
+            echo "### El sondeo"
+            echo '```'
+            cat /tmp/sondeo.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: ¿Esta hoja es la de esta tienda?
         if: steps.hay.outputs.sigue == 'si'
         env:
@@ -160,7 +185,7 @@ jobs:
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
         run: |
           set -o pipefail
-          node montar/misma-tienda.mjs 2>&1 | tee /tmp/misma.txt || estado=$?
+          node montar/misma-tienda.mjs --desde 2>&1 | tee /tmp/misma.txt || estado=$?
           {
             echo "### De qué tienda es la hoja"
             echo '```'
@@ -265,7 +290,7 @@ jobs:
         env:
           MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
-        run: node montar/preparar-index.mjs
+        run: node montar/preparar-index.mjs --desde
 
       # La imagen que enseña WhatsApp al compartir el enlace (A-3): mismo
       # nombre y color que acaba de escribir el paso de arriba, así que va
@@ -275,7 +300,7 @@ jobs:
         env:
           MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
-        run: node montar/preparar-compartir.mjs
+        run: node montar/preparar-compartir.mjs --desde
 
       # ── 3. Lo que el comercio subió a su Drive ──
       - name: Las fotos nuevas
@@ -283,7 +308,7 @@ jobs:
         env:
           MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
-        run: node montar/traer-fotos.mjs
+        run: node montar/traer-fotos.mjs --desde
 
       # `git diff` NO VE LOS ARCHIVOS NUEVOS. Esto costó una corrida entera: el
       # montaje horneó catalogo.json por primera vez, este paso dijo "nada
@@ -308,7 +333,7 @@ jobs:
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
         run: |
           set -o pipefail
-          node montar/catalogo-estatico.mjs 2>&1 | tee /tmp/catalogo.txt
+          node montar/catalogo-estatico.mjs --desde 2>&1 | tee /tmp/catalogo.txt
           {
             echo "### El catálogo"
             echo '```'

@@ -142,6 +142,39 @@ jobs:
       # Publicar la hoja de un comercio en el sitio de otro no falla en ningún
       # sitio —el flujo corre en verde, el maestro contesta, Cloudflare
       # despliega— y desde el mostrador se ve como «subí una foto y no salió».
+      # ── B-3 · UNA SOLA PREGUNTA AL MAESTRO ───────────────────────────────
+      # Este flujo le preguntaba SIETE veces, y tres de las siete eran la misma
+      # pregunta repetida: la pasada de `--revisar` mira si hay algo que hacer y
+      # la de publicar lo hace, y cada una preguntaba por su cuenta sin saber
+      # que la otra ya tenía la respuesta.
+      #
+      # No es una molestia estética: Apps Script arranca EN FRÍO, y la primera
+      # llamada después de actualizar una implementación tarda 40 segundos o
+      # más. Siete llamadas en serie son siete oportunidades de pagarlo, y están
+      # en el camino crítico de publicar una foto.
+      #
+      # Esto pregunta las cuatro fijas A LA VEZ —una espera en vez de cuatro— y
+      # las deja en sondeo.json. Las herramientas de abajo llevan `--desde` y
+      # las leen de ahí. Caduca a los diez minutos: si el horneado se alarga,
+      # vuelven a preguntar solas. Nunca es una caché entre corridas.
+      #
+      # Si el sondeo falla entero, no pasa nada grave: cada herramienta
+      # pregunta lo suyo como siempre. Por eso este paso no puede tumbar la
+      # corrida.
+      - name: Sondear el maestro, una vez
+        if: steps.hay.outputs.sigue == 'si'
+        env:
+          MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
+          MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
+        run: |
+          node montar/sondear.mjs 2>&1 | tee /tmp/sondeo.txt || true
+          {
+            echo "### El sondeo"
+            echo '```'
+            cat /tmp/sondeo.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: ¿Esta hoja es la de esta tienda?
         if: steps.hay.outputs.sigue == 'si'
         env:
@@ -149,7 +182,7 @@ jobs:
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
         run: |
           set -o pipefail
-          node montar/misma-tienda.mjs 2>&1 | tee /tmp/misma.txt || estado=$?
+          node montar/misma-tienda.mjs --desde 2>&1 | tee /tmp/misma.txt || estado=$?
           {
             echo "### De qué tienda es la hoja"
             echo '```'
@@ -168,12 +201,12 @@ jobs:
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
         run: |
           fotos=no; catalogo=no; config=no
-          node montar/traer-fotos.mjs      --revisar > /tmp/mirar-fotos.txt 2>&1 || fotos=si
-          node montar/catalogo-estatico.mjs --revisar > /tmp/mirar-cat.txt  2>&1 || catalogo=si
+          node montar/traer-fotos.mjs      --revisar --desde > /tmp/mirar-fotos.txt 2>&1 || fotos=si
+          node montar/catalogo-estatico.mjs --revisar --desde > /tmp/mirar-cat.txt  2>&1 || catalogo=si
           # Lo que el comercio escribe en la pestaña Configuración. Sin esta
           # línea, cambiar el título de la tienda y apretar «Publicar ahora»
           # contestaba «nada nuevo».
-          node montar/preparar-index.mjs   --revisar > /tmp/mirar-cfg.txt   2>&1 || config=si
+          node montar/preparar-index.mjs   --revisar --desde > /tmp/mirar-cfg.txt   2>&1 || config=si
 
           # UN "NO" TIENE QUE MOSTRAR SU TRABAJO, y este no lo mostraba.
           # El comercio subió dos fotos al Drive, publicó, y este paso contestó
@@ -281,7 +314,7 @@ jobs:
           # EL <head> PRIMERO: es lo que el comercio acaba de cambiar en su hoja
           # y lo que antes no llegaba por aquí. Este SÍ es o todo o nada: un
           # <head> a medias es una tienda publicada y muda.
-          node montar/preparar-index.mjs    2>&1 | tee /tmp/config.txt   || estado=$?
+          node montar/preparar-index.mjs    --desde 2>&1 | tee /tmp/config.txt   || estado=$?
 
           # ── LAS FOTOS PUEDEN FALLAR SIN LLEVARSE LO DEMÁS ─────────────────
           # Pasó en la tienda tres: el comercio cambió el título, el <head> se
@@ -293,9 +326,9 @@ jobs:
           # Una foto que no baja no invalida lo que el comercio escribió en su
           # hoja. Así que se sigue, se publica lo que sí está, y se DICE en
           # grande: un fallo que se traga en silencio es peor que uno que para.
-          node montar/traer-fotos.mjs       2>&1 | tee /tmp/fotos.txt    || fallo_fotos=$?
+          node montar/traer-fotos.mjs       --desde 2>&1 | tee /tmp/fotos.txt    || fallo_fotos=$?
 
-          node montar/catalogo-estatico.mjs 2>&1 | tee /tmp/catalogo.txt || estado=$?
+          node montar/catalogo-estatico.mjs --desde 2>&1 | tee /tmp/catalogo.txt || estado=$?
           # Y EL RESPALDO AL FINAL, que es una copia del catálogo que se acaba
           # de hornear. Antes de este flujo solo lo escribía `montaje`, así que
           # un cambio de precio publicado desde la hoja dejaba el respaldo del

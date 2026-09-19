@@ -591,13 +591,20 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
       *(M3.)*
 
 **B-3 · Una sola pregunta al maestro**  · 5 pts · dep. B-1
-- [ ] `montar/sondear.mjs` pide en paralelo lo que hoy se pide tres veces
+- [x] `montar/sondear.mjs` pide en paralelo lo que hoy se pide tres veces
       duplicado, y escribe un estado que las demás herramientas leen con
-      `--desde`.
-- [ ] Sin `--desde`, cada herramienta sigue funcionando sola.
-- [ ] El flujo hace **cuatro** peticiones fijas en vez de siete, y se cuentan en
-      una batería.
-- [ ] El estado caduca a los diez minutos: nunca es una caché entre corridas.
+      `--desde`. *(La lectura vive dentro de `alMaestro`, por donde pasan TODAS
+      las preguntas: así ninguna herramienta tuvo que cambiar una línea, y
+      `--desde` no puede quedarse a medias en una de ellas.)*
+- [x] Sin `--desde`, cada herramienta sigue funcionando sola. *(Es como se usan
+      a mano y como las prueban las baterías.)*
+- [x] El flujo hace **cuatro** peticiones fijas en vez de siete, y se cuentan en
+      una batería. *(`sondeo.js` las cuenta de verdad: levanta un maestro de
+      mentira y mira qué le llega. Una aserción sobre el texto del archivo diría
+      que la llamada está escrita, no que no se hizo.)*
+- [x] El estado caduca a los diez minutos: nunca es una caché entre corridas.
+      *(Vencido, se dice en voz alta y se pregunta al maestro: el camino lento,
+      nunca el dato viejo.)*
 
 **B-4 · Fotos en paralelo**  · 3 pts
 - [x] Descarga y conversión en tandas de cuatro; los cuatro tamaños de cada foto
@@ -645,6 +652,28 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
       de una máquina cargada es una entrada que nadie declaró.)*
 
 ---
+
+---
+
+**M1 CERRADO — 18 de septiembre de 2026.** Las siete historias, y lo que midió
+cada una:
+
+| Historia | Qué cambió, medido |
+|---|---|
+| B-1 · Medir antes de tocar nada | Los tres flujos dejan tabla fase/segundos/% y los minutos gastados. No se instrumentó un solo paso: GitHub ya los cronometra |
+| B-2 · Fuera el cron de cuatro horas | De seis arranques diarios a uno, y el diario **no publica**: mira y avisa. Era el 84 % de los minutos |
+| B-3 · Una sola pregunta al maestro | De **siete** peticiones fijas a **cuatro**, y las cuatro a la vez. Contra un Apps Script frío —40 s documentados— eso es el camino crítico de publicar una foto |
+| B-4 · Fotos en paralelo | Tandas de cuatro, y los cuatro tamaños de cada foto a la vez. Y una foto rota dejó de publicar CERO fotos |
+| B-5 · Las cachés no se pierden enteras | La clave sale del lock y no de un rango; `restore-keys`; `--with-deps` solo cuando la caché falla |
+| B-6 · El guardia del presupuesto | Avisa por encima del objetivo, falla por encima del doble y nombra la fase |
+| B-7 · La batería que no corría | `limites.js` entra. Medido antes de decidir: cuesta menos de tres segundos |
+
+**Y una medición que no estaba en el plan:** `todas.sh` repartía «un trabajador
+por núcleo». Medido en dos núcleos —151 s con uno, 94 s con dos, **73 s con
+cuatro**— resultó que estas baterías no gastan CPU, esperan. Son cuatro fijos.
+
+**Lo que queda abierto de M1, y por qué:** los dos criterios de B-2 que hablan
+del **panel** del comerciante. No son deuda: son M3.
 
 ### M2 · La tienda para todo producto
 
