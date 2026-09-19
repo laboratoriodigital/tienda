@@ -206,6 +206,20 @@ Color: Rosa`. Vacía en los pedidos sin variantes. Una elección que el comercio
 ofrece **no se guarda**: tumba la línea, porque sería un pedido que nadie puede
 despachar.
 
+**Cómo viaja desde la página.** El parámetro `items` de `?a=validar` y
+`?a=registrar` lleva una línea por producto, separadas por `,`, y cada línea es:
+
+```
+id:cantidad                                   sin variantes
+id:cantidad:Grupo=Opción;Grupo=Opción         con variantes
+```
+
+De ahí sale el tercer separador y su consecuencia: **una opción que lleve `,`
+`:` `;` `=` o `|` no cabe en la línea**, así que la página tumba ese grupo antes
+de pintarlo y lo dice en la consola. El producto sigue a la venta sin esa
+elección, que es la misma regla de fallo abierto de la columna `Variantes`. Un
+comercio que necesite escribir `40,5` tiene que llamarla de otra forma.
+
 
 ### `Más vendidos`
 

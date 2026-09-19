@@ -1303,3 +1303,47 @@ solo al final»— y que las columnas nuevas no estaban en `CONTRATOS.md`. El
 contrato escrito y el contrato que corre son dos copias del mismo procedimiento,
 y esa batería es la cuerda que los ata: sin ella, el documento se habría quedado
 atrás ese mismo día.
+
+---
+
+**33 · El separador que nadie declaró, y la función escrita tres veces.** Ese
+mismo 19 de septiembre se cerró C-1 por la página, y las dos cosas que costaron
+no eran el selector.
+
+**La primera: la línea del pedido ya tenía dueño.** El carrito le manda a la
+hoja una cadena `id:cantidad`, separadas por comas. Meter la elección ahí
+significa un tercer campo —`id:cantidad:Talla=M;Color=Rosa`— y con él **cinco
+caracteres pasan a ser estructura**: `,` `:` `;` `=` y el `|` que ya venía de la
+hoja. Un comercio que llame a una talla `40,5` —que es exactamente como se
+numeran los zapatos en media Europa— parte la línea en dos y el pedido llega
+diciendo otra cosa, sin error, sin aviso y sin nada que mirar.
+
+No hay forma de adivinar qué quiso decir, así que se aplica la regla de la casa:
+**el grupo entero se cae, el producto sigue a la venta sin esa elección, y queda
+dicho en la consola.** Fallo abierto, como el resto del catálogo. Lo que no se
+podía hacer era pintar un selector cuya respuesta no cabe en el sobre.
+
+El apunte general: **un formato de texto sin escapes no tiene «un separador»,
+tiene tantos como campos le vayas añadiendo**, y cada uno le prohíbe un carácter
+a un dato que escribe una persona que no sabe que existe. Se documentó en
+`CONTRATOS.md` al lado del campo, no en el código, porque a quien le va a pasar
+es al comerciante.
+
+**La segunda: `i.id + ":" + i.cantidad` estaba escrito a mano en tres sitios**
+—la firma del pedido, la validación y el registro—. Patrón 2 de siempre, pero en
+su forma más cara: bastaba olvidar uno para **sellar un pedido y registrar otro**
+—la hoja confirmando el precio de «dos labiales» y el comercio recibiendo dos
+tonos que nadie validó—. Pasaron a ser una sola función. Mientras el formato fue
+`id:cantidad` las tres copias podían convivir años sin divergir; el día que el
+formato creció, las tres tenían que cambiar a la vez o el fallo era invisible.
+**Una duplicación inofensiva es solo una duplicación que todavía no ha tenido
+motivo para divergir.**
+
+Y el método, otra vez: la batería nueva se corrió con cuatro defectos puestos a
+propósito —sin obligar a elegir, con la clave solo por id, sin la elección en la
+línea, y con el stock contado por línea— antes de darla por buena. Los cuatro
+salieron rojos. El primero enseñó algo de rebote: con la obligación quitada, la
+batería no fallaba, **se colgaba treinta segundos** esperando un selector que el
+propio defecto había cerrado. Una prueba que se cuelga en vez de contar lo que
+falló es media prueba, así que cada tramo abre la ficha por su cuenta en lugar
+de dar por hecho que sigue abierta.

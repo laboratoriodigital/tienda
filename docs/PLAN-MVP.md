@@ -681,10 +681,10 @@ del **panel** del comerciante. No son deuda: son M3.
 > Como comerciante de cosmética, quiero vender un labial en tres tonos sin
 > crear tres productos.
 
-> **Partida en tres, como decía el título. El CONTRATO y el MAESTRO están
-> cerrados; la PÁGINA queda.** Lo que falta es solo interfaz: el selector, que
-> obligue a elegir, y que la elección viaje en el mensaje de WhatsApp. Todo lo
-> que hay debajo de eso ya funciona y está probado.
+> **Cerrada.** Las tres partes —contrato, maestro y página— están hechas y
+> probadas por separado: `variantes.js` cubre la hoja y el maestro, `varpag.js`
+> la página. Las dos baterías se verificaron ROJAS con el defecto puesto antes
+> de darlas por buenas.
 
 - [x] Columna `Variantes` **al final** de `Catálogo` (regla: solo se agrega, y
       solo al final), opcional, con sintaxis corta y explicada en la hoja:
@@ -697,18 +697,25 @@ del **panel** del comerciante. No son deuda: son M3.
       entiende deja el producto a la venta sin variantes, porque perder la venta
       callando es peor. El precio es lo contrario y por eso ese sí tumba el
       producto — la batería fija esa diferencia a propósito.)*
-- [ ] La página obliga a elegir antes de agregar al carrito; la elección viaja
+- [x] La página obliga a elegir antes de agregar al carrito; la elección viaja
       en el mensaje de WhatsApp y al pedido (columna `Variante`, al final).
-      *(**La mitad del maestro está hecha:** la columna `Variante` se escribe al
-      final de `Pedidos`, con el texto del CATÁLOGO y no con el que mande la
-      página, y una opción que el comercio no ofrece tumba la línea. Falta el
-      selector y que la elección viaje en el mensaje.)*
+      *(La ficha pinta un selector por grupo, la tarjeta dice «Elegir» en vez de
+      agregar a ciegas, y sin elegir no se agrega: se NOMBRA lo que falta, que
+      es lo único que el maestro no puede hacer —él acepta el pedido sin
+      elección y avisa, porque rechazarlo pierde una venta que el comerciante
+      resuelve con un mensaje; exigirla mientras el comprador mira la pantalla
+      es trabajo de la página—. La línea del pedido pasa a ser
+      `id:cantidad:Grupo=Opción;Grupo=Opción`, la arma UNA sola función —antes
+      el `id:cantidad` estaba escrito a mano en tres sitios, patrón 2 en su
+      forma más cara: sellar un pedido y registrar otro— y una opción con
+      `, : ; = |` tumba su grupo, porque rompería esa línea en silencio.)*
 - [x] El catálogo de respaldo las lleva: sin red, las variantes siguen ahí.
       *(Los campos del respaldo se listan uno a uno a propósito, así que uno
       nuevo hay que nombrarlo o se queda fuera en silencio.)*
-- [ ] Interruptor `f_variantes`. *(La clave está sembrada, documentada y
-      encendida por defecto; **todavía no la lee nadie** — su consumidor es la
-      página.)*
+- [x] Interruptor `f_variantes`. *(Lo lee `aplicarConfiguracion`, con la misma
+      regla que `f_autoria`: apagado solo con un «No» explícito, encendido
+      incluso antes de que conteste el maestro. En «No» la página vuelve a ser
+      exactamente la de antes, línea del pedido incluida.)*
 - [x] **El stock es del producto, no de la variante** — decisión consciente, con
       su disparador para revisarla: el primer comercio que pierda una venta por
       una talla agotada. *(Con su consecuencia resuelta: dos tonos del mismo

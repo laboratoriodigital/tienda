@@ -263,6 +263,9 @@ main.envoltura{padding-bottom:60px}
 .cantidad-elegir{margin-top:0;flex:none;align-items:stretch;background:var(--blanco)}
 .cantidad-elegir button{height:auto;align-self:stretch;padding:0}
 .cantidad-elegir span{display:grid;place-items:center;min-width:30px}
+.variantes{margin:0 0 14px}
+.variantes label{display:block;font-size:.8rem;font-weight:600;margin:10px 0 5px;color:#000}
+.variantes select{width:100%}
 .ficha-agregar{display:flex;gap:10px;align-items:stretch}
 .ficha-agregar .btn-solido{flex:1;padding:14px}
 .ficha-agregar .cantidad-elegir button{width:38px}
@@ -651,6 +654,12 @@ function lista(id, valor, envolver){
 /* Cuánto se puede pagar de una sola vez. Lo pone la hoja; 0 = sin tope. */
 let TOPE_PAGO = 0;
 
+/* ¿Se piden variantes? Lo decide la hoja con f_variantes. Encendido por
+   defecto: un producto sin la columna Variantes no tiene grupos y no cambia
+   nada, así que apagarlo solo sirve para un comercio que ya las escribió y
+   quiere dejar de pedirlas sin borrar la columna. */
+let VARIANTES_ON = true;
+
 function aplicarConfiguracion(c){
   if(!c || typeof c !== "object") return;
   const v = k => (c[k] || "").trim();
@@ -742,6 +751,9 @@ function aplicarConfiguracion(c){
   /* La autoría: apagada solo si la hoja dice "No" explícito — encendida por
      defecto, incluso si la clave todavía no llegó (antes de que conteste el
      maestro, o en una hoja instalada antes de que existiera esta clave). */
+  /* Igual que la autoría: apagado solo con un "No" explícito. */
+  VARIANTES_ON = v("f_variantes") !== "No";
+
   const pie = $("#pieAbajo");
   if(pie){
     if(v("f_autoria") === "No"){
@@ -760,6 +772,44 @@ function aplicarConfiguracion(c){
   }
 }
 
+
+/* LAS VARIANTES, TAL COMO LAS ESCRIBIÓ EL COMERCIO (C-1).
+   ---------------------------------------------------------------------------
+   Llegan ya partidas por el maestro: [{nombre, opciones:[...]}]. Aquí solo se
+   comprueban los mismos topes —para que un catálogo horneado a mano no pinte
+   cuarenta selectores— y una cosa más que el maestro no puede saber: si el
+   texto CABE EN LA LÍNEA DEL PEDIDO.
+
+   La línea viaja así:  id:cantidad:Talla=M;Color=Rosa , separada por comas de
+   las demás. Una opción que lleve `,` `:` `;` `=` o `|` rompería ese formato en
+   silencio y el comercio recibiría otra cosa distinta de la que eligió el
+   comprador. Como no se adivina, el grupo entero se cae y el producto se vende
+   sin esa elección —fallo abierto en el catálogo, la regla de la casa— y queda
+   dicho en la consola, que es donde mira quien vino a averiguar por qué la
+   talla no aparece. */
+const RESERVADOS_VARIANTE = /[,:;=|]/;
+const MAX_GRUPOS_VARIANTE = 4;
+const MAX_OPCIONES_VARIANTE = 24;
+
+function gruposDeVariantes(crudo, nombreProducto){
+  if(!Array.isArray(crudo) || !crudo.length) return Object.freeze([]);
+  const grupos = [];
+  crudo.slice(0, MAX_GRUPOS_VARIANTE).forEach(g => {
+    if(!g || typeof g !== "object") return;
+    const nombre = String(g.nombre || "").trim();
+    const opciones = (Array.isArray(g.opciones) ? g.opciones : [])
+      .map(o => String(o).trim()).filter(Boolean).slice(0, MAX_OPCIONES_VARIANTE);
+    if(!nombre || !opciones.length) return;
+    if(RESERVADOS_VARIANTE.test(nombre) || opciones.some(o => RESERVADOS_VARIANTE.test(o))){
+      console.warn("[variantes] «" + nombre + "» de " + String(nombreProducto || "") +
+                   " usa , : ; = o | y no cabe en la línea del pedido. " +
+                   "Ese producto se vende sin esa elección.");
+      return;
+    }
+    grupos.push(Object.freeze({ nombre, opciones:Object.freeze(opciones) }));
+  });
+  return Object.freeze(grupos);
+}
 
 function aplicarCatalogo(datos){
   if(!datos || !datos.ok) return false;
@@ -789,6 +839,7 @@ function aplicarCatalogo(datos){
         precioAntes: (Number(c.precioAntes) || 0) > (Number(c.precio) || 0)
                        ? Number(c.precioAntes) : 0,
         umbralBajo:  Math.max(0, Math.floor(Number(c.umbralBajo) || 0)),
+        variantes:   gruposDeVariantes(c.variantes, c.nombre),
         forma:       formaDe(c.formato, c.categoria)
       }));
 
@@ -1162,8 +1213,8 @@ function filtrar(cat){ categoriaActiva = cat; pagina = 1; pintarFiltros(); pinta
 function buscar(){ pagina = 1; pintarRejilla(); }
 
 function estadoStock(p){
-  const enCarrito = (carrito.find(i => i.id === p.id) || {}).cantidad || 0;
-  const libre = p.stock - enCarrito;
+  // Todas las líneas de este producto, sean de la talla que sean.
+  const libre = p.stock - enCarrito(p.id);
   if(p.stock === 0)  return { clase:"cero", texto:"Agotado", libre:0 };
   if(libre <= 0)     return { clase:"poco", texto:"Todo en tu carrito", libre:0 };
   /* Cuántas son «pocas» lo decide el comercio, producto por producto, en la
@@ -1250,8 +1301,8 @@ function pintarRejilla(){
         </div>
         <div class="acciones">
           ${selectorCantidad(p, st)}
-          <button class="btn btn-solido" onclick="agregar('${p.id}', cantidadElegida('${p.id}'))" ${st.libre <= 0 ? "disabled" : ""}>
-            ${p.stock === 0 ? "Agotado" : "Agregar"}
+          <button class="btn btn-solido" onclick="${gruposDe(p).length ? `abrirFicha('${p.id}')` : `agregar('${p.id}', cantidadElegida('${p.id}'))`}" ${st.libre <= 0 ? "disabled" : ""}>
+            ${p.stock === 0 ? "Agotado" : gruposDe(p).length ? "Elegir" : "Agregar"}
           </button>
           <button class="btn btn-linea" onclick="abrirFicha('${p.id}')">Ver</button>
         </div>
@@ -1304,9 +1355,66 @@ function cambiarPorPagina(n){
 }
 
 // ── Ficha con galería ──
+/* Lo elegido en la ficha abierta. Vive fuera del HTML porque la ficha se
+   repinta al pasar de foto: sin esto, mirar la segunda foto le borraba la talla
+   al comprador y nadie le decía por qué. */
+let eleccionFicha = {};
+
+/* Los selectores de la ficha, uno por grupo. Sin grupos no pinta nada, así que
+   el producto sin variantes queda exactamente como estaba. */
+function bloqueVariantes(p){
+  const grupos = gruposDe(p);
+  if(!grupos.length) return "";
+  return `<div class="variantes">` + grupos.map((g, n) => `
+      <label for="var${n}">${escapar(g.nombre)}</label>
+      <select class="campo" id="var${n}" onchange="marcarEleccion()">
+        <option value="">Elegir ${escapar(g.nombre.toLowerCase())}…</option>
+        ${g.opciones.map(o => `<option value="${escapar(o)}" ${eleccionFicha[g.nombre] === o ? "selected" : ""}>${escapar(o)}</option>`).join("")}
+      </select>`).join("") +
+    `<p class="aviso" id="avisoVariante"></p></div>`;
+}
+
+function leerEleccionFicha(p){
+  const e = {};
+  gruposDe(p).forEach((g, n) => {
+    const sel = document.getElementById("var" + n);
+    if(sel && sel.value) e[g.nombre] = sel.value;
+  });
+  return e;
+}
+
+function marcarEleccion(){
+  if(!fichaActual) return;
+  eleccionFicha = leerEleccionFicha(fichaActual);
+  const aviso = $("#avisoVariante");
+  if(aviso){ aviso.className = "aviso"; aviso.textContent = ""; }
+}
+
+/* NO SE AGREGA A CIEGAS. Falta una talla: se dice cuál falta, con su nombre, y
+   el carrito no se toca. Un botón que no hace nada y no explica por qué es la
+   forma más rápida de perder al comprador. */
+function agregarDeLaFicha(id){
+  const p = producto(id);
+  if(!p) return;
+  eleccionFicha = leerEleccionFicha(p);
+  const faltan = gruposDe(p).filter(g => !eleccionFicha[g.nombre])
+                            .map(g => g.nombre.toLowerCase());
+  if(faltan.length){
+    const aviso = $("#avisoVariante");
+    if(aviso){
+      aviso.className = "aviso mal";
+      aviso.textContent = "Falta elegir " + faltan.join(" y ") + ".";
+    }
+    return;
+  }
+  agregar(id, cantidadElegida(id), eleccionFicha);
+  cerrarTodo();
+}
+
 function abrirFicha(id, desdeEnlace){
   fichaActual = producto(id); fotoActual = 0;
   if(!fichaActual) return;
+  eleccionFicha = {};            // cada ficha empieza sin nada elegido
   if(!desdeEnlace) apuntarEnHistoria(id);
   pintarFicha();
   $("#ficha").classList.add("abierta");
@@ -1347,9 +1455,10 @@ function pintarFicha(){
         <p class="ficha-precio">${pesos(p.precio)}</p>
         <p class="disponible ${st.clase}"><i class="marcador"></i>${st.texto}</p>
         <p class="ficha-desc">${escapar(p.descripcion)}</p>
+        ${bloqueVariantes(p)}
         <div class="ficha-agregar">
           ${selectorCantidad(p, st)}
-          <button class="btn btn-solido" onclick="agregar('${p.id}', cantidadElegida('${p.id}')); cerrarTodo()" ${st.libre <= 0 ? "disabled" : ""}>
+          <button class="btn btn-solido" onclick="agregarDeLaFicha('${p.id}')" ${st.libre <= 0 ? "disabled" : ""}>
             ${p.stock === 0 ? "Sin existencias" : "Agregar al carrito"}
           </button>
         </div>
@@ -1383,36 +1492,137 @@ function activarDeslizamiento(){
 }
 
 // ── Carrito ──
-function agregar(id, n){
+
+/* Los grupos que ESTA página va a pedir. Si la hoja apagó f_variantes, no hay
+   ninguno y todo lo de abajo se comporta como antes de que existieran. */
+function gruposDe(p){
+  return (VARIANTES_ON && p && Array.isArray(p.variantes)) ? p.variantes : [];
+}
+
+/* Lo elegido, en el orden del catálogo y con el texto del catálogo: la misma
+   frase que arma el maestro —«Talla: M · Color: Rosa»— para que la página, el
+   mensaje de WhatsApp y la columna Variante digan todos lo mismo. */
+function textoVariante(p, eleccion){
+  const e = eleccion || {};
+  return gruposDe(p).filter(g => e[g.nombre])
+                    .map(g => g.nombre + ": " + e[g.nombre]).join(" · ");
+}
+
+/* La elección depurada contra el catálogo: se compara sin distinguir mayúsculas
+   y se guarda la opción DE LA HOJA. Lo que no se ofrece, no entra. */
+function depurarEleccion(p, eleccion){
+  const e = eleccion || {};
+  const limpio = {};
+  gruposDe(p).forEach(g => {
+    const pedida = String(e[g.nombre] === undefined ? "" : e[g.nombre]).trim().toLowerCase();
+    const buena = g.opciones.filter(o => o.toLowerCase() === pedida)[0];
+    if(buena) limpio[g.nombre] = buena;
+  });
+  return limpio;
+}
+
+function eleccionCompleta(p, eleccion){
+  const limpio = depurarEleccion(p, eleccion);
+  return gruposDe(p).every(g => limpio[g.nombre]);
+}
+
+/* UNA SOLA FUNCIÓN ARMA LA LÍNEA DEL PEDIDO. Antes este `id:cantidad` estaba
+   escrito a mano en tres sitios —la firma, la validación y el registro— y con
+   la elección de por medio eso es el patrón 2 en su forma más cara: bastaba
+   olvidar uno para que la hoja sellara un pedido y registrara otro. */
+function lineaDeItem(i){
+  const p = producto(i.id);
+  const e = i.variante || {};
+  const partes = gruposDe(p).filter(g => e[g.nombre])
+                            .map(g => g.nombre + "=" + e[g.nombre]);
+  return i.id + ":" + i.cantidad + (partes.length ? ":" + partes.join(";") : "");
+}
+
+function itemsDelPedido(){ return carrito.map(lineaDeItem).join(","); }
+
+/* PRODUCTO + ELECCIÓN. Dos tonos del mismo labial son dos líneas del carrito,
+   igual que en el maestro; la clave puesta solo en el id fundía la segunda
+   contra la primera y el comprador recibía la mitad de lo que pidió. */
+function claveItem(id, eleccion){
+  return id + "\u0000" + textoVariante(producto(id), eleccion);
+}
+
+/* EL STOCK ES DEL PRODUCTO, NO DE LA VARIANTE. Todas las líneas de un mismo
+   producto compiten por las mismas existencias. */
+function enCarrito(id){
+  return carrito.reduce((s, i) => s + (i.id === id ? i.cantidad : 0), 0);
+}
+
+/* La línea que toca un botón del carrito. La posición viene del pintado, pero
+   el id manda: si el carrito cambió entre el pintado y el clic, se cae a la
+   primera línea de ESE producto antes que tocar otro distinto. */
+function lineaEn(id, pos){
+  const i = carrito[pos];
+  if(i && i.id === id) return i;
+  return carrito.filter(x => x.id === id)[0];
+}
+
+function agregar(id, n, eleccion){
   const p = producto(id);
-  const item = carrito.find(i => i.id === id);
-  const actual = item ? item.cantidad : 0;
-  if(n < 1 || actual + n > p.stock) return;
-  if(item) item.cantidad += n; else carrito.push({ id, cantidad:n });
+  if(!p) return;
+  const grupos = gruposDe(p);
+  /* ELEGIR ES OBLIGATORIO, Y ES TRABAJO DE LA PÁGINA. El maestro acepta el
+     pedido sin elección y avisa —no se pierde la venta por un caché viejo—,
+     pero quien puede preguntarle al comprador de qué talla la quiere es esta
+     pantalla. Si falta algo, se abre la ficha en vez de agregar a ciegas. */
+  if(grupos.length && !eleccionCompleta(p, eleccion)){ abrirFicha(id); return; }
+  const elegido = grupos.length ? depurarEleccion(p, eleccion) : null;
+  const clave = claveItem(id, elegido);
+  const item = carrito.filter(i => claveItem(i.id, i.variante) === clave)[0];
+  if(n < 1 || enCarrito(id) + n > p.stock) return;
+  if(item) item.cantidad += n;
+  else if(elegido) carrito.push({ id, cantidad:n, variante:elegido });
+  else carrito.push({ id, cantidad:n });
   cantidades[id] = 1;              // la tarjeta vuelve a 1 tras agregar
   refrescar();
 }
 
-function cambiarCantidad(id, n){
-  const item = carrito.find(i => i.id === id);
+function cambiarCantidad(id, n, pos){
+  const item = lineaEn(id, pos);
   if(!item) return;
   const p = producto(id);
-  item.cantidad = Math.max(0, Math.min(p.stock, item.cantidad + n));
-  if(item.cantidad === 0) carrito = carrito.filter(i => i.id !== id);
+  const otras = enCarrito(id) - item.cantidad;
+  item.cantidad = Math.max(0, Math.min(p.stock - otras, item.cantidad + n));
+  if(item.cantidad === 0) carrito = carrito.filter(i => i !== item);
   refrescar();
 }
 
-function quitar(id){ carrito = carrito.filter(i => i.id !== id); refrescar(); }
+function quitar(id, pos){
+  const item = lineaEn(id, pos);
+  if(!item) return;
+  carrito = carrito.filter(i => i !== item);
+  refrescar();
+}
 
 function sanear(){
-  const limpio = [];
+  const limpio = [], claves = [], usado = {};
   (Array.isArray(carrito) ? carrito : []).forEach(i => {
     const p = producto(i && i.id);
-    if(!p || limpio.some(x => x.id === p.id)) return;
+    if(!p) return;
+    const grupos = gruposDe(p);
+    const eleccion = grupos.length ? depurarEleccion(p, i.variante) : null;
+    /* Una elección que el catálogo ya NO ofrece —cambió la hoja, o el carrito
+       viene de otra visita— tumba la línea. Es lo mismo que hace el maestro y
+       por la misma razón: adivinar qué tono quiso decir es peor que perderlo. */
+    if(grupos.length && !grupos.every(g => eleccion[g.nombre])) return;
+    const clave = claveItem(p.id, eleccion);
+    if(claves.indexOf(clave) !== -1) return;
     const cant = Math.floor(Number(i.cantidad));
     if(!isFinite(cant) || cant < 1) return;
-    const tope = Math.min(cant, p.stock);
-    if(tope > 0) limpio.push({ id:p.id, cantidad:tope });
+    const ya = usado[p.id] || 0;
+    const tope = Math.min(cant, p.stock - ya);
+    if(tope > 0){
+      usado[p.id] = ya + tope;
+      claves.push(clave);
+      const linea = { id:p.id, cantidad:tope };
+      if(eleccion) linea.variante = eleccion;
+      limpio.push(linea);
+    }
   });
   carrito = limpio;
 
@@ -1431,7 +1641,7 @@ function sanear(){
 /* Identifica un pedido de forma estable: mismos productos, mismo cupón, mismo
    envío. Es lo que le pedimos sellar a la hoja y lo que comparamos después. */
 function firmaPedido(){
-  return carrito.map(i => i.id + ":" + i.cantidad).join(",") +
+  return itemsDelPedido() +
          "|" + cuponTexto + "|" + (envioActivo ? envioActivo.id : "");
 }
 
@@ -1518,7 +1728,7 @@ function validarEnLaHoja(intento){
   const params = new URLSearchParams({
     a: "validar", sellar: "1",
     pedido: codigoDelPedido(),         // la hoja actualiza SU fila, no crea otra
-    items: carrito.map(i => i.id + ":" + i.cantidad).join(","),
+    items: itemsDelPedido(),
     cupon: cuponTexto,
     envio: envioActivo.id,
     sub:   String(subtotal())          // para que la hoja detecte discrepancias
@@ -1658,24 +1868,29 @@ function pintarPanel(datos){
   }
   pie.style.display = "block";
 
-  const items = carrito.map(i => {
+  const items = carrito.map((i, pos) => {
     const p = producto(i.id), foto = fotosDe(p, "miniatura")[0];
+    const elegido = textoVariante(p, i.variante);
+    /* El tope es del producto: con dos tallas en el carrito, la suma de las dos
+       es lo que se compara contra el stock, no cada línea por su lado. */
+    const lleno = enCarrito(p.id) >= p.stock;
     return `
       <div class="linea-item">
         <img src="${foto}" alt="">
         <div class="linea-info">
           <h4>${escapar(p.nombre)}</h4>
+          ${elegido ? `<p class="formato">${escapar(elegido)}</p>` : ""}
           <p class="formato">${escapar(p.formato)} · ${pesos(p.precio)} c/u</p>
           <div class="cantidad">
-            <button onclick="cambiarCantidad('${p.id}',-1)" aria-label="Quitar una unidad">−</button>
+            <button onclick="cambiarCantidad('${p.id}',-1,${pos})" aria-label="Quitar una unidad">−</button>
             <span>${i.cantidad}</span>
-            <button onclick="cambiarCantidad('${p.id}',1)" ${i.cantidad >= p.stock ? "disabled" : ""} aria-label="Agregar una unidad">+</button>
+            <button onclick="cambiarCantidad('${p.id}',1,${pos})" ${lleno ? "disabled" : ""} aria-label="Agregar una unidad">+</button>
           </div>
-          ${i.cantidad >= p.stock ? `<p style="font-size:.76rem;color:var(--rojo);margin-top:5px">Máximo disponible</p>` : ""}
+          ${lleno ? `<p style="font-size:.76rem;color:var(--rojo);margin-top:5px">Máximo disponible</p>` : ""}
         </div>
         <div class="linea-der">
           <strong>${pesos(p.precio * i.cantidad)}</strong>
-          <button class="quitar" onclick="quitar('${p.id}')">Quitar</button>
+          <button class="quitar" onclick="quitar('${p.id}',${pos})">Quitar</button>
         </div>
       </div>`;
   }).join("");
@@ -1807,6 +2022,11 @@ function armarMensaje(){
   carrito.slice(0, topeProductos).forEach((i, n) => {
     const p = producto(i.id);
     lineas.push(`${n + 1}. ${p.nombre} — ${p.formato}`);
+    /* La elección va EN EL MENSAJE, no solo en la hoja: es lo que el comercio
+       lee para empacar, y el recorte por largo de URL nunca la toca —un pedido
+       sin la talla obliga a preguntarla otra vez. */
+    const elegido = textoVariante(p, i.variante);
+    if(elegido) lineas.push(`   ${elegido}`);
     lineas.push(`   ${i.cantidad} x ${pesos(p.precio)} = ${pesos(p.precio * i.cantidad)}`);
   });
   const ocultos = carrito.length - Math.min(topeProductos, carrito.length);
@@ -2014,7 +2234,7 @@ function registrarPedido(d, intento){
     ciudad: d.ciudad,
     cupon: cuponActivo || "",
     envio: envioActivo.id,
-    items: carrito.map(i => i.id + ":" + i.cantidad).join(","),
+    items: itemsDelPedido(),
     /* El acta la escribe este registro, no el sello: el sello sale con 400 ms
        de espera y podía llegar tarde. Por eso el subtotal de la página viaja
        aquí también, que es lo que la hoja compara para detectar discrepancias. */

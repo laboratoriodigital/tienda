@@ -40,6 +40,12 @@ const CARPETA_FOTOS = join('publicar', 'fotos');
    falta una medida y el manifiesto deja de cuadrar con el disco - por eso hay
    una asercion que compara las dos listas. */
 const ANCHOS = [160, 600, 900];
+
+/* Los mismos topes que el maestro y que la página. Están escritos tres veces
+   porque son tres programas distintos que no se pueden leer entre sí; lo que no
+   se puede es que digan números distintos, y eso lo comprueba variantes.js. */
+const MAX_GRUPOS_VARIANTE = 4;
+const MAX_OPCIONES_VARIANTE = 24;
 const revisar = process.argv.includes('--revisar');
 
 export const ESCRIBE = [ARCHIVO];
@@ -51,7 +57,8 @@ export const ESCRIBE = [ARCHIVO];
 function soloLoQueSePublica(d) {
   const productos = (d.productos || [])
     .filter(p => p && p.id && p.nombre && p.activo !== false)
-    .map(p => ({
+    .map(p => {
+      const base = {
       id: String(p.id),
       nombre: String(p.nombre || ''),
       formato: String(p.formato || ''),
@@ -65,7 +72,27 @@ function soloLoQueSePublica(d) {
       precioAntes: (Number(p.precioAntes) || 0) > (Number(p.precio) || 0)
         ? Number(p.precioAntes) : 0,
       umbralBajo: Math.max(0, Math.floor(Number(p.umbralBajo) || 0))
-    }));
+      };
+
+      /* LAS VARIANTES TAMBIÉN SE HORNEAN (C-1). El sitio sirve este archivo
+         antes de preguntarle nada al maestro: si la elección no viaja aquí, la
+         tienda publicada vende sin tallas y solo las pide cuando la hoja
+         contesta, que es justo cuando ya no hace falta.
+
+         Va al final y solo si existe —«campo nuevo, al final y opcional»—: un
+         comercio sin variantes hornea el mismo archivo de siempre. */
+      const variantes = (Array.isArray(p.variantes) ? p.variantes : [])
+        .slice(0, MAX_GRUPOS_VARIANTE)
+        .map(g => ({
+          nombre: String((g && g.nombre) || '').trim(),
+          opciones: (Array.isArray(g && g.opciones) ? g.opciones : [])
+            .map(o => String(o).trim()).filter(Boolean).slice(0, MAX_OPCIONES_VARIANTE)
+        }))
+        .filter(g => g.nombre && g.opciones.length);
+      if (variantes.length) base.variantes = variantes;
+
+      return base;
+    });
 
   const envios = (d.envios || [])
     .filter(e => e && e.id)
