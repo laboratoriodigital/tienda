@@ -695,13 +695,28 @@ del **panel** del comerciante. No son deuda: son M3.
       una talla agotada.
 
 **C-2 · SEO horneado**  · 5 pts · dep. A-2
-- [ ] JSON-LD de organización y sitio en la portada; de producto con oferta,
+- [x] JSON-LD de organización y sitio en la portada; de producto con oferta,
       precio, moneda y disponibilidad en cada ficha. Escrito en el HTML, no por
-      JavaScript.
-- [ ] `sitemap.xml` y `robots.txt` generados en el horneado.
-- [ ] `admin`, `tablero` y `pedido` con `noindex`.
-- [ ] Batería que valida el JSON-LD contra el esquema y que el sitemap lista
-      exactamente los productos activos.
+      JavaScript. *(Lo hornea `montar/sembrar-seo.mjs` desde
+      `publicar/catalogo.json`, no de otra pregunta al maestro. Y lo que el
+      comerciante no ha llenado —lo que la hoja siembra entre corchetes— NO se
+      publica: un dato de contacto falso en los datos estructurados acaba en una
+      ficha de empresa equivocada.)*
+- [x] `sitemap.xml` y `robots.txt` generados en el horneado. *(Sin `<lastmod>`,
+      que rompería el determinismo de A-6. Con su `Content-Type` declarado en
+      `_headers`: un sitemap servido como texto plano lo ignoran algunos
+      rastreadores sin decir nada.)*
+- [x] `admin`, `tablero` y `pedido` con `noindex`. *(En `robots.txt` desde ya,
+      con el nombre que tendrán. Las tres páginas son M3 y la 1.1; la aserción
+      que exige `noindex` mira TODA página de `publicar/` que no sea la tienda,
+      así que las está esperando — y hoy ya vigila el `404.html`.)*
+- [x] Batería que valida el JSON-LD contra el esquema y que el sitemap lista
+      exactamente los productos activos. *(`seo.js`, con una floristería
+      inventada. Comprueba la forma que importa —tipos, oferta completa, enlace
+      por ficha, agotado indexado como agotado— y que el sitemap publicado
+      cuadre con el catálogo publicado. **No** valida contra el vocabulario
+      formal de schema.org: eso pediría una dependencia nueva, y lo que rompe en
+      la práctica es la forma, no el vocabulario.)*
 
 **C-3 · Lo que el comprador necesita saber antes de comprar**  · 3 pts
 - [ ] **Envío gratis anunciado**: «te faltan $12.000 para envío gratis», con el

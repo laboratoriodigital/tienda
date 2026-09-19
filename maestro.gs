@@ -372,9 +372,25 @@ function instalar() {
    ser HTML estático: WhatsApp y Google leen la página sin ejecutar JavaScript,
    así que esas no se pueden sacar de la hoja en caliente.
    ========================================================================== */
+/* UNA DIRECCIÓN SIN https:// NO ES UNA DIRECCIÓN, ES UNA RUTA RELATIVA.
+   El comerciante escribe en la hoja `mitienda.workers.dev`, que es lo natural,
+   y así salía tal cual al <link rel="canonical">, al og:url y al og:image. Un
+   navegador resuelve `href="mitienda.workers.dev/"` contra la página actual:
+   el canónico apunta a mitienda.workers.dev/mitienda.workers.dev/, que no
+   existe, y la imagen de la tarjeta al compartir no carga nunca.
+
+   No rompe nada visible —la tienda se ve igual, el pedido llega igual— y por
+   eso llevaba publicado sin que nadie lo notara. Se corrige aquí, que es el
+   único sitio donde se arma el <head>, y así lo reciben las tres de una vez. */
+function conEsquema(u) {
+  var s = String(u || '').trim();
+  if (!s) return '';
+  return /^https?:\/\//i.test(s) ? s : 'https://' + s.replace(/^\/+/, '');
+}
+
 function generarConfiguracion() {
   var c = leerConfiguracion();
-  var url = (c.sitio_url || '').replace(/\/+$/, '') + '/';
+  var url = conEsquema(c.sitio_url).replace(/\/+$/, '') + '/';
   /* Todo lo que sale de la hoja va escapado entero, no solo las comillas: un
      nombre con & producía HTML inválido, y un < abría la puerta a que el texto
      del dueño se leyera como etiqueta. El icono NO pasa por aquí: es un SVG

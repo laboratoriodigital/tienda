@@ -116,7 +116,7 @@ jobs:
     # «tu tienda se está actualizando», y no cambiaba nada. Ningún error en
     # ninguna parte. Es el patrón 1: el fallo que funciona.
     env:
-      PUBLICA: publicar/fotos publicar/catalogo.json publicar/index.html
+      PUBLICA: publicar/fotos publicar/catalogo.json publicar/index.html publicar/sitemap.xml publicar/robots.txt
 
     steps:
       - uses: actions/checkout@v7
@@ -334,6 +334,7 @@ jobs:
           # un cambio de precio publicado desde la hoja dejaba el respaldo del
           # archivo con los precios de la semana pasada.
           node montar/sembrar-respaldo.mjs  2>&1 | tee /tmp/respaldo.txt || estado=$?
+          node montar/sembrar-seo.mjs       2>&1 | tee /tmp/seo.txt      || estado=$?
 
           if [ "$fallo_fotos" != "0" ]; then
             {

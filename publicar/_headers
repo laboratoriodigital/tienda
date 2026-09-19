@@ -31,3 +31,16 @@
 /catalogo.json
   Cache-Control: public, max-age=60, must-revalidate
   Content-Type: application/json; charset=utf-8
+
+# EL SEO HORNEADO (C-2). Los dos los escribe montar/sembrar-seo.mjs en cada
+# horneado, así que caducan igual de rápido que el catálogo. El tipo va dicho a
+# mano y no adivinado: un sitemap servido como text/plain lo ignoran algunos
+# rastreadores sin decir nada, que es el modo de fallo más caro de todos —no da
+# error, simplemente no sales en las búsquedas—.
+/sitemap.xml
+  Cache-Control: public, max-age=3600
+  Content-Type: application/xml; charset=utf-8
+
+/robots.txt
+  Cache-Control: public, max-age=3600
+  Content-Type: text/plain; charset=utf-8

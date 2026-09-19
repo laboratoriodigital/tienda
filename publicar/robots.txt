@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /tablero.html
+Disallow: /pedido.html
+
+Sitemap: https://tienda.laboratoriodigital-la.workers.dev/sitemap.xml

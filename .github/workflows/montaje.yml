@@ -382,6 +382,26 @@ jobs:
       #
       # Va DESPUÉS de hornear el catálogo porque el nombre del comercio sale de
       # ahí, no de una cuarta pregunta al maestro.
+      # ── C-2 · EL SEO, HORNEADO COMO EL CATÁLOGO ──────────────────────────
+      # Un rastreador no ejecuta JavaScript. Esta tienda pinta su catálogo desde
+      # JavaScript, así que para Google la página era, literalmente, una
+      # plantilla vacía: ni productos, ni precios, nada que indexar. El comercio
+      # paga un dominio y no sale en ninguna búsqueda.
+      #
+      # Va DESPUÉS del catálogo y del respaldo: los datos estructurados salen de
+      # publicar/catalogo.json, no de otra pregunta al maestro.
+      - name: El SEO, desde el catálogo recién horneado
+        if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
+        run: |
+          set -o pipefail
+          node montar/sembrar-seo.mjs 2>&1 | tee /tmp/seo.txt
+          {
+            echo "### El SEO horneado"
+            echo '```'
+            cat /tmp/seo.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: El nombre del Worker, desde la hoja
         if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
         run: |

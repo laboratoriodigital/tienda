@@ -1209,3 +1209,51 @@ lanzaban con `execFileSync` — que bloquea el bucle de eventos, así que el
 servidor no podía contestar y todos esperaban el tope de noventa segundos. Un
 servidor y una espera síncrona no caben en el mismo bucle. El síntoma —«se
 cuelga»— no se parecía en nada a la causa, otra vez.
+
+---
+
+**31 · La tienda era invisible para quien no ejecuta JavaScript.** El 19 de
+septiembre de 2026, empezando el hito M2, se miró qué ve Google al entrar a una
+de estas tiendas. La respuesta: **nada**. Ni un producto, ni un precio, ni el
+nombre del comercio en un sitio donde un rastreador lo busque.
+
+No era un defecto: era una consecuencia que nadie había puesto en palabras. La
+tienda pinta su catálogo desde JavaScript —fue la decisión correcta, y sigue
+siéndolo— y los rastreadores no ejecutan JavaScript, o lo ejecutan tarde y a
+regañadientes. Así que la página que se indexaba era la plantilla vacía. El
+comerciante paga un dominio, publica su catálogo, y no sale en ninguna búsqueda.
+
+Y es el modo de fallo que este proyecto lleva persiguiendo desde el primer día,
+en su forma más pura: **no rompe nada**. La tienda se ve perfecta, el pedido
+llega, el inventario baja. Simplemente no existe para quien la busca, y eso no
+da error nunca.
+
+La respuesta es la que ya había tomado el proyecto dos veces —para el catálogo y
+para el respaldo—: **se hornea**. `montar/sembrar-seo.mjs` escribe en el HTML el
+JSON-LD del comercio, del sitio y de cada producto con su oferta, y genera el
+`sitemap.xml` y el `robots.txt`. Sale de `publicar/catalogo.json`, que se horneó
+unos segundos antes, y no de otra pregunta al maestro: la tercera vez que se
+toma esa decisión por la misma razón.
+
+Dos detalles que valen más que la mecánica.
+
+**Lo que está entre corchetes no existe.** La hoja siembra `[DIRECCIÓN]` y
+`[RAZÓN SOCIAL]` como forma de decir «esto todavía no lo tengo», y la tienda ya
+los esconde al pintar. Publicárselos a Google habría sido peor que omitirlos: un
+dato de contacto falso en datos estructurados acaba en una ficha de empresa
+equivocada, y eso lo arregla el comerciante por teléfono con Google, no nosotros
+con un commit. La regla de esconder ya existía en un sitio; ahora existe en los
+dos, y una batería lo comprueba con una dirección sin llenar a propósito.
+
+**Sin fecha del día.** El `sitemap.xml` no lleva `<lastmod>`. Tenerlo es lo
+natural y habría roto el determinismo de A-6: cada horneado parecería un cambio
+y publicaría por nada — justo el gasto que M1 acababa de recortar. Dos hitos
+seguidos tirando en direcciones opuestas sobre el mismo archivo, y el único
+motivo por el que se vio es que A-6 dejó una aserción puesta.
+
+La regla: **una decisión de arquitectura correcta puede tener una consecuencia
+que nadie eligió.** Pintar desde JavaScript fue lo correcto y trajo gratis, sin
+que nadie lo decidiera, que la tienda fuera invisible. Esas consecuencias no
+aparecen en ninguna prueba, porque no son fallos de nada: hay que ir a
+buscarlas preguntando qué ve cada uno de los que miran —el comprador, el
+comerciante, y el que no ejecuta JavaScript.

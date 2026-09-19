@@ -405,6 +405,59 @@ textarea.campo{resize:vertical;min-height:64px}
 
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 </style>
+<!-- ═══ DATOS ESTRUCTURADOS ═══
+     Los hornea montar/sembrar-seo.mjs desde publicar/catalogo.json.
+     No se editan a mano: el siguiente horneado los reescribe. -->
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "Organization",
+   "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio",
+   "name": "TIENDA",
+   "url": "https://tienda.laboratoriodigital-la.workers.dev/",
+   "logo": "https://tienda.laboratoriodigital-la.workers.dev/compartir.jpg",
+   "telephone": "573008610480",
+   "email": "laboratoriodigital.la@gmail.com",
+   "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "CO",
+    "streetAddress": "Tienda Virtual - Colombia",
+    "addressLocality": "Medellín"
+   }
+  },
+  {
+   "@type": "WebSite",
+   "url": "https://tienda.laboratoriodigital-la.workers.dev/",
+   "name": "TU TIENDA VIRTUAL",
+   "description": "Tu tienda virtual siempre Online",
+   "publisher": {
+    "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
+   }
+  },
+  {
+   "@type": "Product",
+   "sku": "ejemplo1",
+   "name": "Producto de ejemplo — edítalo o bórralo",
+   "description": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
+   "category": "Ejemplos",
+   "image": "https://tienda.laboratoriodigital-la.workers.dev/fotos/tienda-virtual.png",
+   "offers": {
+    "@type": "Offer",
+    "price": "19900",
+    "priceCurrency": "COP",
+    "availability": "https://schema.org/InStock",
+    "url": "https://tienda.laboratoriodigital-la.workers.dev/?p=ejemplo1",
+    "seller": {
+     "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
+    }
+   }
+  }
+ ]
+}
+</script>
+<!-- ═══ FIN DE LOS DATOS ESTRUCTURADOS ═══ -->
 </head>
 <body>
 
