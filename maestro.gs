@@ -2357,7 +2357,13 @@ function semillaDeConfiguracion() {
          excluido, y el texto de retracto ni siquiera menciona la excepción —
          no se puede inventar QUÉ es perecedero por él (historia A-4). */
       ['retracto_excepciones', '', 'Productos que NO admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por |. Vacío = ninguno queda excluido'],
-      ['f_variantes',      'Sí', 'Si dice Sí, los productos con la columna Variantes piden elegir antes de agregar al carrito (ej: Talla: S|M|L ; Color: Rosa|Nude). No = se ignoran y el producto se vende sin elección']
+      ['f_variantes',      'Sí', 'Si dice Sí, los productos con la columna Variantes piden elegir antes de agregar al carrito (ej: Talla: S|M|L ; Color: Rosa|Nude). No = se ignoran y el producto se vende sin elección'],
+
+      /* AL FINAL (R1). En qué orden ve el catálogo quien entra. El valor de
+         fábrica es lo que la tienda ya hacía, así que un comercio que vuelva a
+         correr instalar() no ve ningún cambio. Y esto decide SOLO la entrada:
+         el comprador reordena por precio desde la tienda (C-4). */
+      ['orden_catalogo',   'Destacados primero', 'En qué orden ve el catálogo quien entra. Valores: Destacados primero · Como en la hoja · Precio: de menor a mayor · Precio: de mayor a menor · Nombre: de la A a la Z. El comprador puede reordenar por precio desde la tienda']
   ];
 }
 

@@ -754,8 +754,32 @@ del **panel** del comerciante. No son deuda: son M3.
 - [ ] **Tienda cerrada** y **mínimo de pedido**, los dos por interruptor.
 
 **C-4 · Orden del catálogo**  · 2 pts
-- [ ] El comerciante elige el orden por defecto desde la hoja o el panel; el
-      comprador puede reordenar por precio.
+- [x] El comerciante elige el orden por defecto desde la hoja o el panel; el
+      comprador puede reordenar por precio. *(`orden_catalogo` en la hoja, con
+      cinco valores y el de fábrica igual a lo que la tienda ya hacía —
+      «Destacados primero»—, así que un comercio que no toque nada no ve ningún
+      cambio. Desde el panel será M3: la clave ya está y la leerá el mismo
+      formulario que las demás.)*
+- [x] **Cuando el comprador pide un orden, la lista es ese orden y nada más: el
+      destacado deja de flotar.** *(No es un detalle de implementación: un
+      «precio, de menor a mayor» que empieza por el producto de $28.000 porque
+      alguien lo destacó es un control que miente, y quien compra no tiene cómo
+      saberlo — cree que ese es el más barato. Destacar es una posición dentro
+      del orden del comercio, no una chincheta que gana siempre. Su aserción
+      está escrita a propósito como la central de la batería.)*
+- [x] `VISIBLES` guarda el orden de la hoja y el orden se aplica al pintar.
+      *(Antes se guardaba ya reordenado con los destacados delante, lo que
+      borraba para siempre el dato «en qué orden lo escribió el comercio» — y
+      eso es justo una de las cinco opciones. Arrastró una aserción de
+      `hoja.js`, que preguntaba por la lista interna cuando lo que quería saber
+      era lo que ve el comprador; ahora mira la rejilla.)*
+- [x] Un valor que no es ninguno de los cinco **no deja la tienda sin vitrina**:
+      cae al de fábrica y lo dice en la consola con la lista de los buenos.
+      *(Fallo abierto en el catálogo, como siempre.)*
+- [x] Batería `orden.js` (21 aserciones), verificada ROJA con cinco defectos
+      puestos: el destacado flotando siempre, los nombres comparados sin las
+      reglas del español, la hoja pisándole el orden al comprador, el cambio de
+      orden sin volver a la página 1, y el valor ilegible tragado en silencio.
 
 ---
 

@@ -268,7 +268,7 @@ Lo que llegó y no se pudo entender, y lo que se leyó mal. Existe para que un f
 
 ## 5. Las claves de `Configuración`
 
-Son 42. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
+Son 44. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
 **todas pueden estar vacías**: una tienda a medio configurar tiene que seguir
 sirviendo lo que sí sabe.
 
@@ -292,8 +292,32 @@ no pisar lo que el comerciante puso.
 | **La venta** | `envio_gratis_desde` |
 | **Dónde vive el sitio** | `repositorio` — dueño/repositorio en GitHub. Lo usa «Publicar ahora». No es un secreto; el permiso sí, y ese vive en las propiedades del script |
 | **La autoría** | `f_autoria` · `autoria_url` — el pie "Powered by Laboratorio Digital". `f_autoria` = No lo apaga (decisión comercial, con precio); `autoria_url` vacía muestra el texto sin enlace |
-| **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
 | **El retracto** | `retracto_excepciones` — productos que no admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por \|. Vacío = ninguno queda excluido |
+| **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
+| **El orden del catálogo** | `orden_catalogo` — en qué orden ve el catálogo quien entra. De fábrica, `Destacados primero` |
+
+**`orden_catalogo` (C-4).** Uno de estos cinco, escrito tal cual —se lee sin
+distinguir mayúsculas ni tildes—:
+
+| Valor | Qué hace |
+|---|---|
+| `Destacados primero` | **De fábrica.** Los marcados `Destacado` delante; detrás, el orden de la hoja |
+| `Como en la hoja` | El orden en que están escritos los productos, sin más |
+| `Precio: de menor a mayor` | |
+| `Precio: de mayor a menor` | |
+| `Nombre: de la A a la Z` | Con las reglas del español: la Ñ va entre la N y la O |
+
+Esto decide **solo la entrada**. El comprador reordena por precio o por nombre
+desde la tienda, y cuando lo hace **la lista es ese orden y nada más: el
+destacado deja de flotar** — un «de menor a mayor» que empieza por el producto
+más caro porque alguien lo destacó es un control que miente, y quien compra no
+tiene cómo saberlo. Destacar es una posición dentro del orden del comercio, no
+una chincheta que gana siempre.
+
+Un valor que no sea ninguno de los cinco **no deja la tienda sin vitrina**: se
+usa el de fábrica y se dice en la consola, con la lista de los buenos. Es la
+misma regla de fallo abierto del resto del catálogo.
+
 ---
 
 ## 6. Lo que sale por cada puerta

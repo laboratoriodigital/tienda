@@ -1347,3 +1347,48 @@ batería no fallaba, **se colgaba treinta segundos** esperando un selector que e
 propio defecto había cerrado. Una prueba que se cuelga en vez de contar lo que
 falló es media prueba, así que cada tramo abre la ficha por su cuenta en lugar
 de dar por hecho que sigue abierta.
+
+
+---
+
+**34 · Un control que ordena y no ordena.** C-4 parecía la historia más pequeña
+del hito —dos puntos, una línea en el plan— y trajo la decisión más fácil de
+equivocar, precisamente porque la respuesta cómoda suena a respeto.
+
+El catálogo ponía los destacados delante. Al agregar «ordenar por precio», el
+primer impulso —y lo que hace casi cualquier tienda— es **conservar** el
+destacado arriba: es una decisión del comerciante, ¿por qué la iba a pisar un
+selector? La respuesta es que **el comprador no puede saber que la está
+pisando**. Ve «Precio: de menor a mayor», ve arriba un producto de $28.000, y la
+única conclusión disponible es que ese es el más barato que hay. No hay marca,
+no hay asterisco, no hay forma de enterarse. Un control que promete un orden y
+entrega otro no es una concesión al comerciante: es una mentira, y encima una
+que solo perjudica al que compra.
+
+Así que destacar quedó definido como **una posición dentro del orden del
+comercio, no una chincheta que gana siempre**. Cuando el comprador pide un
+orden, la lista es ese orden y nada más. La insignia «Destacado» sigue ahí —eso
+es información, no posición— y el comercio sigue mandando en la ENTRADA, que es
+donde su decisión vale.
+
+Y el cambio que nadie había pedido. Para que «Como en la hoja» fuera una opción
+de verdad, `VISIBLES` tuvo que dejar de guardarse ya reordenado con los
+destacados delante: guardarlo así **borraba para siempre el dato «en qué orden
+lo escribió el comercio»**. Una lista ordenada al guardar parece un ahorro —se
+ordena una vez en lugar de en cada pintado— y lo que hace es perder información
+que todavía no sabías que ibas a necesitar. El orden se aplica ahora al pintar.
+
+Eso destapó una aserción vieja de `hoja.js` que preguntaba «¿van los destacados
+primero?» **mirando la lista interna**. Pasó en verde durante meses porque hasta
+ese día la lista interna y la pantalla decían lo mismo; el día que dejaron de
+decirlo, la aserción se cayó — y estaba bien que se cayera, porque lo que quería
+saber era lo que ve el comprador y llevaba todo ese tiempo preguntándoselo a
+otro. **Una prueba que mira el estado interno está midiendo la implementación,
+no el comportamiento, y solo se nota cuando la implementación cambia.** Ahora
+mira la rejilla, y cuenta las insignias contra la hoja y no contra la pantalla,
+para que las dos líneas no digan lo mismo.
+
+Lo pequeño que también costó: ordenar por nombre con `a.nombre < b.nombre`
+manda «Ñame» detrás de «Zanahoria», porque compara números de carácter y la Ñ
+vive después de la Z. En un catálogo colombiano eso se ve el primer día.
+`localeCompare(b, "es")` y una aserción que lo fija con ese mismo producto.

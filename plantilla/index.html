@@ -143,6 +143,11 @@ a{color:inherit}
 .buscador input:focus{border-color:var(--negro);outline:none}
 .buscador svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--tenue)}
 .filtros{display:flex;gap:8px;margin-top:16px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.orden-caja{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--tenue)}
+.orden-caja label{white-space:nowrap}
+.orden-caja select{flex:1;max-width:260px;padding:8px 10px;border:1px solid var(--linea);
+  border-radius:8px;background:#fff;font:inherit;font-size:.85rem;color:var(--negro)}
+.orden-caja select:focus{border-color:var(--negro);outline:none}
 .filtros::-webkit-scrollbar{display:none}
 .chip{
   border:1px solid var(--linea);padding:8px 15px;border-radius:var(--radio);
@@ -455,6 +460,10 @@ textarea.campo{resize:vertical;min-height:64px}
       <input type="search" id="buscar" placeholder="Buscar en el catálogo" aria-label="Buscar productos" oninput="buscar()">
     </div>
     <div class="filtros" id="filtros" role="group" aria-label="Filtrar por categoría"></div>
+    <div class="orden-caja">
+      <label for="orden">Ordenar por</label>
+      <select id="orden" onchange="cambiarOrden(this.value)"></select>
+    </div>
   </div>
 </section>
 
@@ -754,6 +763,21 @@ function aplicarConfiguracion(c){
   /* Igual que la autoría: apagado solo con un "No" explícito. */
   VARIANTES_ON = v("f_variantes") !== "No";
 
+  /* El orden de entrada lo pone el comercio. Si escribió algo que no es
+     ninguno de los cinco, se queda el de fábrica —el catálogo falla abierto:
+     una tienda no se queda sin vitrina por una celda mal escrita— y se dice en
+     la consola CON LOS VALORES BUENOS, que es lo que hace falta para
+     arreglarlo. Y si el comprador ya eligió, la hoja no le pisa la elección:
+     esta función vuelve a correr cada vez que llega el catálogo. */
+  if(v("orden_catalogo")){
+    const elegido = ordenPorNombre(v("orden_catalogo"));
+    if(elegido) ordenDelComercio = elegido.id;
+    else console.warn("[orden] No reconozco «" + v("orden_catalogo") + "» en orden_catalogo. " +
+                      "Se usa «" + ORDENES[0].nombre + "». Los valores son: " +
+                      ORDENES.map(o => o.nombre).join(" · ") + ".");
+    if(!ordenTocado) ordenActivo = ordenDelComercio;
+  }
+
   const pie = $("#pieAbajo");
   if(pie){
     if(v("f_autoria") === "No"){
@@ -843,11 +867,11 @@ function aplicarCatalogo(datos){
         forma:       formaDe(c.formato, c.categoria)
       }));
 
-    if(lista.length){
-      // Los destacados primero; dentro de cada grupo, el orden de la hoja.
-      const ordenada = lista.filter(p => p.destacado).concat(lista.filter(p => !p.destacado));
-      VISIBLES = Object.freeze(ordenada);
-    }
+    /* VISIBLES GUARDA EL ORDEN DE LA HOJA, tal cual. Antes se guardaba ya
+       reordenado con los destacados delante, y eso borraba para siempre el dato
+       «en qué orden lo escribió el comercio»: con C-4 esa es una de las cinco
+       opciones, así que el orden se aplica al pintar y no al guardar. */
+    if(lista.length) VISIBLES = Object.freeze(lista);
   }
 
   if(Array.isArray(datos.envios) && datos.envios.length){
@@ -979,6 +1003,7 @@ function terminarCarga(delRespaldo){
   delArchivo = delRespaldo;
   catalogoResuelto = true;
   pintarFiltros();
+  pintarOrden();
   refrescar();
   refrescarFichaAbierta();
   atenderEnlace();
@@ -1198,6 +1223,93 @@ const pesos = n => "$" + Math.round(n).toLocaleString("es-CO");
 const producto = id => VISIBLES.find(p => p.id === id);
 const escapar = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+/* EL ORDEN DEL CATÁLOGO (C-4).
+   ---------------------------------------------------------------------------
+   Dos decisiones distintas que se confundían en una sola línea de código.
+
+   LA DEL COMERCIO: en qué orden entra el comprador. La escribe en la hoja
+   —`orden_catalogo`— y de fábrica es «Destacados primero», que es lo que esta
+   tienda ya hacía: así, un comercio que no toque nada no ve ningún cambio.
+
+   LA DEL COMPRADOR: reordenar por precio mientras mira. Y aquí está lo que hay
+   que respetar: CUANDO EL COMPRADOR PIDE UN ORDEN, LA LISTA ES ESE ORDEN Y
+   NADA MÁS. El destacado deja de flotar. Un «precio: de menor a mayor» que
+   igual empieza por el producto de $80.000 porque alguien lo marcó destacado es
+   un control que miente, y el comprador no tiene forma de saberlo: cree que ese
+   es el más barato. Destacar es una posición dentro del orden del comercio, no
+   una chincheta que gana siempre.
+
+   `fn: null` en «Como en la hoja» no es un hueco: es que ahí NO se ordena nada,
+   y la lista sale en el orden en que la escribió el comercio. */
+const ORDENES = [
+  { id:"destacados",  nombre:"Destacados primero",
+    fn:(a, b) => (b.destacado === true) - (a.destacado === true) },
+  { id:"hoja",        nombre:"Como en la hoja",          fn:null },
+  { id:"precio-asc",  nombre:"Precio: de menor a mayor", fn:(a, b) => a.precio - b.precio },
+  { id:"precio-desc", nombre:"Precio: de mayor a menor", fn:(a, b) => b.precio - a.precio },
+  { id:"nombre",      nombre:"Nombre: de la A a la Z",
+    fn:(a, b) => a.nombre.localeCompare(b.nombre, "es") }
+];
+
+/* Los que puede pedir el comprador. «Como en la hoja» y «Destacados primero»
+   no están: al comprador no le dicen nada, y su sitio es el de la entrada. */
+const ORDENES_DEL_COMPRADOR = ["precio-asc", "precio-desc", "nombre"];
+const ORDEN_DE_FABRICA = "destacados";
+
+let ordenDelComercio = ORDEN_DE_FABRICA;
+let ordenActivo      = ORDEN_DE_FABRICA;
+let ordenTocado      = false;    // el comprador ya eligió: la hoja no lo pisa
+
+const sinTildes = t => String(t == null ? "" : t)
+  .normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+/* Se acepta el nombre tal como está escrito en la hoja, sin distinguir
+   mayúsculas ni tildes, porque quien lo escribe es una persona. Lo que NO se
+   hace es adivinar: «barato» o «precio» a secas no son ninguno de estos. */
+function ordenPorNombre(texto){
+  const t = sinTildes(texto);
+  if(!t) return null;
+  return ORDENES.filter(o => sinTildes(o.nombre) === t || o.id === t)[0] || null;
+}
+
+/* Lo que ve el comprador en el selector. El orden del comercio va primero y se
+   llama «Recomendado» —«como en la hoja» no significa nada para quien compra—,
+   pero si resulta ser uno de los tres de abajo NO se repite: dos opciones que
+   prometen órdenes distintos y dan el mismo son una que miente. */
+function opcionesDeOrden(){
+  const suyas = ORDENES_DEL_COMPRADOR
+    .map(id => ORDENES.filter(o => o.id === id)[0])
+    .map(o => ({ id:o.id, etiqueta:o.nombre }));
+  if(ORDENES_DEL_COMPRADOR.indexOf(ordenDelComercio) !== -1) return suyas;
+  return [{ id:ordenDelComercio, etiqueta:"Recomendado" }].concat(suyas);
+}
+
+function pintarOrden(){
+  const caja = $("#orden");
+  if(!caja) return;
+  caja.innerHTML = opcionesDeOrden().map(o =>
+    `<option value="${o.id}" ${o.id === ordenActivo ? "selected" : ""}>${escapar(o.etiqueta)}</option>`
+  ).join("");
+}
+
+function cambiarOrden(id){
+  if(!ORDENES.some(o => o.id === id)) return;
+  ordenActivo = id;
+  ordenTocado = true;
+  pagina = 1;              // igual que filtrar y buscar: quedarse en la 4 deja la pantalla vacía
+  pintarOrden();
+  pintarRejilla();
+}
+
+function ordenar(lista){
+  const o = ORDENES.filter(x => x.id === ordenActivo)[0];
+  if(!o || !o.fn) return lista;
+  /* Copia antes de ordenar: `sort` ordena EN EL SITIO, y la lista que entra
+     aquí puede ser la misma que pinta otra cosa. Y `sort` es estable, así que
+     dos productos al mismo precio salen en el orden de la hoja. */
+  return lista.slice().sort(o.fn);
+}
+
 // ── Catálogo ──
 function pintarFiltros(){
   const cats = ["Todos", ...new Set(VISIBLES.map(p => p.categoria))];
@@ -1264,10 +1376,10 @@ function pintarRejilla(){
   }
 
   const q = ($("#buscar").value || "").toLowerCase().trim();
-  const lista = VISIBLES.filter(p =>
+  const lista = ordenar(VISIBLES.filter(p =>
     (categoriaActiva === "Todos" || p.categoria === categoriaActiva) &&
     (!q || (p.nombre + " " + p.descripcion + " " + p.categoria).toLowerCase().includes(q))
-  );
+  ));
 
   if(!lista.length){
     $("#rejilla").innerHTML = `<div class="vacio">No encontramos nada con ese nombre. Prueba con otra palabra o mira todas las categorías.</div>`;
@@ -2684,6 +2796,7 @@ window.SEMILLA_APLICADA = true;
 
 // ── Arranque ──
 pintarFiltros();
+pintarOrden();
 pintarRejilla();
 pintarPanel(null);
 enlacePendiente = idEnLaDireccion();

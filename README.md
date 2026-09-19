@@ -9,10 +9,11 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.1.0`.** Esta es **la semilla de la segunda
+> **Estado: en construcción · `0.2.0`.** Esta es **la semilla de la segunda
 > versión** del producto, que se llama **tienda**. Nace de la semilla de la
-> línea anterior (`laboratoriodigital/organico`, 3.0.0) y todavía no se ha
-> tocado: el código es el de aquella línea, con sus defectos conocidos.
+> línea anterior (`laboratoriodigital/organico`, 3.0.0). M0 y M1 están cerrados
+> y M2 va por la mitad; lo que todavía no se ha tocado queda dicho, historia por
+> historia, en `docs/PLAN-MVP.md`.
 >
 > El MVP —que saldrá como **1.0.0**— son cuatro hitos: la semilla limpia y
 > determinista, el rendimiento, la tienda para todo producto, y el panel básico

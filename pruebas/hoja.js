@@ -37,14 +37,25 @@ const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -
   ok('Se puede agregar al carrito', await p.evaluate(() => { agregar('mermelada',1); return carrito.some(i=>i.id==='mermelada'); }));
 
   // ===== 2. Destacados primero, con insignia =====
+  /* SE MIRA LA REJILLA, NO `VISIBLES`. Desde C-4 el orden se aplica al pintar
+     —porque «como en la hoja» es una de las opciones y guardar la lista ya
+     reordenada borraba ese dato—, así que `VISIBLES` tiene el orden de la hoja
+     y preguntarle a él era preguntar por otra cosa distinta de la que ve el
+     comprador. Esta aserción quiere lo segundo. */
   await p.goto(U); await catalogoListo(p);
-  const orden = await p.evaluate(() => VISIBLES.map(x => ({ id:x.id, d:!!x.destacado })));
+  const orden = await p.evaluate(() =>
+    Array.from(document.querySelectorAll('#rejilla .tarjeta')).map(t => ({
+      id: (t.querySelector('.tarjeta-img').getAttribute('onclick').match(/'([^']+)'/) || [])[1],
+      d:  !!t.querySelector('.destacado') })));
   const primerNoDestacado = orden.findIndex(x => !x.d);
   ok('Los destacados van todos primero',
-     orden.slice(primerNoDestacado).every(x => !x.d),
+     primerNoDestacado > 0 && orden.slice(primerNoDestacado).every(x => !x.d),
      orden.map(x => x.id + (x.d ? '*' : '')).join(' → '));
-  ok('Insignia "Destacado" en cada uno', (await p.locator('.destacado').count()) === primerNoDestacado,
-     (await p.locator('.destacado').count()) + ' insignias para ' + primerNoDestacado + ' destacados');
+  /* Y la insignia se cuenta contra la HOJA, no contra la pantalla: si se
+     contara contra la pantalla, esto diría lo mismo que la línea de arriba. */
+  const cuantosDestacados = await p.evaluate(() => VISIBLES.filter(x => x.destacado).length);
+  ok('Insignia "Destacado" en cada uno', (await p.locator('.destacado').count()) === cuantosDestacados,
+     (await p.locator('.destacado').count()) + ' insignias para ' + cuantosDestacados + ' destacados');
 
   // ===== 3. Fotos: la hoja escribe nombres, la tienda arma la URL =====
   const urls = await p.evaluate(() => {
