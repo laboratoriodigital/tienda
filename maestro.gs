@@ -137,6 +137,285 @@ function tokenMenu() {
   return t;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ENTRAR AL PANEL (D-1)
+   --------------------------------------------------------------------------
+   Los dos tokens de arriba son de MONTAJE: los tiene quien despliega y los
+   tiene el stub de la hoja. No sirven para que entre el comerciante, y meterlo
+   por ahí habría sido lo cómodo: un token fijo, sin caducidad, que no se puede
+   revocar sin romper el despliegue, viajando en la barra de direcciones de un
+   navegador que se queda abierto en el mostrador.
+
+   Así que el panel tiene lo suyo, y con las dos mitades separadas:
+
+   EL USUARIO va en la hoja (`panel_usuario`). No es un secreto: es un nombre,
+   y el comerciante tiene que poder verlo y cambiarlo sin llamar a nadie.
+
+   LA CLAVE NO VA EN LA HOJA NUNCA. Va su huella con sal, en las propiedades
+   del proyecto. La hoja se comparte —con el contador, con el sobrino que
+   ayuda, con quien pida ayuda por WhatsApp—; las propiedades del script no se
+   comparten al compartir la hoja, y eso es toda la diferencia.
+
+   Y HAY QUE DECIR HASTA DÓNDE LLEGA ESTO, porque una seguridad que se cree más
+   fuerte de lo que es hace tomar malas decisiones: quien pueda abrir el
+   proyecto de Apps Script puede leer las propiedades, y quien pueda hacer eso
+   ya tiene la hoja entera. La huella con sal NO protege de ese; protege de que
+   la clave aparezca en una captura, en un correo de soporte o en un
+   repositorio, que es por donde se pierden las claves de verdad. Y contra
+   adivinarla, lo que protege es el límite de intentos de más abajo, no el
+   número de vueltas del hash.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Vueltas del hash. El número está puesto por criterio y NO medido en Apps
+   Script —desde aquí no se puede—, así que se declara como lo que es: si
+   entrar se siente lento en una tienda de verdad, se baja, y no se debilita
+   nada que el límite de intentos no cubra ya. */
+var VUELTAS_CLAVE = 4000;
+var HORAS_TESTIGO = 8;
+var INTENTOS_ANTES_DE_BLOQUEAR = 5;
+var MINUTOS_BLOQUEADO = 15;
+
+function propiedades() { return PropertiesService.getScriptProperties(); }
+
+/* Bytes -> hexadecimal. El `& 0xff` NO es adorno: Apps Script devuelve los
+   bytes con signo, herencia de Java, y sin esa máscara la mitad de ellos salen
+   como '-4d'. La huella seguiría siendo estable, así que nada fallaría a la
+   vista; simplemente estaríamos guardando otra cosa. */
+function enHex(bytes) {
+  var s = '';
+  for (var i = 0; i < bytes.length; i++) {
+    var b = bytes[i] & 0xff;
+    s += (b < 16 ? '0' : '') + b.toString(16);
+  }
+  return s;
+}
+
+function huellaDeClave(clave, sal) {
+  var h = enHex(Utilities.computeHmacSha256Signature(String(clave), String(sal)));
+  for (var i = 1; i < VUELTAS_CLAVE; i++) {
+    h = enHex(Utilities.computeHmacSha256Signature(h, String(sal)));
+  }
+  return h;
+}
+
+/* La firma de los testigos. Es de ESTA tienda y solo de esta: por eso un
+   testigo de otra no vale aquí aunque todo lo demás cuadre. */
+function firmaDelPanel() {
+  var p = propiedades();
+  var f = p.getProperty('PANEL_FIRMA');
+  if (!f) {
+    f = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+    p.setProperty('PANEL_FIRMA', f);
+  }
+  return f;
+}
+
+/* Se guarda `sal$huella`. Sin clave puesta, el panel está CERRADO: no hay
+   usuario de fábrica, no hay clave de fábrica y no se entra. Fallo cerrado,
+   que es la otra mitad de la regla de la casa — en el catálogo se falla
+   abierto para no perder una venta; aquí se falla cerrado porque lo que está
+   del otro lado es el inventario y los pedidos. */
+function claveDelPanelGuardada() {
+  return String(propiedades().getProperty('PANEL_CLAVE') || '');
+}
+
+function guardarClaveDelPanel(clave) {
+  var sal = Utilities.getUuid().replace(/-/g, '');
+  propiedades().setProperty('PANEL_CLAVE', sal + '$' + huellaDeClave(clave, sal));
+  /* CAMBIAR LA CLAVE CIERRA LAS SESIONES ABIERTAS. El testigo lleva dentro un
+     trozo de la huella, así que los que había dejan de valer solos, sin una
+     lista de sesiones que mantener. Si alguien cambia la clave es porque cree
+     que la vieja se sabe: dejar viva la sesión de ese alguien sería justo lo
+     contrario de lo que pidió. */
+  return true;
+}
+
+function claveDelPanelCorrecta(clave) {
+  var guardada = claveDelPanelGuardada();
+  var i = guardada.indexOf('$');
+  if (i === -1) return false;                       // sin clave puesta, no se entra
+  return huellaDeClave(clave, guardada.slice(0, i)) === guardada.slice(i + 1);
+}
+
+/* ── El testigo ─────────────────────────────────────────────────────────────
+   `usuario|vence|hojaId|trozoDeLaHuella` firmado con la firma de esta tienda.
+   Los cuatro campos están ahí por algo distinto:
+
+   · `vence`  — para que una sesión olvidada en el mostrador no dure para
+                siempre.
+   · `hojaId` — PARA QUE UN TESTIGO DE OTRA TIENDA NO VALGA AQUÍ. La firma ya
+                lo impediría, pero el fallo más caro de este proyecto está
+                escrito en DESPLIEGUE.md y es exactamente ese: dos tiendas con
+                los secretos cruzados, corriendo enteras en verde. Si algún día
+                dos proyectos acaban compartiendo firma por un copiar y pegar,
+                esto lo sigue parando y además lo dice.
+   · trozo de la huella — para que cambiar la clave cierre lo que había.       */
+
+function armarTestigo(usuario) {
+  var vence = Date.now() + HORAS_TESTIGO * 3600 * 1000;
+  var cuerpo = [String(usuario), String(vence), String(HOJA_ID),
+                claveDelPanelGuardada().slice(-8)].join('|');
+  /* Web-safe: el testigo viaja en la barra de direcciones, y un '+' de base64
+     normal se convierte en un espacio por el camino. Es el tipo de fallo que
+     aparece en una de cada sesenta sesiones y nadie sabe reproducir. */
+  var carga = Utilities.base64EncodeWebSafe(cuerpo);
+  return carga + '.' + enHex(Utilities.computeHmacSha256Signature(carga, firmaDelPanel()));
+}
+
+/* UNA SOLA RESPUESTA PARA TODO LO QUE FALLA, y es a propósito: «caducó» y
+   «esa firma no es mía» son dos cosas muy distintas para quien está probando
+   testigos, y ninguna de las dos es asunto suyo. Quien entró de verdad y se le
+   pasaron las ocho horas ve lo mismo que quien no entró nunca: vuelve a entrar
+   y ya está. */
+var TESTIGO_MALO = 'Sesión no válida. Entra de nuevo.';
+
+function leerTestigo(testigo) {
+  var t = String(testigo || '');
+  var punto = t.indexOf('.');
+  if (punto === -1) return null;
+  var carga = t.slice(0, punto), firma = t.slice(punto + 1);
+  if (!carga || !firma) return null;
+  if (enHex(Utilities.computeHmacSha256Signature(carga, firmaDelPanel())) !== firma) return null;
+
+  var partes = '';
+  try { partes = Utilities.newBlob(Utilities.base64DecodeWebSafe(carga)).getDataAsString(); }
+  catch (e) { return null; }
+  var c = String(partes).split('|');
+  if (c.length !== 4) return null;
+  if (c[2] !== String(HOJA_ID)) return null;                 // testigo de otra tienda
+  if (c[3] !== claveDelPanelGuardada().slice(-8)) return null;  // la clave cambió
+  if (!(Number(c[1]) > Date.now())) return null;             // venció
+  return { usuario: c[0], vence: Number(c[1]) };
+}
+
+/* ── El límite de intentos ──────────────────────────────────────────────────
+   Esto es lo que de verdad para a quien está adivinando, y por eso cuenta los
+   fallos AUNQUE EL USUARIO NO EXISTA: contar solo los del usuario bueno
+   convierte el contador en un detector de usuarios. */
+function estadoDeIntentos() {
+  var crudo = String(propiedades().getProperty('PANEL_INTENTOS') || '0|0').split('|');
+  return { fallos: Number(crudo[0]) || 0, hasta: Number(crudo[1]) || 0 };
+}
+
+function anotarIntentoFallido(usuario) {
+  var e = estadoDeIntentos();
+  var fallos = e.fallos + 1;
+  var hasta = 0;
+  if (fallos >= INTENTOS_ANTES_DE_BLOQUEAR) {
+    hasta = Date.now() + MINUTOS_BLOQUEADO * 60 * 1000;
+    fallos = 0;
+    anotarSeguridad('Panel: ' + INTENTOS_ANTES_DE_BLOQUEAR + ' intentos fallidos seguidos. ' +
+                    'Bloqueado ' + MINUTOS_BLOQUEADO + ' minutos.',
+                    'último usuario probado: ' + String(usuario));
+  }
+  propiedades().setProperty('PANEL_INTENTOS', fallos + '|' + hasta);
+}
+
+function limpiarIntentos() { propiedades().setProperty('PANEL_INTENTOS', '0|0'); }
+
+/* SE ANOTA SIN AGRUPAR, a diferencia de anotarError(). Ese junta los repetidos
+   durante una hora para que un fallo en bucle no llene la hoja; aquí lo
+   repetido es justamente el dato —cuántas veces y cuándo— y agruparlo sería
+   borrar lo único que se quería ver. */
+function anotarSeguridad(motivo, detalle) {
+  try {
+    var h = hoja(H_ERRORES, ['Fecha', 'Error', 'Primeros 200 caracteres recibidos']);
+    if (h.getLastRow() > 500) return;
+    h.appendRow([new Date(), celdaSegura(motivo, 200), celdaSegura(detalle, 200)]);
+  } catch (x) { /* avisar nunca puede tumbar la respuesta */ }
+}
+
+/* ── Las dos puertas ───────────────────────────────────────────────────────*/
+
+function atenderEntrar(p) {
+  var bloqueo = estadoDeIntentos();
+  if (bloqueo.hasta > Date.now()) {
+    var faltan = Math.ceil((bloqueo.hasta - Date.now()) / 60000);
+    return { ok: false, error: 'Demasiados intentos. Prueba de nuevo en ' + faltan +
+             (faltan === 1 ? ' minuto.' : ' minutos.') };
+  }
+
+  var usuario = String(leerConfiguracion().panel_usuario || '').trim();
+  var pedido  = String(p.u || '').trim();
+  var clave   = String(p.c || '');
+
+  /* SIN USUARIO O SIN CLAVE PUESTA, EL PANEL NO EXISTE. Y se contesta lo
+     mismo que ante una clave equivocada: decir «esta tienda todavía no tiene
+     clave» es contarle a cualquiera que hay una puerta sin cerradura. */
+  var bien = !!usuario && !!claveDelPanelGuardada() &&
+             pedido.toLowerCase() === usuario.toLowerCase() &&
+             claveDelPanelCorrecta(clave);
+
+  if (!bien) {
+    anotarIntentoFallido(pedido);
+    return { ok: false, error: 'Usuario o clave que no corresponden.' };
+  }
+
+  limpiarIntentos();
+  var testigo = armarTestigo(usuario);
+  return { ok: true, testigo: testigo, usuario: usuario,
+           vence: new Date(Date.now() + HORAS_TESTIGO * 3600 * 1000).toISOString() };
+}
+
+/* Quién soy y hasta cuándo. La página la usa para saber si pintar el panel o
+   el formulario de entrada, sin tener que interpretar por su cuenta un testigo
+   que no puede verificar. */
+function atenderSesion(p) {
+  var s = leerTestigo(p.k);
+  if (!s) return { ok: false, error: TESTIGO_MALO };
+  return { ok: true, usuario: s.usuario, vence: new Date(s.vence).toISOString() };
+}
+
+/* LA CLAVE SE PONE DESDE EL MENÚ DE LA HOJA Y NO POR LA WEB, y esta función es
+   ese menú. Dos decisiones que parecen detalles:
+
+   LA INVENTA EL MAESTRO en vez de pedirla. Desde una opción de menú no hay
+   forma de escribir una clave sin que viaje por la red hasta aquí, y una clave
+   que el comerciante elige es «la tienda» o el nombre del negocio con un 1
+   detrás: lo que hay al otro lado es su inventario. Se genera fuerte, se
+   enseña UNA vez y no se puede volver a ver — se vuelve a generar, que además
+   es lo que hay que hacer cuando una clave se pierde.
+
+   Y NO SE GUARDA EN NINGUNA CELDA. Sale en la pantalla del menú, que es lo
+   único que no queda escrito en ningún sitio. */
+function claveDelPanel() {
+  var usuario = String(leerConfiguracion().panel_usuario || '').trim();
+  if (!usuario) {
+    return { tipo: 'aviso', texto:
+      'Antes de poner la clave hace falta el usuario.\n\n' +
+      'Ve a la pestaña Configuración, busca la fila panel_usuario y escribe con ' +
+      'qué nombre quieres entrar al panel. Después vuelve a esta opción.' };
+  }
+
+  var nueva = claveInventada();
+  guardarClaveDelPanel(nueva);
+  limpiarIntentos();
+  anotarSeguridad('Panel: clave nueva puesta desde el menú.',
+                  'usuario: ' + usuario + '. Las sesiones abiertas se cerraron.');
+
+  return { tipo: 'aviso', texto:
+    'CLAVE NUEVA DEL PANEL\n\n' +
+    'Usuario:  ' + usuario + '\n' +
+    'Clave:    ' + nueva + '\n\n' +
+    'Apúntala ahora: esta es la única vez que se puede ver. No queda escrita en ' +
+    'ninguna celda de la hoja ni en ningún archivo — de la clave solo se guarda ' +
+    'una huella, que no se puede deshacer.\n\n' +
+    'Si la pierdes, vuelve a esta opción y se genera otra.\n\n' +
+    'Las sesiones que estuvieran abiertas acaban de cerrarse.' };
+}
+
+/* Sin ambigüedades a la vista: ni 0/O, ni 1/l/I. Una clave que se apunta a mano
+   y se teclea en un celular no puede tener caracteres que se confundan. */
+function claveInventada() {
+  var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  var crudo = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+  var s = '';
+  for (var i = 0; i < 16; i++) {
+    s += abc.charAt(parseInt(crudo.charAt(i * 2) + crudo.charAt(i * 2 + 1), 16) % abc.length);
+  }
+  return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12) + '-' + s.slice(12);
+}
+
 var VERSION = '2026-09-12-1';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
@@ -1322,24 +1601,76 @@ function json(obj) {
    VALIDACIÓN  —  GET ?a=validar&items=abc:2,def:1&cupon=X&envio=zona1
                       &total=<lo que calculó la página>&sellar=1
    ========================================================================== */
+/* ══════════════════════════════════════════════════════════════════════════
+   LAS PUERTAS, Y QUIÉN GUARDA CADA UNA (D-1)
+   --------------------------------------------------------------------------
+   Antes esto era una escalera de `if` y la guardia estaba dentro de cada
+   función: once puertas y once comprobaciones, cada una escrita a mano. Eso
+   funciona hasta que alguien agrega la doce y se le olvida la suya — y ese
+   olvido no se ve en ninguna parte, porque una puerta sin guardia se comporta
+   exactamente como una puerta que funciona.
+
+   Aquí cada puerta DECLARA a quién deja pasar, y la guardia se aplica en un
+   solo sitio. Así la pregunta «¿qué se puede hacer sin credenciales?» tiene una
+   respuesta que se lee de un vistazo, y una batería puede exigir que toda
+   puerta nueva conteste esa pregunta antes de existir.
+
+   Las cuatro guardias:
+     publica  — cualquiera. Es la tienda: el catálogo y el pedido del comprador.
+     montaje  — el token de despliegue. Lo tienen los flujos y quien monta.
+     menu     — el token del stub. La comprueba `atenderMenu`, que además tiene
+                que distinguir el token viejo del nuevo para la migración; por
+                eso es la única que se guarda a sí misma, y está escrito aquí
+                para que no parezca un olvido.
+     panel    — el testigo del comerciante (?k=). Ocho horas, de esta tienda.
+   ══════════════════════════════════════════════════════════════════════════ */
+var PUERTAS = {
+  version:   { guarda: 'publica', fn: function ()  { return { ok: true, version: VERSION }; } },
+  catalogo:  { guarda: 'publica', fn: function ()  { contarLectura();
+                                                     return conVersion(catalogoPublico()); } },
+  validar:   { guarda: 'publica', fn: function (p) { return conVersion(validarPedido(p)); } },
+  registrar: { guarda: 'publica', fn: function (p) { return conVersion(registrarPedido(p)); } },
+  /* Pública porque es la que ENTREGA las credenciales: no se puede pedir el
+     testigo para pedir el testigo. Lo que la protege es el límite de intentos. */
+  entrar:    { guarda: 'publica', fn: atenderEntrar },
+
+  menu:      { guarda: 'menu',    fn: atenderMenu },
+
+  panel:     { guarda: 'montaje', fn: atenderPanel },
+  identidad: { guarda: 'montaje', fn: atenderIdentidad },
+  bloques:   { guarda: 'montaje', fn: atenderBloques },
+  sembrar:   { guarda: 'montaje', fn: atenderSembrar },
+  fotos:     { guarda: 'montaje', fn: atenderFotos },
+  foto:      { guarda: 'montaje', fn: atenderFoto },
+
+  sesion:    { guarda: 'panel',   fn: atenderSesion }
+};
+
+/* Devuelve el error si no pasa, o null si pasa. */
+function guardiaDe(puerta, p) {
+  if (puerta.guarda === 'publica' || puerta.guarda === 'menu') return null;
+  if (puerta.guarda === 'montaje') {
+    return String(p.t || '') === token()
+      ? null : { ok: false, error: 'Token que no corresponde a esta tienda.' };
+  }
+  if (puerta.guarda === 'panel') {
+    return leerTestigo(p.k) ? null : { ok: false, error: TESTIGO_MALO };
+  }
+  /* Una guardia que no existe NO deja pasar. Es la única respuesta sensata:
+     lo contrario es que una errata en el nombre abra la puerta de par en par. */
+  return { ok: false, error: 'Puerta mal declarada.' };
+}
+
 function doGet(e) {
   try {
     recordarMiUrl();
     var p = (e && e.parameter) ? e.parameter : {};
-    if (p.a === 'version')   return json({ ok: true, version: VERSION });
-    if (p.a === 'catalogo')  { contarLectura(); return json(conVersion(catalogoPublico())); }
-    if (p.a === 'validar')   return json(conVersion(validarPedido(p)));
-    if (p.a === 'registrar') return json(conVersion(registrarPedido(p)));
-    if (p.a === 'menu')      return json(atenderMenu(p));
-    if (p.a === 'panel')     return json(atenderPanel(p));
-    if (p.a === 'identidad') return json(atenderIdentidad(p));
-    if (p.a === 'bloques')   return json(atenderBloques(p));
-    if (p.a === 'sembrar')   return json(atenderSembrar(p));
-    if (p.a === 'fotos')     return json(atenderFotos(p));
-    if (p.a === 'foto')      return json(atenderFoto(p));
-    if (p.a) return json({ ok: false, error: 'Acción desconocida: ' + p.a, version: VERSION });
-    return ContentService.createTextOutput(
-      'Servicio activo. Versión ' + VERSION);
+    if (!p.a) return ContentService.createTextOutput('Servicio activo. Versión ' + VERSION);
+    var puerta = PUERTAS[p.a];
+    if (!puerta) return json({ ok: false, error: 'Acción desconocida: ' + p.a, version: VERSION });
+    var no = guardiaDe(puerta, p);
+    if (no) return json(no);
+    return json(puerta.fn(p));
   } catch (err) {
     registrarError(err, null);
     return json({ ok: false, error: 'No pudimos validar en este momento.' });
@@ -1803,9 +2134,6 @@ function idDeEsteProyecto() {
    aparte y con su propio aviso, para que se pueda diagnosticar en vez de
    fallar entero. */
 function atenderIdentidad(p) {
-  if (String(p.t || '') !== token()) {
-    return { ok: false, error: 'Token que no corresponde a esta tienda.' };
-  }
   var r = { ok: true, version: VERSION, scriptId: idDeEsteProyecto(),
             hojaId: HOJA_ID, url: urlLista(), hojaOk: false };
   try {
@@ -1833,9 +2161,6 @@ function atenderIdentidad(p) {
 }
 
 function atenderBloques(p) {
-  if (String(p.t || '') !== token()) {
-    return { ok: false, error: 'Token que no corresponde a esta tienda.' };
-  }
   try {
     /* PINTAR LA CELDA TIENE QUE BASTAR, Y NO BASTABA.
        La ayuda de la fila dice «PINTA la celda de al lado con el color que
@@ -1942,9 +2267,6 @@ function escribirConfiguracion(cambios) {
 }
 
 function atenderSembrar(p) {
-  if (String(p.t || '') !== token()) {
-    return { ok: false, error: 'Token que no corresponde a esta tienda.' };
-  }
   try {
     var c = leerConfiguracion();
     var forzar = String(p.forzar || '') === 'si';
@@ -2027,9 +2349,6 @@ function idDeCarpeta(v) {
 }
 
 function atenderFotos(p) {
-  if (String(p.t || '') !== token()) {
-    return { ok: false, error: 'Token que no corresponde a esta tienda.' };
-  }
   try {
     var it = carpetaDeFotos().getFiles();
     var lista = [];
@@ -2070,9 +2389,6 @@ function fotosQueUsaElCatalogo() {
 var FOTO_MAXIMA = 8 * 1024 * 1024;
 
 function atenderFoto(p) {
-  if (String(p.t || '') !== token()) {
-    return { ok: false, error: 'Token que no corresponde a esta tienda.' };
-  }
   try {
     var f = DriveApp.getFileById(String(p.id || ''));
     /* Que el archivo esté en LA carpeta configurada, no en cualquier parte del
@@ -2106,9 +2422,6 @@ function estaEnLaCarpeta(archivo) {
 }
 
 function atenderPanel(p) {
-  if (String(p.t || '') !== token()) {
-    return { ok: false, error: 'Token que no corresponde a esta tienda.' };
-  }
   try { return resumenParaPanel(); }
   catch (err) {
     registrarError('panel: ' + err.message, null);
@@ -2363,7 +2676,13 @@ function semillaDeConfiguracion() {
          fábrica es lo que la tienda ya hacía, así que un comercio que vuelva a
          correr instalar() no ve ningún cambio. Y esto decide SOLO la entrada:
          el comprador reordena por precio desde la tienda (C-4). */
-      ['orden_catalogo',   'Destacados primero', 'En qué orden ve el catálogo quien entra. Valores: Destacados primero · Como en la hoja · Precio: de menor a mayor · Precio: de mayor a menor · Nombre: de la A a la Z. El comprador puede reordenar por precio desde la tienda']
+      ['orden_catalogo',   'Destacados primero', 'En qué orden ve el catálogo quien entra. Valores: Destacados primero · Como en la hoja · Precio: de menor a mayor · Precio: de mayor a menor · Nombre: de la A a la Z. El comprador puede reordenar por precio desde la tienda'],
+
+      /* AL FINAL (R1). El usuario del panel, y SOLO el usuario: la clave no
+         está aquí ni puede estarlo — la hoja se comparte y las propiedades del
+         proyecto no—. Vacío = el panel está cerrado, que es como nace toda
+         tienda: no hay usuario de fábrica ni clave de fábrica. */
+      ['panel_usuario',    '', 'Con qué nombre entras al panel de tu tienda. Escríbelo aquí y después usa el menú > "Clave del panel" para que te dé una clave. Vacío = nadie puede entrar']
   ];
 }
 
@@ -4334,6 +4653,7 @@ var ACCIONES_MENU = {
   ver:           { rotulo: 'Ver mi tienda',                         fn: verMiTienda },
   actualizar:    { rotulo: 'Actualizar tablero e inventario',       fn: actualizarTodo },
   resumen:       { rotulo: 'Enviarme el resumen ahora',             fn: enviarResumenAhora },
+  clave:         { rotulo: 'Clave del panel',                        fn: claveDelPanel },
   diagnostico:   { rotulo: 'Diagnóstico',                           fn: diagnostico },
   ayuda:         { rotulo: 'Ayuda',                                 fn: ayuda },
   /* FUERA DEL MENÚ, PERO VIVAS. `generarConfiguracion` la sigue usando la
@@ -4351,7 +4671,7 @@ var ACCIONES_MENU = {
    dentro del sitio, un cambio de precio espera un despliegue: el flujo de cada
    cuatro horas es el techo y este botón es el suelo. Es lo primero que un
    comerciante quiere después de tocar un precio. */
-var ORDEN_MENU = ['publicar', 'ver', 'actualizar', 'resumen', 'diagnostico', 'ayuda'];
+var ORDEN_MENU = ['publicar', 'ver', 'actualizar', 'resumen', 'clave', 'diagnostico', 'ayuda'];
 /* generarStub NO está en el menú de la hoja: se ejecuta desde el maestro, que
    es donde estás cuando montas la tienda. Ponerlo en la hoja sería ofrecerle al
    cliente que se regenere a sí mismo. */

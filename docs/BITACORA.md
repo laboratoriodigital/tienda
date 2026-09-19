@@ -1392,3 +1392,70 @@ Lo pequeño que también costó: ordenar por nombre con `a.nombre < b.nombre`
 manda «Ñame» detrás de «Zanahoria», porque compara números de carácter y la Ñ
 vive después de la Z. En un catálogo colombiano eso se ve el primer día.
 `localeCompare(b, "es")` y una aserción que lo fija con ese mismo producto.
+
+
+---
+
+**35 · El emulador decía que sí a cualquier cosa, y llevaba meses haciéndolo.**
+D-1 empezó con una función de una línea en `pruebas/gas.js`:
+
+```js
+computeDigest: (alg, txt) => Array.from(Buffer.from(String(txt)))
+```
+
+Eso es la **identidad** con nombre de hash: devuelve los bytes del texto sin
+tocarlos. Llevaba ahí desde que el emulador existe y nunca importó, porque nada
+del maestro usaba `computeDigest`. El día que algo lo usara —guardar una clave—
+cualquier aserción del tipo «la clave no se puede leer dentro de la huella»
+habría pasado en verde sobre una huella que era la clave en claro.
+
+No es un fallo del código: es un fallo del **instrumento**, y esos no los caza
+ninguna prueba porque son el aparato con el que se mide. La regla que deja:
+**un emulador puede mentir en lo que todavía nadie usa, y el día que alguien lo
+use la mentira llega intacta y disfrazada de verde.** Antes de apoyar una
+decisión nueva en una pieza del emulador, se mira si esa pieza está de verdad
+implementada. Ahora `computeDigest` y `computeHmacSha256Signature` son el crypto
+de node — y devuelven los bytes CON SIGNO, que es como los devuelve Apps Script,
+para que olvidarse del `& 0xff` al pasarlos a hexadecimal se rompa aquí igual
+que se rompería en Google.
+
+Y dos decisiones de la historia que tienen poco que ver con criptografía:
+
+**Los errores que no se distinguen.** «Usuario o clave que no corresponden» es
+una sola frase para las dos cosas, y «Sesión no válida» una sola para «caducó»,
+«esa firma no es mía» y «ese testigo es de otra tienda». No es discreción: dos
+mensajes distintos convierten el formulario en un **buscador de usuarios** —se
+prueban nombres hasta que cambia la frase— y al que entró bien no le sirven de
+nada, porque haga lo que haga tiene que volver a entrar. La aserción está
+escrita comparando los dos textos con `===`, para que separarlos algún día
+«para ayudar al usuario» salga en rojo.
+
+**Y el contador cuenta los intentos de usuarios que no existen.** Contar solo
+los del usuario bueno es lo natural y es justo lo contrario de lo que hace
+falta: el contador se vuelve el detector — se prueban nombres y el que bloquea,
+existe.
+
+**36 · Once puertas, once guardias escritas a mano.** El maestro despachaba con
+una escalera de `if`, y cada función comprobaba su token por dentro. Funciona
+perfectamente hasta que alguien agrega la doce y se le olvida la suya — y ese
+olvido **no se ve**, porque una puerta sin guardia se comporta exactamente igual
+que una puerta que funciona. No falla, no avisa, no sale en ningún log: contesta.
+
+Ahora cada puerta declara a quién deja pasar en una tabla, la guardia se aplica
+en un solo sitio, y `esquema.js` fotografía la lista de puertas: una nueva
+obliga a un `--congelar`, que es un acto deliberado que aparece en el diff para
+que alguien lo mire. Se quitaron seis comprobaciones duplicadas.
+
+El detalle que parece paranoia y no lo es: una guardia con un nombre que no
+existe **no deja pasar**. La alternativa —seguir de largo si no se reconoce la
+guardia— significa que una errata en un nombre abre la puerta de par en par, y
+que la forma de fallar del sistema de permisos sea «permitir». Un permiso que
+falla abierto no es un permiso.
+
+Y el rojo que enseñó algo de rebote: agregar la séptima opción al menú rompió
+una aserción que exigía que el stub de la hoja cupiera en 70 líneas. El stub no
+estaba engordando — una opción cuesta exactamente una línea de la lista. Un tope
+fijo convierte cada opción nueva en un rojo que no significa nada, y **un rojo
+que no significa nada enseña a subir el número sin mirar**. El tope pasó a ser
+«64 más una por opción», que es lo que de verdad se quería vigilar: el stub
+creciendo por cualquier otra razón.

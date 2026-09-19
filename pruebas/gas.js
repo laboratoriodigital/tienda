@@ -7,6 +7,13 @@
    ============================================================================ */
 const fs = require('fs');
 
+/* Apps Script devuelve los bytes CON SIGNO (-128..127), que es la herencia de
+   Java. Emularlo importa: el código que los pasa a hexadecimal sin el
+   `& 0xff` da otra cosa, y con bytes sin signo esa diferencia no se ve. */
+const conSigno = buf => Array.from(buf).map(b => (b > 127 ? b - 256 : b));
+const aSinSigno = bytes => Buffer.from(bytes.map(b => (b < 0 ? b + 256 : b)));
+const algoritmoNode = alg => ({ MD5:'md5', SHA_1:'sha1', SHA_256:'sha256' }[alg] || 'sha256');
+
 /* El maestro trae dos constantes que se llenan a mano al instalarlo. El
    emulador las rellena igual que lo haría el instalador, para que las pruebas
    ejerciten el archivo tal como queda desplegado. */
@@ -275,14 +282,42 @@ function crear(rutaScript, opciones) {
       WeekDay: { SUNDAY: 'SUNDAY', MONDAY: 'MONDAY' }
     },
     Utilities: {
-      base64Encode: b => Buffer.from(String(b)).toString('base64'),
-      computeDigest: (alg, txt) => Array.from(Buffer.from(String(txt))),
-      DigestAlgorithm: { MD5: 'MD5' },
+      /* Con un arreglo de bytes se codifican LOS BYTES; con texto, su UTF-8.
+         Antes cualquier cosa pasaba por String(), así que un byte[] acababa
+         codificando la cadena "12,-34,56": parecía base64 y no era el
+         contenido. */
+      base64Encode: b => Buffer.from(Array.isArray(b) ? aSinSigno(b) : Buffer.from(String(b)))
+                               .toString('base64'),
+      base64EncodeWebSafe: b => Buffer.from(Array.isArray(b) ? aSinSigno(b) : Buffer.from(String(b)))
+                                      .toString('base64url'),
+      base64Decode: s => conSigno(Buffer.from(String(s), 'base64')),
+      base64DecodeWebSafe: s => conSigno(Buffer.from(String(s), 'base64url')),
+
+      /* HASH Y FIRMA DE VERDAD, Y NO ES UN LUJO.
+         `computeDigest` devolvía los bytes del texto sin tocarlos: una función
+         que se llama «hash» y es la identidad. Cualquier prueba de una clave
+         guardada con eso habría pasado en verde sin comprobar NADA —y desde
+         D-1 hay claves guardadas—. Se emula con el crypto de node, y con los
+         bytes CON SIGNO, que es como los devuelve Apps Script: si el maestro
+         se olvida del `& 0xff` al pasarlos a hexadecimal, tiene que romperse
+         aquí igual que se rompería en Google. */
+      computeDigest: (alg, txt) =>
+        conSigno(require('crypto').createHash(algoritmoNode(alg))
+                 .update(String(txt), 'utf8').digest()),
+      computeHmacSha256Signature: (valor, clave) =>
+        conSigno(require('crypto').createHmac('sha256', String(clave))
+                 .update(String(valor), 'utf8').digest()),
+      DigestAlgorithm: { MD5: 'MD5', SHA_1: 'SHA_1', SHA_256: 'SHA_256' },
       getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' + Math.random().toString(16).slice(2, 14),
-      newBlob: (contenido, tipo, nombre) => ({
-        _contenido: String(contenido), _tipo: tipo, _nombre: nombre,
-        getName: () => nombre, getDataAsString: () => String(contenido)
-      })
+      /* Con un arreglo de bytes, el blob son ESOS bytes y su texto es el UTF-8
+         que forman. Antes pasaba por String() y `getDataAsString()` devolvía
+         "104,111,108,97", que no se parece en nada a lo que devuelve Google. */
+      newBlob: (contenido, tipo, nombre) => {
+        const texto = Array.isArray(contenido)
+          ? aSinSigno(contenido).toString('utf8') : String(contenido);
+        return { _contenido: texto, _tipo: tipo, _nombre: nombre,
+                 getName: () => nombre, getDataAsString: () => texto };
+      }
     },
     PropertiesService: {
       getScriptProperties: () => ({
@@ -344,7 +379,16 @@ function crear(rutaScript, opciones) {
   const nombres = Object.keys(entorno);
   const declaradas = (codigo.match(/^function\s+([A-Za-z0-9_]+)/gm) || [])
     .map(d => d.replace(/^function\s+/, ''));
-  const devolver = '\n; return {' + declaradas.map(f => f + ': ' + f).join(', ') + '};';
+  /* Y LAS CONSTANTES DEL MÓDULO, no solo las funciones. Desde D-1 hay tablas
+     que SON el contrato —qué puertas existen y quién guarda cada una— y una
+     prueba que no las puede leer solo puede comprobarlas de rebote, probando
+     una por una las que ya conoce; justo la puerta nueva que a alguien se le
+     olvidó declarar es la que no aparecería en esa lista. */
+  const constantes = (codigo.match(/^var\s+([A-Za-z0-9_]+)\s*=/gm) || [])
+    .map(d => d.replace(/^var\s+/, '').replace(/\s*=$/, ''))
+    .filter(v => nombres.indexOf(v) === -1 && declaradas.indexOf(v) === -1);
+  const devolver = '\n; return {' +
+    declaradas.concat([...new Set(constantes)]).map(f => f + ': ' + f).join(', ') + '};';
   const api = new Function(...nombres, codigo + devolver).apply({}, nombres.map(k => entorno[k]));
 
   return { api, libro, hojas, toasts,

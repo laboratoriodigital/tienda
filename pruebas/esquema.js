@@ -43,12 +43,23 @@ function esquemaVivo() {
   const res = {
     hojas: hojas,
     configuracion: g.filas('Configuración').slice(1).map(f => String(f[0])),
+    /* LOS NOMBRES DE TODAS LAS PUERTAS, sacados de la tabla y no escritos a
+       mano. Es lo que obliga a que una puerta nueva pase por --congelar, que
+       es un acto deliberado que alguien mira. Una puerta que aparece sin que
+       nadie la vea es exactamente lo que no puede pasar en la cara de un
+       servicio público. */
+    nombresDePuertas: Object.keys(g.api.PUERTAS),
     puertas: {
       version:   Object.keys(puerta('version')),
       catalogo:  Object.keys(catalogo),
       identidad: Object.keys(puerta('identidad')),
       bloques:   Object.keys(puerta('bloques')),
-      panel:     Object.keys(puerta('panel'))
+      panel:     Object.keys(puerta('panel')),
+      /* Sin credenciales a propósito: lo que se fotografía es la forma con la
+         que se rechaza, que es tan contrato como la forma con la que se
+         acepta — la página la lee para saber si pintar el formulario. */
+      entrar:    Object.keys(JSON.parse(g.api.doGet({ parameter: { a: 'entrar' } })._texto)),
+      sesion:    Object.keys(JSON.parse(g.api.doGet({ parameter: { a: 'sesion' } })._texto))
     },
     registros: {
       producto: Object.keys((catalogo.productos || [])[0] || {}),
@@ -112,6 +123,9 @@ for (const h of Object.keys(foto.hojas)) {
 /* Aquí el orden también importa, y no por capricho: escribirConfiguracion()
    ubica la fila por posición para no tocar lo que el comerciante escribió. */
 comparar('CLAVES de Configuración', foto.configuracion, vivo.configuracion);
+
+/* ── 3 bis. Las puertas que existen ─────────────────────────────────────── */
+comparar('PUERTAS declaradas', foto.nombresDePuertas, vivo.nombresDePuertas);
 
 /* ── 4. Lo que sale por las puertas ─────────────────────────────────────── */
 /* El index.html de una tienda que todavía no se ha actualizado sigue leyendo

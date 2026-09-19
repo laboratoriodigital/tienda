@@ -131,7 +131,23 @@
     "autoria_url",
     "retracto_excepciones",
     "f_variantes",
-    "orden_catalogo"
+    "orden_catalogo",
+    "panel_usuario"
+  ],
+  "nombresDePuertas": [
+    "version",
+    "catalogo",
+    "validar",
+    "registrar",
+    "entrar",
+    "menu",
+    "panel",
+    "identidad",
+    "bloques",
+    "sembrar",
+    "fotos",
+    "foto",
+    "sesion"
   ],
   "puertas": {
     "version": [
@@ -203,6 +219,14 @@
       "tokenViejo",
       "rescates",
       "alta"
+    ],
+    "entrar": [
+      "ok",
+      "error"
+    ],
+    "sesion": [
+      "ok",
+      "error"
     ]
   },
   "registros": {

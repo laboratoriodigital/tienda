@@ -43,6 +43,7 @@ Te llega por WhatsApp y queda en la pestaña **Pedidos**. Cambia **Estado** a
 | **Ver mi tienda** | La abre como la ve un comprador |
 | **Actualizar tablero e inventario** | Recalcula ya, sin esperar la hora |
 | **Enviarme el resumen ahora** | Manda el correo del día en el momento |
+| **Clave del panel** | Te da una clave nueva para entrar a tu panel. Se ve **una sola vez** |
 | **Diagnóstico** | Revisa todo y dice qué está mal y **dónde** |
 | **Ayuda** | Las preguntas de siempre, contestadas |
 

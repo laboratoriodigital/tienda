@@ -467,6 +467,7 @@ El menú de su hoja tiene seis opciones, y conviene nombrárselas todas una vez:
 | **Ver mi tienda** | la abre como la ve un comprador |
 | **Actualizar tablero e inventario** | recalcula ya, sin esperar la hora |
 | **Enviarme el resumen ahora** | manda el correo del día en el momento |
+| **Clave del panel** | inventa la clave del panel y la enseña **una sola vez**. Cierra las sesiones abiertas |
 | **Diagnóstico** | revisa todo y dice qué está mal y dónde |
 | **Ayuda** | las preguntas de siempre, contestadas |
 

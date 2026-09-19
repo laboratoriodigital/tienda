@@ -268,7 +268,7 @@ Lo que llegó y no se pudo entender, y lo que se leyó mal. Existe para que un f
 
 ## 5. Las claves de `Configuración`
 
-Son 44. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
+Son 45. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
 **todas pueden estar vacías**: una tienda a medio configurar tiene que seguir
 sirviendo lo que sí sabe.
 
@@ -295,6 +295,7 @@ no pisar lo que el comerciante puso.
 | **El retracto** | `retracto_excepciones` — productos que no admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por \|. Vacío = ninguno queda excluido |
 | **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
 | **El orden del catálogo** | `orden_catalogo` — en qué orden ve el catálogo quien entra. De fábrica, `Destacados primero` |
+| **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
 **`orden_catalogo` (C-4).** Uno de estos cinco, escrito tal cual —se lee sin
 distinguir mayúsculas ni tildes—:
@@ -318,12 +319,47 @@ Un valor que no sea ninguno de los cinco **no deja la tienda sin vitrina**: se
 usa el de fábrica y se dice en la consola, con la lista de los buenos. Es la
 misma regla de fallo abierto del resto del catálogo.
 
+**`panel_usuario` (D-1).** El nombre con el que el comerciante entra a su panel.
+Va en la hoja porque no es un secreto —es un nombre, y tiene que poder verlo y
+cambiarlo sin llamar a nadie—. **La clave no va en la hoja nunca**: se pone
+desde el menú (*Clave del panel*), que la inventa, la enseña una sola vez y
+guarda solo su huella con sal en las propiedades del proyecto. La hoja se
+comparte; las propiedades no se comparten al compartir la hoja, y eso es toda la
+diferencia.
+
+Hasta dónde llega eso, dicho para que nadie lo dé por más de lo que es: quien
+pueda abrir el proyecto de Apps Script puede leer las propiedades, y quien pueda
+hacer eso ya tiene la hoja entera. La huella protege de que la clave acabe en
+una captura, en un correo de soporte o en un repositorio — que es por donde se
+pierden las claves de verdad. Contra adivinarla, lo que protege es el límite de
+cinco intentos y quince minutos.
+
+Vacío = **el panel está cerrado**. No hay usuario de fábrica ni clave de
+fábrica, y sin clave puesta no se entra — con la misma respuesta que ante una
+clave equivocada, porque «esta tienda todavía no tiene clave» le dice a
+cualquiera que hay una puerta sin cerradura.
+
 ---
 
 ## 6. Lo que sale por cada puerta
 
 Los nombres de primer nivel de cada respuesta. **Quitar uno rompe, desde el
 servidor, una tienda que nadie tocó.**
+
+**Y cada puerta declara a quién deja pasar** (`PUERTAS`, en el maestro). La
+guardia se aplica en un solo sitio, y una guardia mal escrita **no abre**: lo
+contrario es que una errata deje la puerta de par en par sin que se note.
+
+| Guardia | Quién pasa | Puertas |
+|---|---|---|
+| `publica` | cualquiera | `version` · `catalogo` · `validar` · `registrar` · `entrar` |
+| `montaje` | el token de despliegue (`?t=`) | `panel` · `identidad` · `bloques` · `sembrar` · `fotos` · `foto` |
+| `menu` | el token del stub. Se guarda a sí misma, porque además distingue el token viejo del nuevo para la migración | `menu` |
+| `panel` | el testigo del comerciante (`?k=`), ocho horas, de esta tienda | `sesion` |
+
+`entrar` es pública porque es la que **entrega** las credenciales: no se puede
+pedir el testigo para pedir el testigo. Lo que la protege es el límite de
+intentos, no la guardia.
 
 
 **`?a=version`** — `ok`, `version`
@@ -333,6 +369,10 @@ servidor, una tienda que nadie tocó.**
 **`?a=identidad`** — `ok`, `version`, `scriptId`, `hojaId`, `url`, `hojaOk`, `hoja`, `negocio`, `repositorio`
 
 **`?a=bloques`** — `ok`, `version`, `head`, `valores`, `scriptId`, `negocio`, `hoja`, `hojaId`, `alta`
+
+**`?a=entrar`** — `ok`, `error` · y cuando entra: `ok`, `testigo`, `usuario`, `vence`
+
+**`?a=sesion`** — `ok`, `error` · y con testigo bueno: `ok`, `usuario`, `vence`
 
 **`?a=panel`** — `ok`, `version`, `negocio`, `sitio`, `whatsapp`, `correo`, `hoja`, `productos`, `publicados`, `agotados`, `pocos`, `ventasMes`, `ventasMesAnterior`, `pedidosMes`, `ticket`, `tasaCierre`, `lecturasHoy`, `picoHora`, `cuotaCorreo`, `respaldo`, `ventasAyer`, `pedidosAyer`, `porConfirmar`, `atrasados`, `errores`, `meses`, `consultado`, `stub`, `tokenViejo`, `rescates`, `alta`
 

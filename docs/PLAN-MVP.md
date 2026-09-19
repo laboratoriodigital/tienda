@@ -789,15 +789,49 @@ del **panel** del comerciante. No son deuda: son M3.
 > Como comerciante, quiero entrar a administrar mi tienda con un usuario y una
 > clave, sin abrir una hoja de cálculo.
 
-- [ ] Usuario en la configuración; **hash con sal de la clave en las propiedades
-      del proyecto**, nunca en la hoja ni en el repositorio.
-- [ ] Al entrar, el maestro devuelve un testigo firmado con vencimiento de ocho
-      horas; el navegador lo manda en cada petición.
-- [ ] Cinco intentos fallidos bloquean quince minutos y quedan anotados.
-- [ ] Un testigo vencido o falseado se rechaza sin decir cuál de las dos cosas.
-- [ ] La clave se pone la primera vez desde el menú de la hoja, no por la web.
-- [ ] Batería de seguridad: sin testigo no se escribe nada; con testigo de otra
-      tienda tampoco.
+> **La mitad del maestro está cerrada.** Entrar, el testigo y todo lo que lo
+> protege existen y están probados (`entrar.js`, 46 aserciones, verificada ROJA
+> con siete defectos puestos). Lo que falta es la pantalla, y eso viaja con
+> D-2: la puerta `?a=sesion` está precisamente para que la página sepa si
+> pintar el panel o el formulario, sin tener que interpretar un testigo que no
+> puede verificar.
+
+- [x] Usuario en la configuración; **hash con sal de la clave en las propiedades
+      del proyecto**, nunca en la hoja ni en el repositorio. *(`panel_usuario`
+      en la hoja porque es un nombre y el comerciante tiene que poder verlo;
+      `PANEL_CLAVE` = `sal$huella` en las propiedades. Y está escrito hasta
+      dónde llega eso: quien pueda abrir el proyecto lee las propiedades y ya
+      tiene la hoja entera — la huella protege de que la clave acabe en una
+      captura o en un correo de soporte, que es por donde se pierden.)*
+- [x] Al entrar, el maestro devuelve un testigo firmado con vencimiento de ocho
+      horas; el navegador lo manda en cada petición (`?k=`). *(`usuario | vence
+      | hojaId | trozo de la huella`, firmado con una firma propia de esta
+      tienda.)*
+- [x] Cinco intentos fallidos bloquean quince minutos y quedan anotados.
+      *(Y cuentan **aunque el usuario no exista**: contar solo los del usuario
+      bueno convierte el contador en un detector de usuarios. Se anotan sin
+      agrupar, al revés que los errores normales: aquí lo repetido es el dato.)*
+- [x] Un testigo vencido o falseado se rechaza sin decir cuál de las dos cosas.
+      *(Una sola frase para los dos casos, y la misma para el que viene de otra
+      tienda.)*
+- [x] La clave se pone la primera vez desde el menú de la hoja, no por la web.
+      *(Y **la inventa el maestro** en vez de pedirla: desde una opción de menú
+      no hay forma de escribirla sin que viaje por la red, y una clave elegida
+      es el nombre del negocio con un 1 detrás. Se enseña una vez, no se puede
+      volver a ver, y volver a usar la opción cierra las sesiones abiertas.)*
+- [x] Batería de seguridad: sin testigo no se escribe nada; con testigo de otra
+      tienda tampoco. *(Y esa segunda **sigue parando aunque las dos tiendas
+      acabaran compartiendo la firma**, que es el escenario de los secretos
+      cruzados de `DESPLIEGUE.md` — el fallo más caro de este proyecto, porque
+      corre entero en verde. Sin el `hojaId` dentro del testigo, quitarlo no
+      rompería nada.)*
+- [x] **Cada puerta declara a quién deja pasar** (`PUERTAS`), y la guardia se
+      aplica en un solo sitio. *(Antes eran once `if` y once comprobaciones
+      escritas a mano dentro de cada función: el día que alguien agrega la doce
+      y se le olvida la suya, esa puerta se comporta exactamente igual que una
+      que funciona. Ahora `esquema.js` fotografía la lista, así que una puerta
+      nueva obliga a un `--congelar`, que es un acto deliberado que alguien
+      mira; y una guardia mal escrita **no abre**.)*
 
 **D-2 · Productos**  · 8 pts *(partir: listar+editar / crear+borrar / foto)*
 - [ ] Listar con búsqueda y filtro; crear, editar, activar/desactivar y borrar.
