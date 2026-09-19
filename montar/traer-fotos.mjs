@@ -61,30 +61,62 @@ function novedades(archivos, registro) {
    propia copia, no la que se publica. */
 async function convertir(sharp, ruta, nombre, destino = PUBLICADAS) {
   const raiz = basename(nombre, extname(nombre));
-  const img = sharp(ruta).rotate();              // respeta la orientación EXIF
-  const meta = await img.metadata();
-  let salida = 0;
-  const pesos = [];
+  const meta = await sharp(ruta).rotate().metadata();
 
-  for (const ancho of ANCHOS) {
+  /* B-4 · LOS CUATRO TAMAÑOS, A LA VEZ. Iban uno detrás de otro, y no se
+     esperaban por ninguna razón: son cuatro lecturas del MISMO archivo de
+     entrada que escriben cuatro archivos distintos. No comparten nada, así que
+     no hay orden que respetar.
+
+     Promise.all conserva el orden del arreglo, así que `pesos` sigue saliendo
+     en el orden de ANCHOS y el log se lee igual que siempre. */
+  const derivadas = ANCHOS.map(ancho => {
     // No agrandamos: una foto de 400 px no mejora estirada a 900.
     const w = Math.min(ancho, meta.width || ancho);
-    const info = await sharp(ruta).rotate()
+    return sharp(ruta).rotate()
       .resize(w, w, { fit: 'cover', position: 'attention' })
       .webp({ quality: CALIDAD })
-      .toFile(join(destino, `${raiz}-${ancho}.webp`));
-    pesos.push(`${ancho}:${kb(info.size)}`);
-    salida += info.size;
-  }
+      .toFile(join(destino, `${raiz}-${ancho}.webp`))
+      .then(info => ({ ancho, size: info.size }));
+  });
 
   // El respaldo con el nombre lógico, que es el que va en la hoja.
-  const info = await sharp(ruta).rotate()
+  const respaldo = sharp(ruta).rotate()
     .resize(Math.min(900, meta.width || 900), null, { withoutEnlargement: true })
     .jpeg({ quality: CALIDAD, mozjpeg: true })
     .toFile(join(destino, `${raiz}.jpg`));
-  salida += info.size;
+
+  const hechas = await Promise.all([...derivadas, respaldo]);
+  const pesos = hechas.slice(0, ANCHOS.length).map(d => `${d.ancho}:${kb(d.size)}`);
+  const salida = hechas.reduce((s, d) => s + d.size, 0);
 
   return { pesos, salida };
+}
+
+/* B-4 · LA REGLA DE LAS TANDAS, EN UN SOLO SITIO Y COMPROBABLE.
+   ----------------------------------------------------------------------------
+   Corre `hacer` sobre `items` en tandas de `tanda`, y devuelve los que fallaron
+   en vez de relanzar el primero.
+
+   Las dos promesas que hace son las dos que importan y las dos se pueden
+   comprobar sin red ni Drive, que es por lo que esto es una función exportada y
+   no cuatro líneas dentro de main(): **nunca corren más de `tanda` a la vez**, y
+   **uno que falla no impide los demás**.
+
+   Lo segundo no es un detalle. Antes, una foto corrupta en el Drive reventaba la
+   corrida entera: el comerciante subía doce, una venía mal, y no se publicaba
+   NINGUNA. El daño no era la foto rota — era que las once buenas se quedaban
+   fuera de la tienda, y sin abrir el log no había forma de saber por qué. */
+export async function enTandas(items, tanda, hacer) {
+  const fallos = [];
+  for (let i = 0; i < items.length; i += tanda) {
+    const lote = items.slice(i, i + tanda);
+    const r = await Promise.allSettled(lote.map(hacer));
+    r.forEach((x, j) => {
+      if (x.status === 'rejected') fallos.push({ item: lote[j], error: x.reason });
+    });
+  }
+  return fallos;
 }
 
 async function borrarGeneradas(nombre) {
@@ -195,19 +227,45 @@ async function main() {
      terminar, un fallo a mitad dejaba un log que acababa en la foto ANTERIOR:
      la que reventó no aparecía por ninguna parte. Ahora la última línea del
      log es siempre la que se estaba bajando. */
-  let van = 0;
-  for (const a of nuevas) {
-    van++;
-    console.log(`  · [${van}/${nuevas.length}] bajando ${a.nombre}  (${kb(a.bytes)})`);
-    const foto = await alMaestro(tienda, 'foto', { id: a.id });
-    const ruta = join(ORIGINALES, a.nombre);
-    await writeFile(ruta, Buffer.from(foto.contenido, 'base64'));
+  /* B-4 · EN TANDAS DE CUATRO. Iban de una en una, y cada una es sobre todo
+     ESPERA: la petición al maestro por el contenido en base64 domina el reloj y
+     no gasta nada mientras viaja. Cuatro a la vez es donde está la rodilla —más
+     es pedirle a Apps Script cuatro ejecuciones simultáneas más por nada, y
+     sharp empieza a competir consigo mismo por los núcleos del runner.
 
-    const { pesos, salida } = await convertir(sharp, ruta, a.nombre);
-    registro[a.nombre] = { id: a.id, modificado: a.modificado, bytes: a.bytes };
-    console.log(`  + ${a.nombre.padEnd(26)} ${kb(a.bytes).padStart(8)}  ->  ${pesos.join('  ')}` +
-                `   (${kb(salida)})`);
+     No es un `Promise.all` sobre las veinte: una tanda entera termina antes de
+     empezar la siguiente, así que nunca hay más de cuatro descargas vivas ni
+     más de cuatro originales a medio escribir. */
+  const TANDA = 4;
+  const fallidas = [];
+  let van = 0;
+
+  async function unaFoto(a) {
+    const mia = ++van;
+    console.log(`  · [${mia}/${nuevas.length}] bajando ${a.nombre}  (${kb(a.bytes)})`);
+    try {
+      const foto = await alMaestro(tienda, 'foto', { id: a.id });
+      const ruta = join(ORIGINALES, a.nombre);
+      await writeFile(ruta, Buffer.from(foto.contenido, 'base64'));
+
+      const { pesos, salida } = await convertir(sharp, ruta, a.nombre);
+      registro[a.nombre] = { id: a.id, modificado: a.modificado, bytes: a.bytes };
+      console.log(`  + ${a.nombre.padEnd(26)} ${kb(a.bytes).padStart(8)}  ->  ${pesos.join('  ')}` +
+                  `   (${kb(salida)})`);
+    } catch (e) {
+      console.log(`  ✗ ${a.nombre.padEnd(26)} NO se pudo traer`);
+      throw e;                       // lo recoge enTandas, que lleva la cuenta
+    }
   }
+
+  /* El orden de las líneas ya no es el orden de las fotos, y por eso el fallo
+     no puede depender de «la última línea del log es la que reventó», como
+     dependía antes. Cada fallo dice su nombre, y al final se listan todos. */
+  const fallos = await enTandas(nuevas, TANDA, unaFoto);
+  fallos.forEach(f => fallidas.push({
+    nombre: f.item.nombre,
+    porque: String((f.error && f.error.message) || f.error).split('\n')[0]
+  }));
 
   // Ordenado por nombre para que el diff del repositorio sea legible y no
   // cambie de orden cada vez que Drive devuelve las cosas en otro orden.
@@ -215,8 +273,23 @@ async function main() {
   Object.keys(registro).sort().forEach(k => { ordenado[k] = registro[k]; });
   await writeFile(REGISTRO, JSON.stringify(ordenado, null, 2) + '\n');
 
-  console.log(`\n${nuevas.length} bajada(s), ${borradas.length} quitada(s).`);
-  if (nuevas.length) {
+  const buenas = nuevas.length - fallidas.length;
+  console.log(`\n${buenas} bajada(s), ${borradas.length} quitada(s).`);
+
+  /* SI FALLAN DOS, SE LISTAN LAS DOS. Un mensaje que dice «hubo un problema con
+     las fotos» obliga a leer el log entero para saber cuál; y si el log está
+     cortado —que es lo normal en Actions— no se sabe nunca. */
+  if (fallidas.length) {
+    console.log(`\n${fallidas.length} foto(s) NO se pudieron traer. Las demás sí se publican:`);
+    fallidas.forEach(f => console.log(`  ✗ ${f.nombre.padEnd(26)} ${f.porque}`));
+    console.log('\nNinguna quedó anotada en el registro, así que la próxima corrida\n' +
+                'las vuelve a intentar. Si una insiste, mira que exista en el Drive y\n' +
+                'que la cuenta de la tienda pueda leerla.');
+    console.log('::warning::' + fallidas.length + ' foto(s) no se pudieron traer: ' +
+                fallidas.map(f => f.nombre).join(', '));
+  }
+
+  if (buenas) {
     console.log('En la hoja, la columna Imágenes se escribe con el nombre tal cual: ' +
                 nuevas[0].nombre);
   }

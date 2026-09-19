@@ -600,10 +600,17 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 - [ ] El estado caduca a los diez minutos: nunca es una caché entre corridas.
 
 **B-4 · Fotos en paralelo**  · 3 pts
-- [ ] Descarga y conversión en tandas de cuatro; los cuatro tamaños de cada foto
-      a la vez.
-- [ ] **Cada error sigue nombrando su foto**; si fallan dos, se listan las dos.
-- [ ] Una foto que falla no impide publicar lo demás.
+- [x] Descarga y conversión en tandas de cuatro; los cuatro tamaños de cada foto
+      a la vez. *(Los cuatro tamaños eran cuatro lecturas del mismo archivo que
+      no compartían nada y se esperaban igual.)*
+- [x] **Cada error sigue nombrando su foto**; si fallan dos, se listan las dos.
+      *(Al final, todas juntas: en Actions el log viene cortado y «hubo un
+      problema con las fotos» obliga a leerlo entero.)*
+- [x] Una foto que falla no impide publicar lo demás. *(Era el fallo grave:
+      doce fotos con una corrupta publicaban CERO. La regla vive en
+      `enTandas()`, exportada para poder probarla sin Drive ni maestro, y las
+      que fallan quedan FUERA del registro para que la próxima corrida las
+      reintente.)*
 
 **B-5 · Las cachés dejan de perderse enteras**  · 2 pts
 - [x] `restore-keys` en la caché del navegador de pruebas. *(En los tres

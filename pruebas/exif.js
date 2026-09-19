@@ -110,6 +110,58 @@ async function fotoConGps() {
      JSON.stringify(ANCHOS_CAT) === JSON.stringify(ANCHOS),
      'genera ' + JSON.stringify(ANCHOS) + ' · lista ' + JSON.stringify(ANCHOS_CAT));
 
+  /* ═══ B-4 · LAS FOTOS, EN TANDAS Y SIN QUE UNA SE LLEVE A LAS DEMÁS ═══
+     Se prueba `enTandas` directamente, que es donde vive la regla, y no a
+     través de main(): probarlo ahí exigiría un maestro falso y un Drive falso,
+     y lo que hay que comprobar no tiene nada que ver ni con uno ni con otro. */
+  {
+    const { enTandas } = await import('../montar/traer-fotos.mjs');
+
+    let vivos = 0, pico = 0;
+    const hechos = [];
+    const fallos = await enTandas([1, 2, 3, 4, 5, 6, 7], 4, async n => {
+      vivos++; pico = Math.max(pico, vivos);
+      await new Promise(r => setTimeout(r, 5));
+      vivos--;
+      if (n === 3 || n === 6) throw new Error('esta foto vino rota (' + n + ')');
+      hechos.push(n);
+    });
+
+    /* LO QUE MÁS IMPORTA: una foto rota no se lleva por delante a las demás.
+       Antes, doce fotos con una corrupta publicaban CERO. */
+    ok('B-4 · UNA QUE FALLA no impide las demás',
+       hechos.length === 5 && !hechos.includes(3) && !hechos.includes(6),
+       'hechas ' + hechos.join(',') + ' de 7');
+    /* Y SI FALLAN DOS, SE LISTAN LAS DOS. Un «hubo un problema con las fotos»
+       obliga a leer el log entero, y en Actions el log viene cortado. */
+    ok('  ...y las que fallan se devuelven TODAS, cada una con lo suyo',
+       fallos.length === 2 &&
+       fallos.map(f => f.item).join(',') === '3,6' &&
+       fallos.every(f => /vino rota/.test(String(f.error.message))),
+       fallos.map(f => f.item + ':' + f.error.message).join(' · '));
+    ok('  ...sin relanzar la primera, que es lo que tumbaba la corrida entera',
+       Array.isArray(fallos), 'enTandas devuelve los fallos, no los lanza');
+
+    ok('B-4 · NUNCA corren más de una tanda a la vez',
+       pico === 4, 'pico de ' + pico + ' con tandas de 4');
+    ok('  ...y con menos elementos que la tanda, no se inventa concurrencia',
+       (await (async () => { let v = 0, p = 0;
+          await enTandas([1, 2], 4, async () => { v++; p = Math.max(p, v);
+            await new Promise(r => setTimeout(r, 5)); v--; });
+          return p; })()) === 2,
+       'dos elementos y tanda de cuatro: dos a la vez, no cuatro');
+
+    /* LOS CUATRO TAMAÑOS DE UNA FOTO, A LA VEZ, Y EN ORDEN. Promise.all
+       conserva el orden del arreglo: si alguien lo cambiara por un bucle de
+       carreras, `pesos` saldría desordenado y el log dejaría de ser comparable
+       entre corridas. */
+    const fuente = fs.readFileSync(__dirname + '/../montar/traer-fotos.mjs', 'utf8');
+    ok('B-4 · LOS CUATRO TAMAÑOS de cada foto se generan a la vez',
+       /await Promise\.all\(\[\.\.\.derivadas, respaldo\]\)/.test(fuente) &&
+       !/for \(const ancho of ANCHOS\)/.test(fuente),
+       'eran cuatro lecturas del mismo archivo que no compartían nada');
+  }
+
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
   fs.rmSync(tmp, { recursive: true, force: true });

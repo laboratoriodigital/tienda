@@ -2228,11 +2228,23 @@ const configurar = (g, clave, valor) => {
      /TimeoutError/.test(t) && /accion \+ '»'/.test(t) && /extra\.id/.test(t),
      '«fetch failed» a secas manda a buscar un problema de red que no era');
 
+  /* SE ANUNCIA ANTES DE BAJAR. Mientras la línea se escribía al terminar, un
+     fallo a mitad dejaba un log que acababa en la foto ANTERIOR: la que reventó
+     no aparecía por ningún lado.
+
+     Desde B-4 las fotos van en tandas de cuatro, así que el razonamiento de
+     antes —«la última línea del log es la que reventó»— ya no vale: hay cuatro
+     en vuelo y el orden de las líneas no es el de las fotos. Lo que sigue
+     valiendo, y es lo que esta aserción defiende, es que **ninguna foto llega a
+     bajarse sin haberse anunciado**. Quién falló lo dice ahora la lista del
+     final, que las nombra todas. */
   ok('EL PROGRESO se anuncia ANTES de bajar la foto, no después',
      tf.indexOf('bajando ${a.nombre}') < tf.indexOf("await alMaestro(tienda, 'foto'"),
-     'así la última línea del log es siempre la que reventó');
+     'una foto que revienta sin haberse anunciado no aparece en ninguna parte');
+  /* El nombre de la variable no se fija aquí: lo que importa es la FORMA
+     «[n/total]», no cómo se llame el contador. */
   ok('  ...y numerada, para saber cuántas faltaban',
-     /\[\$\{van\}\/\$\{nuevas\.length\}\]/.test(tf));
+     /\[\$\{\w+\}\/\$\{nuevas\.length\}\]/.test(tf));
 
   /* Rechazar antes de pedir: gastar cinco minutos para terminar en un plantón
      que no dice cuál era es el peor de los dos mundos. */
