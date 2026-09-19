@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-12-1",
- "generado": "2026-09-18T18:12:54.339Z",
+ "generado": "2026-09-19T06:55:39.206Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -17,7 +17,24 @@
    "destacado": true,
    "referencia": "",
    "precioAntes": 0,
-   "umbralBajo": 0
+   "umbralBajo": 0,
+   "variantes": [
+    {
+     "nombre": "Talla",
+     "opciones": [
+      "S",
+      "M",
+      "L"
+     ]
+    },
+    {
+     "nombre": "Color",
+     "opciones": [
+      "Rosa",
+      "verde"
+     ]
+    }
+   ]
   }
  ],
  "envios": [
@@ -65,6 +82,7 @@
   "f_autoria": "Sí",
   "autoria_url": "laboratoriodigital.co",
   "retracto_excepciones": "",
+  "f_variantes": "Sí",
   "tope_pago": "12110000"
  },
  "fotos": {
