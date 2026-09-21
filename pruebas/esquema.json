@@ -152,7 +152,13 @@
     "guardar_producto",
     "activar_producto",
     "borrar_producto",
-    "subir_foto"
+    "subir_foto",
+    "pedidos",
+    "estado_pedido",
+    "configuracion",
+    "guardar_configuracion",
+    "publicacion",
+    "publicar"
   ],
   "puertas": {
     "version": [

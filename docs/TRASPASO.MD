@@ -27,7 +27,8 @@ actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 | **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
 | **M1** · Rendimiento y cuota | **Cerrado.** Las siete historias. De B-2 quedan abiertos sus dos criterios de panel, que son M3 y no deuda |
 | **M2** · La tienda para todo producto | C-1 (variantes), C-2 (SEO) y C-4 (orden del catálogo) **cerradas**. Faltan **C-3** y **C-1b** — inventario y fotos por variante, agregada el 21 de septiembre (decisión 11) |
-| **M3** · El panel del comerciante | D-1 (entrar) y D-2 (productos y fotos) **cerradas**: `publicar/admin.html` existe y funciona. Faltan D-3 a D-7 |
+| **M3** · El panel del comerciante | D-1 a D-5 **cerradas**: el panel entra, edita productos y fotos, cambia el estado de los pedidos, edita la configuración del comerciante y publica. Faltan D-6 (registro de cambios) y D-7 (guía) |
+| **M3.5** · Cobrar en línea | Escrita el 21 de septiembre. Empieza por E-1, apartar la unidad. El proveedor espera la decisión 12 |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
 
@@ -45,19 +46,17 @@ real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
 entero por delante. Los dos, holgadamente dentro del presupuesto de
 `presupuesto.json`.
 
-Por donde sigue una sesión nueva: **D-3, pedidos desde el panel**. La pantalla
-ya existe —`publicar/admin.html`, horneada por `montar/preparar-admin.mjs`— y
-todo lo que D-3 necesita del maestro ya tiene su patrón en D-2: puertas
-declaradas en `PUERTAS` con guardia `panel` y `soloPost`, escrituras dentro de
-`conOperacion` (llave + número de operación) y, cuando se edita algo que otro
-puede estar tocando, la `version` de la fila. Cambiar el estado de un pedido
-tiene que mover el inventario igual que hacerlo en la hoja: eso ya lo hace
-`aplicarInventario`, y D-3 lo tiene que llamar, no copiar.
+Por donde sigue una sesión nueva: **D-6, el registro de cambios**. Todas las
+escrituras del panel ya pasan por un solo sitio —`conOperacion`, con llave y
+número de operación—, así que la fila del registro se escribe ahí una vez y no
+en cada puerta. Las ediciones a mano de la hoja pasan por `alEditar`, que ya
+distingue qué hojas cambian la vitrina (`hojasQueSePublican`). Después **D-7**,
+la guía del comerciante rehecha para el panel.
 
-Después, por orden del dueño: D-4 a D-7, y **C-1b** —el stock y las fotos por
-combinación—, escrita en el plan con sus decisiones tomadas y las dos que quedan
-por tomar. **C-3** (envío gratis anunciado, horario, tienda cerrada, mínimo de
-pedido) sigue pendiente y no depende de nada.
+Luego, por orden del dueño: **C-1b** —stock y fotos por combinación, con sus
+topes ya decididos (3 tipos, 20 valores, 100 combinaciones)—, **C-3** (envío
+gratis anunciado, horario, tienda cerrada, mínimo de pedido) y **M3.5**,
+empezando por E-1.
 
 Un pendiente chico que no es de ninguna historia: `publicar/404.html` todavía
 dice «Orgánico» y lleva sus colores. Es de la línea anterior y ninguna batería

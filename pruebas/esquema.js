@@ -124,6 +124,26 @@ for (const h of Object.keys(foto.hojas)) {
    ubica la fila por posición para no tocar lo que el comerciante escribió. */
 comparar('CLAVES de Configuración', foto.configuracion, vivo.configuracion);
 
+/* ── 3 ter. Ninguna constante del maestro nace con huecos ────────────────── */
+/* En Apps Script una `var` existe desde la primera línea pero vale undefined
+   hasta que se llega a la suya. Una lista escrita ARRIBA en el archivo con
+   nombres que se declaran ABAJO queda llena de undefined, y no falla: solo no
+   encuentra nada. Pasó con la lista de hojas que se publican (D-5), y los
+   cambios hechos en la hoja dejaron de contar sin un error en ninguna parte.
+   Esto lo mira para todas las constantes a la vez. */
+{
+  const g = crear('./as.js');
+  const conHuecos = [];
+  for (const [k, v] of Object.entries(g.api)) {
+    if (typeof v === 'function') continue;
+    const txt = v === undefined ? '__HUECO__'
+      : JSON.stringify(v, (kk, vv) => vv === undefined ? '__HUECO__' : vv);
+    if (txt && txt.indexOf('__HUECO__') !== -1) conHuecos.push(k);
+  }
+  ok('NINGUNA CONSTANTE DEL MAESTRO nace con huecos (undefined por el orden del archivo)',
+     conHuecos.length === 0, conHuecos.join(', '));
+}
+
 /* ── 3 bis. Las puertas que existen ─────────────────────────────────────── */
 comparar('PUERTAS declaradas', foto.nombresDePuertas, vivo.nombresDePuertas);
 

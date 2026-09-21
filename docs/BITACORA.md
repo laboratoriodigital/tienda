@@ -1565,3 +1565,45 @@ ese segundo camino; ahora exige que no exista. Y dos documentos decían que
 versión que agrega una opción al menú. Esa frase, leída al pie de la letra, es
 la que hizo que la opción *Clave del panel* no apareciera hasta regenerar el
 stub.
+
+**41 · La tercera copia de la regla de venta, y el cupón que nunca se agotaba.**
+D-3 hace que el panel cambie el estado de un pedido «con el mismo efecto que en
+la hoja». Para probarlo había que mirar TODO lo que la hoja hace al cambiar un
+estado, y ahí estaba: `recalcularResumen` decidía qué es una venta con
+`indexOf('confirmado')`, una regla anterior a la lista de estados. «Pagado» —el
+estado que el comerciante usa de verdad— no contaba en *Más vendidos* ni en los
+usos de un cupón. **Un cupón con tope de 50 usos no se agotaba nunca.** Nadie lo
+había visto porque el síntoma es la ausencia de algo. Es el patrón 2 otra vez:
+`esVenta` ya existía y ya lo usaban el inventario y el tablero; esta era la
+tercera copia de la regla, escrita antes que las otras dos y nunca migrada.
+Arreglado con `esVenta`, y el panel y `alEditar` llaman ahora a la misma
+función (`trasCambiarEstado`) en vez de a dos listas de pasos. La prueba
+(`panelpedidos.js`) gasta un cupón de un uso con un pedido *Pagado* y se
+verificó en rojo con la regla vieja puesta.
+
+**42 · Una constante que nacía con huecos.** `HOJAS_QUE_SE_PUBLICAN` se declaró
+como `[H_CATALOGO, H_CONFIG, H_ENVIOS]` arriba del archivo, antes de que esas
+tres existieran. En Apps Script el archivo se ejecuta de arriba abajo: la lista
+nació `[undefined, undefined, undefined]` y «editar el Catálogo a mano» nunca
+habría marcado cambios sin publicar. Pasó las pruebas del panel —que guardan
+por el panel— y lo cazó la de la hoja. Ahora es una función. Y como el hueco es
+de una clase entera y no de esa línea, `esquema.js` tiene una aserción nueva:
+**ninguna constante del maestro nace con `undefined` dentro**. Se comprobó en
+rojo devolviendo la lista a su forma vieja.
+
+**43 · La prueba que fallaba una de cada sesenta.** `entrar.js` se caía de vez
+en cuando, y no era el código de entrar: el `getUuid` del emulador a veces daba
+menos de 32 cifras hexadecimales (un número pequeño sin ceros a la izquierda) y
+el testigo no pasaba su propia validación de forma. Arreglado en el emulador;
+80 corridas seguidas limpias. Un rojo intermitente que se ignora enseña a
+ignorar rojos: se persigue hasta la causa aunque la causa esté en la prueba.
+
+**44 · Esperas que colgaban la corrida en vez de fallar.** Al verificar en rojo
+la interfaz de D-3/D-4 —quitando el segundo toque de «Cancelar», o el error
+junto al campo— la batería no decía FALLA: se quedaba colgada hasta que la
+mataba el tope, sin una línea que leer. Las esperas nuevas de `admin.js` ya no
+revientan la corrida: si se agota, la aserción siguiente es la que falla y dice
+por qué. Un defecto tiene que producir un rojo legible, o no sirve de control.
+Queda escrito un hueco: el test de navegador solo ve la barra de publicar en el
+estado «no está configurado» (el servidor de pruebas no tiene GitHub); los otros
+estados los cubre `panelpublicar.js` del lado del maestro, no la página.

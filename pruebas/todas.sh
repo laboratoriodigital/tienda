@@ -114,7 +114,8 @@ BATERIAS="e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
           pedidos.js correo.js presentacion.js menu.js tablero.js esquema.js \
           calendario.js respaldo.js marca.js plantilla.js worker.js legal.js \
           determinismo.js escribe.js limites.js tiempos.js sondeo.js seo.js variantes.js \
-          varpag.js orden.js entrar.js productos.js admin.js"
+          varpag.js orden.js entrar.js productos.js admin.js \
+          panelpedidos.js panelconfig.js panelpublicar.js"
 
 # ── CUATRO, Y NO UNO POR NÚCLEO ─────────────────────────────────────────────
 # Esto decía «uno por núcleo hasta cuatro», con el razonamiento de que cada

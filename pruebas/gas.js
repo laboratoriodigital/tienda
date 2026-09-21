@@ -325,7 +325,13 @@ function crear(rutaScript, opciones) {
         conSigno(require('crypto').createHmac('sha256', String(clave))
                  .update(String(valor), 'utf8').digest()),
       DigestAlgorithm: { MD5: 'MD5', SHA_1: 'SHA_1', SHA_256: 'SHA_256' },
-      getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' + Math.random().toString(16).slice(2, 14),
+      /* Doce hexadecimales SIEMPRE, como un UUID de verdad. `Math.random()`
+         pasado a hexadecimal a veces da menos cifras, y entonces la sal de
+         una clave salía de 31 caracteres una vez de cada sesenta: entrar.js
+         fallaba de tanto en tanto por el emulador, no por el maestro. Un rojo
+         intermitente es el peor rojo — enseña a volver a correr hasta el verde. */
+      getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' +
+        (Math.random().toString(16).slice(2) + '000000000000').slice(0, 12),
       /* Con un arreglo de bytes, el blob son ESOS bytes y su texto es el UTF-8
          que forman. Antes pasaba por String() y `getDataAsString()` devolvía
          "104,111,108,97", que no se parece en nada a lo que devuelve Google. */

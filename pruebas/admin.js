@@ -247,6 +247,109 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
   ok('RECARGAR LA PÁGINA no pide entrar otra vez: la sesión es de la pestaña',
      await visible('#panel'));
 
+  /* Una espera que se agota NO corta la corrida: la aserción que sigue es la que
+     tiene que decir FALLA y por qué. Si no, un defecto deja la batería colgada
+     sin una sola línea que leer. */
+  const quizas = pr => pr.catch(() => {});
+
+  // ═══ 9b. La barra de publicar (D-5) ═══
+  await quizas(hasta(p, () => /\S/.test(document.querySelector('#textoPublicar').textContent) &&
+                       !/Revisando/.test(document.querySelector('#textoPublicar').textContent)));
+  ok('LA BARRA DE PUBLICAR dice algo concreto, y siempre que guardar no publica',
+     /cuando publicas/.test(await texto('#textoPublicar')) && /\S/.test((await texto('#textoPublicar')).split('Guardar no publica')[0]),
+     (await texto('#textoPublicar')).slice(0, 80));
+
+  // ═══ 9c. Pedidos (D-3) ═══
+  const registrar = (ped, items) => fetch(U + '/exec?a=registrar&pedido=' + ped +
+    '&ciudad=Bogot%C3%A1&cupon=&envio=zona-norte&sub=0&items=' + encodeURIComponent(items));
+  await registrar('PANEL1', 'croissant:2');
+  await registrar('PANEL2', 'croissant:1');
+  const lineasDe = async ped => ((await hojas())['Pedidos'] || []).filter(f => String(f[1]) === ped);
+  const stock = async id => Number((await fila(id))[5]);
+  const stock0 = await stock('croissant');
+
+  await p.click('#tab-pedidos');
+  await quizas(hasta(p, () => document.querySelectorAll('#listaPedidos .fila').length >= 2));
+  ok('LA PESTAÑA PEDIDOS lista los pedidos de la hoja',
+     await p.locator('#listaPedidos .fila[data-pedido="PANEL1"]').count() === 1 &&
+     await p.locator('#listaPedidos .fila[data-pedido="PANEL2"]').count() === 1);
+  ok('  ...con un filtro por estado que dice cuántos hay',
+     /Nuevo · 2/.test(await texto('#chipsEstados')), await texto('#chipsEstados'));
+
+  await p.click('#listaPedidos .fila[data-pedido="PANEL1"] button[data-accion="ver"]');
+  await quizas(hasta(p, () => !document.querySelector('#pedido').hidden));
+  ok('VER UN PEDIDO muestra lo que se compró', /Croissant de mantequilla/.test(await texto('#detallePedido')) &&
+     /2 ×/.test(await texto('#detallePedido')));
+
+  await p.selectOption('#p-estado', 'pagado');
+  ok('ELEGIR «Pagado» DICE ANTES DE GUARDAR que se descuenta del inventario',
+     /se descuentan del inventario: 2 × Croissant/.test(await texto('#p-efecto')), await texto('#p-efecto'));
+  await p.click('#guardarPedido');
+  await quizas(hasta(p, () => /Listo/.test(document.querySelector('#avisoPedido').textContent)));
+  let lp = await lineasDe('PANEL1');
+  ok('  ...y al guardar pasa en la hoja lo mismo que si se cambiara allá',
+     lp[0][3] === 'Pagado' && /Descontado/.test(lp[0][12]) && (await stock('croissant')) === stock0 - 2,
+     lp[0][3] + ' · ' + lp[0][12] + ' · stock ' + (await stock('croissant')));
+
+  await p.selectOption('#p-estado', 'cancelado');
+  ok('CANCELAR UN PEDIDO PAGADO avisa que el stock VUELVE',
+     /VUELVEN al inventario/.test(await texto('#p-efecto')), await texto('#p-efecto'));
+  await p.click('#guardarPedido');
+  await quizas(hasta(p, () => !document.querySelector('#guardarPedidoSi').hidden));
+  lp = await lineasDe('PANEL1');
+  ok('  ...y pide un segundo toque: el primero no cambia nada',
+     (await visible('#guardarPedidoSi')) && lp[0][3] === 'Pagado', lp[0][3]);
+  if (await visible('#guardarPedidoSi')) await p.click('#guardarPedidoSi');
+  await quizas(hasta(p, () => /Listo/.test(document.querySelector('#avisoPedido').textContent)));
+  lp = await lineasDe('PANEL1');
+  ok('  ...y con el segundo, se cancela y el stock vuelve',
+     lp[0][3] === 'Cancelado' && /Devuelto/.test(lp[0][12]) && (await stock('croissant')) === stock0,
+     lp[0][3] + ' · ' + lp[0][12]);
+
+  /* Un estado que la hoja no entiende NO se muestra como «Nuevo». */
+  const fp2 = ((await hojas())['Pedidos'] || []).findIndex(f => String(f[1]) === 'PANEL2') + 1;
+  await celda('Pedidos', fp2, 4, 'pagadito');
+  await p.click('#cerrarPedido');
+  await quizas(hasta(p, () => /Revisar · 1/.test(document.querySelector('#chipsEstados').textContent)));
+  ok('UN ESTADO QUE LA HOJA NO ENTIENDE sale en su propio filtro, «Revisar»',
+     /Revisar · 1/.test(await texto('#chipsEstados')));
+  await p.click('#listaPedidos .fila[data-pedido="PANEL2"] button[data-accion="ver"]');
+  await quizas(hasta(p, () => !document.querySelector('#pedido').hidden));
+  const primera = await p.evaluate(() => { const o = document.querySelector('#p-estado').options[0];
+    return { t: o.textContent, d: o.disabled, sel: document.querySelector('#p-estado').selectedIndex }; });
+  ok('  ...y al abrirlo se ve lo que dice la hoja, sin hacerse pasar por otro estado',
+     /pagadito/.test(primera.t) && primera.d && primera.sel === 0, JSON.stringify(primera));
+  await p.click('#cerrarPedido');
+
+  // ═══ 9d. Tu tienda (D-4) ═══
+  const conf = async clave => (((await hojas())['Configuración'] || []).find(f => String(f[0]) === clave) || [])[1];
+  const fv = ((await hojas())['Configuración'] || []).findIndex(f => String(f[0]) === 'f_variantes') + 1;
+  await celda('Configuración', fv, 2, 'tal vez');
+  await p.click('#tab-tienda');
+  await quizas(hasta(p, () => !!document.querySelector('#t-portada_titulo')));
+  const sel = await p.evaluate(() => { const s = document.querySelector('#t-f_variantes');
+    return { v: s.value, t: s.options[s.selectedIndex].textContent }; });
+  ok('UN INTERRUPTOR QUE EN LA HOJA DICE «tal vez» sale así, marcado — no como «No»',
+     sel.v === 'tal vez' && /no se entiende/.test(sel.t), JSON.stringify(sel));
+
+  await p.fill('#t-portada_titulo', 'Pan del panel');
+  await p.click('#guardarTienda');
+  await quizas(hasta(p, () => /Guardado/.test(document.querySelector('#avisoTienda').textContent)));
+  ok('GUARDAR LA TIENDA escribe lo que cambió', (await conf('portada_titulo')) === 'Pan del panel');
+  ok('  ...y NO toca lo que no se entendía y nadie cambió', (await conf('f_variantes')) === 'tal vez',
+     await conf('f_variantes'));
+
+  const color0 = await conf('color_principal');
+  await p.fill('#t-color_principal', 'verde');
+  await p.click('#guardarTienda');
+  await quizas(hasta(p, () => !document.querySelector('#err-color_principal').hidden));
+  ok('UN COLOR QUE NO SIRVE se explica junto al campo, y no se guarda',
+     /Un color se escribe así/.test(await texto('#err-color_principal')) && (await conf('color_principal')) === color0,
+     await texto('#err-color_principal'));
+
+  await p.click('#tab-productos');
+  await listo();
+
   // ═══ 10. La sesión que se cae ═══
   await fetch(U + '/__panel?usuario=dona.rosa');          // clave nueva: cierra las sesiones
   await p.click('#lista .fila[data-id="croissant"] button[data-accion="activar"]');

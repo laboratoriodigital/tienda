@@ -963,22 +963,52 @@ del **panel** del comerciante. No son deuda: son M3.
       exacto** que tiene que llevar el archivo. Y si Drive no deja escribir, la
       celda no se toca: la hoja no puede decir que hay una foto que no existe.)*
 
-**D-3 · Pedidos**  · 5 pts
-- [ ] Lista con estado, fecha y total; abrir uno y ver qué se pidió.
-- [ ] Cambiar el estado desde el panel, con el mismo efecto sobre el inventario
-      que tiene hacerlo en la hoja.
-- [ ] No se muestra ni se guarda ningún dato personal que hoy no se guarde.
+**D-3 · Pedidos**  · 5 pts · ✅ 21-sep-2026
+- [x] Lista con estado, fecha y total; abrir uno y ver qué se pidió.
+      *(Filtro por estado con su cuenta, y uno más: **Revisar**, para los
+      pedidos cuyo estado la hoja no entiende. Un «pagadito» escrito a mano no
+      se muestra como «Nuevo»: sale tal cual, sin poder elegirse, y el
+      comerciante elige el bueno.)*
+- [x] Cambiar el estado desde el panel, con el mismo efecto sobre el inventario
+      que tiene hacerlo en la hoja. *(No «el mismo efecto» por copia: el panel
+      y el `alEditar` de la hoja llaman a la MISMA función,
+      `trasCambiarEstado`. Y la página **lo dice antes de guardar**: «al guardar
+      se descuentan 2 × Croissant», «al guardar VUELVEN al inventario…». Lo que
+      devuelve stock o cancela pide un segundo toque. Al escribir la prueba
+      apareció una **tercera copia** de la regla de venta en `recalcularResumen`
+      —`indexOf('confirmado')`—: un pedido «Pagado» no contaba en Más vendidos
+      ni gastaba los usos de un cupón con tope. Arreglada con `esVenta`.)*
+- [x] No se muestra ni se guarda ningún dato personal que hoy no se guarde.
+      *(La respuesta sale de una lista cerrada de campos; `panelpedidos.js` lo
+      comprueba contra la lista, no contra lo que hoy haya en la hoja.)*
 
-**D-4 · Configuración**  · 3 pts
-- [ ] Las claves que toca el comerciante: textos de portada, colores, horario,
-      envío gratis, contacto. Con su explicación al lado.
-- [ ] Un valor ilegible se marca y **no se degrada a cero ni a apagado**.
-- [ ] Las claves técnicas no aparecen aquí.
+**D-4 · Configuración**  · 3 pts · ✅ 21-sep-2026
+- [x] Las claves que toca el comerciante: textos de portada, colores, horario,
+      envío gratis, contacto. Con su explicación al lado. *(Pestaña «Tu
+      tienda», agrupada. La lista es `CLAVES_DEL_PANEL` en el maestro.)*
+- [x] Un valor ilegible se marca y **no se degrada a cero ni a apagado**.
+      *(«tal vez» en un interruptor sale como «tal vez — no se entiende»,
+      elegido; y al guardar otra cosa, esa clave **no se toca** porque nadie la
+      cambió. Guardar es todo o nada, con el error junto a cada campo.)*
+- [x] Las claves técnicas no aparecen aquí. *(Y no se pueden escribir
+      pidiéndolas por su nombre, **aunque la petición traiga su versión
+      buena**: la primera versión de la prueba mandaba la versión mal y pasaba
+      con la lista quitada, porque lo que la paraba era el control de
+      concurrencia.)*
 
-**D-5 · Publicar**  · 3 pts · dep. B-2
-- [ ] Un botón. Dice si hay cambios sin publicar y cuándo fue la última vez.
-- [ ] Guardar **no** publica: publicar es un gesto explícito, y cuesta minutos.
-- [ ] Mientras corre, el panel enseña el estado; al terminar, el resultado.
+**D-5 · Publicar**  · 3 pts · dep. B-2 · ✅ 21-sep-2026
+- [x] Un botón. Dice si hay cambios sin publicar y cuándo fue la última vez.
+      *(«La última vez» se le pregunta a la **tienda** —el `generado` de su
+      `catalogo.json`—, no a la hoja. «Cambios sin publicar» = una edición que
+      cambia la vitrina después de eso; pagar un pedido no cuenta, o el aviso
+      estaría encendido todo el día. Si la tienda no contesta, dice **que no
+      sabe**, nunca «al día».)*
+- [x] Guardar **no** publica: publicar es un gesto explícito, y cuesta minutos.
+      *(La barra lo dice en todos sus estados. El botón y el menú de la hoja
+      disparan por la misma función; un doble toque es un solo disparo.)*
+- [x] Mientras corre, el panel enseña el estado; al terminar, el resultado.
+      *(Pregunta cada 8 s por la última ejecución de `fotos.yml`, con enlace al
+      detalle. Si terminó mal, dice que la tienda sigue como estaba.)*
 
 **D-6 · Registro de cambios**  · 2 pts
 - [ ] Cada escritura deja una fila en una pestaña nueva, solo de agregar:

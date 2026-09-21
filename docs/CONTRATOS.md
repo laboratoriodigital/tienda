@@ -370,7 +370,7 @@ contrario es que una errata deje la puerta de par en par sin que se note.
 | `publica` | cualquiera | `version` · `catalogo` · `validar` · `registrar` · `entrar` |
 | `montaje` | el token de despliegue (`?t=`) | `panel` · `identidad` · `bloques` · `sembrar` · `fotos` · `foto` |
 | `menu` | el token del stub. Se guarda a sí misma, porque además distingue el token viejo del nuevo para la migración | `menu` |
-| `panel` | el testigo del comerciante (`k`), ocho horas, de esta tienda | `sesion` · `productos` · `guardar_producto` · `activar_producto` · `borrar_producto` · `subir_foto` |
+| `panel` | el testigo del comerciante (`k`), ocho horas, de esta tienda | `sesion` · `productos` · `guardar_producto` · `activar_producto` · `borrar_producto` · `subir_foto` · `pedidos` · `estado_pedido` · `configuracion` · `guardar_configuracion` · `publicacion` · `publicar` |
 
 `entrar` es pública porque es la que **entrega** las credenciales: no se puede
 pedir el testigo para pedir el testigo. Lo que la protege es el límite de
@@ -391,7 +391,8 @@ Tope: 20.000 caracteres para el panel, menos `subir_foto`, que tiene el suyo
 (una foto no cabe en 20.000).
 
 **Las escrituras del panel** (`guardar_producto`, `activar_producto`,
-`borrar_producto`) tienen tres obligaciones que la hoja no tenía:
+`borrar_producto`, `subir_foto`, `estado_pedido`, `guardar_configuracion`,
+`publicar`) tienen tres obligaciones que la hoja no tenía:
 
 - **Bajo llave** (`LockService`), soltada también si la escritura revienta.
 - **Con número de operación** (`op`, de 8 a 64 caracteres `A-Za-z0-9_-`). Sin
@@ -451,6 +452,56 @@ carpeta— y lo agrega a `Imágenes`, las dos cosas bajo la misma llave. Contest
 Si no puede, el error **dice el nombre exacto** con el que subirla a mano al
 Drive, que es el camino de siempre y sigue funcionando. La foto sale en la
 tienda al publicar, no al subirla.
+
+**`pedidos`** (D-3) — pide opcionalmente `estado` (un id de estado, o `revisar`
+para los que la hoja no entiende) y `q` (busca en el código del pedido, sin tildes ni mayúsculas).
+Contesta `ok`, `pedidos` (los 200 más recientes), `cuantos` (todos los que
+cumplen el filtro), `conteo` (por estado, con `revisar`) y `estados`
+(`id`, `rotulo`, `vendido`). Cada pedido: `pedido`, `fecha`, `estado` (tal como
+dice la hoja), `estadoId` (vacío si no se entiende), `problema`, `total`,
+`ciudad`, `cupon`, `validacion`, `fechaPago`, `fechaDespacho`, `guia`,
+`lineas` (`producto`, `id`, `variante`, `cantidad`, `precio`, `subtotal`,
+`inventario`) y `version`. **No sale ningún dato personal del cliente**: la hoja
+no los guarda y el panel no los inventa.
+
+**`estado_pedido`** (D-3) — pide `op`, `pedido`, `estado`, `version` y, para
+`despachado`, `guia`. Escribe el estado en todas las líneas, sella Fecha de
+pago / Fecha de despacho **solo si están vacías**, y después hace **lo mismo que
+hace la hoja al editar a mano** (`trasCambiarEstado`: inventario y resumen). No
+marca «cambios sin publicar»: un pedido no cambia lo que se hornea. Contesta
+`ok`, `movidos`, `pedido` (el pedido ya cambiado); o `ok: false`, `error` y,
+si cambió entre medias, `cambiado`.
+
+**`configuracion`** (D-4) — contesta `ok`, `claves`. Solo las de la lista
+`CLAVES_DEL_PANEL` (textos, colores, interruptores, datos de la empresa); las
+técnicas —`sitio_url`, `repositorio`, carpetas, datos de pago, `panel_usuario`—
+no salen. Cada clave: `clave`, `grupo`, `tipo`, `rotulo`, `opciones`, `valor`
+(tal como está escrito), `ayuda`, `problema` (si no se entiende: se marca, no se
+degrada) y `version`.
+
+**`guardar_configuracion`** (D-4) — pide `op`, `cambios` (`{clave: valor}`) y
+`versiones` (`{clave: version}`). **Todo o nada**: si una clave no valida, no se
+escribe ninguna, y `errores` dice por qué clave por clave. Una clave fuera de la
+lista se rechaza **aunque traiga su versión buena**. Normaliza Sí/No y los
+colores a mayúscula, pinta la celda del color y deja anotado que hay cambios sin
+publicar. Contesta `ok`, `guardadas`; o `ok: false`, `error`, `errores`.
+
+**`publicacion`** (D-5) — contesta `ok`, `servido` (el `generado` del
+`catalogo.json` que la tienda está sirviendo; vacío si no contesta),
+`pendientes` (`true` / `false`, **o `null` si no se sabe** — nunca «al día» por
+defecto), `ultimaEdicion`, `pedida`, `corrida` (`estado`, `resultado`, `desde`,
+`hasta`, `enlace` de la última ejecución de `fotos.yml` pedida a mano),
+`puede` y `falta` (`repositorio` o `permiso`).
+
+**`publicar`** (D-5) — pide `op`. Dispara `fotos.yml` por el mismo camino que
+el menú *Publicar ahora* (`dispararPublicacion`). La misma `op` dos veces es
+**un** disparo. Contesta `ok`, `pedida`; o `ok: false`, `error` en palabras de
+quién lo arregla.
+
+**`ULTIMA_EDICION`** (propiedad del script) — la hora de la última edición que
+cambia la vitrina: guardar desde el panel (productos, fotos, configuración) o
+editar a mano Catálogo, Configuración o Envíos. Pagar o despachar un pedido no
+la toca. `publicacion` la compara con el `generado` servido.
 
 **`?a=panel`** — `ok`, `version`, `negocio`, `sitio`, `whatsapp`, `correo`, `hoja`, `productos`, `publicados`, `agotados`, `pocos`, `ventasMes`, `ventasMesAnterior`, `pedidosMes`, `ticket`, `tasaCierre`, `lecturasHoy`, `picoHora`, `cuotaCorreo`, `respaldo`, `ventasAyer`, `pedidosAyer`, `porConfirmar`, `atrasados`, `errores`, `meses`, `consultado`, `stub`, `tokenViejo`, `rescates`, `alta`
 

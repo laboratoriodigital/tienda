@@ -617,7 +617,11 @@ function filaDesdeElPanel(d) {
    sea amable. */
 var OPERACION_VALIDA = /^[A-Za-z0-9_-]{8,64}$/;
 
-function conOperacion(p, hacer) {
+/* `publica`: la escritura cambia algo que la tienda publicada enseña
+   (productos, fotos, configuración). Entonces se anota la hora, y el panel
+   puede decir «tienes cambios sin publicar» (D-5). Cambiar el estado de un
+   pedido no la anota: no cambia la vitrina. */
+function conOperacion(p, hacer, publica) {
   var op = String(p.op || '');
   if (!OPERACION_VALIDA.test(op)) return { ok: false, error: 'Falta el número de operación.' };
   var cache = CacheService.getScriptCache();
@@ -633,6 +637,7 @@ function conOperacion(p, hacer) {
     if (r && r.ok) {
       cache.put('op:' + op, JSON.stringify(r), HORAS_OPERACION * 3600);
       cache.remove('catalogo');                          // que la tienda en vivo lo vea ya
+      if (publica) marcarEdicion();
     }
     return r;
   } finally {
@@ -674,7 +679,7 @@ function atenderGuardarProducto(p) {
     }
     cat.h.getRange(i + 2, 1, 1, ENCABEZADO_CATALOGO.length).setValues([armado.fila]);
     return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila) };
-  });
+  }, true);
 }
 
 /* Activar y desactivar tocan UNA celda, y por eso no piden versión: el valor
@@ -689,7 +694,7 @@ function atenderActivarProducto(p) {
     cat.h.getRange(i + 2, 10).setValue(activo ? 'Sí' : 'No');
     cat.filas[i][9] = activo ? 'Sí' : 'No';
     return { ok: true, id: id, activo: activo, version: versionDeFila(cat.filas[i]) };
-  });
+  }, true);
 }
 
 /* BORRAR NO BORRA: MUEVE A LA PAPELERA. La fila entera va a una pestaña de
@@ -712,7 +717,7 @@ function atenderBorrarProducto(p) {
                        .concat([new Date(), 'Panel']));
     cat.h.deleteRows(i + 2, 1);
     return { ok: true, id: id, borrado: true };
-  });
+  }, true);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -811,7 +816,424 @@ function atenderSubirFoto(p) {
     cat.filas[i][7] = enCelda.join('|');
     return { ok: true, id: id, nombre: nombre, imagenes: enCelda.join('|'),
              version: versionDeFila(cat.filas[i]) };
+  }, true);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PEDIDOS DESDE EL PANEL (D-3)
+   --------------------------------------------------------------------------
+   Un pedido en la hoja son varias filas —una por línea— con el mismo número.
+   El panel lo junta y lo trata como UNA cosa: se ve entero y cambia de estado
+   entero.
+
+   CAMBIAR EL ESTADO TIENE EL MISMO EFECTO QUE EN LA HOJA porque llama a lo
+   mismo: trasCambiarEstado(), que es lo que corre el disparador cuando alguien
+   escribe en la columna Estado. No hay una segunda implementación del
+   inventario en el panel, y no puede haberla: sería la cuarta copia de la
+   regla «¿esto ya se vendió?», y la tercera acaba de aparecer rota (ver
+   recalcularResumen).
+
+   NINGÚN DATO PERSONAL NUEVO. La hoja guarda, de quien compra, la ciudad. El
+   nombre, el celular y la dirección viajan por WhatsApp y no se guardan en
+   ningún sitio — y el panel no los inventa: devuelve las columnas que hay, y
+   la batería comprueba la lista de campos una por una.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var MAX_PEDIDOS_PANEL = 200;
+
+function lineasDePedidos() {
+  var h = elLibro().getSheetByName(H_PEDIDOS);
+  if (!h || h.getLastRow() < 2) return { h: h, filas: [] };
+  var ancho = Math.max(h.getLastColumn(), ENCABEZADO_PEDIDOS.length);
+  return { h: h, filas: h.getRange(2, 1, h.getLastRow() - 1, ancho).getValues() };
+}
+
+function fechaIso(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString();
+  return String(v === null || v === undefined ? '' : v);
+}
+
+/* La huella de un pedido: lo que el panel puede cambiar o lo que cambia solo
+   —estado, inventario, fechas, guía— en cada línea. Si alguien lo tocó en la
+   hoja mientras el panel lo tenía abierto, cambiar el estado encima se niega. */
+function versionDePedido(filasDelPedido) {
+  var trozo = filasDelPedido.map(function (f) {
+    return [String(f[3]), String(f[12] || ''), fechaIso(f[13]), fechaIso(f[14]), String(f[15] || '')];
   });
+  return enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,
+                                       JSON.stringify(trozo))).slice(0, 16);
+}
+
+function indicesDelPedido(filas, codigo) {
+  var r = [];
+  filas.forEach(function (f, i) { if (String(f[1]).trim() === codigo) r.push(i); });
+  return r;
+}
+
+/* Un pedido tal como lo ve el panel. ESTA LISTA DE CAMPOS ES EL CONTRATO, y la
+   comprueba panelpedidos.js: un campo nuevo aquí es un dato más que sale de la
+   hoja, y eso se decide, no se cuela. */
+function pedidoParaElPanel(filas, indices) {
+  var primera = filas[indices[0]];
+  var e = estadoDe(primera[3]);
+  var distintos = {};
+  indices.forEach(function (i) { distintos[llano(filas[i][3])] = String(filas[i][3]); });
+  var mezclado = Object.keys(distintos).length > 1;
+  var problema = !e && llano(primera[3])
+    ? 'El estado «' + String(primera[3]).slice(0, 30) + '» no se reconoce: en la hoja hay una errata.'
+    : mezclado
+      ? 'Las líneas de este pedido tienen estados distintos (' +
+        Object.keys(distintos).map(function (k) { return distintos[k]; }).join(', ') + ').'
+      : '';
+  return {
+    pedido: String(primera[1]).trim(),
+    fecha: fechaIso(primera[0]),
+    estado: e ? e.rotulo : String(primera[3]),
+    estadoId: e && !mezclado ? e.id : '',
+    problema: problema,
+    total: Number(primera[11]) || 0,
+    ciudad: String(primera[4] || ''),
+    cupon: String(primera[5] || ''),
+    validacion: String(primera[2] || ''),
+    fechaPago: fechaIso(primera[13]),
+    fechaDespacho: fechaIso(primera[14]),
+    guia: String(primera[15] || ''),
+    lineas: indices.map(function (i) {
+      var f = filas[i];
+      return { producto: String(f[6] || ''), id: String(f[7] || ''), variante: String(f[16] || ''),
+               cantidad: Number(f[8]) || 0, precio: Number(f[9]) || 0,
+               subtotal: Number(f[10]) || 0, inventario: String(f[12] || '') };
+    }),
+    version: versionDePedido(indices.map(function (i) { return filas[i]; }))
+  };
+}
+
+function atenderPedidos(p) {
+  var datos = lineasDePedidos();
+  var orden = [], vistos = {};
+  datos.filas.forEach(function (f) {
+    var codigo = String(f[1]).trim();
+    if (!codigo || vistos[codigo]) return;
+    vistos[codigo] = true;
+    orden.push(codigo);
+  });
+
+  var todos = orden.map(function (c) {
+    return pedidoParaElPanel(datos.filas, indicesDelPedido(datos.filas, c));
+  });
+  var conteo = {};
+  todos.forEach(function (x) { var k = x.estadoId || 'revisar'; conteo[k] = (conteo[k] || 0) + 1; });
+
+  var estado = String(p.estado || '');
+  var q = llano(p.q || '');
+  var lista = todos.filter(function (x) {
+    return (!estado || (estado === 'revisar' ? !x.estadoId : x.estadoId === estado)) &&
+           (!q || llano(x.pedido).indexOf(q) !== -1);
+  });
+  /* Lo más nuevo arriba. La hoja se escribe en orden de llegada, pero el
+     comerciante la puede ordenar a mano: se ordena por la fecha, no por la
+     posición. */
+  lista.sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0; });
+
+  return { ok: true, pedidos: lista.slice(0, MAX_PEDIDOS_PANEL), cuantos: lista.length,
+           conteo: conteo,
+           estados: ESTADOS.map(function (e) { return { id: e.id, rotulo: e.rotulo, vendido: !!e.vendido }; }) };
+}
+
+var PEDIDO_CAMBIO = 'Este pedido cambió mientras lo mirabas —alguien lo tocó en la hoja—. ' +
+                    'Vuelve a abrirlo para ver cómo está ahora.';
+
+function atenderEstadoPedido(p) {
+  return conOperacion(p, function () {
+    var codigo = String(p.pedido || '').trim();
+    var nuevo = null;
+    ESTADOS.forEach(function (e) { if (e.id === p.estado) nuevo = e; });
+    if (!nuevo) return { ok: false, error: 'Ese estado no existe.' };
+
+    var datos = lineasDePedidos();
+    var indices = indicesDelPedido(datos.filas, codigo);
+    if (!indices.length) return { ok: false, error: 'Ese pedido ya no está en la hoja.' };
+    if (String(p.version || '') !== versionDePedido(indices.map(function (i) { return datos.filas[i]; }))) {
+      return { ok: false, cambiado: true, error: PEDIDO_CAMBIO };
+    }
+
+    var ahora = new Date();
+    indices.forEach(function (i) {
+      var fila = i + 2, f = datos.filas[i];
+      datos.h.getRange(fila, COL_ESTADO).setValue(nuevo.rotulo);
+      /* Las fechas se ponen UNA vez: la primera vez que el pedido llega a ese
+         estado. Volver a marcar Pagado no cambia cuándo se pagó. */
+      if (nuevo.id === 'pagado' && !f[13]) datos.h.getRange(fila, 14).setValue(ahora);
+      if (nuevo.id === 'despachado' && !f[14]) datos.h.getRange(fila, 15).setValue(ahora);
+      if (nuevo.id === 'despachado' && p.guia !== undefined && String(p.guia).trim()) {
+        datos.h.getRange(fila, 16).setValue(celdaSegura(p.guia, 60));
+      }
+    });
+
+    var movidos = trasCambiarEstado();
+    var despues = lineasDePedidos();
+    return { ok: true, movidos: movidos,
+             pedido: pedidoParaElPanel(despues.filas, indicesDelPedido(despues.filas, codigo)) };
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LA CONFIGURACIÓN DESDE EL PANEL (D-4)
+   --------------------------------------------------------------------------
+   SOLO LAS CLAVES DEL COMERCIANTE, en una lista escrita aquí y no deducida.
+   Las técnicas —la dirección del sitio, el repositorio, las carpetas de Drive,
+   las del correo, los datos de pago— no aparecen: no porque sean secretas para
+   quien entró, sino porque cambiarlas desde un celular rompe la tienda de
+   formas que el comerciante no puede ver ni arreglar. Una clave nueva en la
+   hoja NO aparece aquí sola: hay que agregarla a esta lista, y eso es una
+   decisión.
+
+   UN VALOR QUE NO SE ENTIENDE SE MARCA Y NO SE DEGRADA. Si `f_variantes` dice
+   «tal vez», el panel no pinta una casilla sin marcar —que sería «No»—: pinta
+   «tal vez» en rojo y pide elegir. Guardar el formulario sin mirar no puede
+   apagar nada que nadie apagó.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var CLAVES_DEL_PANEL = [
+  { clave: 'negocio',              grupo: 'Tu tienda',  tipo: 'texto',  rotulo: 'Nombre del comercio' },
+  { clave: 'whatsapp',             grupo: 'Tu tienda',  tipo: 'celular', rotulo: 'WhatsApp para pedidos' },
+  { clave: 'horario',              grupo: 'Tu tienda',  tipo: 'texto',  rotulo: 'Horario de atención' },
+  { clave: 'portada_titulo',       grupo: 'La portada', tipo: 'texto',  rotulo: 'Título de la portada' },
+  { clave: 'portada_texto',        grupo: 'La portada', tipo: 'largo',  rotulo: 'Texto de la portada' },
+  { clave: 'portada_puntos',       grupo: 'La portada', tipo: 'largo',  rotulo: 'Puntos de la portada (separados por |)' },
+  { clave: 'color_principal',      grupo: 'Los colores', tipo: 'color', rotulo: 'Color principal' },
+  { clave: 'color_secundario',     grupo: 'Los colores', tipo: 'color', rotulo: 'Color secundario' },
+  { clave: 'color_alterno',        grupo: 'Los colores', tipo: 'color', rotulo: 'Color alterno' },
+  { clave: 'pie_descripcion',      grupo: 'Los textos', tipo: 'largo',  rotulo: 'Descripción al pie' },
+  { clave: 'como_compras',         grupo: 'Los textos', tipo: 'largo',  rotulo: 'Cómo comprar (pasos separados por |)' },
+  { clave: 'envio_gratis_desde',   grupo: 'La venta',   tipo: 'cifra',  rotulo: 'Envío gratis desde (vacío = nunca)' },
+  { clave: 'orden_catalogo',       grupo: 'La venta',   tipo: 'opcion', rotulo: 'Orden del catálogo',
+    opciones: ['Destacados primero', 'Como en la hoja', 'Precio: de menor a mayor',
+               'Precio: de mayor a menor', 'Nombre: de la A a la Z'] },
+  { clave: 'f_variantes',          grupo: 'La venta',   tipo: 'sino',   rotulo: 'Pedir elegir variantes' },
+  { clave: 'retracto_excepciones', grupo: 'La venta',   tipo: 'largo',  rotulo: 'Productos sin derecho de retracto (separados por |)' },
+  { clave: 'empresa_razon',        grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Razón social' },
+  { clave: 'empresa_nit',          grupo: 'Datos legales', tipo: 'texto',  rotulo: 'NIT' },
+  { clave: 'empresa_direccion',    grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Dirección' },
+  { clave: 'empresa_ciudad',       grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Ciudad' },
+  { clave: 'empresa_tel',          grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Teléfono' },
+  { clave: 'empresa_correo',       grupo: 'Datos legales', tipo: 'correo', rotulo: 'Correo' },
+  { clave: 'correo_resumen',       grupo: 'El correo del día', tipo: 'correo', rotulo: 'A qué correo llega el resumen' }
+];
+
+/* ¿Se entiende este valor? Devuelve null si sí, o el motivo. Vacío siempre se
+   entiende: toda clave puede estar vacía (CONTRATOS §5). */
+function problemaDeValor(def, valor) {
+  var v = String(valor === null || valor === undefined ? '' : valor).trim();
+  if (!v) return null;
+  if (def.tipo === 'color' && !/^#[0-9a-f]{6}$/i.test(v)) return 'Un color se escribe así: #1B5E3A';
+  if (def.tipo === 'cifra') {
+    CELDAS_ILEGIBLES = [];
+    var n = cifraDeTexto(v, def.clave);
+    CELDAS_ILEGIBLES = [];
+    if (n === null) return 'Tiene que ser un número (ej: 150000), o quedar vacío.';
+  }
+  if (def.tipo === 'sino' && ['si', 'sí', 'no'].indexOf(llano(v)) === -1) return 'Tiene que decir Sí o No.';
+  if (def.tipo === 'opcion' && def.opciones.map(llano).indexOf(llano(v)) === -1) {
+    return 'Tiene que ser una de estas: ' + def.opciones.join(' · ');
+  }
+  if (def.tipo === 'celular' && !/^\+?[\d\s-]{10,16}$/.test(v)) return 'Un celular con indicativo: 573001234567';
+  if (def.tipo === 'correo' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Eso no parece un correo.';
+  return null;
+}
+
+function filasDeConfiguracion() {
+  var h = elLibro().getSheetByName(H_CONFIG);
+  if (!h || h.getLastRow() < 2) return { h: h, filas: [] };
+  return { h: h, filas: h.getRange(2, 1, h.getLastRow() - 1, 3).getValues() };
+}
+
+function versionDeValor(v) {
+  return enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,
+                                       String(v === undefined || v === null ? '' : v))).slice(0, 12);
+}
+
+function atenderConfiguracion() {
+  var cfg = filasDeConfiguracion();
+  var fila = {};
+  cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
+  return { ok: true, claves: CLAVES_DEL_PANEL.filter(function (d) { return fila[d.clave] !== undefined; })
+    .map(function (d) {
+      var f = cfg.filas[fila[d.clave]];
+      var valor = String(f[1] === null || f[1] === undefined ? '' : f[1]);
+      return { clave: d.clave, grupo: d.grupo, tipo: d.tipo, rotulo: d.rotulo,
+               opciones: d.opciones || null, ayuda: String(f[2] || ''),
+               valor: valor, problema: problemaDeValor(d, valor), version: versionDeValor(valor) };
+    }) };
+}
+
+/* Todo o nada: si una clave no valida, no se escribe ninguna. Guardar media
+   configuración deja la tienda en un estado que nadie pidió. */
+function atenderGuardarConfiguracion(p) {
+  return conOperacion(p, function () {
+    var cambios = p.cambios || {};
+    var versiones = p.versiones || {};
+    var defs = {};
+    CLAVES_DEL_PANEL.forEach(function (d) { defs[d.clave] = d; });
+
+    var cfg = filasDeConfiguracion();
+    var fila = {};
+    cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
+
+    var errores = {}, aEscribir = [];
+    Object.keys(cambios).forEach(function (k) {
+      var d = defs[k];
+      /* Una clave que no está en la lista no se toca, aunque exista en la
+         hoja: es exactamente la puerta que esta lista existe para cerrar. */
+      if (!d || fila[k] === undefined) { errores[k] = 'Esa clave no se cambia desde el panel.'; return; }
+      var actual = cfg.filas[fila[k]][1];
+      if (String(versiones[k] || '') !== versionDeValor(actual)) {
+        errores[k] = 'Cambió en la hoja mientras la editabas. Vuelve a abrir la configuración.';
+        return;
+      }
+      var valor = String(cambios[k] === null || cambios[k] === undefined ? '' : cambios[k]).trim();
+      var mal = problemaDeValor(d, valor);
+      if (mal) { errores[k] = mal; return; }
+      if (d.tipo === 'sino' && valor) valor = llano(valor) === 'no' ? 'No' : 'Sí';
+      if (d.tipo === 'color') valor = valor.toUpperCase();
+      aEscribir.push({ fila: fila[k] + 2, valor: d.tipo === 'color' || d.tipo === 'cifra' ? valor : celdaSegura(valor, 2000) });
+    });
+    if (Object.keys(errores).length) {
+      return { ok: false, errores: errores, error: 'No se guardó nada: hay ' +
+               Object.keys(errores).length + ' valor(es) por corregir.' };
+    }
+    aEscribir.forEach(function (w) { cfg.h.getRange(w.fila, 2).setValue(w.valor); });
+    /* Un color escrito aquí tiene que pintar su celda en la hoja, igual que
+       cuando se escribe allá: el relleno y el valor no pueden decir dos cosas. */
+    try { pintarColoresDesdeValor(); } catch (e) { }
+    cacheFuera();
+    return { ok: true, guardadas: aEscribir.length };
+  }, true);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PUBLICAR DESDE EL PANEL (D-5)
+   --------------------------------------------------------------------------
+   Guardar no publica: la tienda sirve un catálogo horneado, y hornearlo es un
+   flujo de GitHub que tarda minutos. Publicar es un gesto aparte, explícito, y
+   el panel dice tres cosas que el menú de la hoja nunca pudo decir:
+
+     · si hay algo sin publicar —lo último que se guardó es posterior a lo que
+       la tienda está sirviendo—,
+     · cuándo fue la última publicación, preguntándoselo a la tienda y no a la
+       hoja (la hoja siempre está al día por definición),
+     · y mientras corre, cómo va; al terminar, cómo terminó.
+
+   Disparar es LA MISMA FUNCIÓN que usa «Publicar ahora» del menú; el menú solo
+   la envuelve en un texto.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* UNA FUNCIÓN Y NO UNA LISTA, y no por estilo. Este bloque está ARRIBA en el
+   archivo, antes de donde se declaran H_CATALOGO y compañía, y en Apps Script
+   una `var` existe desde el principio pero vale `undefined` hasta que se llega
+   a su línea. Escrita como lista, valía [undefined, undefined, undefined]: los
+   cambios hechos en la hoja nunca contaban como «sin publicar», sin un error
+   en ninguna parte. Lo cazó panelpublicar.js. */
+function hojasQueSePublican() { return [H_CATALOGO, H_CONFIG, H_ENVIOS]; }
+
+function marcarEdicion() {
+  try { propiedades().setProperty('ULTIMA_EDICION', new Date().toISOString()); } catch (e) { }
+}
+
+function repositorioYPermiso() {
+  var repo = String(leerConfiguracion().repositorio || '').trim()
+               .replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/, '')
+               .replace(/\/+$/, '');
+  var tk = '';
+  try { tk = String(propiedades().getProperty('GITHUB_TOKEN') || '').trim(); } catch (e) { }
+  return { repo: repo, repoOk: !!repo && /^[\w.-]+\/[\w.-]+$/.test(repo), tk: tk };
+}
+
+function cabecerasGitHub(tk) {
+  return { Authorization: 'Bearer ' + tk, Accept: 'application/vnd.github+json',
+           'X-GitHub-Api-Version': '2022-11-28' };
+}
+
+/* Dispara el flujo `fotos`. Devuelve { ok, codigo, porQue }. */
+function dispararPublicacion() {
+  var g = repositorioYPermiso();
+  if (!g.repoOk) return { ok: false, falta: 'repositorio', repo: g.repo };
+  if (!g.tk) return { ok: false, falta: 'permiso', repo: g.repo };
+  var res;
+  try {
+    res = UrlFetchApp.fetch(
+      'https://api.github.com/repos/' + g.repo + '/actions/workflows/fotos.yml/dispatches',
+      { method: 'post', contentType: 'application/json', headers: cabecerasGitHub(g.tk),
+        payload: JSON.stringify({ ref: 'main' }), muteHttpExceptions: true });
+  } catch (e) {
+    anotarError('Publicar ahora no pudo hablar con GitHub', e.message);
+    return { ok: false, porQue: 'No pude hablar con GitHub: ' + e.message };
+  }
+  var codigo = res.getResponseCode();
+  if (codigo === 204) {
+    try { propiedades().setProperty('PEDIDA_PUBLICACION', new Date().toISOString()); } catch (e) { }
+    return { ok: true, codigo: 204 };
+  }
+  var porQue =
+    codigo === 401 ? 'El permiso no sirve o se venció. Hay que hacer uno nuevo.' :
+    codigo === 403 ? 'El permiso existe pero no alcanza. Le falta Actions: Read and write.' :
+    codigo === 404 ? 'No encuentro el repositorio ' + g.repo + ', o el permiso no lo incluye.' :
+    codigo === 422 ? 'GitHub aceptó la petición pero no encontró la rama main.' :
+                     'GitHub contestó ' + codigo + '.';
+  anotarError('Publicar ahora falló con ' + codigo, String(res.getContentText()).slice(0, 200));
+  return { ok: false, codigo: codigo, porQue: porQue };
+}
+
+/* La última corrida del flujo, tal como la ve GitHub. Sin repositorio o sin
+   permiso no hay nada que preguntar, y se dice. */
+function ultimaCorrida() {
+  var g = repositorioYPermiso();
+  if (!g.repoOk || !g.tk) return null;
+  try {
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + g.repo +
+      '/actions/workflows/fotos.yml/runs?per_page=1&event=workflow_dispatch',
+      { headers: cabecerasGitHub(g.tk), muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return { error: 'GitHub contestó ' + res.getResponseCode() };
+    var r = (JSON.parse(res.getContentText()).workflow_runs || [])[0];
+    if (!r) return { ninguna: true };
+    return { estado: r.status, resultado: r.conclusion || '', desde: r.created_at || '',
+             hasta: r.updated_at || '', enlace: r.html_url || '' };
+  } catch (e) { return { error: e.message }; }
+}
+
+function atenderPublicacion() {
+  var pub = catalogoPublicado();
+  var servido = pub.ok ? String(pub.datos.generado || '') : '';
+  var edicion = String(propiedades().getProperty('ULTIMA_EDICION') || '');
+  var pedida = String(propiedades().getProperty('PEDIDA_PUBLICACION') || '');
+  var g = repositorioYPermiso();
+  return {
+    ok: true,
+    servido: servido,
+    /* Solo se puede afirmar que hay cambios si se sabe qué está sirviendo la
+       tienda. Sin eso, el panel dice que no lo sabe — no que no los hay. */
+    pendientes: servido && edicion ? Date.parse(edicion) > Date.parse(servido) : null,
+    ultimaEdicion: edicion,
+    pedida: pedida,
+    corrida: ultimaCorrida(),
+    puede: g.repoOk && !!g.tk,
+    falta: !g.repoOk ? 'repositorio' : !g.tk ? 'permiso' : ''
+  };
+}
+
+/* Con número de operación, como toda escritura: un doble toque en el botón,
+   o un reintento sin señal, dispara UNA publicación. Dos corridas del mismo
+   flujo a la vez no se pisan —el flujo tiene su propia cola—, pero cuestan el
+   doble de minutos. */
+function atenderPublicar(p) {
+  var r = conOperacion(p, function () {
+    var d = dispararPublicacion();
+    if (d.ok) return { ok: true, pedida: new Date().toISOString() };
+    if (d.falta === 'repositorio') return { ok: false, error: 'Todavía no está dicho dónde vive la tienda (Configuración › repositorio). Eso lo hace quien la montó.' };
+    if (d.falta === 'permiso') return { ok: false, error: 'Falta el permiso para publicar (GITHUB_TOKEN). Eso lo pone una vez quien montó la tienda.' };
+    return { ok: false, error: 'No se pudo publicar. ' + d.porQue };
+  });
+  return r;
 }
 
 var VERSION = '2026-09-12-1';
@@ -2061,7 +2483,13 @@ var PUERTAS = {
      doble del de la foto, para que una que se pasa un poco reciba el mensaje
      amable de atenderSubirFoto —con el nombre para subirla a mano— y no el
      seco de aquí, que queda solo para lo absurdo. */
-  subir_foto:        { guarda: 'panel', soloPost: true, tope: MAX_FOTO_BASE64 * 2, fn: atenderSubirFoto }
+  subir_foto:        { guarda: 'panel', soloPost: true, tope: MAX_FOTO_BASE64 * 2, fn: atenderSubirFoto },
+  pedidos:               { guarda: 'panel', soloPost: true, fn: atenderPedidos },
+  estado_pedido:         { guarda: 'panel', soloPost: true, fn: atenderEstadoPedido },
+  configuracion:         { guarda: 'panel', soloPost: true, fn: atenderConfiguracion },
+  guardar_configuracion: { guarda: 'panel', soloPost: true, fn: atenderGuardarConfiguracion },
+  publicacion:           { guarda: 'panel', soloPost: true, fn: atenderPublicacion },
+  publicar:              { guarda: 'panel', soloPost: true, fn: atenderPublicar }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -5379,57 +5807,31 @@ function haceCuanto(t) {
 }
 
 function publicarAhora() {
-  var repo = String(leerConfiguracion().repositorio || '').trim()
-               .replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/, '')
-               .replace(/\/+$/, '');
-  var tk = '';
-  try { tk = String(PropertiesService.getScriptProperties()
-                      .getProperty('GITHUB_TOKEN') || '').trim(); } catch (e) { }
-
-  if (!repo || !/^[\w.-]+\/[\w.-]+$/.test(repo)) {
+  /* EL DISPARO ES EL MISMO QUE EL DEL PANEL (dispararPublicacion); aquí solo se
+     cuenta en palabras del menú. Antes esta función hacía la petición a GitHub
+     ella misma, y con D-5 habría habido dos: la segunda copia es la que se
+     queda atrás el día que GitHub cambie algo. */
+  var d = dispararPublicacion();
+  if (d.falta === 'repositorio') {
     return { tipo: 'aviso', texto:
       'Todavía no sé dónde vive tu tienda.\n\n' +
       'En la pestaña Configuración, en la fila «repositorio», escribe:\n' +
       '    dueño/repositorio\n\n' +
       'Por ejemplo: tuempresa/tutienda\n\n' +
-      (repo ? 'Ahora dice: ' + repo : '') };
+      (d.repo ? 'Ahora dice: ' + d.repo : '') };
   }
-  if (!tk) {
+  if (d.falta === 'permiso') {
     return { tipo: 'aviso', texto:
       'Falta el permiso para publicar.\n\n' +
       'Es una sola vez, y lo hace quien montó la tienda:\n\n' +
       '1. En GitHub: Settings > Developer settings >\n' +
       '   Personal access tokens > Fine-grained tokens\n' +
-      '2. Solo el repositorio ' + repo + '\n' +
+      '2. Solo el repositorio ' + d.repo + '\n' +
       '3. Un solo permiso: Actions -> Read and write\n' +
       '4. En este proyecto: Configuración del proyecto >\n' +
       '   Propiedades del script > GITHUB_TOKEN' };
   }
-
-  var res;
-  try {
-    res = UrlFetchApp.fetch(
-      'https://api.github.com/repos/' + repo + '/actions/workflows/fotos.yml/dispatches',
-      { method: 'post',
-        contentType: 'application/json',
-        headers: { Authorization: 'Bearer ' + tk,
-                   Accept: 'application/vnd.github+json',
-                   'X-GitHub-Api-Version': '2022-11-28' },
-        payload: JSON.stringify({ ref: 'main' }),
-        muteHttpExceptions: true });
-  } catch (e) {
-    anotarError('Publicar ahora no pudo hablar con GitHub', e.message);
-    return { tipo: 'aviso', texto: 'No pude hablar con GitHub.\n\n' + e.message };
-  }
-
-  var codigo = res.getResponseCode();
-  /* 204 es el sí de GitHub a un disparo: acepta y no devuelve cuerpo. */
-  if (codigo === 204) {
-    /* Se anota CUÁNDO se pidió, no que se logró: lo segundo no se sabe todavía.
-       El Diagnóstico compara esta hora con la del catálogo que la tienda está
-       sirviendo de verdad, y esa comparación es la que contesta «¿ya llegó?». */
-    try { PropertiesService.getScriptProperties()
-            .setProperty('PEDIDA_PUBLICACION', new Date().toISOString()); } catch (e) { }
+  if (d.ok) {
     return { tipo: 'aviso', texto:
       'Listo. Tu tienda se está actualizando.\n\n' +
       'Tarda unos minutos: se revisan los datos, se preparan las fotos y se\n' +
@@ -5438,18 +5840,8 @@ function publicarAhora() {
       'ahí dice de cuándo es lo que tu tienda está mostrando.\n\n' +
       'Si algo no cuadra, no se publica nada y tu tienda se queda como está.' };
   }
-
-  /* Cada número dice algo distinto y el comerciante no tiene por qué saber
-     cuál. Se traduce, y el detalle técnico queda en la hoja Errores. */
-  var porQue =
-    codigo === 401 ? 'El permiso no sirve o se venció. Hay que hacer uno nuevo.' :
-    codigo === 403 ? 'El permiso existe pero no alcanza. Le falta Actions: Read and write.' :
-    codigo === 404 ? 'No encuentro el repositorio ' + repo + ', o el permiso no lo incluye.' :
-    codigo === 422 ? 'GitHub aceptó la petición pero no encontró la rama main.' :
-                     'GitHub contestó ' + codigo + '.';
-  anotarError('Publicar ahora falló con ' + codigo,
-              String(res.getContentText()).slice(0, 200));
-  return { tipo: 'aviso', texto: 'No se pudo publicar.\n\n' + porQue +
+  if (!d.codigo) return { tipo: 'aviso', texto: d.porQue };
+  return { tipo: 'aviso', texto: 'No se pudo publicar.\n\n' + d.porQue +
     '\n\nQueda anotado en la pestaña Errores.' };
 }
 
@@ -5509,10 +5901,24 @@ function actualizarTodo() {
     : 'Todo al día: inventario, tablero y formato.' };
 }
 
+/* LO QUE PASA CUANDO CAMBIA EL ESTADO DE UN PEDIDO, en un solo sitio. Lo usan
+   la hoja (alEditar) y el panel (D-3). «Con el mismo efecto que en la hoja» no
+   se cumple copiando estas dos líneas: se cumple llamándolas. */
+function trasCambiarEstado() {
+  var movidos = aplicarInventario();
+  recalcularResumen();
+  return movidos;
+}
+
 function alEditar(e) {
   try {
     if (!e || !e.range) return;
     var h = e.range.getSheet();
+
+    /* D-5 · LO QUE SE PUBLICA CAMBIÓ. Se anota la hora para que el panel pueda
+       decir «tienes cambios sin publicar» también cuando el cambio se hizo en
+       la hoja y no en el panel. */
+    if (hojasQueSePublican().indexOf(h.getName()) !== -1) marcarEdicion();
 
     // Escribió un color a mano: se pinta la celda en el acto, para que el
     // relleno y el valor nunca queden diciendo cosas distintas.
@@ -5524,8 +5930,7 @@ function alEditar(e) {
     var hasta = desde + e.range.getNumColumns() - 1;
     if (COL_ESTADO < desde || COL_ESTADO > hasta) return;   // no tocaron Estado
 
-    aplicarInventario();
-    recalcularResumen();
+    trasCambiarEstado();
   } catch (err) {
     registrarError(err, null);
   }
@@ -5539,7 +5944,15 @@ function recalcularResumen() {
   var acum = {}, usosCupon = {}, pedidosCupon = {};
 
   datos.forEach(function (f) {
-    if (String(f[3]).toLowerCase().indexOf('confirmado') === -1) return;   // Estado
+    /* «¿YA SE VENDIÓ?» SE LE PREGUNTA A esVenta(), y esta línea es la razón de
+       que haga falta decirlo otra vez. Aquí sobrevivía la tercera copia de la
+       regla —`indexOf('confirmado')`— después de que el comentario de
+       esVenta() declarara unificadas las otras dos. Desde que los estados se
+       migraron a «Pagado», esta copia no contaba NADA: Más vendidos quedaba
+       vacía y los usos de cada cupón en cero, así que un cupón con tope de
+       usos no se agotaba nunca. Lo cazó D-3, al pedir que cambiar el estado
+       desde el panel tenga «el mismo efecto que en la hoja». */
+    if (!esVenta(f[3])) return;                                            // Estado
     var id = f[7];
     if (!id) return;
     if (!acum[id]) acum[id] = { nombre: f[6], unidades: 0, ingresos: 0, pedidos: {} };

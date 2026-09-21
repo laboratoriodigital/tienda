@@ -487,11 +487,19 @@ El menú de su hoja tiene siete opciones, y conviene nombrárselas todas una vez
 dejarlo listo en la entrega: en `Configuración › panel_usuario` el nombre con el
 que va a entrar, y después menú › **Clave del panel** con el comerciante al
 lado — la clave se enseña una sola vez y no queda escrita en ninguna parte, así
-que la apunta él. Hoy el panel edita **productos** y sube sus **fotos** (D-2);
-pedidos, configuración y publicar desde ahí vienen en D-3 a D-5. Lo que se
-guarda en el panel queda en la hoja al instante, pero **la tienda lo muestra al
-publicar**: eso hay que decírselo, porque el panel también lo dice y la primera
-vez nadie lo lee.
+que la apunta él. Hoy el panel tiene tres pestañas: **Productos** (editar y
+subir fotos), **Pedidos** (ver y cambiar el estado, con el mismo efecto sobre el
+inventario que en la hoja) y **Tu tienda** (textos, colores, contacto, envío
+gratis; las claves técnicas no salen). Arriba, la barra de **Publicar**. Lo que
+se guarda en el panel queda en la hoja al instante, pero **la tienda lo muestra
+al publicar**: eso hay que decírselo, porque el panel también lo dice y la
+primera vez nadie lo lee.
+
+Para que el botón Publicar funcione hacen falta las mismas dos cosas que para
+*Publicar ahora* del menú: `Configuración › repositorio` y el `GITHUB_TOKEN` en
+las propiedades del maestro. Sin ellas el panel lo dice («eso lo hace una vez
+quien la montó») y manda al menú. Con ellas, además, enseña cómo va la
+publicación y cómo terminó.
 
 - [ ] **El domingo siguiente a la entrega:** Diagnóstico → *Último respaldo*.
       Si dice «nunca» o «falló», la cuenta de la tienda no tiene permiso sobre
