@@ -44,8 +44,22 @@ const ANCHOS = [160, 600, 900];
 /* Los mismos topes que el maestro y que la página. Están escritos tres veces
    porque son tres programas distintos que no se pueden leer entre sí; lo que no
    se puede es que digan números distintos, y eso lo comprueba variantes.js. */
-const MAX_GRUPOS_VARIANTE = 4;
-const MAX_OPCIONES_VARIANTE = 24;
+const MAX_GRUPOS_VARIANTE = 3;
+const MAX_OPCIONES_VARIANTE = 20;
+/* C-1b: 6 fotos generales y 4 por opción. De qué opción es una foto se lee de
+   su nombre (<código>--<grupo>-<opción>-<n>), igual que en el maestro. */
+function fotosConTope(lista) {
+  const salida = [], porOpcion = {};
+  let generales = 0;
+  lista.forEach(n => {
+    const m = String(n).match(/--([a-z0-9]+(?:-[a-z0-9]+)*?)-(\d+)\.[a-z0-9]+$/i);
+    if (!m) { if (generales < 6) { generales++; salida.push(n); } return; }
+    const k = m[1].toLowerCase();
+    porOpcion[k] = (porOpcion[k] || 0) + 1;
+    if (porOpcion[k] <= 4) salida.push(n);
+  });
+  return salida;
+}
 const revisar = process.argv.includes('--revisar');
 
 export const ESCRIBE = [ARCHIVO];
@@ -66,7 +80,7 @@ function soloLoQueSePublica(d) {
       precio: Number(p.precio) || 0,
       stock: Math.max(0, Math.floor(Number(p.stock) || 0)),
       descripcion: String(p.descripcion || ''),
-      imagenes: Array.isArray(p.imagenes) ? p.imagenes.slice(0, 6) : [],
+      imagenes: Array.isArray(p.imagenes) ? fotosConTope(p.imagenes) : [],
       destacado: p.destacado === true,
       referencia: String(p.referencia || ''),
       precioAntes: (Number(p.precioAntes) || 0) > (Number(p.precio) || 0)
@@ -90,6 +104,15 @@ function soloLoQueSePublica(d) {
         }))
         .filter(g => g.nombre && g.opciones.length);
       if (variantes.length) base.variantes = variantes;
+
+      /* C-1b · el stock por combinación, al final y solo si existe. Sin esto
+         la tienda publicada ofrecería combinaciones agotadas hasta que
+         contestara el maestro. */
+      if (variantes.length && Array.isArray(p.skus) && p.skus.length) {
+        base.skus = p.skus.map(k => ({ eleccion: String((k && k.eleccion) || ''),
+                                       stock: Math.max(0, Math.floor(Number(k && k.stock) || 0)) }))
+                          .filter(k => k.eleccion);
+      }
 
       return base;
     });

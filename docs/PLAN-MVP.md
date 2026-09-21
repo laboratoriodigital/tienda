@@ -586,15 +586,16 @@ machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
 > Es el 84 % del gasto de minutos y existe para cazar fotos subidas al Drive
 > sin avisar — un caso que el panel (M3) elimina.
 
-- [ ] Publicación **a demanda** desde el panel del comerciante. *(El camino a
-      demanda ya existe: «Publicar ahora», en el menú de la hoja. Desde el
-      PANEL es M3.)*
+- [x] Publicación **a demanda** desde el panel del comerciante. *(Cerrado
+      con D-5, el 21 de septiembre: el botón Publicar del panel dispara el
+      mismo flujo que el menú.)*
 - [x] Red de seguridad **diaria** que solo comprueba si hay cambios sin publicar
       y avisa; no publica sola. *(El cron de `fotos` pasa de `17 */4 * * *` a
       `17 6 * * *`, y cuando lo dispara el reloj mira, avisa y se retira sin
       bajar una sola foto. Guarda en `montaje.js`.)*
-- [ ] El panel dice cuándo se publicó por última vez y si hay algo pendiente.
-      *(M3.)*
+- [x] El panel dice cuándo se publicó por última vez y si hay algo pendiente.
+      *(D-5: se le pregunta a la tienda, no a la hoja, y si no contesta dice
+      que no sabe.)*
 
 **B-3 · Una sola pregunta al maestro**  · 5 pts · dep. B-1
 - [x] `montar/sondear.mjs` pide en paralelo lo que hoy se pide tres veces
@@ -690,8 +691,8 @@ frente a 102 s de la suite en la misma máquina). La guardia lleva una condició
 que allá no tiene: solo se usa si el último commit de CÓDIGO tiene `pruebas` en
 verde; si no se puede confirmar, corren todas (`pruebas/publicacion.sh`).
 
-**Lo que queda abierto de M1, y por qué:** los dos criterios de B-2 que hablan
-del **panel** del comerciante. No son deuda: son M3.
+**M1 queda cerrado entero** (21 de septiembre): los dos criterios de B-2 que
+hablaban del panel los cerró D-5.
 
 ### M2 · La tienda para todo producto
 
@@ -742,85 +743,49 @@ del **panel** del comerciante. No son deuda: son M3.
       **→ Revisada el 21 de septiembre: el disparador se cumplió y el stock baja
       a la variante. Es C-1b, justo debajo, y la decisión 11 de `DECISIONES.md`.**
 
-**C-1b · Inventario y fotos por variante (SKU)**  · 8 pts *(partir: hoja+maestro / página / fotos)*
+**C-1b · Inventario y fotos por variante (SKU)**  · 8 pts · ✅ 21-sep-2026
 > Como comerciante de ropa, quiero que al vender una camiseta básica **rosa
 > talla M** se descuente esa y no todas las básicas, y que el comprador vea la
 > foto del color que está eligiendo.
 
-> **Por qué existe.** C-1 decidió que el stock era del producto, y dejó escrito
-> su disparador: el primer comercio que pierda una venta por una talla agotada.
-> El dueño del producto lo activó el 21 de septiembre con este ejemplo, que es
-> exactamente el caso: con el stock en el producto, vender la última rosa M deja
-> la tienda ofreciendo rosas M que no existen —o, al revés, marca agotada la
-> camiseta entera cuando solo se acabó un color—. **Pendiente: se hace después
-> de D-2**, por orden del dueño.
-
-- [ ] **Una pestaña nueva, `Inventario por variante`**: una fila por
-      combinación (`ID producto` · `Combinación` · `Stock` · `Imágenes` ·
-      `Código`). *(Pestaña y no más sintaxis dentro de la celda `Variantes`:
-      tres tallas por dos colores son seis existencias, y seis números dentro
-      de una celda es donde nacen los errores. Agregar una pestaña está
-      permitido por R1; tocar las columnas de `Catálogo`, no.)*
-- [ ] **Los topes, decididos por el dueño el 21 de septiembre**: hasta **3
-      grupos**, **20 opciones por grupo** y **100 combinaciones por producto**.
-      *(Los de C-1 —4 grupos y 24 opciones— bajan a 3 y 20 en esta misma
-      historia, en los tres sitios donde están escritos: el maestro, la página y
-      el horneado. Por encima de 100 combinaciones no se genera nada: se avisa
-      con el número, porque 3 grupos de 20 son 8.000 filas.)*
-- [ ] **Las filas las escribe el maestro, no el comerciante.** Al llenar
-      `Variantes` en `Catálogo`, el maestro genera una fila por combinación con
-      el stock vacío; el comerciante solo pone los números. *(Escribir
-      «Talla: M ; Color: Rosa» a mano seis veces es la forma segura de que una
-      no case.)* Si el comerciante cambia las opciones, las filas que ya no
-      casan **no se borran**: se marcan, porque llevan un stock que alguien
-      contó.
-- [ ] **La verdad del stock de un producto con variantes está en esa pestaña.**
-      `Catálogo › Stock` pasa a ser **la suma**, escrita por el maestro y con la
-      ayuda de la fila diciéndolo. *(Una sola mano escribe la suma, así que no
-      puede separarse de sus partes; y todo lo que hoy lee `Stock` —el tablero,
-      «pocas unidades», los agotados, el correo— sigue funcionando sin
-      tocarlo.)*
-- [ ] **El pedido se valida por combinación.** Dos líneas de la misma
-      combinación compiten por sus existencias; dos combinaciones distintas ya
-      no compiten entre sí. *(Es exactamente lo contrario de lo que hoy hace
-      `validarPedido` a propósito, y su aserción de hoy tiene que invertirse,
-      no borrarse.)*
-- [ ] **Pagado descuenta la combinación, y solo esa.** `aplicarInventario` casa
-      la línea del pedido por `id` + `Variante` —la columna ya existe desde C-1—
-      con su fila de la pestaña nueva. Anulado la devuelve a la misma fila.
-- [ ] **La página**: en la ficha, una opción sin existencias sale marcada y no
-      se puede elegir; «Últimas 3 unidades» habla de la combinación elegida, no
-      del producto; la tarjeta dice «Agotado» solo cuando se acabaron **todas**.
-- [ ] **Las fotos por opción, y EL NOMBRE ES EL DATO** (decidido el 21 de
-      septiembre: «se cargan igual al Drive que cualquier otro producto, y se
-      montan desde el panel»). Una foto del color rosa se llama
-      `camiseta-basica--color-rosa-1.jpg`: código, doble guion, grupo, opción y
-      número. Va a **la misma carpeta de Drive** que todas y el montaje la
-      procesa igual que cualquier otra — `traer-fotos.mjs` ya convierte todo lo
-      que hay en la carpeta, así que no cambia nada ahí. Y nadie escribe ese
-      nombre: en el panel, al subir la foto de un producto con variantes, se
-      elige **de qué opción es** («¿de qué color es esta foto?», o «de todas»)
-      y el maestro la nombra — la misma pieza de D-2c con un campo más.
-      *(Por qué así y no una columna: de qué opción es una foto se lee de su
-      nombre, así que no hay tabla que mantener ni dos datos que puedan dejar
-      de casar, y una foto subida a mano con ese nombre funciona igual. El
-      grupo va en el nombre para que una talla «M» y un color «M» no se
-      confundan. La doble raya separa porque el código ya usa una.)*
-- [ ] **Lo que ve el comprador**: al elegir Rosa, la galería de la ficha pasa a
-      las fotos `--color-rosa-`; si esa opción no tiene fotos propias, se quedan
-      las generales del producto. La tarjeta sigue enseñando la primera
-      general. El tope de fotos pasa a **6 generales y 4 por opción**.
-- [ ] **Contrato**: cada producto gana `skus: [{ eleccion, stock, imagenes }]`,
-      al final y solo si tiene filas. Horneado en `catalogo.json` y en el
-      respaldo, como las variantes.
-- [ ] **Compatibilidad**: un producto con `Variantes` y **sin** filas en la
-      pestaña nueva se comporta exactamente como hoy. Nadie tiene que migrar
-      nada el día que esto se publica.
-- [ ] **Fuera de esta historia, dicho para que no se cuele**: precio distinto
-      por variante. Si un comercio lo pide, es otra historia con su propia
-      decisión.
-- [ ] Con D-2: editar el stock de cada combinación **desde el panel**. Hasta
-      entonces, desde la hoja.
+- [x] **Una pestaña nueva, `Inventario por variante`**: `ID producto` ·
+      `Combinación` · `Stock` · `Código` · `Nota`. *(Sin columna Imágenes: la
+      decisión de las fotos —«el nombre es el dato»— la hizo innecesaria.)*
+- [x] **Los topes**: 3 grupos, 20 opciones, 100 combinaciones, en los tres
+      sitios. *(Y ahora sí hay una aserción que compara los tres: el
+      comentario de C-1 decía que `variantes.js` lo comprobaba, y no lo hacía.)*
+- [x] **Las filas las escribe el maestro**, con el stock vacío; las que dejan
+      de casar se marcan en `Nota` y no se borran. Si la opción vuelve, vuelven
+      con su número.
+- [x] **La verdad del stock está en esa pestaña** y `Catálogo › Stock` es la
+      suma escrita por el maestro. *(Con una condición que el plan no decía y
+      que hace posible la compatibilidad: el producto pasa a venderse por
+      combinación solo cuando UNA fila tiene un número. Generar las filas no
+      agota la tienda.)*
+- [x] **El pedido se valida por combinación.** *(La aserción de C-1 no se
+      borró: sigue valiendo para los productos sin filas, y `inventario.js`
+      prueba la invertida.)*
+- [x] **Pagado descuenta la combinación, y solo esa**; Cancelado la devuelve a
+      la misma. *(Una línea que no casa —sin elección, o una combinación
+      renombrada— NO se descuenta del producto: la suma se lo comería. Se
+      anota en Errores.)*
+- [x] **La página**: opción sin existencias marcada y deshabilitada, «Últimas
+      N» de la combinación, «Agotado» en la tarjeta solo si se acabaron todas.
+- [x] **Las fotos por opción, y el nombre es el dato**:
+      `camiseta-basica--color-rosa-1.jpg`. El panel pregunta «¿de qué opción es
+      la foto?» y el maestro la nombra.
+- [x] **Lo que ve el comprador**: al elegir Rosa, las fotos de Rosa; sin
+      fotos propias, las generales. 6 generales y 4 por opción.
+- [x] **Contrato**: `skus: [{ eleccion, stock }]`, al final y solo si manda.
+      Horneado en `catalogo.json` y en el respaldo. *(Sin `imagenes` por sku:
+      las fotos se leen del nombre.)*
+- [x] **Compatibilidad**: con `Variantes` y sin números, exactamente como hoy.
+- [x] **Fuera de esta historia**: precio por variante. Sigue fuera.
+- [x] **Con D-2**: el stock de cada combinación se edita desde el panel
+      (`guardar_combinaciones`, todo o nada, con huella por fila). Mientras
+      manda la combinación, el Stock del producto se bloquea: es una suma.
+      *(Y el cobro en línea aparta por combinación: pagar la última rosa M no
+      bloquea la nude M.)*
 
 **C-2 · SEO horneado**  · 5 pts · dep. A-2
 - [x] JSON-LD de organización y sitio en la portada; de producto con oferta,
@@ -846,12 +811,19 @@ del **panel** del comerciante. No son deuda: son M3.
       formal de schema.org: eso pediría una dependencia nueva, y lo que rompe en
       la práctica es la forma, no el vocabulario.)*
 
-**C-3 · Lo que el comprador necesita saber antes de comprar**  · 3 pts
-- [ ] **Envío gratis anunciado**: «te faltan $12.000 para envío gratis», con el
-      umbral que ya existe en la hoja.
-- [ ] **Horario**: hoy `horario` es una clave muerta —se siembra, se documenta y
-      nadie la pinta—. O se pinta, o se retira.
-- [ ] **Tienda cerrada** y **mínimo de pedido**, los dos por interruptor.
+**C-3 · Lo que el comprador necesita saber antes de comprar**  · 3 pts · ✅ 21-sep-2026
+- [x] **Envío gratis anunciado**: «te faltan $12.000 para el envío gratis», con
+      el umbral de la hoja y la misma regla de lectura que el maestro
+      (`cifraDeTexto`: separador de miles sí, decimales no).
+- [x] **Horario**: se pinta. Al pie de la tienda y en el carrito, «Te
+      respondemos: …».
+- [x] **Tienda cerrada** (`tienda_abierta`, `tienda_cerrada_mensaje`) y
+      **mínimo de pedido** (`pedido_minimo`). *(Cerrada: aviso arriba de
+      todo, se puede mirar, no se puede pedir. Mínimo: el botón dice cuánto
+      falta. Y quien COBRA es el maestro: cerrada o por debajo del mínimo,
+      `pago_crear` no cobra aunque la página se equivoque; un pedido que ya
+      salió por WhatsApp desde una página vieja se registra igual. Un mínimo
+      ilegible no es «sin mínimo»: se anota y ese total no se cobra en línea.)*
 
 **C-4 · Orden del catálogo**  · 2 pts
 - [x] El comerciante elige el orden por defecto desde la hoja o el panel; el
@@ -1022,14 +994,23 @@ del **panel** del comerciante. No son deuda: son M3.
       *(Pregunta cada 8 s por la última ejecución de `fotos.yml`, con enlace al
       detalle. Si terminó mal, dice que la tienda sigue como estaba.)*
 
-**D-6 · Registro de cambios**  · 2 pts
-- [ ] Cada escritura deja una fila en una pestaña nueva, solo de agregar:
-      cuándo, qué se cambió y desde dónde.
-- [ ] Es lo único que contesta «yo no borré eso» sin adivinar.
+**D-6 · Registro de cambios**  · 2 pts · ✅ 21-sep-2026
+- [x] Cada escritura deja una fila en la pestaña `Registro`: cuándo, desde
+      dónde (Panel, Hoja, Bold), quién, qué, dónde, antes y después. *(Desde el
+      panel se escribe en `conOperacion`, el único sitio por donde pasan todas
+      las escrituras, bajo la misma llave; lo rechazado y lo repetido no se
+      anotan. Desde la hoja, `alEditar` con el valor viejo y el nuevo. Un pago
+      aprobado en línea también.)*
+- [x] Es lo único que contesta «yo no borré eso» sin adivinar. *(Con un límite
+      dicho: Apps Script no deja cerrar una pestaña a su dueño. Va protegida
+      con aviso, y editarla a mano queda escrito en ella misma.)*
 
-**D-7 · La guía del comerciante, rehecha para el panel**  · 2 pts
-- [ ] La guía de una página pasa a explicar el panel, no la hoja.
-- [ ] Sigue cabiendo en una página.
+**D-7 · La guía del comerciante, rehecha para el panel**  · 2 pts · ✅ 21-sep-2026
+- [x] La guía de una página pasa a explicar el panel, no la hoja.
+      *(`GUIA-COMERCIANTE.md` y la imprimible. Y se corrigió una frase falsa
+      desde B-2: «sola se pone al día cada cuatro horas».)*
+- [x] Sigue cabiendo en una página. *(Menos de 100 líneas, y nombra todas
+      las opciones del menú: `montaje.js` lo exige.)*
 
 ---
 

@@ -120,6 +120,9 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
 .muestra{display:inline-block;width:22px;height:22px;border-radius:4px;border:1px solid var(--linea);vertical-align:middle;margin-left:8px}
 .error-campo{font-size:.78rem;color:var(--rojo);margin-top:4px}
 @media (max-width:520px){ .dos{grid-template-columns:1fr} .fila{grid-template-columns:1fr} }
+.fila-combo{display:grid;grid-template-columns:1fr 96px;gap:2px 10px;align-items:center;margin:0 0 6px}
+.fila-combo label{margin:0;font-weight:500}
+.fila-combo .error-campo{grid-column:1/-1;margin:0}
 </style>
 </head>
 <body>
@@ -237,8 +240,11 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
         <label for="f-imagenes">Fotos</label>
         <input class="campo" id="f-imagenes" spellcheck="false">
         <p class="ayuda">Los nombres de los archivos en tu carpeta de fotos, separados por <b>|</b>
-          (ej: <code>camiseta-basica-1.jpg|camiseta-basica-2.jpg</code>). Hasta seis.</p>
+          (ej: <code>camiseta-basica-1.jpg|camiseta-basica-2.jpg</code>). Hasta seis generales y cuatro por opción
+          (las de una opción se llaman <code>camiseta-basica--color-rosa-1.jpg</code>; al subirla desde aquí, el nombre se pone solo).</p>
         <div id="subirFoto" hidden style="margin-top:8px">
+          <!-- C-1b · ¿de qué opción es la foto? El nombre lo pone el maestro. -->
+          <select class="campo" id="f-fotoOpcion" hidden aria-label="De qué opción es la foto" style="margin-bottom:8px"></select>
           <label class="btn linea chico" style="display:inline-block;margin:0">
             Subir una foto
             <input type="file" id="f-foto" accept="image/*" hidden>
@@ -251,6 +257,16 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
         <input class="campo" id="f-variantes" spellcheck="false" placeholder="Talla: S|M|L ; Color: Rosa|Nude">
         <p class="ayuda">Grupos separados por <b>;</b>, el nombre antes de <b>:</b> y las opciones con <b>|</b>.
           Sin comas dentro de una opción: escribe 40.5, no 40,5.</p>
+
+        <!-- C-1b · EL STOCK DE CADA COMBINACIÓN. Las filas las genera el maestro
+             al guardar las variantes; aquí solo se ponen los números. -->
+        <fieldset id="combinaciones" hidden>
+          <legend>Stock por combinación</legend>
+          <p class="ayuda" id="ayudaCombinaciones"></p>
+          <div id="filasCombinaciones"></div>
+          <p class="aviso" id="avisoCombinaciones" role="status" hidden></p>
+          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar el stock por combinación</button>
+        </fieldset>
 
         <label for="f-referencia">Referencia interna <span style="font-weight:400;color:var(--tenue)">(opcional)</span></label>
         <input class="campo" id="f-referencia" maxlength="60">
@@ -561,6 +577,7 @@ function abrirEditor(p){
   $("#subirFoto").hidden = !p;
   $("#fotoAlCrear").hidden = !!p;
   $("#estadoFoto").textContent = "";
+  pintarCombinaciones(p);
   /* Lo que la hoja no sabe leer se marca en rojo, con su texto tal cual. */
   if (p && p.problemas && p.problemas.length) {
     p.problemas.forEach(n => { const k = NOMBRE_DEL_CAMPO[n]; if (k) $("#f-" + k).classList.add("mal"); });
@@ -674,7 +691,8 @@ async function subirFoto(){
   estado.textContent = "Subiendo…";
   const opFoto = nuevaOperacion();
   try {
-    const r = await llamar("subir_foto", { op: opFoto, id: editando.id, tipo: "image/jpeg", datos: datos });
+    const opcion = $("#f-fotoOpcion").hidden ? "" : $("#f-fotoOpcion").value;
+    const r = await llamar("subir_foto", { op: opFoto, id: editando.id, tipo: "image/jpeg", datos: datos, opcion: opcion });
     if (!r.ok) { estado.textContent = ""; aviso("#avisoEditor", "mal", r.error); return; }
     /* LA FOTO CAMBIÓ LA FILA, así que la versión de este formulario ya es
        vieja. Se toma la nueva AQUÍ: si no, el siguiente «Guardar» contestaría
@@ -691,6 +709,77 @@ async function subirFoto(){
     aviso("#avisoEditor", "mal", "No sabemos si la foto subió: se perdió la conexión. " +
           "Vuelve a abrir el producto para ver si ya está en Fotos antes de subirla otra vez.");
   }
+}
+
+/* ── C-1b · EL STOCK POR COMBINACIÓN ─────────────────────────────────────
+   Una fila por combinación, con el número TAL COMO ESTÁ en la hoja —vacío es
+   «todavía no lo cuento»—. Mientras todas estén vacías el producto se vende
+   con su stock de siempre; en cuanto hay un número, manda esto y el stock del
+   producto pasa a ser la suma, y el campo Stock de arriba se bloquea. */
+function gruposDeTexto(t){
+  return String(t || "").split(";").map(x => x.trim()).filter(Boolean).map(x => {
+    const i = x.indexOf(":");
+    return i === -1 ? null : { nombre: x.slice(0, i).trim(), opciones: x.slice(i + 1).split("|").map(o => o.trim()).filter(Boolean) };
+  }).filter(g => g && g.nombre && g.opciones.length);
+}
+
+function pintarCombinaciones(p){
+  const combos = (p && p.combinaciones) || [];
+  const vivas = combos.filter(c => !c.noCasa);
+  $("#combinaciones").hidden = !vivas.length;
+  $("#f-stock").readOnly = !!(p && p.porCombinacion);
+  $("#f-stock").title = p && p.porCombinacion ? "Es la suma del stock por combinación" : "";
+  $("#ayudaCombinaciones").textContent = p && p.porCombinacion
+    ? "Este producto se vende por combinación: el Stock de arriba es la suma de estas."
+    : "Mientras estén todas vacías, el producto se vende con el Stock de arriba. Al poner un número, pasa a venderse por combinación.";
+  $("#filasCombinaciones").innerHTML = vivas.map((c, i) => `
+    <div class="fila-combo">
+      <label for="combo${i}">${escapar(c.combinacion)}</label>
+      <input class="campo" id="combo${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
+             data-version="${escapar(c.version)}" data-antes="${escapar(c.stock)}" value="${escapar(c.stock)}">
+      <p class="error-campo" hidden></p>
+    </div>`).join("");
+  aviso("#avisoCombinaciones", "", "");
+  /* ¿De qué opción es la foto? «General» o una opción de un grupo. */
+  const grupos = gruposDeTexto(p ? p.variantes : "");
+  const sel = $("#f-fotoOpcion");
+  sel.hidden = !grupos.length;
+  sel.innerHTML = `<option value="">Foto general del producto</option>` + grupos.map(g =>
+    g.opciones.map(o => `<option value="${escapar(g.nombre + "=" + o)}">Foto de ${escapar(g.nombre.toLowerCase())}: ${escapar(o)}</option>`).join("")).join("");
+}
+
+let opCombinaciones = null;
+async function guardarCombinaciones(){
+  if (!editando) return;
+  const cambios = {}, versiones = {};
+  document.querySelectorAll("#filasCombinaciones input").forEach(el => {
+    const v = el.value.trim();
+    if (v !== el.dataset.antes) { cambios[el.dataset.combo] = v; versiones[el.dataset.combo] = el.dataset.version; }
+    el.classList.remove("mal");
+    el.nextElementSibling.hidden = true;
+  });
+  if (!Object.keys(cambios).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
+  if (!opCombinaciones) opCombinaciones = nuevaOperacion();
+  $("#guardarCombinaciones").disabled = true;
+  try {
+    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones });
+    opCombinaciones = null;
+    if (!r.ok) {
+      document.querySelectorAll("#filasCombinaciones input").forEach(el => {
+        const e = (r.errores || {})[el.dataset.combo];
+        if (e) { el.classList.add("mal"); el.nextElementSibling.hidden = false; el.nextElementSibling.textContent = e; }
+      });
+      aviso("#avisoCombinaciones", "mal", r.error || "No se guardó.");
+      return;
+    }
+    await cargar();
+    const nuevo = productos.find(x => x.id === editando.id);
+    if (nuevo) { editando = nuevo; $("#f-stock").value = nuevo.stock; pintarCombinaciones(nuevo); }
+    aviso("#avisoCombinaciones", "bien", "Guardado. Se verá en la tienda al publicar.");
+    revisarPublicacion();
+  } catch (e) {
+    if (e.message !== "sesion") aviso("#avisoCombinaciones", "mal", "No sabemos si se guardó: se perdió la conexión. Pulsa otra vez; no se va a repetir.");
+  } finally { $("#guardarCombinaciones").disabled = false; }
 }
 
 /* Borrar pide dos pasos y dice a dónde va. Sin window.confirm: bloquea la
@@ -1071,6 +1160,7 @@ $("#formProducto").addEventListener("submit", guardar);
 $("#borrar").addEventListener("click", pedirBorrar);
 $("#borrarSi").addEventListener("click", borrar);
 $("#f-foto").addEventListener("change", subirFoto);
+$("#guardarCombinaciones").addEventListener("click", guardarCombinaciones);
 document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.vista)));
 $("#publicar").addEventListener("click", publicar);
 $("#chipsEstados").addEventListener("click", ev => { const b = ev.target.closest("button[data-estado]");

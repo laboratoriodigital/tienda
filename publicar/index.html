@@ -378,6 +378,12 @@ textarea.campo{resize:vertical;min-height:64px}
 .sello.confirmado{color:var(--verde);font-weight:600}
 .sello.esperando{color:var(--tenue)}
 .sello.aviso-stock{color:var(--rojo)}
+/* C-3 · Lo que el comprador tiene que saber ANTES de pedir. */
+.sello.falta-gratis{color:var(--verde);font-weight:600}
+.aviso-cerrada{background:#FFF4CC;color:#5A4300;font-weight:600;font-size:14px;line-height:1.45;
+  text-align:center;padding:11px 16px}
+.aviso-cerrada[hidden]{display:none}
+.horario-carrito{font-size:12.5px;color:var(--tenue);margin:0 0 10px;text-align:center}
 /* El aviso de catálogo del archivo. Tiene que verse sin asustar: la tienda
    funciona, y lo que se está diciendo es que los precios podrían no estar al
    día. Amarillo de advertencia, no rojo de error. */
@@ -512,6 +518,11 @@ textarea.campo{resize:vertical;min-height:64px}
   </div>
 </header>
 
+<!-- C-3 · TIENDA CERRADA. Arriba de todo y en palabras del comercio: quien
+     llega tiene que saberlo antes de armar un carrito que no va a poder
+     enviar. Se puede mirar el catálogo; no se puede pedir. -->
+<div class="aviso-cerrada" id="avisoCerrada" role="status" hidden></div>
+
 <!-- ============================ PORTADA ============================ -->
 <section class="portada">
   <div class="envoltura">
@@ -556,6 +567,7 @@ textarea.campo{resize:vertical;min-height:64px}
       <h4 id="pieNombre">[NOMBRE DE LA TIENDA]</h4>
       <p id="pieDescripcion">[DESCRIPCIÓN DEL PIE — sin hornear]</p>
       <p style="margin-top:8px">Pedidos: <a id="pieTelefono" href="#">[TELÉFONO — sin hornear]</a></p>
+      <p style="margin-top:4px" id="pieHorario" hidden></p>
     </div>
     <div>
       <h4>Cómo compras</h4>
@@ -657,7 +669,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXuK42kftKAue18ZtfH
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-1";
+const SCRIPT_VERSION = "2026-09-21-2";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -801,6 +813,14 @@ let TOPE_PAGO = 0;
 let COBRO = "whatsapp";
 let COBRO_PRUEBAS = false;
 
+/* C-3. Los cuatro los pone la hoja; vacíos, la tienda se comporta como antes.
+   Una cifra que no se puede leer NO se vuelve 0 ni «sin mínimo» por su cuenta:
+   se ignora aquí, y el maestro —que es quien decide— avisa en Errores. */
+let ENVIO_GRATIS_DESDE = 0;
+let PEDIDO_MINIMO = 0;
+let TIENDA_CERRADA = "";          // el mensaje; vacío = abierta
+let HORARIO = "";
+
 /* ¿Se piden variantes? Lo decide la hoja con f_variantes. Encendido por
    defecto: un producto sin la columna Variantes no tiene grupos y no cambia
    nada, así que apagarlo solo sirve para un comercio que ya las escribió y
@@ -864,6 +884,25 @@ function aplicarConfiguracion(c){
      de extremo a extremo habla con el maestro. */
   const topeLeido = Number(c.tope_pago);
   if(isFinite(topeLeido) && topeLeido > 0) TOPE_PAGO = topeLeido;
+
+  /* C-3. Las cifras se escriben en la hoja como la gente las escribe
+     —«$150.000», «150 mil» no—: se aceptan puntos, comas y el signo, y lo que
+     no sea un número entero se ignora. */
+  /* La misma lectura que cifraDeTexto() del maestro: separador de miles sí,
+     decimales no. Dos reglas distintas harían que la página y la hoja no
+     estuvieran de acuerdo en cuánto falta. */
+  const cifra = t => { const l = String(t || "").trim().replace(/[$\s]/g, "").replace(/[.,](?=\d{3}(\D|$))/g, "");
+                       return /^\d+$/.test(l) ? Number(l) : 0; };
+  ENVIO_GRATIS_DESDE = cifra(c.envio_gratis_desde);
+  PEDIDO_MINIMO = cifra(c.pedido_minimo);
+  HORARIO = v("horario");
+  TIENDA_CERRADA = /^no$/i.test(v("tienda_abierta"))
+    ? (v("tienda_cerrada_mensaje") || "La tienda está cerrada en este momento. Puedes mirar el catálogo; los pedidos vuelven pronto.")
+    : "";
+  const cerrada = $("#avisoCerrada");
+  if(cerrada){ cerrada.textContent = TIENDA_CERRADA; cerrada.hidden = !TIENDA_CERRADA; }
+  const pieHorario = $("#pieHorario");
+  if(pieHorario){ pieHorario.textContent = HORARIO ? "Atendemos: " + HORARIO : ""; pieHorario.hidden = !HORARIO; }
 
   /* M3.5 · CÓMO SE CIERRA LA VENTA. El maestro ya decidió si la pasarela está
      lista: `cobro` dice lo que la tienda PUEDE hacer, no lo que pidió la
@@ -958,8 +997,34 @@ function aplicarConfiguracion(c){
    dicho en la consola, que es donde mira quien vino a averiguar por qué la
    talla no aparece. */
 const RESERVADOS_VARIANTE = /[,:;=|]/;
-const MAX_GRUPOS_VARIANTE = 4;
-const MAX_OPCIONES_VARIANTE = 24;
+const MAX_GRUPOS_VARIANTE = 3;
+const MAX_OPCIONES_VARIANTE = 20;
+
+/* C-1b · 6 fotos generales y 4 por opción. De qué opción es una foto se lee
+   de su nombre: <código>--<grupo>-<opción>-<n>.jpg. Mismo tope que el maestro. */
+const FOTO_DE_OPCION = /--([a-z0-9]+(?:-[a-z0-9]+)*?)-(\d+)\.[a-z0-9]+$/i;
+function fotosConTope(lista){
+  const salida = [], porOpcion = {};
+  let generales = 0;
+  lista.forEach(n => {
+    const m = String(n).match(FOTO_DE_OPCION);
+    if(!m){ if(generales < 6){ generales++; salida.push(n); } return; }
+    const k = m[1].toLowerCase();
+    porOpcion[k] = (porOpcion[k] || 0) + 1;
+    if(porOpcion[k] <= 4) salida.push(n);
+  });
+  return salida;
+}
+/* Sin tildes ni mayúsculas, como llano() del maestro: es la llave con la que
+   se casa una combinación. */
+function llano(t){
+  return String(t == null ? "" : t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ").trim();
+}
+function trozoDeOpcion(grupo, opcion){
+  const l = t => llano(t).replace(/ñ/g, "n").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return l(grupo) + "-" + l(opcion);
+}
 
 function gruposDeVariantes(crudo, nombreProducto){
   if(!Array.isArray(crudo) || !crudo.length) return Object.freeze([]);
@@ -979,6 +1044,13 @@ function gruposDeVariantes(crudo, nombreProducto){
     grupos.push(Object.freeze({ nombre, opciones:Object.freeze(opciones) }));
   });
   return Object.freeze(grupos);
+}
+
+function skusDe(crudo){
+  if(!Array.isArray(crudo) || !crudo.length) return null;
+  const m = {};
+  crudo.forEach(k => { if(k && k.eleccion) m[llano(k.eleccion)] = Math.max(0, Math.floor(Number(k.stock) || 0)); });
+  return Object.keys(m).length ? Object.freeze(m) : null;
 }
 
 function aplicarCatalogo(datos){
@@ -1001,7 +1073,7 @@ function aplicarCatalogo(datos){
         precio:      Number(c.precio) || 0,
         stock:       Math.max(0, Math.floor(Number(c.stock) || 0)),
         descripcion: String(c.descripcion || ""),
-        imagenes:    Array.isArray(c.imagenes) ? c.imagenes.slice(0, 6) : [],
+        imagenes:    Array.isArray(c.imagenes) ? fotosConTope(c.imagenes) : [],
         destacado:   c.destacado === true,
         referencia:  String(c.referencia || ""),
         /* Solo si es mayor que el de hoy. La hoja ya lo comprueba; se repite
@@ -1010,6 +1082,9 @@ function aplicarCatalogo(datos){
                        ? Number(c.precioAntes) : 0,
         umbralBajo:  Math.max(0, Math.floor(Number(c.umbralBajo) || 0)),
         variantes:   gruposDeVariantes(c.variantes, c.nombre),
+        /* C-1b: el stock de cada combinación, cuando el comercio lo lleva así.
+           Llave sin tildes ni mayúsculas → unidades. Sin skus, como antes. */
+        skus:        skusDe(c.skus),
         forma:       formaDe(c.formato, c.categoria)
       }));
 
@@ -1316,8 +1391,34 @@ function cdnPermitido(plantilla){
   return false;
 }
 
+/* C-1b · QUÉ FOTOS SE VEN. En la tarjeta y sin elegir nada, las generales.
+   Al elegir una opción que tiene fotos propias («Rosa»), la galería pasa a
+   esas; si no tiene, se quedan las generales. */
+function imagenesDe(p, eleccion){
+  const todas = p.imagenes || [];
+  const generales = todas.filter(n => !FOTO_DE_OPCION.test(n));
+  const e = eleccion || {};
+  const propias = [];
+  gruposDe(p).forEach(g => {
+    if(!e[g.nombre]) return;
+    const prefijo = "--" + trozoDeOpcion(g.nombre, e[g.nombre]) + "-";
+    todas.forEach(n => { if(n.toLowerCase().indexOf(prefijo) !== -1 && propias.indexOf(n) === -1) propias.push(n); });
+  });
+  return propias.length ? propias : (generales.length ? generales : todas);
+}
+/* La elección de la ficha vale SOLO mientras la ficha está abierta y es la
+   de ese producto: cerrada, la tarjeta vuelve a hablar del producto entero
+   (lo cazó combinaciones.js: la tarjeta decía «Últimas 2» —las de la última
+   combinación mirada— en vez del total). */
+function eleccionAbierta(p){
+  const f = document.getElementById("ficha");
+  return (fichaActual && fichaActual.id === p.id && f && f.classList.contains("abierta")) ? eleccionFicha : null;
+}
+function listaFotos(p){ return imagenesDe(p, eleccionAbierta(p)); }
+
 function fotosDe(p, uso){
-  const lista = (p.imagenes && p.imagenes.length ? p.imagenes : [""]);
+  const propias = listaFotos(p);
+  const lista = (propias.length ? propias : [""]);
   return lista.map((nombre, i) => {
     const url = urlFoto(nombre, uso || "tarjeta");
     return url || marcador(p.forma, i);
@@ -1326,7 +1427,7 @@ function fotosDe(p, uso){
 
 /* La URL sin optimizar, para volver a ella si la optimizada no existe. */
 function fotoPlana(p, i){
-  const nombre = ((p.imagenes || [])[i] || "").trim();
+  const nombre = (listaFotos(p)[i] || "").trim();
   if(!nombre) return "";
   if(/^https?:\/\//i.test(nombre)) return nombre;
   return String(FOTOS.origen || "").replace(/\/+$/, "") + "/" + nombre.replace(/^\/+/, "");
@@ -1470,17 +1571,23 @@ function filtrar(cat){ categoriaActiva = cat; pagina = 1; pintarFiltros(); pinta
    resultado que ahora tiene 6 productos deja la pantalla vacía sin explicación. */
 function buscar(){ pagina = 1; pintarRejilla(); }
 
-function estadoStock(p){
-  // Todas las líneas de este producto, sean de la talla que sean.
-  const libre = p.stock - enCarrito(p.id);
-  if(p.stock === 0)  return { clase:"cero", texto:"Agotado", libre:0 };
+function estadoStock(p, eleccion){
+  /* C-1b: en la ficha, con la combinación elegida, habla de ESA combinación;
+     en la tarjeta, del producto (la suma). «Agotado» en la tarjeta solo
+     cuando se acabaron todas. */
+  if(eleccion === undefined) eleccion = eleccionAbierta(p);
+  const porCombo = p.skus && eleccion && eleccionCompleta(p, eleccion);
+  const stock = porCombo ? stockDe(p, eleccion) : p.stock;
+  const libre = stock - (porCombo ? enCarritoDe(p.id, eleccion) : enCarrito(p.id));
+  if(stock === 0)    return { clase:"cero", texto: porCombo ? "Agotado en esa combinación" : "Agotado", libre:0 };
   if(libre <= 0)     return { clase:"poco", texto:"Todo en tu carrito", libre:0 };
+  const p_stock = stock;
   /* Cuántas son «pocas» lo decide el comercio, producto por producto, en la
      columna Umbral bajo de su hoja: cinco unidades de un producto grande son
      muchas y cinco de uno pequeño son casi nada. Sin ese dato, cinco, que es
      lo que hacía antes para todos. */
   const pocas = p.umbralBajo > 0 ? p.umbralBajo : 5;
-  if(p.stock <= pocas) return { clase:"poco", texto:`Últimas ${p.stock} unidades`, libre };
+  if(p_stock <= pocas) return { clase:"poco", texto:`Últimas ${p_stock} unidades`, libre };
   return { clase:"ok", texto:"Disponible", libre };
 }
 
@@ -1627,7 +1734,8 @@ function bloqueVariantes(p){
       <label for="var${n}">${escapar(g.nombre)}</label>
       <select class="campo" id="var${n}" onchange="marcarEleccion()">
         <option value="">Elegir ${escapar(g.nombre.toLowerCase())}…</option>
-        ${g.opciones.map(o => `<option value="${escapar(o)}" ${eleccionFicha[g.nombre] === o ? "selected" : ""}>${escapar(o)}</option>`).join("")}
+        ${g.opciones.map(o => { const hay = opcionPosible(p, g.nombre, o, sinGrupo(eleccionFicha, g.nombre));
+            return `<option value="${escapar(o)}" ${eleccionFicha[g.nombre] === o ? "selected" : ""} ${hay ? "" : "disabled"}>${escapar(o)}${hay ? "" : " — agotado"}</option>`; }).join("")}
       </select>`).join("") +
     `<p class="aviso" id="avisoVariante"></p></div>`;
 }
@@ -1641,9 +1749,17 @@ function leerEleccionFicha(p){
   return e;
 }
 
+function sinGrupo(e, nombre){ const c = Object.assign({}, e || {}); delete c[nombre]; return c; }
+
 function marcarEleccion(){
   if(!fichaActual) return;
   eleccionFicha = leerEleccionFicha(fichaActual);
+  /* C-1b: elegir cambia qué hay (el stock de esa combinación, qué opciones
+     quedan) y qué fotos se ven; se repinta la ficha con la elección puesta. */
+  if(fichaActual.skus || fichaActual.imagenes.some(n => FOTO_DE_OPCION.test(n))){
+    fotoActual = 0;
+    pintarFicha();
+  }
   const aviso = $("#avisoVariante");
   if(aviso){ aviso.className = "aviso"; aviso.textContent = ""; }
 }
@@ -1665,8 +1781,12 @@ function agregarDeLaFicha(id){
     }
     return;
   }
-  agregar(id, cantidadElegida(id), eleccionFicha);
+  /* Primero se cierra la ficha y después se agrega: agregar repinta las
+     tarjetas, y con la ficha abierta las pintaba con el stock de la
+     combinación elegida en vez del producto entero. */
+  const n = cantidadElegida(id), e = eleccionFicha;
   cerrarTodo();
+  agregar(id, n, e);
 }
 
 function abrirFicha(id, desdeEnlace){
@@ -1811,6 +1931,36 @@ function enCarrito(id){
   return carrito.reduce((s, i) => s + (i.id === id ? i.cantidad : 0), 0);
 }
 
+/* C-1b · CON INVENTARIO POR COMBINACIÓN, cada combinación compite por lo
+   suyo: la rosa M y la nude S ya no se quitan unidades entre sí. Sin skus,
+   todo lo de abajo cae en la regla de C-1 (el stock es del producto). */
+function stockDe(p, eleccion){
+  if(!p.skus) return p.stock;
+  if(!eleccionCompleta(p, eleccion)) return p.stock;
+  const k = llano(textoVariante(p, depurarEleccion(p, eleccion)));
+  return p.skus[k] || 0;
+}
+function enCarritoDe(id, eleccion){
+  const p = producto(id);
+  if(!p || !p.skus) return enCarrito(id);
+  const k = claveItem(id, eleccion);
+  return carrito.reduce((s, i) => s + (i.id === id && claveItem(i.id, i.variante) === k ? i.cantidad : 0), 0);
+}
+/* ¿Queda alguna combinación con existencias que lleve esta opción, dadas las
+   demás que ya se eligieron? Para marcar en la ficha lo que no se puede
+   elegir, en vez de dejarlo elegir y decir «agotado» después. */
+function opcionPosible(p, grupo, opcion, eleccion){
+  if(!p.skus) return true;
+  const fijo = Object.assign({}, eleccion || {}, { [grupo]: opcion });
+  const grupos = gruposDe(p);
+  const libres = grupos.filter(g => !fijo[g.nombre]);
+  const probar = (i, e) => {
+    if(i === libres.length) return (p.skus[llano(textoVariante(p, e))] || 0) > 0;
+    return libres[i].opciones.some(o => probar(i + 1, Object.assign({}, e, { [libres[i].nombre]: o })));
+  };
+  return probar(0, fijo);
+}
+
 /* La línea que toca un botón del carrito. La posición viene del pintado, pero
    el id manda: si el carrito cambió entre el pintado y el clic, se cae a la
    primera línea de ESE producto antes que tocar otro distinto. */
@@ -1832,7 +1982,7 @@ function agregar(id, n, eleccion){
   const elegido = grupos.length ? depurarEleccion(p, eleccion) : null;
   const clave = claveItem(id, elegido);
   const item = carrito.filter(i => claveItem(i.id, i.variante) === clave)[0];
-  if(n < 1 || enCarrito(id) + n > p.stock) return;
+  if(n < 1 || enCarritoDe(id, elegido) + n > stockDe(p, elegido)) return;
   if(item) item.cantidad += n;
   else if(elegido) carrito.push({ id, cantidad:n, variante:elegido });
   else carrito.push({ id, cantidad:n });
@@ -1844,8 +1994,8 @@ function cambiarCantidad(id, n, pos){
   const item = lineaEn(id, pos);
   if(!item) return;
   const p = producto(id);
-  const otras = enCarrito(id) - item.cantidad;
-  item.cantidad = Math.max(0, Math.min(p.stock - otras, item.cantidad + n));
+  const otras = enCarritoDe(id, item.variante) - item.cantidad;
+  item.cantidad = Math.max(0, Math.min(stockDe(p, item.variante) - otras, item.cantidad + n));
   if(item.cantidad === 0) carrito = carrito.filter(i => i !== item);
   refrescar();
 }
@@ -1874,10 +2024,12 @@ function sanear(){
     if(claves.indexOf(clave) !== -1) return;
     const cant = Math.floor(Number(i.cantidad));
     if(!isFinite(cant) || cant < 1) return;
-    const ya = usado[p.id] || 0;
-    const tope = Math.min(cant, p.stock - ya);
+    /* C-1b: con inventario por combinación el tope es el de la combinación. */
+    const llaveTope = p.skus && eleccion ? clave : p.id;
+    const ya = usado[llaveTope] || 0;
+    const tope = Math.min(cant, stockDe(p, eleccion) - ya);
     if(tope > 0){
-      usado[p.id] = ya + tope;
+      usado[llaveTope] = ya + tope;
       claves.push(clave);
       const linea = { id:p.id, cantidad:tope };
       if(eleccion) linea.variante = eleccion;
@@ -1925,6 +2077,19 @@ function subtotal(){
   return carrito.reduce((s, i) => s + producto(i.id).precio * i.cantidad, 0);
 }
 
+/* La misma regla que el maestro (validarPedido): desde el umbral, sobre el
+   subtotal de productos. El maestro manda —su sello pisa esto—; aquí es para
+   que el total que se ve antes del sello no diga otra cosa. */
+function envioGratis(sub){ return ENVIO_GRATIS_DESDE > 0 && sub >= ENVIO_GRATIS_DESDE && envioActivo.valor > 0; }
+function faltaParaGratis(){
+  const sub = subtotal();
+  if(!(ENVIO_GRATIS_DESDE > 0) || !(Number(envioActivo.valor) > 0) || sub >= ENVIO_GRATIS_DESDE) return 0;
+  return ENVIO_GRATIS_DESDE - sub;
+}
+function faltaParaMinimo(){
+  return PEDIDO_MINIMO > 0 && subtotal() < PEDIDO_MINIMO ? PEDIDO_MINIMO - subtotal() : 0;
+}
+
 function calcular(){
   const sub = subtotal();
 
@@ -1933,11 +2098,12 @@ function calcular(){
   if(SCRIPT_URL){
     if(selloVigente())
       return { sub:sello.sub, descuento:sello.descuento, envio:sello.envio, total:sello.total };
-    return { sub, descuento:0, envio:envioActivo.valor, total:Math.max(0, sub + envioActivo.valor) };
+    const envio0 = envioGratis(sub) ? 0 : envioActivo.valor;
+    return { sub, descuento:0, envio:envio0, total:Math.max(0, sub + envio0) };
   }
 
   // Sin hoja conectada no hay descuentos: no hay dónde validarlos.
-  const envio = envioActivo.valor;
+  const envio = envioGratis(sub) ? 0 : envioActivo.valor;
   return { sub, descuento:0, envio, total: Math.max(0, sub + envio) };
 }
 
@@ -2143,7 +2309,7 @@ function pintarPanel(datos){
     const elegido = textoVariante(p, i.variante);
     /* El tope es del producto: con dos tallas en el carrito, la suma de las dos
        es lo que se compara contra el stock, no cada línea por su lado. */
-    const lleno = enCarrito(p.id) >= p.stock;
+    const lleno = enCarritoDe(p.id, i.variante) >= stockDe(p, i.variante);
     return `
       <div class="linea-item">
         <img src="${foto}" alt="">
@@ -2220,7 +2386,9 @@ function pintarPanel(datos){
     ${t.descuento ? `<div class="descuento"><span>Descuento (${escapar(cuponActivo || "")})</span><span>−${pesos(t.descuento)}</span></div>` : ""}
     <div><span>Envío · ${escapar(nombreEnvio())}</span><span>${t.envio ? pesos(t.envio) : "Sin costo"}</span></div>
     <div class="granTotal"><span>Total</span><span>${pesos(t.total)}</span></div>
-    ${avisosHoja}${estadoSello}${avisoDelCobro}${pruebas}`;
+    ${faltaParaGratis() ? `<div class="sello falta-gratis">Te faltan ${pesos(faltaParaGratis())} para el envío gratis.</div>` : ""}
+    ${avisosHoja}${estadoSello}${avisoDelCobro}${pruebas}
+    ${HORARIO ? `<p class="horario-carrito">Te respondemos: ${escapar(HORARIO)}</p>` : ""}`;
 
   if(datos) document.getElementById("consiento").checked = datos.consiento;
   revisarFormulario();
@@ -2254,6 +2422,16 @@ function revisarFormulario(){
      la entidad del comprador puede tener uno más bajo. Prometerle que por
      debajo de esta cifra le va a pasar es prometer algo que no depende de
      nosotros. */
+  /* C-3. Cerrada o por debajo del mínimo: se dice aquí, en el mismo sitio
+     donde se dice qué falta, y antes de lo que falta del formulario —llenar
+     los datos no lo arregla—. */
+  if(carrito.length && (TIENDA_CERRADA || faltaParaMinimo())){
+    aviso.hidden = false;
+    document.getElementById("faltanTexto").textContent = TIENDA_CERRADA
+      ? TIENDA_CERRADA
+      : "El pedido mínimo es " + pesos(PEDIDO_MINIMO) + ": te faltan " + pesos(faltaParaMinimo()) + ".";
+    return;
+  }
   if(carrito.length && pasaDelTope()){
     aviso.hidden = false;
     document.getElementById("faltanTexto").textContent =
@@ -2703,7 +2881,8 @@ function enLista(xs){
 }
 
 function formularioListo(d){
-  return carrito.length > 0 && queFalta(d).length === 0 && !pasaDelTope();
+  return carrito.length > 0 && queFalta(d).length === 0 && !pasaDelTope() &&
+         !TIENDA_CERRADA && !faltaParaMinimo();
 }
 
 /* Lleva al cliente hasta el campo vacío y le abre el teclado ahí. Sin esto, el

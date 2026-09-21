@@ -121,6 +121,22 @@
       "Ciudad",
       "Dirección",
       "Notas"
+    ],
+    "Registro": [
+      "Fecha",
+      "Desde",
+      "Quién",
+      "Qué se hizo",
+      "Dónde",
+      "Antes",
+      "Después"
+    ],
+    "Inventario por variante": [
+      "ID producto",
+      "Combinación",
+      "Stock",
+      "Código",
+      "Nota"
     ]
   },
   "configuracion": [
@@ -170,7 +186,10 @@
     "orden_catalogo",
     "panel_usuario",
     "cobro_modo",
-    "cobro_ambiente"
+    "cobro_ambiente",
+    "tienda_abierta",
+    "tienda_cerrada_mensaje",
+    "pedido_minimo"
   ],
   "nombresDePuertas": [
     "version",
@@ -198,7 +217,8 @@
     "publicacion",
     "publicar",
     "pago_crear",
-    "pago_estado"
+    "pago_estado",
+    "guardar_combinaciones"
   ],
   "puertas": {
     "version": [

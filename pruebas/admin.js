@@ -350,6 +350,40 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
   await p.click('#tab-productos');
   await listo();
 
+  // ═══ 9e. El stock por combinación (C-1b) ═══
+  {
+    const fc = ((await hojas())['Catálogo'] || []).findIndex(f => f[0] === 'baguette') + 1;
+    await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=' + fc + '&c=14&v=' + encodeURIComponent('Talla: S|M ; Color: Rosa') + '&disparar=1');
+    await p.click('#tab-productos');
+    await p.reload(); await listo();
+    await abrir('baguette');
+    await quizas(hasta(p, () => !document.querySelector('#combinaciones').hidden));
+    ok('UN PRODUCTO CON VARIANTES enseña una fila por combinación, vacía, y el Stock de arriba editable',
+       (await p.locator('#filasCombinaciones input').count()) === 2 &&
+       !(await p.evaluate(() => document.querySelector('#f-stock').readOnly)));
+    const opciones = await p.evaluate(() => [...document.querySelectorAll('#f-fotoOpcion option')].map(o => o.textContent));
+    ok('  ...y al subir una foto se puede decir de qué opción es',
+       opciones.length === 4 && opciones.some(o => /Foto de color: Rosa/.test(o)) &&
+       await p.locator('#f-fotoOpcion').isVisible(), opciones.join(' / '));
+    await p.fill('#filasCombinaciones input >> nth=0', 'tres');
+    await p.click('#guardarCombinaciones');
+    await quizas(hasta(p, () => !document.querySelector('#avisoCombinaciones').hidden));
+    ok('UN NÚMERO QUE NO ES NÚMERO se explica junto a su combinación y no se guarda nada',
+       /entero/.test(await p.locator('#filasCombinaciones .error-campo >> nth=0').innerText()) &&
+       ((await hojas())['Inventario por variante'] || []).filter(f => f[0] === 'baguette').every(f => f[2] === ''));
+    await p.fill('#filasCombinaciones input >> nth=0', '3');
+    await p.fill('#filasCombinaciones input >> nth=1', '2');
+    await p.click('#guardarCombinaciones');
+    await quizas(hasta(p, () => /Guardado/.test(document.querySelector('#avisoCombinaciones').textContent)));
+    const filasB = ((await hojas())['Inventario por variante'] || []).filter(f => f[0] === 'baguette');
+    ok('GUARDAR escribe cada combinación en la hoja, y el stock del producto pasa a ser la suma',
+       filasB.map(f => f[2]).join(',') === '3,2' && Number((await fila('baguette'))[5]) === 5 &&
+       (await p.inputValue('#f-stock')) === '5', filasB.map(f => f[1] + '=' + f[2]).join(' · '));
+    ok('  ...y el Stock de arriba queda bloqueado: ahora es una suma',
+       await p.evaluate(() => document.querySelector('#f-stock').readOnly));
+    await p.click('#cancelar');
+  }
+
   // ═══ 10. La sesión que se cae ═══
   await fetch(U + '/__panel?usuario=dona.rosa');          // clave nueva: cierra las sesiones
   await p.click('#lista .fila[data-id="croissant"] button[data-accion="activar"]');

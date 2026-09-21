@@ -25,10 +25,10 @@ actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 | Hito | Estado |
 |---|---|
 | **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
-| **M1** · Rendimiento y cuota | **Cerrado.** Las siete historias. De B-2 quedan abiertos sus dos criterios de panel, que son M3 y no deuda |
-| **M2** · La tienda para todo producto | C-1 (variantes), C-2 (SEO) y C-4 (orden del catálogo) **cerradas**. Faltan **C-3** y **C-1b** — inventario y fotos por variante, agregada el 21 de septiembre (decisión 11) |
-| **M3** · El panel del comerciante | D-1 a D-5 **cerradas**: el panel entra, edita productos y fotos, cambia el estado de los pedidos, edita la configuración del comerciante y publica. Faltan D-6 (registro de cambios) y D-7 (guía) |
-| **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) y, con C-1b, apartar por combinación |
+| **M1** · Rendimiento y cuota | **Cerrado entero.** Los dos criterios de panel de B-2 los cerró D-5 |
+| **M2** · La tienda para todo producto | **Cerrado** el 21 de septiembre: C-1, C-1b (inventario y fotos por combinación), C-2, C-3 (envío gratis anunciado, horario, tienda cerrada, pedido mínimo) y C-4 |
+| **M3** · El panel del comerciante | **Cerrado** el 21 de septiembre: D-1 a D-7. Entra, edita productos, fotos y stock por combinación, cambia pedidos, edita la configuración, publica, deja registro de todo, y la guía de una página ya explica el panel |
+| **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) y, |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
 
@@ -46,26 +46,25 @@ real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
 entero por delante. Los dos, holgadamente dentro del presupuesto de
 `presupuesto.json`.
 
-Por donde sigue una sesión nueva: **D-6, el registro de cambios**. Todas las
-escrituras del panel ya pasan por un solo sitio —`conOperacion`, con llave y
-número de operación—, así que la fila del registro se escribe ahí una vez y no
-en cada puerta. Las ediciones a mano de la hoja pasan por `alEditar`, que ya
-distingue qué hojas cambian la vitrina (`hojasQueSePublican`). Después **D-7**,
-la guía del comerciante rehecha para el panel.
+**El MVP está construido** (M0 a M3.5). Lo que queda antes de llamarlo 1.0.0
+no es código nuevo, es comprobarlo en una tienda de verdad:
 
-Luego, por orden del dueño: **C-1b** —stock y fotos por combinación, con sus
-topes ya decididos (3 tipos, 20 valores, 100 combinaciones); cuando baje el
-stock a la combinación, el apartado del cobro en línea tiene que bajar con él—
-y **C-3** (envío gratis anunciado, horario, tienda cerrada, mínimo de pedido).
+1. **La prueba de Bold** con las llaves de pruebas en una tienda publicada
+   (`docs/PAGOS-BOLD.md`, «Probarlo»).
+2. **Una tienda de ropa real con variantes**: llenar `Inventario por variante`,
+   vender una combinación y ver que baja esa. Nada de C-1b se ha probado
+   todavía contra Google de verdad.
+3. **El registro de cambios en una hoja real**: comprobar que el correo de
+   quien edita llega (`e.user` depende del tipo de cuenta de Google) y que la
+   protección con aviso aparece.
 
 **El cobro en línea está hecho pero no probado contra Bold de verdad**: las
 pruebas usan un Bold de mentira que contesta lo que contesta el real. Antes de
 cobrarle a nadie hay que hacer la prueba de `docs/PAGOS-BOLD.md` con las llaves
 de pruebas en una tienda publicada.
 
-Un pendiente chico que no es de ninguna historia: `publicar/404.html` todavía
-dice «Orgánico» y lleva sus colores. Es de la línea anterior y ninguna batería
-lo mira; lo encontró quien revisaba otra cosa.
+El `publicar/404.html` con la marca de la línea anterior quedó resuelto el 21 de
+septiembre (bitácora 55).
 
 ---
 

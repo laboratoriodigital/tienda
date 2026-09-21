@@ -9,13 +9,12 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.6.0`.** Esta es **la semilla de la segunda
+> **Estado: en construcción · `0.7.0`.** Esta es **la semilla de la segunda
 > versión** del producto, que se llama **tienda**. Nace de la semilla de la
-> línea anterior (`laboratoriodigital/organico`, 3.0.0). M0 y M1 están
-> cerrados, a M2 le faltan C-3 y C-1b, y M3 va por D-6 (el panel ya entra, edita productos, fotos,
-> pedidos y configuración, y publica). M3.5 —cobrar en línea con Bold, o seguir
-> por WhatsApp, a elección de la hoja— está hecho (`docs/PAGOS-BOLD.md`); lo que todavía no se ha
-> tocado queda dicho, historia por historia, en `docs/PLAN-MVP.md`.
+> línea anterior (`laboratoriodigital/organico`, 3.0.0). Los cuatro hitos
+> del MVP —M0 a M3— y M3.5 (cobrar en línea con Bold, o seguir por WhatsApp)
+> están construidos; falta probarlos en una tienda de verdad antes de la 1.0.0
+> (`docs/TRASPASO.MD`). El detalle, historia por historia, en `docs/PLAN-MVP.md`.
 >
 > El MVP —que saldrá como **1.0.0**— son cuatro hitos: la semilla limpia y
 > determinista, el rendimiento, la tienda para todo producto, y el panel básico

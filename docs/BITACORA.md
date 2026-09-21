@@ -1661,3 +1661,56 @@ tomaron las dos, con una diferencia: allá la guardia corta se usa siempre; aqu�
 código entró en rojo, o no se puede preguntar, corren todas. Una guardia que se
 salta pruebas tiene que saber por qué se las puede saltar — si no, es un atajo.
 Medido en la misma máquina: 47 s la corta, 102 s la entera.
+
+**50 · El montaje que se negó a publicar, y tenía razón.** Después de subir los
+pagos, el dueño corrió `montaje` y falló con cinco baterías en rojo. Una sola
+causa: la tienda se hornea con la versión que CONTESTA el maestro publicado, y
+el publicado seguía siendo el viejo —se había corrido sin la casilla del
+maestro—. Con versiones distintas la página desconfía del maestro y no da por
+verificado ningún total: por eso cayeron `e2e`, `movil`, `enlace` y `pagoweb`,
+todas por lo mismo. La guardia corta (13 baterías, recién estrenada) hizo lo
+que tenía que hacer: frenar la publicación antes de subirla. La lección no es
+de código, es de lectura: **cinco rojos con la misma causa se leen desde el que
+nombra la causa** (`LA VERSIÓN del maestro y la del index`), no desde el
+primero de la lista.
+
+**51 · Un `try/catch` que se tragaba la prueba.** El registro de cambios (D-6)
+anota de qué producto era la celda editada a mano leyendo la columna A con
+`getValue()`. El emulador de la hoja no tenía `getValue()` —solo
+`getValues()`—, y como anotar nunca puede tumbar una edición, la llamada va
+dentro de un `try/catch`: el registro salía sin el nombre del producto y nada
+fallaba. Lo cazó la aserción que pide el `baguette` en «Dónde». Un `catch` que
+protege al comerciante también protege al defecto de la prueba; por eso la
+aserción mira el contenido de la fila y no solo que exista.
+
+**52 · Una promesa escrita en un comentario.** El horneado decía, junto a sus
+topes de variantes: «están escritos tres veces… lo que no se puede es que digan
+números distintos, y eso lo comprueba variantes.js». `variantes.js` no lo
+comprobaba. Al bajar los topes para C-1b (de 4 y 24 a 3 y 20) había que
+cambiarlos en tres sitios, y nada habría avisado si se olvidaba uno. Ahora
+`inventario.js` lee los tres. **Un comentario que dice «esto lo comprueba X» se
+verifica abriendo X.**
+
+**53 · La tarjeta que hablaba de la última combinación mirada.** Con inventario
+por combinación, la tarjeta de un producto decía «Últimas 2 unidades» —las de
+la nude M que el comprador acababa de mirar en la ficha— en vez del total. La
+causa era el orden: agregar desde la ficha repintaba las tarjetas CON LA FICHA
+ABIERTA, y el stock se calculaba con su elección. Ahora se cierra la ficha y
+después se agrega, y la elección de la ficha solo vale mientras está abierta.
+Al verificar en rojo, quitar esa segunda guarda ya no pone roja la batería: la
+primera la tapa. Queda como defensa en profundidad, y dicho aquí para que nadie
+crea que la cubre una prueba.
+
+**54 · La compatibilidad que decidió el diseño.** El plan decía que las filas
+del inventario por combinación las genera el maestro «con el stock vacío», y
+también que un producto con Variantes y sin filas «se comporta como hoy». Las
+dos juntas tenían un hueco: en cuanto el maestro generara las filas, el
+producto tendría filas… vacías, y la suma sería cero. **Generar las filas
+habría agotado la tienda.** La regla que las hace compatibles: el producto pasa
+a venderse por combinación solo cuando UNA de sus filas tiene un número.
+`inventario.js` lo prueba en rojo quitando esa condición.
+
+**55 · La página 404 de otro comercio.** `publicar/404.html` seguía con el
+título y los colores de Orgánico. Se hornea desde la plantilla en cada
+montaje, pero ninguna batería miraba el archivo del repositorio. Ahora
+`marca.js` lo revisa como a la plantilla y al maestro.

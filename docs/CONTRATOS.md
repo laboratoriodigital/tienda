@@ -69,7 +69,7 @@ los nombres viejos desde un servidor nuevo.
 
 ---
 
-## 4. Las once pestañas
+## 4. Las pestañas
 
 ### `Catálogo`
 
@@ -283,6 +283,44 @@ vuelta. Solo se agrega; nadie escribe aquí a mano.
 | 15 | `Borrado el` |
 | 16 | `Desde` |
 
+### `Inventario por variante` (C-1b)
+
+El stock de cada combinación de un producto con `Variantes`. **Las filas las
+escribe el maestro** —al editar `Variantes`, al instalar, desde el panel— con el
+stock vacío; el comerciante solo pone los números.
+
+| # | Columna | Qué guarda |
+|---|---|---|
+| 1 | `ID producto` | el de Catálogo |
+| 2 | `Combinación` | con el texto de la columna Variante de Pedidos: `Talla: M · Color: Rosa` |
+| 3 | `Stock` | unidades de esa combinación. **Vacío = todavía no se cuenta** |
+| 4 | `Código` | opcional, el SKU del comercio |
+| 5 | `Nota` | la escribe el maestro: `Ya no está en Variantes: no cuenta` si la combinación dejó de existir |
+
+**Cuándo manda.** Un producto se vende por combinación en cuanto **una** de sus
+filas tiene un número. Entonces cada combinación compite solo por sus unidades,
+`Catálogo › Stock` pasa a ser **la suma** (la escribe el maestro), Pagado
+descuenta **esa** fila y Cancelado la devuelve a la misma. Mientras todas estén
+vacías, el producto se vende como antes, con su stock de Catálogo: nadie tiene
+que migrar nada. Las filas que dejan de casar no se borran —llevan un stock que
+alguien contó—: se marcan y dejan de contar. Tope: **3 grupos, 20 opciones y
+100 combinaciones** por producto; por encima no se genera nada y se avisa.
+
+**Las fotos de una opción** se reconocen por el nombre:
+`<código>--<grupo>-<opción>-<n>.<ext>` (`camiseta-basica--color-rosa-1.jpg`),
+en la misma celda Imágenes y la misma carpeta de Drive. Tope: 6 generales y 4
+por opción.
+
+### `Registro` (D-6)
+
+Cada escritura deja una fila, solo de agregar: `Fecha`, `Desde` (Panel, Hoja,
+Bold), `Quién` (el usuario del panel o el correo de quien edita la hoja),
+`Qué se hizo`, `Dónde` (pestaña, celda o producto), `Antes`, `Después`. Una edición
+del panel anota solo lo que cambió. Lo que el propio script recalcula (Más
+vendidos, Tablero, Validaciones) no se anota. **Editar el Registro a mano
+también queda escrito** en él: Apps Script no deja cerrar una pestaña a su dueño,
+así que va protegido con aviso y deja huella.
+
 ### `Pagos` (M3.5)
 
 El libro de los cobros en línea: una fila por intento de pago, que se pone al
@@ -359,6 +397,7 @@ no pisar lo que el comerciante puso.
 | **El retracto** | `retracto_excepciones` — productos que no admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por \|. Vacío = ninguno queda excluido |
 | **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
 | **El orden del catálogo** | `orden_catalogo` — en qué orden ve el catálogo quien entra. De fábrica, `Destacados primero` |
+| **Antes de pedir (C-3)** | `tienda_abierta` — `No` = se puede mirar, no pedir; arriba de la tienda sale `tienda_cerrada_mensaje`. `pedido_minimo` — en pesos, sobre los productos sin envío; vacío = sin mínimo. `horario` se pinta al pie y en el carrito, y `envio_gratis_desde` se anuncia: «te faltan $12.000 para el envío gratis». Cerrada o por debajo del mínimo, **el maestro no cobra** en línea; un pedido que ya salió por WhatsApp desde una página vieja sí se registra |
 | **Cómo se cierra la venta (M3.5)** | `cobro_modo` — `WhatsApp` (de fábrica, como siempre) o `Pasarela` (paga en línea con Bold). `cobro_ambiente` — `Pruebas` o `Producción`. **Las llaves de Bold no van aquí**: van en las propiedades del script (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`). Pedir Pasarela sin sus llaves, o sin `sitio_url`, deja la tienda en WhatsApp y el diagnóstico lo dice |
 | **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
@@ -548,6 +587,23 @@ defecto), `ultimaEdicion`, `pedida`, `corrida` (`estado`, `resultado`, `desde`,
 el menú *Publicar ahora* (`dispararPublicacion`). La misma `op` dos veces es
 **un** disparo. Contesta `ok`, `pedida`; o `ok: false`, `error` en palabras de
 quién lo arregla.
+
+**`guardar_combinaciones`** (C-1b, panel) — pide `op`, `id`, `cambios`
+(`{combinación: número}`) y `versiones` (`{combinación: huella}`). Todo o nada:
+un número que no es entero, o una fila que cambió en la hoja, y no se escribe
+ninguno (`errores` por combinación). Vacío es válido. Reescribe la suma en
+Catálogo. `productos` trae además, por producto, `combinaciones`
+(`combinacion`, `stock` tal como está, `version`, `noCasa`) y `porCombinacion`.
+`subir_foto` acepta `opcion` (`Color=Rosa`) y nombra la foto
+`<código>--color-rosa-<n>`.
+
+**`?a=validar`** (C-3 y C-1b) — además: `cerrada`, `faltaMinimo`, `cobrable`,
+`recortado`, `envioTarifa`. Con inventario por combinación, el aviso de stock
+nombra la combinación.
+
+**`?a=catalogo`** (C-1b) — cada producto con inventario por combinación trae
+`skus: [{ eleccion, stock }]` al final, y su `stock` es la suma. Horneado igual
+en `catalogo.json` y en el respaldo.
 
 **`pago_crear`** (M3.5, pública, **solo por POST**) — pide `op`, `items`,
 `cupon`, `envio`, `sub` y `entrega` (`nombre`, `tel`, `correo`, `ciudad`,

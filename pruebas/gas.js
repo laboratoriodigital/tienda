@@ -144,6 +144,7 @@ function crear(rutaScript, opciones) {
         if (typeof f !== 'number') throw new Error('getRange: fila inválida ' + f);
         if (f < 1 || c < 1) throw new Error('getRange fuera de rango: ' + f + ',' + c);
         const r = {
+          getValue() { return celda((datos[f - 1] || [])[c - 1]); },
           getValues() {
             const out = [];
             for (let i = 0; i < nf; i++) {

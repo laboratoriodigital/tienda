@@ -21,7 +21,11 @@ const { terminos } = JSON.parse(
 /* plantilla/index.html: lo que se copia tal cual en cada tienda nueva.
    maestro.gs y panel.gs: el código que corre en la cuenta de CADA tienda,
    así que tampoco pueden nombrar al comercio anterior. */
-const ARCHIVOS = ['plantilla/index.html', 'maestro.gs', 'panel.gs'];
+/* Y publicar/404.html: la página que ve cualquiera que siga un enlace roto.
+   Se hornea desde plantilla/404.html en cada montaje, pero el archivo del
+   repositorio se quedó con el de la línea anterior hasta el 21 de septiembre
+   —título y colores de Orgánico— y ninguna batería lo miraba. */
+const ARCHIVOS = ['plantilla/index.html', 'maestro.gs', 'panel.gs', 'publicar/404.html'];
 
 const T = [];
 const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));

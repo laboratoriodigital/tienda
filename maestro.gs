@@ -483,6 +483,7 @@ function filaDelProducto(filasCat, id) {
 function atenderProductos() {
   var cat = filasDelCatalogo();
   var categorias = {};
+  var inv = leerInventarioVariante();
   var productos = cat.filas.map(function (f, i) {
     var id = String(f[0]).trim();
     if (!id) return null;
@@ -500,7 +501,15 @@ function atenderProductos() {
       precio: texto(4), stock: texto(5), descripcion: texto(6), imagenes: texto(7),
       destacado: esSi(f[8]), activo: esSi(f[9]), referencia: texto(10),
       precioAntes: texto(11), umbralBajo: texto(12), variantes: texto(13),
-      version: versionDeFila(f), problemas: problemas
+      version: versionDeFila(f), problemas: problemas,
+      /* C-1b: sus filas del inventario por combinación, con el número tal
+         como está escrito (vacío = todavía no se llenó) y su huella. */
+      combinaciones: (inv[id] || []).map(function (x) {
+        return { combinacion: x.texto,
+                 stock: String(x.crudo === null || x.crudo === undefined ? '' : x.crudo),
+                 version: versionDeValor(x.crudo), noCasa: !combinacionValida(f[13], x.clave) };
+      }),
+      porCombinacion: !!skusDe(variantesDeCelda(f[13], ''), inv[id], '')
     };
   }).filter(function (p) { return p; });
   CELDAS_ILEGIBLES = [];
@@ -634,7 +643,17 @@ function conOperacion(p, hacer, publica) {
     vista = cache.get('op:' + op);                      // pudo entrar mientras esperábamos
     if (vista) { var r1 = JSON.parse(vista); r1.repetida = true; return r1; }
     var r = hacer();
+    /* D-6 · LO QUE SE HIZO QUEDA ESCRITO. Cada escritura del panel trae su
+       propia descripción (`_registro`), y aquí —el único sitio por donde pasan
+       todas— se anota con quién y cuándo. Sale de la respuesta antes de
+       guardarla: es para la hoja, no para la página. */
+    var registro = r && r._registro;
+    if (r) delete r._registro;
     if (r && r.ok) {
+      if (registro) {
+        var quien = leerTestigo(p.k);
+        anotarCambios('Panel', quien ? quien.usuario : '', registro);
+      }
       cache.put('op:' + op, JSON.stringify(r), HORAS_OPERACION * 3600);
       cache.remove('catalogo');                          // que la tienda en vivo lo vea ya
       if (publica) marcarEdicion();
@@ -667,7 +686,10 @@ function atenderGuardarProducto(p) {
                              armado.fila[0] + '». Elige otro.' };
       var h = cat.h || hoja(H_CATALOGO, ENCABEZADO_CATALOGO);
       h.appendRow(armado.fila);
-      return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila), creado: true };
+      if (String(armado.fila[13] || '')) sincronizarVariantes();
+      return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila), creado: true,
+               _registro: [{ que: 'Creó el producto', donde: 'Catálogo · ' + armado.fila[0], antes: '',
+                             despues: resumenDeFila(armado.fila) }] };
     }
 
     /* El código no se cambia. Lo usan los pedidos que ya existen, los nombres
@@ -677,8 +699,15 @@ function atenderGuardarProducto(p) {
     if (String(p.version || '') !== versionDeFila(cat.filas[i])) {
       return { ok: false, cambiado: true, error: CAMBIO_ENTRE_MEDIAS };
     }
+    var dif = diferenciaDeFilas(cat.filas[i], armado.fila);
     cat.h.getRange(i + 2, 1, 1, ENCABEZADO_CATALOGO.length).setValues([armado.fila]);
-    return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila) };
+    /* C-1b: si cambiaron las variantes, las filas del inventario se ponen al
+       día en la misma operación; y la suma pisa un Stock escrito a mano. */
+    sincronizarVariantes();
+    armado.fila[COL_STOCK - 1] = cat.h.getRange(i + 2, COL_STOCK).getValues()[0][0];
+    return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila),
+             _registro: dif.antes.length ? [{ que: 'Editó el producto', donde: 'Catálogo · ' + armado.fila[0],
+                                               antes: dif.antes.join(' · '), despues: dif.despues.join(' · ') }] : null };
   }, true);
 }
 
@@ -691,9 +720,12 @@ function atenderActivarProducto(p) {
     var i = filaDelProducto(cat.filas, id);
     if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
     var activo = p.activo === true;
+    var antes = String(cat.filas[i][9]);
     cat.h.getRange(i + 2, 10).setValue(activo ? 'Sí' : 'No');
     cat.filas[i][9] = activo ? 'Sí' : 'No';
-    return { ok: true, id: id, activo: activo, version: versionDeFila(cat.filas[i]) };
+    return { ok: true, id: id, activo: activo, version: versionDeFila(cat.filas[i]),
+             _registro: [{ que: activo ? 'Activó el producto' : 'Desactivó el producto', donde: 'Catálogo · ' + id,
+                           antes: 'Activo: ' + antes, despues: 'Activo: ' + (activo ? 'Sí' : 'No') }] };
   }, true);
 }
 
@@ -716,7 +748,9 @@ function atenderBorrarProducto(p) {
     papelera.appendRow(cat.filas[i].slice(0, ENCABEZADO_CATALOGO.length)
                        .concat([new Date(), 'Panel']));
     cat.h.deleteRows(i + 2, 1);
-    return { ok: true, id: id, borrado: true };
+    return { ok: true, id: id, borrado: true,
+             _registro: [{ que: 'Borró el producto (fue a la Papelera)', donde: 'Catálogo · ' + id,
+                           antes: resumenDeFila(cat.filas[i]), despues: '' }] };
   }, true);
 }
 
@@ -783,7 +817,22 @@ function atenderSubirFoto(p) {
 
     var enCelda = String(cat.filas[i][7] || '').split('|')
       .map(function (x) { return x.trim(); }).filter(function (x) { return x; });
-    if (enCelda.length >= 6) return { ok: false, error: 'Este producto ya tiene seis fotos, que es el máximo. Quita una antes de subir otra.' };
+    /* C-1b · ¿DE QUÉ OPCIÓN ES ESTA FOTO? Si se dice («Color=Rosa»), el
+       nombre la lleva: <código>--color-rosa-<n>. Una opción que el producto
+       no tiene no se inventa. Tope: 6 generales y 4 por opción. */
+    var base = id, deOpcion = '';
+    if (String(p.opcion || '').trim()) {
+      var par = String(p.opcion).split('=');
+      var grupos = variantesDeCelda(cat.filas[i][13], '');
+      var g0 = grupos.filter(function (g) { return llano(g.nombre) === llano(par[0]); })[0];
+      var o0 = g0 && g0.opciones.filter(function (o) { return llano(o) === llano(par[1] || ''); })[0];
+      if (!o0) return { ok: false, error: 'Este producto no tiene la opción «' + String(p.opcion).slice(0, 40) + '».' };
+      base = id + '--' + trozoDeOpcion(g0.nombre, o0);
+      deOpcion = g0.nombre + ': ' + o0;
+    }
+    var deEsa = enCelda.filter(function (n) { return deOpcion ? n.indexOf(base + '-') === 0 : n.indexOf('--') === -1; });
+    if (!deOpcion && deEsa.length >= 6) return { ok: false, error: 'Este producto ya tiene seis fotos generales, que es el máximo. Quita una antes de subir otra.' };
+    if (deOpcion && deEsa.length >= 4) return { ok: false, error: 'Esa opción ya tiene cuatro fotos, que es el máximo. Quita una antes de subir otra.' };
 
     var carpeta, enCarpeta = [];
     try {
@@ -792,10 +841,10 @@ function atenderSubirFoto(p) {
       while (it.hasNext()) enCarpeta.push(it.next().getName());
     } catch (e) {
       return { ok: false, error: 'No se pudo abrir tu carpeta de fotos: ' + e.message +
-               comoAntes(nombreLibreParaFoto(id, ext, enCelda, [])) };
+               comoAntes(nombreLibreParaFoto(base, ext, enCelda, [])) };
     }
 
-    var nombre = nombreLibreParaFoto(id, ext, enCelda, enCarpeta);
+    var nombre = nombreLibreParaFoto(base, ext, enCelda, enCarpeta);
     var bytes;
     try { bytes = Utilities.base64Decode(datos); }
     catch (e) { return { ok: false, error: 'La foto llegó dañada. Vuelve a intentarlo.' }; }
@@ -815,7 +864,8 @@ function atenderSubirFoto(p) {
     cat.h.getRange(i + 2, 8).setValue(celdaSegura(enCelda.join('|'), 1900));
     cat.filas[i][7] = enCelda.join('|');
     return { ok: true, id: id, nombre: nombre, imagenes: enCelda.join('|'),
-             version: versionDeFila(cat.filas[i]) };
+             version: versionDeFila(cat.filas[i]),
+             _registro: [{ que: 'Subió una foto' + (deOpcion ? ' de ' + deOpcion : ''), donde: 'Catálogo · ' + id, antes: '', despues: nombre }] };
   }, true);
 }
 
@@ -961,6 +1011,7 @@ function atenderEstadoPedido(p) {
     }
 
     var ahora = new Date();
+    var estadoAntes = String(datos.filas[indices[0]][COL_ESTADO - 1]);
     indices.forEach(function (i) {
       var fila = i + 2, f = datos.filas[i];
       datos.h.getRange(fila, COL_ESTADO).setValue(nuevo.rotulo);
@@ -976,7 +1027,10 @@ function atenderEstadoPedido(p) {
     var movidos = trasCambiarEstado();
     var despues = lineasDePedidos();
     return { ok: true, movidos: movidos,
-             pedido: pedidoParaElPanel(despues.filas, indicesDelPedido(despues.filas, codigo)) };
+             pedido: pedidoParaElPanel(despues.filas, indicesDelPedido(despues.filas, codigo)),
+             _registro: [{ que: 'Cambió el estado del pedido', donde: 'Pedidos · #' + codigo, antes: estadoAntes,
+                           despues: nuevo.rotulo + (nuevo.id === 'despachado' && p.guia ? ' · guía ' + p.guia : '') +
+                                    (movidos ? ' · inventario ajustado' : '') }] };
   });
 }
 
@@ -1026,7 +1080,10 @@ var CLAVES_DEL_PANEL = [
      va con la prueba completa y con las llaves de producción, y eso lo hace
      quien montó la tienda, no un toque desde el celular. */
   { clave: 'cobro_modo',           grupo: 'La venta',   tipo: 'opcion', rotulo: 'Cómo se cierra la venta',
-    opciones: ['WhatsApp', 'Pasarela'] }
+    opciones: ['WhatsApp', 'Pasarela'] },
+  { clave: 'pedido_minimo',        grupo: 'La venta',   tipo: 'cifra',  rotulo: 'Pedido mínimo (vacío = sin mínimo)' },
+  { clave: 'tienda_abierta',       grupo: 'Tu tienda',  tipo: 'sino',   rotulo: 'La tienda recibe pedidos' },
+  { clave: 'tienda_cerrada_mensaje', grupo: 'Tu tienda', tipo: 'largo', rotulo: 'Mensaje cuando está cerrada' }
 ];
 
 /* ¿Se entiende este valor? Devuelve null si sí, o el motivo. Vacío siempre se
@@ -1113,7 +1170,8 @@ function atenderGuardarConfiguracion(p) {
       if (mal) { errores[k] = mal; return; }
       if (d.tipo === 'sino' && valor) valor = llano(valor) === 'no' ? 'No' : 'Sí';
       if (d.tipo === 'color') valor = valor.toUpperCase();
-      aEscribir.push({ fila: fila[k] + 2, valor: d.tipo === 'color' || d.tipo === 'cifra' ? valor : celdaSegura(valor, 2000) });
+      aEscribir.push({ fila: fila[k] + 2, clave: k, antes: String(actual === null || actual === undefined ? '' : actual),
+                       valor: d.tipo === 'color' || d.tipo === 'cifra' ? valor : celdaSegura(valor, 2000) });
     });
     if (Object.keys(errores).length) {
       return { ok: false, errores: errores, error: 'No se guardó nada: hay ' +
@@ -1124,7 +1182,10 @@ function atenderGuardarConfiguracion(p) {
        cuando se escribe allá: el relleno y el valor no pueden decir dos cosas. */
     try { pintarColoresDesdeValor(); } catch (e) { }
     cacheFuera();
-    return { ok: true, guardadas: aEscribir.length };
+    return { ok: true, guardadas: aEscribir.length,
+             _registro: aEscribir.map(function (w) {
+               return { que: 'Cambió la configuración', donde: 'Configuración · ' + w.clave, antes: w.antes, despues: w.valor };
+             }) };
   }, true);
 }
 
@@ -1151,7 +1212,7 @@ function atenderGuardarConfiguracion(p) {
    a su línea. Escrita como lista, valía [undefined, undefined, undefined]: los
    cambios hechos en la hoja nunca contaban como «sin publicar», sin un error
    en ninguna parte. Lo cazó panelpublicar.js. */
-function hojasQueSePublican() { return [H_CATALOGO, H_CONFIG, H_ENVIOS]; }
+function hojasQueSePublican() { return [H_CATALOGO, H_CONFIG, H_ENVIOS, H_INVENTARIO_VARIANTE]; }
 
 function marcarEdicion() {
   try { propiedades().setProperty('ULTIMA_EDICION', new Date().toISOString()); } catch (e) { }
@@ -1245,7 +1306,8 @@ function atenderPublicacion() {
 function atenderPublicar(p) {
   var r = conOperacion(p, function () {
     var d = dispararPublicacion();
-    if (d.ok) return { ok: true, pedida: new Date().toISOString() };
+    if (d.ok) return { ok: true, pedida: new Date().toISOString(),
+                       _registro: [{ que: 'Pidió publicar la tienda', donde: 'Tienda', antes: '', despues: '' }] };
     if (d.falta === 'repositorio') return { ok: false, error: 'Todavía no está dicho dónde vive la tienda (Configuración › repositorio). Eso lo hace quien la montó.' };
     if (d.falta === 'permiso') return { ok: false, error: 'Falta el permiso para publicar (GITHUB_TOKEN). Eso lo pone una vez quien montó la tienda.' };
     return { ok: false, error: 'No se pudo publicar. ' + d.porQue };
@@ -1253,7 +1315,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-1';
+var VERSION = '2026-09-21-2';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -1433,6 +1495,14 @@ function instalar() {
   hoja(H_PAGOS, ENCABEZADO_PAGOS);
   asegurarColumnas(H_PAGOS, ENCABEZADO_PAGOS);
   hoja(H_ENTREGAS, ENCABEZADO_ENTREGAS);
+  /* D-6. Se crea y se protege con aviso aquí, que es cuando alguien mira. */
+  hoja(H_REGISTRO, ENCABEZADO_REGISTRO);
+  protegerRegistro();
+  /* C-1b. La pestaña existe siempre, y se llenan las filas de lo que ya tenga
+     Variantes. Con el stock vacío: nada cambia hasta que alguien lo llene. */
+  hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+  var sync = sincronizarVariantes();
+  if (sync.nuevas) console.log('Inventario por variante: ' + sync.nuevas + ' combinación(es) nuevas, con el stock vacío para que lo llenes.');
 
   var cuantas = Object.keys(leerConfiguracion()).length;
   console.log('Configuración: ' + cuantas + ' claves.');
@@ -2225,8 +2295,13 @@ function cifra(valor, donde) {
    Y NO SE ADIVINA. No se intenta partir `S M L` por espacios ni tratar el `;`
    como `|`: cada intento de adivinar es una forma de que el comprador elija algo
    que el comerciante no quiso ofrecer. */
-var MAX_GRUPOS_VARIANTE = 4;
-var MAX_OPCIONES_VARIANTE = 24;
+/* C-1b bajó los topes de C-1 (4 grupos, 24 opciones) a los que decidió el
+   dueño el 21 de septiembre: con inventario por combinación, 4 grupos de 24
+   son 331.776 filas. Escritos en tres sitios —aquí, la página y el horneado—
+   y variantes.js comprueba que digan lo mismo. */
+var MAX_GRUPOS_VARIANTE = 3;
+var MAX_OPCIONES_VARIANTE = 20;
+var MAX_COMBINACIONES = 100;
 
 function variantesDeCelda(valor, donde) {
   var t = String(valor === null || valor === undefined ? '' : valor).trim();
@@ -2538,7 +2613,9 @@ var PUERTAS = {
      celular y la dirección del comprador. Consultar va por las dos: solo lleva
      un token opaco, que además es el que Bold trae en la dirección de vuelta. */
   pago_crear:  { guarda: 'publica', soloPost: true, fn: function (p) { return conVersion(atenderPagoCrear(p)); } },
-  pago_estado: { guarda: 'publica', fn: function (p) { return conVersion(atenderPagoEstado(p)); } }
+  pago_estado: { guarda: 'publica', fn: function (p) { return conVersion(atenderPagoEstado(p)); } },
+  /* C-1b · el stock de cada combinación, desde el panel. */
+  guardar_combinaciones: { guarda: 'panel', soloPost: true, fn: atenderGuardarCombinaciones }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -3613,7 +3690,13 @@ function semillaDeConfiguracion() {
          siempre: por WhatsApp. Las LLAVES de Bold no van aquí —la hoja se
          comparte—: van en las propiedades del script (docs/PAGOS-BOLD.md). */
       ['cobro_modo',       'WhatsApp', 'Cómo se cierra la venta. WhatsApp = como siempre: el pedido sale por chat y el pago se acuerda allí. Pasarela = el comprador paga en línea con Bold (PSE, tarjeta, Nequi…). Pasarela necesita las llaves de Bold en las propiedades del script; sin ellas la tienda sigue por WhatsApp'],
-      ['cobro_ambiente',   'Pruebas', 'Pruebas = el ambiente de pruebas de Bold: no se mueve dinero de verdad. Producción = cobros reales. Pasa a Producción solo después de la prueba completa de docs/PAGOS-BOLD.md']
+      ['cobro_ambiente',   'Pruebas', 'Pruebas = el ambiente de pruebas de Bold: no se mueve dinero de verdad. Producción = cobros reales. Pasa a Producción solo después de la prueba completa de docs/PAGOS-BOLD.md'],
+
+      /* AL FINAL (R1). C-3: cerrar la tienda sin apagarla, y el mínimo. De
+         fábrica, abierta y sin mínimo: lo que ya hacía. */
+      ['tienda_abierta',   'Sí', 'No = la tienda se puede mirar pero no recibe pedidos (vacaciones, inventario). Arriba de todo sale el mensaje de abajo'],
+      ['tienda_cerrada_mensaje', '', 'Lo que ve el comprador cuando la tienda está cerrada. Ej.: «Volvemos el lunes 6 de octubre». Vacío = un mensaje genérico'],
+      ['pedido_minimo',    '', 'El pedido mínimo, en pesos, sobre el valor de los productos (sin el envío). Vacío = sin mínimo']
   ];
 }
 
@@ -3660,6 +3743,15 @@ function leerCatalogo() {
                     guarda: sería un pedido que nadie puede despachar. */
                  variantes: variantesDeCelda(f[13],
                    'Catálogo N' + fila + ' (Variantes de ' + id + ')') };
+  });
+  /* C-1b. Si el producto lleva su inventario por combinación, el stock que
+     manda es ese: cada combinación el suyo, y el del producto la suma. */
+  var inv = leerInventarioVariante();
+  Object.keys(mapa).forEach(function (id) {
+    var s = skusDe(mapa[id].variantes, inv[id], 'Inventario por variante (' + id + ')');
+    if (!s) return;
+    mapa[id].skus = s.porClave;
+    mapa[id].stock = s.suma;
   });
   return mapa;
 }
@@ -3771,23 +3863,30 @@ function validarPedido(p) {
        las líneas del mismo producto compiten por las mismas existencias. Sin
        llevar la cuenta, dos tonos de tres unidades cada uno pasaban con un
        stock de cuatro. */
-    var yaPedido = usado[id] || 0;
-    var libre = Math.max(0, prod.stock - (apartado[id] || 0));
+    /* C-1b · CON INVENTARIO POR COMBINACIÓN, cada combinación compite por
+       SUS unidades: dos tallas distintas ya no se quitan stock entre sí. Es lo
+       contrario de lo que C-1 hacía a propósito, y solo cambia para los
+       productos que tienen filas en la pestaña; los demás siguen igual. */
+    var porCombo = prod.skus && elegido;
+    var llaveStock = porCombo ? id + '\u0000' + llano(elegido) : id;
+    var stockDeLinea = porCombo ? (prod.skus[llano(elegido)] || 0) : prod.stock;
+    var yaPedido = usado[llaveStock] || 0;
+    var libre = Math.max(0, stockDeLinea - (apartado[llaveStock] || 0));
     if (cant + yaPedido > libre) {
       /* Al segundo comprador se le dice ANTES de pagar, y se le dice por qué:
          «no hay» y «lo está pagando otra persona» piden cosas distintas —la
          segunda, volver en unos minutos—. */
-      if (cant + yaPedido <= prod.stock) {
+      if (cant + yaPedido <= stockDeLinea) {
         avisos.push(libre > 0
           ? 'De ' + prod.nombre + ' quedan ' + libre + ' libres: las demás las está pagando otra persona en este momento.'
           : 'Las últimas unidades de ' + prod.nombre + ' las está pagando otra persona en este momento. Vuelve en unos minutos: si no se pagan, se liberan.');
       } else {
-        avisos.push('De ' + prod.nombre + ' solo quedan ' + libre + '.');
+        avisos.push('De ' + prod.nombre + (porCombo ? ' (' + elegido + ')' : '') + ' solo quedan ' + libre + '.');
       }
       cant = Math.max(0, libre - yaPedido);
       recortado = true;
     }
-    if (cant >= 1) usado[id] = yaPedido + cant;
+    if (cant >= 1) usado[llaveStock] = yaPedido + cant;
     if (cant < 1) return;
     items.push({ id: id, nombre: prod.nombre, cantidad: cant, precio: prod.precio,
                  variante: elegido });
@@ -3863,6 +3962,20 @@ function validarPedido(p) {
 
   var total = Math.max(0, sub - descuento + valorEnvio);
 
+  /* C-3 · CERRADA Y MÍNIMO. Se dicen como avisos —la página los muestra— y
+     salen como banderas para quien cobra. NO tumban la validación: un pedido
+     que ya salió por WhatsApp desde una página vieja se registra igual (el
+     registro falla abierto); lo que se niega es COBRAR (pago_crear). Una
+     cifra ilegible en pedido_minimo no es «sin mínimo»: queda anotada como
+     cualquier celda ilegible y el pedido no se puede cobrar tal cual. */
+  var cfgVenta = leerConfiguracion();
+  var cerrada = llano(cfgVenta.tienda_abierta) === 'no';
+  if (cerrada) avisos.push(sinLlenar(cfgVenta.tienda_cerrada_mensaje)
+    ? 'La tienda está cerrada en este momento.' : String(cfgVenta.tienda_cerrada_mensaje));
+  var minimo = cifraDeTexto(cfgVenta.pedido_minimo, 'Configuración · pedido_minimo');
+  var faltaMinimo = minimo !== null && minimo > 0 && sub < minimo ? minimo - sub : 0;
+  if (faltaMinimo) avisos.push('El pedido mínimo es ' + pesos(minimo) + ': te faltan ' + pesos(faltaMinimo) + '.');
+
   /* Que una celda no se pueda leer no puede quedarse solo en el registro: el
      comprador ve un total y el comerciante no se entera de nada. Sale por los
      dos lados —un aviso arriba, una fila en Errores— y de ahí al acta. */
@@ -3876,6 +3989,7 @@ function validarPedido(p) {
 
   var respuesta = {
     ok: true, sub: sub, descuento: descuento, envio: valorEnvio, total: total,
+    cerrada: cerrada, faltaMinimo: faltaMinimo,
     envioNombre: env.nombre, cupon: cupon, avisos: avisos, items: items,
     ilegibles: CELDAS_ILEGIBLES.slice(0),
     /* La tarifa de la zona antes del envío gratis: decide si hay que pedir
@@ -4151,10 +4265,9 @@ function catalogoPublico() {
       stock:       stock === null ? 0 : Math.max(0, stock),
       descripcion: String(f[6] || '').trim(),
       // Todas las fotos del producto van en UNA celda, separadas por |
-      imagenes:    String(f[7] || '').split('|')
+      imagenes:    fotosConTope(String(f[7] || '').split('|')
                      .map(function (u) { return u.trim(); })
-                     .filter(function (u) { return u; })
-                     .slice(0, 6),
+                     .filter(function (u) { return u; })),
       destacado:   esSi(f[8]),
       activo:      esSi(f[9]),
       referencia:  String(f[10] || '').trim(),
@@ -4164,6 +4277,17 @@ function catalogoPublico() {
                      'Catálogo N' + fila + ' (Variantes de ' + (id || fila) + ')')
     };
   }).filter(function (p) { return p.id && p.nombre && p.precio !== null; });
+
+  /* C-1b. Mismas reglas que leerCatalogo, otra vez a propósito: el stock que
+     ve el comprador y el que valida el pedido son el mismo. `skus` va al final
+     y solo si el producto lleva inventario por combinación. */
+  var inv = leerInventarioVariante();
+  productos.forEach(function (p) {
+    var s = skusDe(p.variantes, inv[p.id], 'Inventario por variante (' + p.id + ')');
+    if (!s) return;
+    p.stock = s.suma;
+    p.skus = s.lista;
+  });
 
   var envios = filas(H_ENVIOS).map(function (f, i) {
     var id = String(f[0]).trim();
@@ -5042,6 +5166,7 @@ function presentarHojas() {
     validarPorClave(cfgH, 'fotos_webp', lista(SI_NO, false));
     validarPorClave(cfgH, 'cobro_modo', lista(COBRO_MODOS, false));
     validarPorClave(cfgH, 'cobro_ambiente', lista(COBRO_AMBIENTES, false));
+    validarPorClave(cfgH, 'tienda_abierta', lista(SI_NO, false));
     sincronizarColores();
   }
 
@@ -5590,6 +5715,10 @@ function aplicarInventario() {
 
   var cambios = 0;
   ESTADOS_ILEGIBLES = [];
+  /* C-1b: los productos con inventario por combinación descuentan en SU fila
+     de la pestaña, no en Catálogo; después se reescribe la suma. */
+  var combos = contextoCombinaciones();
+  var sinFila = [];
   var marcas = pedidos.map(function (f, indice) {
     var estado = estadoDe(f[COL_ESTADO - 1]);
     var descontado = String(f[COL_INVENTARIO - 1]).toLowerCase().indexOf('descontado') !== -1;
@@ -5619,6 +5748,17 @@ function aplicarInventario() {
 
     var confirmado = !!estado.vendido;
 
+    if (combos.skus[id] && ((confirmado && !descontado) || (!confirmado && descontado))) {
+      var m = moverCombinacion(combos, id, String(f[16] || ''), cant, confirmado);
+      if (m === 'Descontado' || m === 'Devuelto') { cambios++; return [m]; }
+      /* Una línea que no casa con ninguna fila (la combinación se renombró, o
+         el pedido llegó sin elección) NO se descuenta del producto: con
+         inventario por combinación el producto es una suma, y descontar ahí
+         se lo comería la siguiente suma. Se deja sin marcar y se dice. */
+      if (sinFila.length < 20) sinFila.push('Pedidos M' + (indice + 2) + ' (' + id + (f[16] ? ' · ' + f[16] : ' sin elección') + ')');
+      return [f[COL_INVENTARIO - 1] || ''];
+    }
+
     if (confirmado && !descontado) {
       cat[i][COL_STOCK - 1] = Math.max(0, (Number(cat[i][COL_STOCK - 1]) || 0) - cant);
       cambios++;
@@ -5632,11 +5772,19 @@ function aplicarInventario() {
     return [f[COL_INVENTARIO - 1] || ''];
   });
 
+  if (sinFila.length) {
+    anotarError('Líneas vendidas que no casan con el inventario por variante',
+                sinFila.join(' · ') + '. No se descontaron: revisa la columna Variante o la pestaña ' + H_INVENTARIO_VARIANTE + '.');
+  }
   if (cambios) {
     hp.getRange(2, COL_INVENTARIO, marcas.length, 1).setValues(marcas);
     hc.getRange(2, COL_STOCK, cat.length, 1).setValues(cat.map(function (f) {
       return [f[COL_STOCK - 1]];
     }));
+    if (combos.cambioInv) {
+      combos.hi.getRange(2, 1, combos.inv.length, ENCABEZADO_INVENTARIO_VARIANTE.length).setValues(combos.inv);
+      escribirSumas();
+    }
     // Que la tienda vea el stock nuevo de una vez y no dentro de un minuto.
     CacheService.getScriptCache().remove('catalogo');
   }
@@ -6017,6 +6165,7 @@ function ayuda() {
 }
 
 function actualizarTodo() {
+  sincronizarVariantes();
   var movidos = aplicarInventario();
   recalcularResumen();
   presentarHojas();
@@ -6039,6 +6188,9 @@ function alEditar(e) {
     if (!e || !e.range) return;
     var h = e.range.getSheet();
 
+    /* D-6 · Lo que se edita a mano también queda escrito. */
+    anotarEdicionDeHoja(e);
+
     /* D-5 · LO QUE SE PUBLICA CAMBIÓ. Se anota la hora para que el panel pueda
        decir «tienes cambios sin publicar» también cuando el cambio se hizo en
        la hoja y no en el panel. */
@@ -6047,6 +6199,15 @@ function alEditar(e) {
     // Escribió un color a mano: se pinta la celda en el acto, para que el
     // relleno y el valor nunca queden diciendo cosas distintas.
     if (h.getName() === H_CONFIG) { pintarColoresDesdeValor(); cacheFuera(); return; }
+
+    /* C-1b · Cambió Variantes en Catálogo, o un número del inventario por
+       combinación: se generan las filas que falten y se reescribe la suma. */
+    if (h.getName() === H_INVENTARIO_VARIANTE ||
+        (h.getName() === H_CATALOGO && e.range.getColumn() <= 14 &&
+         e.range.getColumn() + e.range.getNumColumns() - 1 >= 14)) {
+      sincronizarVariantes();
+      return;
+    }
 
     if (h.getName() !== H_PEDIDOS) return;
 
@@ -6312,16 +6473,7 @@ function guardarCobros(m) {
 /* Lo apartado que NO ha vencido, por producto. Lo vencido se ignora al leer:
    no hace falta un disparador que lo limpie para que deje de contar. */
 function unidadesApartadas() {
-  var m = leerCobros(), ahora = Date.now(), r = {};
-  Object.keys(m).forEach(function (codigo) {
-    var c = m[codigo];
-    if (!c || !(Number(c.h) > ahora)) return;
-    (c.l || []).forEach(function (x) {
-      var id = String(x[0]);
-      r[id] = (r[id] || 0) + (Number(x[1]) || 0);
-    });
-  });
-  return r;
+  return unidadesApartadasDe(leerCobros());
 }
 
 /* ── Los datos de entrega ───────────────────────────────────────────────── */
@@ -6398,6 +6550,8 @@ function crearCobro(p) {
     return { ok: false, recortado: true, avisos: r.avisos,
              error: (r.avisos || []).join(' ') || 'Tu pedido cambió: revísalo antes de pagar.' };
   }
+  if (r.cerrada) return { ok: false, cerrada: true, avisos: r.avisos, error: (r.avisos || []).join(' ') };
+  if (r.faltaMinimo) return { ok: false, avisos: r.avisos, error: (r.avisos || []).join(' ') };
   if (!r.cobrable) {
     return { ok: false, cobro: 'whatsapp', avisos: r.avisos,
              error: 'Este pedido no se puede cobrar en línea ahora mismo: ' + (r.avisos || []).join(' ') +
@@ -6420,7 +6574,7 @@ function crearCobro(p) {
      guarda la respuesta y el apartado se queda sin cobro que lo use — y vence
      solo en quince minutos. Al revés, un cobro sin apartado podría vender
      dos veces la misma unidad, que es justo lo que E-1 existe para impedir. */
-  abiertos[codigo] = { l: r.items.map(function (i) { return [i.id, i.cantidad]; }),
+  abiertos[codigo] = { l: r.items.map(function (i) { return [i.id, i.cantidad, i.variante || '']; }),
                        h: ahora + MINUTOS_APARTADO * 60000,
                        c: ahora + HORAS_CONSULTABLE * 3600000, t: token, u: 0 };
   guardarCobros(abiertos);
@@ -6670,6 +6824,9 @@ function confirmarCobro(codigo, f, bold, abiertos) {
     trasCambiarEstado();
   }
   f.h.getRange(f.fila, 5).setValue(sinExistencias.length ? 'Pagado sin existencias' : 'Pagado');
+  anotarCambios('Bold', '', [{ que: 'Pago en línea aprobado', donde: 'Pedidos · #' + codigo,
+    antes: '', despues: pesos(datos[8]) + (bold.transaccion ? ' · transacción ' + bold.transaccion : '') +
+                        (sinExistencias.length ? ' · SIN EXISTENCIAS' : '') }]);
   if (sinExistencias.length) {
     f.h.getRange(f.fila, 21).setValue(celdaSegura('Sin existencias: ' + sinExistencias.join(', '), 200));
     anotarError('Pago aprobado sin existencias',
@@ -6684,7 +6841,12 @@ function unidadesApartadasDe(m) {
   var ahora = Date.now(), r = {};
   Object.keys(m).forEach(function (k) {
     if (!(Number(m[k].h) > ahora)) return;
-    (m[k].l || []).forEach(function (x) { r[String(x[0])] = (r[String(x[0])] || 0) + (Number(x[1]) || 0); });
+    (m[k].l || []).forEach(function (x) {
+      var n = Number(x[1]) || 0, id = String(x[0]);
+      r[id] = (r[id] || 0) + n;
+      /* C-1b: también por combinación, con la misma llave que validarPedido. */
+      if (x[2]) { var c = id + '\u0000' + llano(x[2]); r[c] = (r[c] || 0) + n; }
+    });
   });
   return r;
 }
@@ -6813,4 +6975,386 @@ function revisionHoraria() {
   try { if (Object.keys(leerCobros()).length) conciliarPagos(); }
   catch (err) { registrarError('revisionHoraria: ' + err.message, null); }
   recalcularResumen();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   D-6 · EL REGISTRO DE CAMBIOS
+   --------------------------------------------------------------------------
+   Una pestaña que solo crece: cuándo, desde dónde (el panel, la hoja, Bold),
+   quién, qué se hizo, dónde, y cómo estaba antes y cómo quedó. Es lo único
+   que contesta «yo no borré eso» sin adivinar.
+
+   Lo que NO puede hacer, dicho: Apps Script no deja cerrar una pestaña a su
+   propio dueño. La pestaña va protegida con aviso —quien la edita a mano ve
+   una advertencia—, y editarla también queda escrito aquí mismo. No es una
+   bóveda; es un testigo que deja huella si alguien lo toca.
+
+   Anotar NUNCA tumba lo que se está anotando: si la pestaña no se puede
+   escribir, el cambio del comerciante ya se hizo, y eso es lo que importa.
+   ══════════════════════════════════════════════════════════════════════════ */
+var H_REGISTRO = 'Registro';
+var ENCABEZADO_REGISTRO = ['Fecha', 'Desde', 'Quién', 'Qué se hizo', 'Dónde', 'Antes', 'Después'];
+/* Una hoja de cálculo no es una base de datos. Pasado esto, se deja de anotar
+   y se avisa una vez en Errores: hay que archivar la pestaña. */
+var MAX_FILAS_REGISTRO = 20000;
+
+function anotarCambios(desde, quien, filasNuevas) {
+  try {
+    var lista = (filasNuevas || []).filter(function (x) { return x; });
+    if (!lista.length) return 0;
+    var h = hoja(H_REGISTRO, ENCABEZADO_REGISTRO);
+    if (h.getLastRow() + lista.length > MAX_FILAS_REGISTRO) {
+      anotarError('El Registro está lleno', 'Tiene ' + h.getLastRow() + ' filas. Cópialo a otro archivo y vacíalo para que siga anotando.');
+      return 0;
+    }
+    var ahora = new Date();
+    var valores = lista.map(function (x) {
+      return [ahora, celdaSegura(desde, 20), celdaSegura(quien || '', 80), celdaSegura(x.que, 120),
+              celdaSegura(x.donde, 120), celdaSegura(x.antes, 500), celdaSegura(x.despues, 500)];
+    });
+    h.getRange(h.getLastRow() + 1, 1, valores.length, ENCABEZADO_REGISTRO.length).setValues(valores);
+    return valores.length;
+  } catch (err) {
+    try { registrarError('Registro: ' + err.message, null); } catch (x) {}
+    return 0;
+  }
+}
+
+/* Las pestañas cuyas ediciones a mano importan. Los resultados que escribe el
+   propio script (Más vendidos, Tablero, Validaciones) no: esos se recalculan. */
+function hojasQueSeRegistran() {
+  return [H_CATALOGO, H_CONFIG, H_ENVIOS, H_CUPONES, H_PEDIDOS, H_REGISTRO, 'Pagos', 'Datos de entrega',
+          H_INVENTARIO_VARIANTE];
+}
+
+function anotarEdicionDeHoja(e) {
+  try {
+    var h = e.range.getSheet(), nombre = h.getName();
+    if (hojasQueSeRegistran().indexOf(nombre) === -1) return;
+    var a1 = typeof e.range.getA1Notation === 'function' ? e.range.getA1Notation() : '';
+    var varias = typeof e.range.getNumRows === 'function' &&
+                 (e.range.getNumRows() > 1 || e.range.getNumColumns() > 1);
+    /* De qué fila se trata, en palabras: el producto, la clave, el pedido. */
+    var fila = typeof e.range.getRow === 'function' ? e.range.getRow() : 0;
+    var cual = '';
+    if (fila > 1 && nombre !== H_REGISTRO) {
+      try { cual = String(h.getRange(fila, nombre === H_PEDIDOS ? 2 : 1).getValue() || ''); } catch (x) {}
+    }
+    var quien = '';
+    try { quien = e.user && e.user.getEmail ? e.user.getEmail() : ''; } catch (x) {}
+    anotarCambios('Hoja', quien, [{
+      que: nombre === H_REGISTRO ? 'EDITÓ EL REGISTRO A MANO'
+         : varias ? 'Editó varias celdas' : 'Editó una celda',
+      donde: nombre + (a1 ? ' ' + a1 : '') + (cual ? ' · ' + (nombre === H_PEDIDOS ? '#' : '') + cual : ''),
+      antes: varias ? '' : (e.oldValue === undefined ? '' : String(e.oldValue)),
+      despues: varias ? '(varias celdas)' : (e.value === undefined ? '' : String(e.value))
+    }]);
+  } catch (err) { /* anotar nunca tumba la edición */ }
+}
+
+/* Lo que se ve de un producto en una línea, para Antes / Después. */
+function resumenDeFila(f) {
+  return [String(f[1] || ''), f[4] !== '' && f[4] !== undefined ? '$' + f[4] : '',
+          'Stock ' + (f[5] === '' || f[5] === undefined ? '—' : f[5]),
+          esSi(f[9]) ? 'activo' : 'inactivo'].filter(function (x) { return x; }).join(' · ');
+}
+
+function diferenciaDeFilas(antes, despues) {
+  var r = { antes: [], despues: [] };
+  ENCABEZADO_CATALOGO.forEach(function (col, i) {
+    var a = String(antes[i] === undefined || antes[i] === null ? '' : antes[i]);
+    var d = String(despues[i] === undefined || despues[i] === null ? '' : despues[i]);
+    if (a === d) return;
+    r.antes.push(col + ': ' + (a || '(vacío)'));
+    r.despues.push(col + ': ' + (d || '(vacío)'));
+  });
+  return r;
+}
+
+function protegerRegistro() {
+  try {
+    var h = hoja(H_REGISTRO, ENCABEZADO_REGISTRO);
+    var ya = h.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+    if (ya && ya.length) return;
+    h.protect().setDescription('Registro de cambios: solo lo escribe el script')
+     .setWarningOnly(true);
+  } catch (err) { /* sin permiso para proteger: la pestaña sirve igual */ }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   C-1b · EL INVENTARIO POR COMBINACIÓN
+   --------------------------------------------------------------------------
+   Con el stock en el producto, vender la última camiseta rosa M dejaba la
+   tienda ofreciendo rosas M que no existen —o marcaba agotada la camiseta
+   entera cuando solo se acabó un color—. La pestaña `Inventario por variante`
+   lleva una fila por combinación:
+
+       ID producto · Combinación              · Stock · Código · Nota
+       camiseta    · Talla: M · Color: Rosa   ·   3   · CB-MR  ·
+
+   LAS FILAS LAS ESCRIBE EL MAESTRO. Al llenar `Variantes` en Catálogo,
+   `sincronizarVariantes()` agrega una fila por combinación con el stock VACÍO;
+   el comerciante solo pone los números. Escribir la combinación a mano seis
+   veces es la forma segura de que una no case. Las filas que dejan de casar
+   (se cambió una talla) NO se borran: llevan un stock que alguien contó. Se
+   marcan en Nota y dejan de contar.
+
+   COMPATIBILIDAD, QUE ES LA REGLA QUE MANDA. Un producto pasa a inventario por
+   combinación solo cuando AL MENOS UNA de sus filas tiene un número en Stock.
+   Mientras todas estén vacías —acaban de generarse, nadie las llenó— el
+   producto se vende exactamente como antes, con el stock de Catálogo. Nadie
+   tiene que migrar nada el día que esto se publica, y generar las filas no
+   agota la tienda.
+
+   Y una vez activo, `Catálogo › Stock` pasa a ser LA SUMA, escrita por el
+   maestro: una sola mano la escribe, así que no se separa de sus partes, y
+   todo lo que ya leía Stock —el tablero, «pocas unidades», los agotados, el
+   correo— sigue funcionando sin tocarlo.
+   ══════════════════════════════════════════════════════════════════════════ */
+var H_INVENTARIO_VARIANTE = 'Inventario por variante';
+var ENCABEZADO_INVENTARIO_VARIANTE = ['ID producto', 'Combinación', 'Stock', 'Código', 'Nota'];
+var NOTA_NO_CASA = 'Ya no está en Variantes: no cuenta';
+
+/* Todas las combinaciones de los grupos, en el orden del catálogo y con el
+   mismo texto que escribe variantePedida(): «Talla: M · Color: Rosa». */
+function combinacionesDe(grupos) {
+  var r = [[]];
+  (grupos || []).forEach(function (g) {
+    var nuevo = [];
+    r.forEach(function (pref) {
+      g.opciones.forEach(function (o) { nuevo.push(pref.concat([g.nombre + ': ' + o])); });
+    });
+    r = nuevo;
+  });
+  if (!(grupos || []).length) return [];
+  return r.map(function (partes) { return partes.join(' · '); });
+}
+
+function cuantasCombinaciones(grupos) {
+  return (grupos || []).reduce(function (n, g) { return n * g.opciones.length; }, (grupos || []).length ? 1 : 0);
+}
+
+/* id → { filas: [{clave, texto, stock (número|null|''), fila}] } */
+function leerInventarioVariante() {
+  var r = {};
+  var h = elLibro().getSheetByName(H_INVENTARIO_VARIANTE);
+  if (!h || h.getLastRow() < 2) return r;
+  h.getRange(2, 1, h.getLastRow() - 1, ENCABEZADO_INVENTARIO_VARIANTE.length).getValues()
+   .forEach(function (f, i) {
+     var id = String(f[0]).trim(), texto = String(f[1]).trim();
+     if (!id || !texto) return;
+     if (!r[id]) r[id] = [];
+     r[id].push({ clave: llano(texto), texto: texto, crudo: f[2], fila: i + 2 });
+   });
+  return r;
+}
+
+/* Las existencias por combinación de UN producto, o null si no lleva
+   inventario por combinación (sin variantes, sin filas, o todas vacías).
+   Una celda ilegible no vale cero ni se inventa: esa combinación no se
+   vende —cuenta 0— y queda anotada, como cualquier cifra de la hoja. */
+function skusDe(grupos, filasInv, donde) {
+  if (!grupos || !grupos.length || !filasInv || !filasInv.length) return null;
+  if (cuantasCombinaciones(grupos) > MAX_COMBINACIONES) return null;
+  var validas = {};
+  combinacionesDe(grupos).forEach(function (t) { validas[llano(t)] = t; });
+  var alguna = filasInv.some(function (x) {
+    return validas[x.clave] !== undefined && String(x.crudo === null || x.crudo === undefined ? '' : x.crudo).trim() !== '';
+  });
+  if (!alguna) return null;
+  var porClave = {}, lista = [], suma = 0;
+  Object.keys(validas).forEach(function (k) { porClave[k] = 0; });
+  filasInv.forEach(function (x) {
+    if (validas[x.clave] === undefined) return;
+    var n = cifra(x.crudo, donde + ' fila ' + x.fila);
+    porClave[x.clave] = n === null ? 0 : Math.max(0, Math.floor(n));
+  });
+  Object.keys(validas).forEach(function (k) {
+    lista.push({ eleccion: validas[k], stock: porClave[k] });
+    suma += porClave[k];
+  });
+  return { porClave: porClave, lista: lista, suma: suma };
+}
+
+/* ── Escribir las filas que faltan, marcar las que ya no casan, y la suma ──
+   Idempotente: correrlo dos veces no agrega nada la segunda. Se llama al
+   instalar, al editar Variantes o esta pestaña, al guardar un producto desde
+   el panel y desde «Actualizar tablero e inventario». */
+function sincronizarVariantes() {
+  var libro = elLibro();
+  var hc = libro.getSheetByName(H_CATALOGO);
+  if (!hc || hc.getLastRow() < 2) return { nuevas: 0, marcadas: 0 };
+  var cat = hc.getRange(2, 1, hc.getLastRow() - 1, ENCABEZADO_CATALOGO.length).getValues();
+  var hi = hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+  var inv = leerInventarioVariante();
+  var nuevas = [], marcadas = 0, grandes = [];
+  var validasPorId = {};
+
+  cat.forEach(function (f, i) {
+    var id = String(f[0]).trim();
+    if (!id) return;
+    var grupos = variantesDeCelda(f[13], 'Catálogo N' + (i + 2));
+    if (!grupos.length) return;
+    var n = cuantasCombinaciones(grupos);
+    if (n > MAX_COMBINACIONES) { grandes.push(id + ' (' + n + ')'); return; }
+    var ya = {};
+    (inv[id] || []).forEach(function (x) { ya[x.clave] = true; });
+    validasPorId[id] = {};
+    combinacionesDe(grupos).forEach(function (t) {
+      validasPorId[id][llano(t)] = true;
+      if (!ya[llano(t)]) nuevas.push([id, t, '', '', '']);
+    });
+  });
+  if (grandes.length) {
+    anotarError('Demasiadas combinaciones para el inventario por variante',
+                grandes.join(', ') + ': el tope es ' + MAX_COMBINACIONES + '. No se generaron filas; esos productos siguen con el stock de Catálogo.');
+  }
+
+  /* Las que ya no casan se marcan (y las que vuelven a casar se desmarcan). */
+  var notas = [], cambiaNota = false;
+  Object.keys(inv).forEach(function (id) {
+    inv[id].forEach(function (x) {
+      var casa = validasPorId[id] && validasPorId[id][x.clave];
+      notas.push({ fila: x.fila, casa: !!casa });
+    });
+  });
+  if (notas.length) {
+    var col = hi.getRange(2, 5, hi.getLastRow() - 1, 1).getValues();
+    notas.forEach(function (x) {
+      var actual = String(col[x.fila - 2][0] || '');
+      if (!x.casa && actual !== NOTA_NO_CASA) { col[x.fila - 2][0] = NOTA_NO_CASA; marcadas++; cambiaNota = true; }
+      if (x.casa && actual === NOTA_NO_CASA) { col[x.fila - 2][0] = ''; cambiaNota = true; }
+    });
+    if (cambiaNota) hi.getRange(2, 5, col.length, 1).setValues(col);
+  }
+  if (nuevas.length) hi.getRange(hi.getLastRow() + 1, 1, nuevas.length, ENCABEZADO_INVENTARIO_VARIANTE.length).setValues(nuevas);
+
+  escribirSumas();
+  CacheService.getScriptCache().remove('catalogo');
+  return { nuevas: nuevas.length, marcadas: marcadas };
+}
+
+/* Catálogo › Stock = la suma de sus combinaciones, para los productos que
+   llevan inventario por combinación. Solo se escribe lo que cambió. */
+function escribirSumas() {
+  var hc = elLibro().getSheetByName(H_CATALOGO);
+  if (!hc || hc.getLastRow() < 2) return 0;
+  var cat = hc.getRange(2, 1, hc.getLastRow() - 1, ENCABEZADO_CATALOGO.length).getValues();
+  var inv = leerInventarioVariante();
+  var col = cat.map(function (f) { return [f[COL_STOCK - 1]]; });
+  var cambios = 0;
+  var guardadas = CELDAS_ILEGIBLES; CELDAS_ILEGIBLES = [];
+  cat.forEach(function (f, i) {
+    var id = String(f[0]).trim();
+    var s = skusDe(variantesDeCelda(f[13], ''), inv[id], '');
+    if (!s) return;
+    if (Number(col[i][0]) !== s.suma || col[i][0] === '') { col[i][0] = s.suma; cambios++; }
+  });
+  CELDAS_ILEGIBLES = guardadas;
+  if (cambios) hc.getRange(2, COL_STOCK, col.length, 1).setValues(col);
+  return cambios;
+}
+
+/* ── Pagado descuenta LA COMBINACIÓN, y solo esa ─────────────────────────
+   Lo llama aplicarInventario() para las líneas de productos con inventario
+   por combinación. Devuelve la marca para la columna Inventario, o null si la
+   línea no es de ese tipo (y entonces sigue el camino de siempre). */
+function moverCombinacion(ctx, id, variante, cant, vender) {
+  var prod = ctx.skus[id];
+  if (!prod) return null;
+  var clave = llano(variante);
+  var fila = ctx.filaInv[id + '\u0000' + clave];
+  if (!variante || !fila) return 'sin-fila';
+  var i = fila - 2;
+  var actual = cifra(ctx.inv[i][2], '');
+  if (actual === null) return 'ilegible';
+  ctx.inv[i][2] = vender ? Math.max(0, (actual || 0) - cant) : (actual || 0) + cant;
+  ctx.cambioInv = true;
+  return vender ? 'Descontado' : 'Devuelto';
+}
+
+function contextoCombinaciones() {
+  var libro = elLibro();
+  var hi = libro.getSheetByName(H_INVENTARIO_VARIANTE);
+  var ctx = { skus: {}, filaInv: {}, inv: [], hi: hi, cambioInv: false };
+  if (!hi || hi.getLastRow() < 2) return ctx;
+  ctx.inv = hi.getRange(2, 1, hi.getLastRow() - 1, ENCABEZADO_INVENTARIO_VARIANTE.length).getValues();
+  var guardadas = CELDAS_ILEGIBLES; CELDAS_ILEGIBLES = [];
+  var cat = leerCatalogo();
+  CELDAS_ILEGIBLES = guardadas;
+  Object.keys(cat).forEach(function (id) { if (cat[id].skus) ctx.skus[id] = true; });
+  ctx.inv.forEach(function (f, i) {
+    var id = String(f[0]).trim();
+    if (ctx.skus[id]) ctx.filaInv[id + '\u0000' + llano(f[1])] = i + 2;
+  });
+  return ctx;
+}
+
+/* ── Las fotos: 6 generales y 4 por opción, y EL NOMBRE ES EL DATO ──────
+   Una foto del color rosa se llama `camiseta-basica--color-rosa-1.jpg`:
+   código, doble guion, grupo, opción y número. De qué opción es una foto se
+   lee de su nombre, así que no hay tabla que mantener. */
+function fotosConTope(lista) {
+  var generales = [], porOpcion = {}, salida = [];
+  lista.forEach(function (n) {
+    var m = String(n).match(/--([a-z0-9]+(?:-[a-z0-9]+)*?)-(\d+)\.[a-z0-9]+$/i);
+    if (!m) { if (generales.length < 6) { generales.push(n); salida.push(n); } return; }
+    var clave = m[1].toLowerCase();
+    porOpcion[clave] = (porOpcion[clave] || 0) + 1;
+    if (porOpcion[clave] <= 4) salida.push(n);
+  });
+  return salida;
+}
+
+/* El trozo de nombre de una opción: «Color» + «Rosa claro» → color-rosa-claro */
+function trozoDeOpcion(grupo, opcion) {
+  var limpio = function (t) {
+    return llano(t).replace(/ñ/g, 'n').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  };
+  return limpio(grupo) + '-' + limpio(opcion);
+}
+
+function combinacionValida(celdaVariantes, clave) {
+  return combinacionesDe(variantesDeCelda(celdaVariantes, '')).some(function (t) { return llano(t) === clave; });
+}
+
+/* ── Editar el stock de cada combinación desde el panel ─────────────────
+   Pide op, id, cambios {combinación: número} y versiones {combinación:
+   huella}. Todo o nada, como la configuración: si un número no se entiende o
+   una fila cambió en la hoja entre medias, no se escribe ninguno. Vacío es
+   válido —«todavía no lo cuento»—; un número que no es número, no. */
+function atenderGuardarCombinaciones(p) {
+  return conOperacion(p, function () {
+    var id = String(p.id || '').trim();
+    var cambios = p.cambios || {}, versiones = p.versiones || {};
+    var guardadas = CELDAS_ILEGIBLES; CELDAS_ILEGIBLES = [];
+    var inv = leerInventarioVariante();
+    CELDAS_ILEGIBLES = guardadas;
+    var filasDe = {};
+    (inv[id] || []).forEach(function (x) { filasDe[x.clave] = x; });
+    var errores = {}, aEscribir = [];
+    Object.keys(cambios).forEach(function (combo) {
+      var x = filasDe[llano(combo)];
+      if (!x) { errores[combo] = 'Esa combinación no está en el inventario de este producto.'; return; }
+      if (String(versiones[combo] || '') !== versionDeValor(x.crudo)) {
+        errores[combo] = 'Cambió en la hoja mientras la editabas. Vuelve a abrir el producto.'; return;
+      }
+      var v = String(cambios[combo] === null || cambios[combo] === undefined ? '' : cambios[combo]).trim();
+      if (v !== '' && !/^\d{1,6}$/.test(v)) { errores[combo] = 'Tiene que ser un número entero, o quedar vacío.'; return; }
+      aEscribir.push({ fila: x.fila, combo: x.texto, antes: String(x.crudo === null || x.crudo === undefined ? '' : x.crudo),
+                       valor: v === '' ? '' : Number(v) });
+    });
+    if (Object.keys(errores).length) {
+      return { ok: false, errores: errores, error: 'No se guardó nada: hay ' + Object.keys(errores).length + ' valor(es) por corregir.' };
+    }
+    var hi = hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+    aEscribir.forEach(function (w) { hi.getRange(w.fila, 3).setValue(w.valor); });
+    escribirSumas();
+    CacheService.getScriptCache().remove('catalogo');
+    return { ok: true, guardadas: aEscribir.length,
+             _registro: aEscribir.filter(function (w) { return String(w.valor) !== w.antes; }).map(function (w) {
+               return { que: 'Cambió el stock de una combinación', donde: H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + w.combo,
+                        antes: w.antes, despues: String(w.valor) };
+             }) };
+  }, true);
 }

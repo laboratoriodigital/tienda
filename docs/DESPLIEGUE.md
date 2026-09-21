@@ -483,14 +483,17 @@ El menú de su hoja tiene siete opciones, y conviene nombrárselas todas una vez
 > **Si explicar esto toma más de 30 minutos, el hallazgo es de diseño, no del
 > comerciante. Anótalo.**
 
-**El panel** (M3, en construcción) vive en `https://<su sitio>/admin.html`. Para
+**El panel** (M3) vive en `https://<su sitio>/admin.html`. Para
 dejarlo listo en la entrega: en `Configuración › panel_usuario` el nombre con el
 que va a entrar, y después menú › **Clave del panel** con el comerciante al
 lado — la clave se enseña una sola vez y no queda escrita en ninguna parte, así
-que la apunta él. Hoy el panel tiene tres pestañas: **Productos** (editar y
-subir fotos), **Pedidos** (ver y cambiar el estado, con el mismo efecto sobre el
-inventario que en la hoja) y **Tu tienda** (textos, colores, contacto, envío
-gratis; las claves técnicas no salen). Arriba, la barra de **Publicar**. Lo que
+que la apunta él. El panel tiene tres pestañas: **Productos** (editar, subir
+fotos y, si hay variantes, el stock de cada combinación), **Pedidos** (ver y cambiar el estado, con el mismo efecto sobre el
+inventario que en la hoja) y **Tu tienda** (textos, colores, contacto, horario,
+envío gratis, pedido mínimo y cerrar la tienda; las claves técnicas no salen).
+Todo lo que se cambia queda en la pestaña **Registro** de la hoja. Entrégale
+la guía de una página (`docs/manuales/Guia-de-una-pagina.html`), que ya
+explica el panel. Arriba, la barra de **Publicar**. Lo que
 se guarda en el panel queda en la hoja al instante, pero **la tienda lo muestra
 al publicar**: eso hay que decírselo, porque el panel también lo dice y la
 primera vez nadie lo lee.

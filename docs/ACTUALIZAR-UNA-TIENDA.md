@@ -21,6 +21,19 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.7.0 (tienda): inventario por combinación, registro, tienda cerrada — `instalar()`
+
+1. `git push` → `release` → `montaje` **con** `maestro` + `PUBLICAR`. Sin la
+   casilla del maestro el montaje se niega —las versiones no casan— y tiene razón.
+2. **`A0_instalar()`**. Crea las pestañas `Inventario por variante` y
+   `Registro`, genera las filas de los productos que ya tienen Variantes (con el
+   stock vacío: **nada cambia** hasta que alguien ponga un número), y agrega
+   `tienda_abierta`, `tienda_cerrada_mensaje` y `pedido_minimo` a
+   Configuración, con valores que no cambian nada.
+3. El stub no hay que repegarlo.
+
+---
+
 ## La 0.6.0 (tienda): cobrar en línea — hay que ejecutar `instalar()`
 
 1. `git push` → `release` → `montaje` con `maestro` + `PUBLICAR`.

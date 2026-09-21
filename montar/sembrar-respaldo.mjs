@@ -140,6 +140,10 @@ export function bloque(catalogo, version) {
            ', stock:' + Math.max(0, Math.floor(Number(p.stock) || 0)) + ',\n' +
            '    imagenes:[' + (fotos.length ? fotos.map(literal).join(', ') : '""') + '],\n' +
            (variantes.length ? '    variantes:[' + variantes.join(', ') + '],\n' : '') +
+           /* C-1b: y su stock por combinación, que es el que manda. */
+           (variantes.length && Array.isArray(p.skus) && p.skus.length
+             ? '    skus:[' + p.skus.map(k => '{ eleccion:' + literal(k.eleccion) + ', stock:' +
+                 Math.max(0, Math.floor(Number(k.stock) || 0)) + ' }').join(', ') + '],\n' : '') +
            '    descripcion:' + literal(p.descripcion) + ' }';
   }).join(',\n\n'));
   L.push('];');
