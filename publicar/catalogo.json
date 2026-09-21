@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-21-3",
- "generado": "2026-09-21T21:57:23.132Z",
+ "generado": "2026-09-21T22:05:35.666Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -100,13 +100,13 @@
   "orden_catalogo": "Precio: de menor a mayor",
   "panel_usuario": "sebas",
   "cobro_modo": "Pasarela",
-  "cobro_ambiente": "Pruebas",
+  "cobro_ambiente": "Producción",
   "tienda_abierta": "Sí",
   "tienda_cerrada_mensaje": "",
   "pedido_minimo": "",
   "tope_pago": "12110000",
   "cobro": "pasarela",
-  "cobro_pruebas": "Sí"
+  "cobro_pruebas": ""
  },
  "fotos": {
   "tienda-virtual.png": [
