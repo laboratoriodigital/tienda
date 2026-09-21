@@ -16,7 +16,7 @@
      código: lo peor que puede hacer un tercero de esa lista es no responder. -->
 
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net; connect-src 'self' https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net; connect-src 'self' https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
 <!-- ═══ CONFIGURACIÓN DE ESTA TIENDA ═══
      Generado por generarConfiguracion() en el Apps Script.
      No lo edites a mano: cambia la pestaña Configuración y vuelve a generarlo. -->
@@ -354,6 +354,15 @@ textarea.campo{resize:vertical;min-height:64px}
 .enviado .btn-whatsapp{margin-top:4px}
 .enviado-otro{margin-top:14px;background:none;border:0;color:var(--tenue);
   font:600 14px inherit;text-decoration:underline;cursor:pointer;padding:8px}
+/* M3.5 · Cobrar en línea. En pruebas se DICE, en el carrito y en cada estado
+   del pago: un comprador de verdad no puede creer que pagó con una tarjeta de
+   prueba, ni el comercio despachar por eso. */
+.cobro-pruebas{font-size:12.5px;font-weight:700;color:#7A5A00;background:#FFF4CC;
+  border-radius:2px;padding:7px 10px;margin:0 0 10px;text-align:center}
+.cobro-espera{width:34px;height:34px;margin:0 auto 18px;border-radius:50%;
+  border:3px solid var(--linea);border-top-color:var(--verde);animation:girar 1s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.cobro-espera{animation:none}}
 
 /* ---------- Ficha de producto ---------- */
 .ficha{
@@ -543,12 +552,12 @@ textarea.campo{resize:vertical;min-height:64px}
            onclick="event.preventDefault();event.stopPropagation();abrirLegal('datos')">política de tratamiento de datos personales</a>.</span>
     </label>
     <a class="btn-whatsapp" id="btnFinalizar" href="#" target="_blank" rel="noopener"
-       aria-disabled="true" onclick="return alEnviar(event)">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+       aria-disabled="true" onclick="return alFinalizar(event)">
+      <svg id="btnIcono" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
         <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-1.7-.9-2.9-1.6-4-3.5-.3-.5.3-.5.8-1.5.1-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 1.9.8 2.6.9 3.5.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
         <path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
       </svg>
-      Enviar pedido por WhatsApp
+      <span id="btnTexto">Enviar pedido por WhatsApp</span>
     </a>
   </div>
 </aside>
@@ -584,7 +593,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwSDQEloo_tlSOCXrkZ
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-12-1";
+const SCRIPT_VERSION = "2026-09-21-1";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -663,6 +672,11 @@ function lista(id, valor, envolver){
 /* Cuánto se puede pagar de una sola vez. Lo pone la hoja; 0 = sin tope. */
 let TOPE_PAGO = 0;
 
+/* M3.5 · «whatsapp» o «pasarela». Nace en WhatsApp: una página que no sabe
+   todavía cómo cobra la tienda no puede ofrecer un botón de pagar. */
+let COBRO = "whatsapp";
+let COBRO_PRUEBAS = false;
+
 /* ¿Se piden variantes? Lo decide la hoja con f_variantes. Encendido por
    defecto: un producto sin la columna Variantes no tiene grupos y no cambia
    nada, así que apagarlo solo sirve para un comercio que ya las escribió y
@@ -726,6 +740,14 @@ function aplicarConfiguracion(c){
      de extremo a extremo habla con el maestro. */
   const topeLeido = Number(c.tope_pago);
   if(isFinite(topeLeido) && topeLeido > 0) TOPE_PAGO = topeLeido;
+
+  /* M3.5 · CÓMO SE CIERRA LA VENTA. El maestro ya decidió si la pasarela está
+     lista: `cobro` dice lo que la tienda PUEDE hacer, no lo que pidió la
+     hoja. Cualquier cosa que no sea «pasarela» es WhatsApp, como siempre. */
+  if(typeof c.cobro === "string"){
+    COBRO = c.cobro === "pasarela" ? "pasarela" : "whatsapp";
+    COBRO_PRUEBAS = /^s[ií]$/i.test(String(c.cobro_pruebas || "").trim());
+  }
 
   if(v("fotos_origen")) FOTOS.origen = v("fotos_origen");
   if(c && typeof c.fotos_cdn === "string") FOTOS.cdn = c.fotos_cdn;
@@ -1712,6 +1734,8 @@ function quitar(id, pos){
 }
 
 function sanear(){
+  /* Lo que se está pagando no se toca: es el pedido que el maestro ya firmó. */
+  if(cobroActivo) return;
   const limpio = [], claves = [], usado = {};
   (Array.isArray(carrito) ? carrito : []).forEach(i => {
     const p = producto(i && i.id);
@@ -1930,7 +1954,7 @@ function refrescar(){
 
 /* Topes de longitud. El maxlength del HTML se puede saltar; esto no, y evita
    que una nota kilométrica arme una URL que Android trunca o rechaza. */
-const LARGOS = { fNombre:60, fTel:15, fCiudad:40, fDir:120, fNotas:300, cupon:20 };
+const LARGOS = { fNombre:60, fTel:15, fCorreo:120, fCiudad:40, fDir:120, fNotas:300, cupon:20 };
 
 function leerFormulario(){
   const g = id => {
@@ -1938,12 +1962,22 @@ function leerFormulario(){
     return el ? String(el.value).slice(0, LARGOS[id] || 100) : "";
   };
   const ch = document.getElementById("consiento");
-  return { nombre:g("fNombre"), tel:g("fTel"), ciudad:g("fCiudad"), dir:g("fDir"), notas:g("fNotas"),
+  /* Mientras el pago está en curso el formulario no está en la página: se
+     devuelve lo último que se escribió, para que volver al carrito no obligue
+     a escribirlo otra vez. Vive en la memoria de esta página y nada más. */
+  if(!document.getElementById("fNombre") && datosCobro) return Object.assign({}, datosCobro);
+  return { nombre:g("fNombre"), tel:g("fTel"), correo:g("fCorreo"), ciudad:g("fCiudad"), dir:g("fDir"), notas:g("fNotas"),
            cupon:g("cupon"), consiento: ch ? ch.checked : false };
 }
 
 function pintarPanel(datos){
   const cuerpo = $("#panelCuerpo"), pie = $("#panelPie");
+
+  if(cobroActivo){
+    pie.style.display = "none";
+    cuerpo.innerHTML = htmlDelCobro(cobroActivo);
+    return;
+  }
 
   if(pedidoEnviado){
     pie.style.display = "none";
@@ -2031,6 +2065,7 @@ function pintarPanel(datos){
         <input class="campo" id="fNombre" maxlength="60" placeholder="Nombre y apellido" oninput="revisarFormulario()" value="${datos ? escapar(datos.nombre) : ""}">
         <input class="campo" id="fTel" maxlength="15" placeholder="Celular" inputmode="tel" oninput="revisarFormulario()" value="${datos ? escapar(datos.tel) : ""}">
       </div>
+      ${cobraEnLinea() ? `<input class="campo" id="fCorreo" maxlength="120" placeholder="Correo (ahí te llega la confirmación del pago)" inputmode="email" autocomplete="email" style="margin-bottom:10px" oninput="revisarFormulario()" value="${datos ? escapar(datos.correo || "") : ""}">` : ""}
       <input class="campo" id="fCiudad" maxlength="40" placeholder="Ciudad" style="margin-bottom:10px" oninput="revisarFormulario()" value="${datos ? escapar(datos.ciudad) : ""}">
       <input class="campo" id="fDir" maxlength="120" placeholder="Dirección de entrega" style="margin-bottom:10px" oninput="revisarFormulario()" value="${datos ? escapar(datos.dir) : ""}">
       <textarea class="campo" id="fNotas" maxlength="300" placeholder="Notas: punto de referencia, horario, indicaciones para la portería">${datos ? escapar(datos.notas) : ""}</textarea>
@@ -2048,15 +2083,20 @@ function pintarPanel(datos){
   const estadoSello = !SCRIPT_URL ? ""
     : validando ? `<div class="sello esperando">Validando tu pedido…</div>`
     : (selloVigente() && sello.ref) ? `<div class="sello confirmado">Total verificado con la tienda</div>`
-    : (sello) ? `<div class="sello aviso-stock">Estamos confirmando los precios de hoy. Envía tu pedido y te confirmamos el total por WhatsApp.</div>`
+    : (sello) ? (cobraEnLinea()
+        ? `<div class="sello aviso-stock">Estamos confirmando los precios de hoy. Antes de cobrar, la tienda vuelve a calcular el total.</div>`
+        : `<div class="sello aviso-stock">Estamos confirmando los precios de hoy. Envía tu pedido y te confirmamos el total por WhatsApp.</div>`)
     : "";
+  const pruebas = cobraEnLinea() && COBRO_PRUEBAS
+    ? `<div class="cobro-pruebas">Pagos en modo de pruebas: no se cobra dinero real.</div>` : "";
+  const avisoDelCobro = avisoCobro ? `<div class="sello aviso-stock">${escapar(avisoCobro)}</div>` : "";
 
   $("#totales").innerHTML = `
     <div><span>Subtotal</span><span>${pesos(t.sub)}</span></div>
     ${t.descuento ? `<div class="descuento"><span>Descuento (${escapar(cuponActivo || "")})</span><span>−${pesos(t.descuento)}</span></div>` : ""}
     <div><span>Envío · ${escapar(nombreEnvio())}</span><span>${t.envio ? pesos(t.envio) : "Sin costo"}</span></div>
     <div class="granTotal"><span>Total</span><span>${pesos(t.total)}</span></div>
-    ${avisosHoja}${estadoSello}`;
+    ${avisosHoja}${estadoSello}${avisoDelCobro}${pruebas}`;
 
   if(datos) document.getElementById("consiento").checked = datos.consiento;
   revisarFormulario();
@@ -2068,9 +2108,17 @@ function revisarFormulario(){
   const btn = $("#btnFinalizar");
   if(!btn) return;
   btn.setAttribute("aria-disabled", listo ? "false" : "true");
+  /* COBRANDO EN LÍNEA el botón no abre WhatsApp: prepara el pago. Dice
+     cuánto, porque es lo que va a pasar al tocarlo. */
+  const enLinea = cobraEnLinea();
+  const icono = document.getElementById("btnIcono"), rotulo = document.getElementById("btnTexto");
+  if(icono) icono.style.display = enLinea ? "none" : "";
+  if(rotulo) rotulo.textContent = enLinea
+    ? "Pagar " + pesos(calcular().total) + (COBRO_PRUEBAS ? " · pruebas" : "")
+    : "Enviar pedido por WhatsApp";
   // El enlace se rearma aquí, así que siempre lleva el estado más reciente:
   // el cupón que acaba de validarse, la cantidad que acaba de cambiar.
-  btn.href = listo ? enlaceWhatsapp() : "#";
+  btn.href = listo && !enLinea ? enlaceWhatsapp() : "#";
 
   const aviso = document.getElementById("faltan");
   if(!aviso) return;
@@ -2096,8 +2144,299 @@ function revisarFormulario(){
   aviso.hidden = listo || !falta.length;
   if(!aviso.hidden){
     document.getElementById("faltanTexto").textContent =
-      "Para enviar tu pedido falta " + enLista(falta) + ".";
+      (enLinea ? "Para pagar falta " : "Para enviar tu pedido falta ") + enLista(falta) + ".";
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COBRAR EN LÍNEA (M3.5)
+   --------------------------------------------------------------------------
+   El mismo carrito, otro final. Con la tienda en «pasarela», el botón no abre
+   WhatsApp: le pide al maestro que prepare el cobro —él vuelve a calcular
+   todo y aparta las unidades—, abre la pasarela de Bold con lo que el maestro
+   firmó, y después PREGUNTA cómo quedó. Nunca se cree lo que diga la dirección
+   de vuelta: la escribe Bold, pero la puede escribir cualquiera.
+
+   QUÉ SE GUARDA EN EL NAVEGADOR, Y QUÉ NO. Para volver de la pasarela —que
+   recarga la página— se guarda en sessionStorage el cobro (número, total,
+   token) y el carrito, que no son datos personales. El nombre, el celular, el
+   correo y la dirección NO: son la misma regla de la bandeja de salida. Si el
+   pago no pasa y hay que intentarlo otra vez, se vuelven a escribir.
+   ══════════════════════════════════════════════════════════════════════════ */
+const COBRO_GUARDADO = "cobro-en-curso";
+const BOLD_LIBRERIA  = "https://checkout.bold.co/library/boldPaymentButton.js";
+let cobroActivo  = null;   // { estado, pedido, token, total, checkout, lineas, pruebas, error }
+let datosCobro   = null;   // lo que se escribió en el formulario, solo en memoria
+let avisoCobro   = "";     // lo que dijo el maestro al no poder cobrar
+let opCobro      = null;   // el número de operación vive hasta que llega respuesta
+let consultaCobro = null, vueltaCobro = 0, promesaBold = null;
+
+function cobraEnLinea(){ return COBRO === "pasarela" && !!SCRIPT_URL; }
+
+function alFinalizar(e){
+  return cobraEnLinea() ? iniciarCobro(e) : alEnviar(e);
+}
+
+function nuevaOperacionCobro(){
+  return "cobro-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
+
+/* Lo que se pagó, en palabras, para el resumen y el WhatsApp de después. Se
+   toma al crear el cobro: al volver de la pasarela el carrito ya no está. */
+function resumenDelCarrito(){
+  return carrito.map(i => {
+    const p = producto(i.id), v = textoVariante(p, i.variante);
+    return i.cantidad + " × " + (p ? p.nombre : i.id) + (v ? " (" + v + ")" : "");
+  });
+}
+
+function guardarCobro(){
+  const c = cobroActivo;
+  if(!c || !c.token) return;
+  try{
+    sessionStorage.setItem(COBRO_GUARDADO, JSON.stringify({
+      /* El cobro SIN los datos del comprador: la librería de Bold los pide
+         (nombre, correo, celular, dirección) y viajan dentro de `checkout`,
+         pero aquí se quitan. Reabrir la pasarela al volver funciona igual:
+         son opcionales, y el comprador los escribe allí. */
+      c: { pedido:c.pedido, token:c.token, total:c.total, lineas:c.lineas, pruebas:c.pruebas,
+           checkout: c.checkout ? Object.assign({}, c.checkout, { customerData:null, billingAddress:null }) : null },
+      carrito: carrito, cupon: cuponActivo, envio: envioActivo.id, t: Date.now() }));
+  }catch(e){ /* sin almacenamiento: al volver se pregunta igual, por el token */ }
+}
+
+function olvidarCobro(){ try{ sessionStorage.removeItem(COBRO_GUARDADO); }catch(e){} }
+
+function iniciarCobro(e){
+  if(e) e.preventDefault();
+  const d = leerFormulario();
+  if(!formularioListo(d)){ irADatos(); return false; }
+  datosCobro = d;
+  avisoCobro = "";
+  if(!opCobro) opCobro = nuevaOperacionCobro();
+  const total = calcular().total;
+  cobroActivo = { estado:"preparando", total:total };
+  refrescar();
+  const cuerpo = {
+    a: "pago_crear", op: opCobro,
+    items: itemsDelPedido(), cupon: cuponActivo || "", envio: envioActivo.id, sub: String(subtotal()),
+    entrega: { nombre:d.nombre, tel:d.tel, correo:d.correo, ciudad:d.ciudad, direccion:d.dir, notas:d.notas }
+  };
+  const lineas = resumenDelCarrito();
+  fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(cuerpo), redirect:"follow" })
+    .then(r => r.json())
+    .then(r => {
+      if(!r || !r.ok){
+        /* Un «no» del maestro no es la misma operación que el siguiente
+           intento: con el carrito corregido, es otro cobro. */
+        opCobro = null;
+        cobroActivo = null;
+        avisoCobro = (r && r.error) || "No pudimos preparar el pago.";
+        /* La tienda pasó a WhatsApp y esta página no se había enterado: se
+           sigue por WhatsApp, que es lo que el maestro pide. */
+        if(r && r.cobro === "whatsapp") COBRO = "whatsapp";
+        refrescar();
+        return;
+      }
+      opCobro = null;
+      cobroActivo = { estado:"abriendo", pedido:r.pedido, token:r.token, total:r.total,
+                      pruebas:!!r.pruebas, checkout:r.checkout, lineas:lineas };
+      guardarCobro();
+      refrescar();
+      abrirCobro();
+    })
+    .catch(() => {
+      /* NO se olvida la operación: si el maestro alcanzó a crear el cobro,
+         el siguiente toque recibe ESE cobro y no aparta otra vez. */
+      cobroActivo = { estado:"error", total:total,
+        error:"Se perdió la conexión antes de abrir el pago. Pulsa otra vez: no se va a cobrar dos veces." };
+      refrescar();
+    });
+  return false;
+}
+
+function cargarBold(){
+  if(window.BoldCheckout) return Promise.resolve(window.BoldCheckout);
+  if(promesaBold) return promesaBold;
+  promesaBold = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = BOLD_LIBRERIA; s.async = true;
+    s.onload = () => window.BoldCheckout ? resolve(window.BoldCheckout) : reject(new Error("sin Bold"));
+    s.onerror = () => { promesaBold = null; reject(new Error("no cargó Bold")); };
+    document.head.appendChild(s);
+  });
+  return promesaBold;
+}
+
+/* Abre la pasarela con EXACTAMENTE lo que firmó el maestro. Reintentar abrir
+   usa el mismo cobro: volver a pedir uno apartaría las unidades dos veces. */
+function abrirCobro(){
+  const c = cobroActivo;
+  if(!c || !c.checkout) return false;
+  const k = c.checkout;
+  c.estado = "abriendo"; c.error = "";
+  refrescar();
+  cargarBold().then(BoldCheckout => {
+    const datos = { orderId:k.orderId, currency:k.currency, amount:k.amount, apiKey:k.apiKey,
+      integritySignature:k.integritySignature, description:k.description,
+      redirectionUrl:k.redirectionUrl, originUrl:k.originUrl };
+    if(k.customerData) datos.customerData = JSON.stringify(k.customerData);
+    if(k.billingAddress) datos.billingAddress = JSON.stringify(k.billingAddress);
+    new BoldCheckout(datos).open();
+    if(cobroActivo !== c) return;
+    c.estado = "esperando";
+    refrescar();
+    consultarCobro(false);
+  }).catch(() => {
+    if(cobroActivo !== c) return;
+    c.estado = "error";
+    c.error = "No pudimos abrir la pasarela de pago. Revisa tu conexión e intenta otra vez.";
+    refrescar();
+  });
+  return false;
+}
+
+/* Preguntar cómo quedó. Con paciencia creciente: Bold puede tardar unos
+   minutos en saber de un pago, y preguntar cada segundo no lo apura. */
+const ESPERAS_COBRO = [5000, 10000, 20000, 30000, 60000];
+
+function consultarCobro(ahora){
+  clearTimeout(consultaCobro);
+  const c = cobroActivo;
+  if(!c || !c.token || !SCRIPT_URL) return;
+  const ir = () => {
+    if(cobroActivo !== c) return;
+    traer(SCRIPT_URL + "?a=pago_estado&token=" + encodeURIComponent(c.token), TOPE_ESPERA)
+      .then(r => r.json())
+      .then(r => {
+        if(cobroActivo !== c) return;
+        if(r && r.ok){
+          c.pedido = r.pedido || c.pedido;
+          c.total = Number(r.total) || c.total;
+          c.transaccion = r.transaccion || c.transaccion || "";
+          if(["pagado", "rechazado", "vencido", "revisar"].indexOf(r.estado) !== -1){
+            c.estado = r.estado;
+            alTerminarCobro(c);
+            refrescar();
+            return;
+          }
+          if(c.estado !== "esperando"){ c.estado = "esperando"; refrescar(); }
+        }
+        vueltaCobro++;
+        consultaCobro = setTimeout(ir, ESPERAS_COBRO[Math.min(vueltaCobro, ESPERAS_COBRO.length - 1)]);
+      })
+      .catch(() => { if(cobroActivo === c) consultaCobro = setTimeout(ir, 30000); });
+  };
+  if(ahora) ir(); else consultaCobro = setTimeout(ir, 4000);
+}
+
+function alTerminarCobro(c){
+  clearTimeout(consultaCobro);
+  olvidarCobro();
+  /* Pagado es pagado: el carrito se vacía, y un recargar no lo vuelve a
+     ofrecer. Rechazado o vencido: el carrito se queda, para intentarlo. */
+  if(c.estado === "pagado"){
+    carrito = []; cuponActivo = null; codigoActual = null;
+    avisoCupon = { clase:"", texto:"" };
+  }
+}
+
+/* Volver al carrito desde un pago que no pasó. El siguiente intento es un
+   cobro NUEVO, con su propio número. */
+function volverAlCarrito(){
+  clearTimeout(consultaCobro);
+  if(cobroActivo && cobroActivo.estado === "esperando") return;   // no se abandona un pago en curso
+  cobroActivo = null; opCobro = null;
+  refrescar();
+}
+
+function terminarCobro(){
+  clearTimeout(consultaCobro);
+  cobroActivo = null; datosCobro = null; opCobro = null;
+  refrescar();
+  cerrarTodo();
+}
+
+function mensajeDelPago(c){
+  return "Hola, acabo de pagar en línea el pedido *" + c.pedido + "* por " + pesos(c.total) +
+    (c.transaccion ? " (transacción " + c.transaccion + ")" : "") + "." +
+    (c.lineas && c.lineas.length ? " " + c.lineas.join(", ") + "." : "");
+}
+
+function htmlDelCobro(c){
+  const pruebas = (c.pruebas || COBRO_PRUEBAS)
+    ? `<p class="cobro-pruebas">Modo de pruebas: no se cobra dinero real.</p>` : "";
+  const codigo = c.pedido ? `<p class="enviado-codigo">PEDIDO #${escapar(c.pedido)}</p>` : "";
+  const marca = `<div class="enviado-marca" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none"
+      stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg></div>`;
+  const espera = `<div class="cobro-espera" aria-hidden="true"></div>`;
+  if(c.estado === "preparando") return `<div class="enviado" role="status">${pruebas}${espera}
+      <h3>Preparando tu pago</h3>
+      <p>La tienda confirma precios y existencias de ${pesos(c.total)} antes de cobrar.</p></div>`;
+  if(c.estado === "abriendo") return `<div class="enviado" role="status">${pruebas}${espera}
+      <h3>Abriendo la pasarela de pago</h3>${codigo}
+      <p>Pagas ${pesos(c.total)} en la página segura de Bold. Tus unidades quedan apartadas unos minutos.</p>
+      <button class="btn-whatsapp" onclick="abrirCobro()">Abrir la pasarela</button></div>`;
+  if(c.estado === "esperando") return `<div class="enviado" role="status">${pruebas}${espera}
+      <h3>Estamos confirmando tu pago</h3>${codigo}
+      <p>Bold puede tardar unos minutos en confirmarlo. <strong>No pagues otra vez:</strong> esta página se actualiza sola.</p>
+      <button class="enviado-otro" onclick="consultarCobro(true)">Verificar ahora</button>
+      ${c.checkout ? `<button class="enviado-otro" onclick="abrirCobro()">¿No alcanzaste a pagar? Volver a la pasarela</button>` : ""}</div>`;
+  if(c.estado === "pagado") return `<div class="enviado">${pruebas}${marca}
+      <h3>Pago confirmado</h3>${codigo}
+      <p>Recibimos ${pesos(c.total)}. Te enviamos la confirmación a tu correo, y ${escapar(NEGOCIO)} te contacta para la entrega.</p>
+      ${WHATSAPP ? `<a class="btn-whatsapp" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensajeDelPago(c))}" target="_blank" rel="noopener">Avisar por WhatsApp (opcional)</a>` : ""}
+      <button class="enviado-otro" onclick="terminarCobro()">Volver a la tienda</button></div>`;
+  if(c.estado === "revisar") return `<div class="enviado">${pruebas}
+      <h3>Tu pago quedó en revisión</h3>${codigo}
+      <p>El pago llegó con un valor distinto al del pedido. ${escapar(NEGOCIO)} lo revisa y te contacta.</p>
+      ${WHATSAPP ? `<a class="btn-whatsapp" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensajeDelPago(c))}" target="_blank" rel="noopener">Escribir por WhatsApp</a>` : ""}
+      <button class="enviado-otro" onclick="terminarCobro()">Volver a la tienda</button></div>`;
+  const titulo = c.estado === "rechazado" ? "El pago no fue aprobado"
+               : c.estado === "vencido"   ? "El pago no se completó"
+               : "No pudimos abrir el pago";
+  const texto = c.estado === "rechazado" ? "No se cobró nada. Tu carrito sigue aquí: puedes intentarlo otra vez o con otro medio de pago."
+              : c.estado === "vencido"   ? "No se registró ningún pago y las unidades apartadas se liberaron. Tu carrito sigue aquí."
+              : (c.error || "Tu carrito sigue aquí. Puedes intentarlo otra vez.");
+  const reintento = c.estado === "error" && c.checkout ? "abrirCobro()" : "volverAlCarrito()";
+  return `<div class="enviado">${pruebas}
+      <h3>${titulo}</h3>${codigo}
+      <p>${escapar(texto)}</p>
+      <button class="btn-whatsapp" onclick="${reintento}">Intentar otra vez</button>
+      <button class="enviado-otro" onclick="volverAlCarrito()">Volver al carrito</button></div>`;
+}
+
+/* AL VOLVER DE LA PASARELA. Bold devuelve a la tienda con ?pago=<token> (y
+   sus propios bold-order-id y bold-tx-status, que aquí NO se creen). Se
+   limpia la dirección para que recargar o compartir no repita esto. */
+function restaurarCobro(){
+  let params;
+  try{ params = new URLSearchParams(location.search); }catch(e){ return; }
+  const token = (params.get("pago") || "").trim();
+  if(!/^pg[0-9a-f]{32}$/.test(token)) return;
+  let g = {};
+  try{ g = JSON.parse(sessionStorage.getItem(COBRO_GUARDADO) || "{}") || {}; }catch(e){ g = {}; }
+  const mio = g.c && g.c.token === token;
+  const c = mio ? g.c : {};
+  cobroActivo = { estado:"esperando", token:token, pedido:c.pedido || "", total:Number(c.total) || 0,
+                  lineas:c.lineas || [], pruebas:!!c.pruebas, checkout:c.checkout || null };
+  /* El carrito vuelve TAL CUAL, sin filtrarlo contra el catálogo: a esta
+     altura la página solo tiene el de respaldo, que puede no traer un
+     producto que sí está a la venta. Mientras el cobro esté en pantalla el
+     carrito no se toca (sanear lo respeta); al volver a él, ya con el
+     catálogo bueno, se sanea como siempre. */
+  if(mio && Array.isArray(g.carrito)){
+    carrito = g.carrito.filter(i => i && typeof i.id === "string");
+    cuponActivo = g.cupon || null;
+    envioActivo = TARIFAS.find(t => t.id === g.envio) || envioActivo;
+  }
+  ["pago", "abandono", "bold-order-id", "bold-tx-status"].forEach(k => params.delete(k));
+  try{
+    const q = params.toString();
+    history.replaceState(history.state, "", location.pathname + (q ? "?" + q : "") + location.hash);
+  }catch(e){}
+  abrirPanel();
+  consultarCobro(true);
 }
 
 // ── Envío del pedido ──
@@ -2218,13 +2557,16 @@ function enlaceWhatsapp(){
    Se mide contra el TOTAL, que es lo que el comprador va a transferir, y no
    contra el subtotal: el envío también viaja en la transferencia. */
 function pasaDelTope(){
-  return TOPE_PAGO > 0 && calcular().total > TOPE_PAGO;
+  /* El tope es el de una transferencia Bre-B. Cobrando en la pasarela, el
+     medio lo elige el comprador allí y el tope es el de ese medio. */
+  return !cobraEnLinea() && TOPE_PAGO > 0 && calcular().total > TOPE_PAGO;
 }
 
 function queFalta(d){
   const f = [];
   if(d.nombre.trim().length <= 2) f.push("tu nombre");
   if(d.tel.trim().length < 7)     f.push("tu celular");
+  if(cobraEnLinea() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(d.correo || "").trim())) f.push("tu correo");
   if(d.ciudad.trim().length <= 1) f.push("tu ciudad");
   if(Number(envioActivo.valor) !== 0 && d.dir.trim().length <= 4) f.push("la dirección");
   if(!d.consiento) f.push("autorizar el uso de tus datos");
@@ -2245,7 +2587,7 @@ function formularioListo(d){
 function irADatos(){
   const bloque = document.getElementById("bloqueDatos");
   if(bloque) bloque.scrollIntoView({ behavior: "smooth", block: "start" });
-  const vacio = ["fNombre", "fTel", "fCiudad", "fDir"]
+  const vacio = ["fNombre", "fTel", "fCorreo", "fCiudad", "fDir"]
     .map(id => document.getElementById(id))
     .find(el => el && !el.value.trim());
   const destino = vacio || document.getElementById("consiento");
@@ -2431,6 +2773,7 @@ datos: { titulo:"Política de tratamiento de datos personales", cuerpo: () => `
   <ul>
     <li>Nombre y apellido.</li>
     <li>Número de celular.</li>
+    ${cobraEnLinea() ? `<li>Correo electrónico, para confirmarte el pago.</li>` : ""}
     <li>Ciudad y dirección de entrega.</li>
     <li>Las notas que escribas sobre tu pedido.</li>
   </ul>
@@ -2438,10 +2781,17 @@ datos: { titulo:"Política de tratamiento de datos personales", cuerpo: () => `
      Tampoco tratamos datos de niñas, niños ni adolescentes.</p>
 
   <h3>Cómo llegan a nosotros</h3>
+  ${cobraEnLinea() ? `
+  <p>Cuando pulsas «Pagar», tus datos de entrega y tu pedido llegan a nuestra hoja de
+     pedidos, que vive en Google, para preparar el cobro y despachar la compra.
+     <strong>El pago lo haces en la pasarela de Bold</strong>: los datos de tu tarjeta
+     o de tu banco los recibe Bold, nunca esta página ni nosotros. En tu navegador
+     solo queda, mientras pagas, el número del pedido y el carrito — no tu nombre
+     ni tus datos de contacto.</p>` : `
   <p>Esta tienda es una página estática: <strong>no tiene servidor ni base de datos</strong>
      y no guarda nada en tu navegador. Lo que escribes se usa únicamente para armar el
      mensaje que se abre en WhatsApp. Los datos quedan en esa conversación cuando tú
-     decides enviarla, y solo entonces llegan a nosotros.</p>
+     decides enviarla, y solo entonces llegan a nosotros.</p>`}
 
   <h3>Para qué los usamos</h3>
   <ul>
@@ -2455,13 +2805,16 @@ datos: { titulo:"Política de tratamiento de datos personales", cuerpo: () => `
 
   <h3>Quién más los ve</h3>
   <ul>
-    <li><strong>Meta Platforms</strong>, porque el pedido viaja por WhatsApp.</li>
+    ${cobraEnLinea()
+      ? `<li><strong>Bold</strong>, la pasarela que procesa y confirma tu pago.</li>
+    <li><strong>Google</strong>, donde vive nuestra hoja de pedidos.</li>`
+      : `<li><strong>Meta Platforms</strong>, porque el pedido viaja por WhatsApp.</li>`}
     <li>La <strong>empresa transportadora</strong> que lleve tu pedido, solo con lo
         necesario para entregarlo.</li>
   </ul>
-  <p>Para saber cuántas unidades se venden de cada producto guardamos un registro
+  ${cobraEnLinea() ? "" : `<p>Para saber cuántas unidades se venden de cada producto guardamos un registro
      con la ciudad, el cupón y los productos del pedido, <strong>sin tu nombre,
-     celular ni dirección</strong>.</p>
+     celular ni dirección</strong>.</p>`}
 
   <h3>Quién opera ${escapar(NEGOCIO)}</h3>
   <p>${NEGOCIO} lo opera una persona natural en ${EMPRESA.ciudad}.
@@ -2490,8 +2843,9 @@ datos: { titulo:"Política de tratamiento de datos personales", cuerpo: () => `
      <strong>15 días hábiles</strong>, prorrogables según la ley.</p>
 
   <h3>Seguridad</h3>
-  <p>Tomamos medidas razonables para proteger la información. Ten en cuenta que la
-     conversación de WhatsApp también está en tu teléfono y bajo tu control.</p>
+  <p>Tomamos medidas razonables para proteger la información. ${cobraEnLinea()
+     ? "Nuestra hoja de pedidos no es pública y solo la ve quien atiende la tienda."
+     : "Ten en cuenta que la conversación de WhatsApp también está en tu teléfono y bajo tu control."}</p>
 
   <p class="legal-fecha">Última actualización: ${EMPRESA.actualizado}.</p>
 ` },
@@ -2544,10 +2898,16 @@ terminos: { titulo:"Términos y condiciones", cuerpo: () => `
      Quien vende es ${responsable()}.</p>
 
   <h3>Cómo funciona el pedido</h3>
+  ${cobraEnLinea() ? `
+  <p>Armas tu carrito y pagas en línea. Antes de cobrar, la tienda vuelve a calcular
+     el total con los precios y las existencias del momento, y te aparta las unidades
+     mientras pagas. <strong>El pago se hace en la pasarela de Bold</strong>, no en esta
+     página. La venta queda en firme cuando Bold nos confirma que el pago fue
+     aprobado; entonces te llega un correo con la confirmación.</p>` : `
   <p>Esta página <strong>no cobra ni procesa pagos</strong>. Armas tu carrito y el botón
      abre WhatsApp con el pedido ya escrito. La venta queda en firme cuando te
      confirmamos por chat la disponibilidad, el valor total y el medio de pago. Antes
-     de eso, tu pedido es una solicitud.</p>
+     de eso, tu pedido es una solicitud.</p>`}
 
   <h3>Precios y disponibilidad</h3>
   <ul>
@@ -2556,18 +2916,26 @@ terminos: { titulo:"Términos y condiciones", cuerpo: () => `
     <li>El inventario cambia todo el tiempo. Si algo se agota entre tu pedido y
         nuestra confirmación, te avisamos y ajustamos el total o lo cambiamos por
         lo que prefieras.</li>
-    <li>Podemos actualizar precios en cualquier momento. Vale el precio que te
-        confirmemos por WhatsApp.</li>
+    <li>Podemos actualizar precios en cualquier momento. ${cobraEnLinea()
+        ? "Vale el precio que pagaste en la pasarela." : "Vale el precio que te confirmemos por WhatsApp."}</li>
   </ul>
 
   <h3>Pago</h3>
+  ${cobraEnLinea() ? `
+  <p>Pagas en la <strong>pasarela de Bold</strong> con los medios que allí estén
+     disponibles (PSE, tarjeta, entre otros). Los datos de tu tarjeta o de tu banco
+     los recibe Bold, nunca esta página. Si el pago es rechazado no se cobra nada y
+     tu carrito queda como estaba. Despachamos cuando el pago está confirmado.</p>
+  <p><strong>No te pedimos pagos por otro medio.</strong> Si alguien te da una llave o
+     una cuenta para pagar este pedido por fuera de la pasarela, no transfieras y
+     escríbenos al ${EMPRESA.tel}.</p>` : `
   <p>Los datos de pago te los confirmamos <strong>por el chat de WhatsApp</strong>, una
      vez validado tu pedido. Aceptamos transferencia y contraentrega donde la cobertura
      lo permita. Despachamos cuando el pago está confirmado, salvo que acordemos
      contraentrega.</p>
   <p><strong>Nunca publicamos datos de pago en esta página ni te los mandamos por otro
      medio.</strong> Si alguien te da una llave o una cuenta por fuera de nuestro chat,
-     no transfieras y escríbenos al ${EMPRESA.tel}.</p>
+     no transfieras y escríbenos al ${EMPRESA.tel}.</p>`}
 
   <h3>Envíos y entregas</h3>
   <ul>
@@ -2799,6 +3167,7 @@ pintarFiltros();
 pintarOrden();
 pintarRejilla();
 pintarPanel(null);
+restaurarCobro();   // si se vuelve de la pasarela, ?pago=… : a preguntar cómo quedó
 enlacePendiente = idEnLaDireccion();
 atenderEnlace();    // si el enlace trae ?p=, abre esa ficha ya con lo que hay
 cargarCatalogo();   // catalogo.json primero; la hoja solo si no está

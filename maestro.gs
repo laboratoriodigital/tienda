@@ -898,6 +898,9 @@ function pedidoParaElPanel(filas, indices) {
     fechaPago: fechaIso(primera[13]),
     fechaDespacho: fechaIso(primera[14]),
     guia: String(primera[15] || ''),
+    /* M3.5: con qué se cobró, si se cobró en línea. Vacío en los de WhatsApp. */
+    pago: String(primera[17] || ''),
+    transaccion: String(primera[19] || ''),
     lineas: indices.map(function (i) {
       var f = filas[i];
       return { producto: String(f[6] || ''), id: String(f[7] || ''), variante: String(f[16] || ''),
@@ -1018,7 +1021,12 @@ var CLAVES_DEL_PANEL = [
   { clave: 'empresa_ciudad',       grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Ciudad' },
   { clave: 'empresa_tel',          grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Teléfono' },
   { clave: 'empresa_correo',       grupo: 'Datos legales', tipo: 'correo', rotulo: 'Correo' },
-  { clave: 'correo_resumen',       grupo: 'El correo del día', tipo: 'correo', rotulo: 'A qué correo llega el resumen' }
+  { clave: 'correo_resumen',       grupo: 'El correo del día', tipo: 'correo', rotulo: 'A qué correo llega el resumen' },
+  /* M3.5. El modo sí; el ambiente NO: pasar a Producción es una decisión que
+     va con la prueba completa y con las llaves de producción, y eso lo hace
+     quien montó la tienda, no un toque desde el celular. */
+  { clave: 'cobro_modo',           grupo: 'La venta',   tipo: 'opcion', rotulo: 'Cómo se cierra la venta',
+    opciones: ['WhatsApp', 'Pasarela'] }
 ];
 
 /* ¿Se entiende este valor? Devuelve null si sí, o el motivo. Vacío siempre se
@@ -1042,6 +1050,14 @@ function problemaDeValor(def, valor) {
   return null;
 }
 
+/* «Pasarela» se entiende, pero puede no estar lista. Eso también es un
+   problema que se dice junto al campo: el comerciante eligió cobrar en línea y
+   la tienda sigue por WhatsApp, y tiene que saber por qué. */
+function problemaDelCobro(def, valor) {
+  if (def.clave !== 'cobro_modo' || llano(valor) !== 'pasarela') return null;
+  return cobroVigente().problema || null;
+}
+
 function filasDeConfiguracion() {
   var h = elLibro().getSheetByName(H_CONFIG);
   if (!h || h.getLastRow() < 2) return { h: h, filas: [] };
@@ -1063,7 +1079,8 @@ function atenderConfiguracion() {
       var valor = String(f[1] === null || f[1] === undefined ? '' : f[1]);
       return { clave: d.clave, grupo: d.grupo, tipo: d.tipo, rotulo: d.rotulo,
                opciones: d.opciones || null, ayuda: String(f[2] || ''),
-               valor: valor, problema: problemaDeValor(d, valor), version: versionDeValor(valor) };
+               valor: valor, problema: problemaDeValor(d, valor) || problemaDelCobro(d, valor),
+               version: versionDeValor(valor) };
     }) };
 }
 
@@ -1236,7 +1253,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-12-1';
+var VERSION = '2026-09-21-1';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -1294,7 +1311,10 @@ var ENCABEZADO_PEDIDOS = ['Fecha', 'Pedido', 'Validación', 'Estado', 'Ciudad', 
                           'Fecha de pago', 'Fecha de despacho', 'Guía',
                           /* C-1: qué eligió el comprador. Al final, opcional, y
                              vacía en los pedidos sin variantes. */
-                          'Variante'];
+                          'Variante',
+                          /* M3.5: los pedidos que se cobraron en línea. Al
+                             final, opcionales, y vacías en los de WhatsApp. */
+                          'Proveedor de pago', 'Referencia de pago', 'Transacción de pago'];
 
 /* La columna Pedido de Validaciones es el MISMO número que el de Pedidos. Un
    solo identificador para todo: el que llega en el mensaje de WhatsApp. */
@@ -1408,6 +1428,11 @@ function instalar() {
   hoja(H_RESUMEN, ['Producto', 'ID', 'Unidades vendidas', 'Ingresos', 'Pedidos en que aparece']);
   hoja(H_TABLERO, ['Indicador', 'Valor', 'Comparación']);
   hoja(H_ERRORES, ['Fecha', 'Error', 'Primeros 200 caracteres recibidos']);
+  /* M3.5. Existen siempre, aunque la tienda venda por WhatsApp: pasar a
+     Pasarela no puede exigir volver a instalar. */
+  hoja(H_PAGOS, ENCABEZADO_PAGOS);
+  asegurarColumnas(H_PAGOS, ENCABEZADO_PAGOS);
+  hoja(H_ENTREGAS, ENCABEZADO_ENTREGAS);
 
   var cuantas = Object.keys(leerConfiguracion()).length;
   console.log('Configuración: ' + cuantas + ' claves.');
@@ -1417,9 +1442,11 @@ function instalar() {
 
   ScriptApp.getProjectTriggers().forEach(function (t) {
     var f = t.getHandlerFunction();
-    if (f === 'recalcularResumen' || f === 'alEditar') ScriptApp.deleteTrigger(t);
+    if (f === 'recalcularResumen' || f === 'revisionHoraria' || f === 'alEditar') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('recalcularResumen').timeBased().everyHours(1).create();
+  /* Cada hora: el resumen, y antes los pagos en línea que sigan abiertos —la
+     red de seguridad del disparador de cinco minutos—. */
+  ScriptApp.newTrigger('revisionHoraria').timeBased().everyHours(1).create();
   // forSpreadsheet(ID) y no forSpreadsheet(objeto): este proyecto no está unido
   // a la hoja, la alcanza por su identificador.
   ScriptApp.newTrigger('alEditar').forSpreadsheet(HOJA_ID).onEdit().create();
@@ -1511,7 +1538,12 @@ function generarConfiguracion() {
   var icono = iconoDeLaTienda(c);
 
   var hosts = hostsDeFotos(c, url);
-  var csp = "default-src 'none'; script-src 'unsafe-inline'; " +
+  /* checkout.bold.co: la librería de la pasarela (M3.5). Va SIEMPRE, también
+     en una tienda que vende por WhatsApp: la política se hornea en el archivo
+     y cambiar de modo en la hoja no puede exigir volver a hornearla — con la
+     pasarela encendida y la política vieja, el botón de pagar no abriría nada
+     y el navegador ni siquiera lo diría en la página. */
+  var csp = "default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co; " +
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
             "font-src https://fonts.gstatic.com; " +
             "img-src 'self' data:" + (hosts.length ? ' https://' + hosts.join(' https://') : '') + '; ' +
@@ -1827,8 +1859,12 @@ function diagnostico(mostrarSecretos) {
   // ── 4 ────────────────────────────────────────────────────────────────────
   punto('Tareas automáticas');
   var funciones = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
-  if (funciones.indexOf('recalcularResumen') === -1) marcar('PROBLEMA');
-  decir(funciones.indexOf('recalcularResumen') !== -1
+  /* Desde M3.5 el disparador de cada hora es revisionHoraria (concilia los
+     pagos en línea y después recalcula). Una tienda que todavía no corrió
+     instalar() tiene el viejo, que sigue sirviendo para el resumen. */
+  var cadaHora = funciones.indexOf('revisionHoraria') !== -1 || funciones.indexOf('recalcularResumen') !== -1;
+  if (!cadaHora) marcar('PROBLEMA');
+  decir(cadaHora
     ? 'OK   resumen programado cada hora'
     : 'FALTA el disparador del resumen. Ejecuta instalar().');
   if (funciones.indexOf('alEditar') === -1) marcar('PROBLEMA');
@@ -2406,6 +2442,13 @@ function configPublica(cfg) {
      hoja se puede escribir «$12.110.000». */
   var tope = cifraDeTexto(cfg.pago_tope, 'Configuración > pago_tope');
   limpia.tope_pago = tope === null ? 0 : tope;
+  /* M3.5 · CÓMO SE CIERRA LA VENTA, YA DECIDIDO. No lo que pide la hoja
+     (cobro_modo) sino lo que la tienda PUEDE hacer: pedir Pasarela sin las
+     llaves de Bold publica «whatsapp», y la página no enseña un botón de
+     pagar que no va a funcionar. Las llaves no salen: solo el resultado. */
+  var cobro = cobroVigente(cfg);
+  limpia.cobro = cobro.modo;
+  limpia.cobro_pruebas = cobro.modo === 'pasarela' && cobro.ambiente !== 'produccion' ? 'Sí' : '';
   return limpia;
 }
 
@@ -2489,7 +2532,13 @@ var PUERTAS = {
   configuracion:         { guarda: 'panel', soloPost: true, fn: atenderConfiguracion },
   guardar_configuracion: { guarda: 'panel', soloPost: true, fn: atenderGuardarConfiguracion },
   publicacion:           { guarda: 'panel', soloPost: true, fn: atenderPublicacion },
-  publicar:              { guarda: 'panel', soloPost: true, fn: atenderPublicar }
+  publicar:              { guarda: 'panel', soloPost: true, fn: atenderPublicar },
+
+  /* M3.5 · Cobrar en línea. Crear el cobro SOLO POR POST: lleva el nombre, el
+     celular y la dirección del comprador. Consultar va por las dos: solo lleva
+     un token opaco, que además es el que Bold trae en la dirección de vuelta. */
+  pago_crear:  { guarda: 'publica', soloPost: true, fn: function (p) { return conVersion(atenderPagoCrear(p)); } },
+  pago_estado: { guarda: 'publica', fn: function (p) { return conVersion(atenderPagoEstado(p)); } }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -3558,7 +3607,13 @@ function semillaDeConfiguracion() {
          está aquí ni puede estarlo — la hoja se comparte y las propiedades del
          proyecto no—. Vacío = el panel está cerrado, que es como nace toda
          tienda: no hay usuario de fábrica ni clave de fábrica. */
-      ['panel_usuario',    '', 'Con qué nombre entras al panel de tu tienda. Escríbelo aquí y después usa el menú > "Clave del panel" para que te dé una clave. Vacío = nadie puede entrar']
+      ['panel_usuario',    '', 'Con qué nombre entras al panel de tu tienda. Escríbelo aquí y después usa el menú > "Clave del panel" para que te dé una clave. Vacío = nadie puede entrar'],
+
+      /* AL FINAL (R1). M3.5: cómo se cierra la venta. De fábrica, como
+         siempre: por WhatsApp. Las LLAVES de Bold no van aquí —la hoja se
+         comparte—: van en las propiedades del script (docs/PAGOS-BOLD.md). */
+      ['cobro_modo',       'WhatsApp', 'Cómo se cierra la venta. WhatsApp = como siempre: el pedido sale por chat y el pago se acuerda allí. Pasarela = el comprador paga en línea con Bold (PSE, tarjeta, Nequi…). Pasarela necesita las llaves de Bold en las propiedades del script; sin ellas la tienda sigue por WhatsApp'],
+      ['cobro_ambiente',   'Pruebas', 'Pruebas = el ambiente de pruebas de Bold: no se mueve dinero de verdad. Producción = cobros reales. Pasa a Producción solo después de la prueba completa de docs/PAGOS-BOLD.md']
   ];
 }
 
@@ -3680,16 +3735,27 @@ function validarPedido(p) {
   if (crudo.length > MAX_ITEMS) return { ok: false, error: 'Demasiadas líneas.' };
 
   var vistos = {}, usado = {}, items = [], sub = 0;
+  /* M3.5 · LO APARTADO NO SE OFRECE. Mientras alguien paga en la pasarela, sus
+     unidades están apartadas: lo disponible es el stock menos eso. Sin pagos
+     en curso esto es un mapa vacío y no cambia nada.
+
+     `recortado` dice si el pedido que sale NO es el que se pidió —una línea
+     que se cae o una cantidad que baja—. Para mandar un WhatsApp da igual, el
+     aviso lo explica; para COBRAR no: no se cobra un carrito distinto del que
+     el comprador vio. */
+  var apartado = unidadesApartadas();
+  var recortado = false;
   crudo.forEach(function (par) {
     var t = par.split(':');
     var id = String(t[0] || '').trim();
+    if (!id) return;
     var prod = catalogo[id];
-    if (!prod) return;
+    if (!prod) { recortado = true; return; }
 
     /* C-1 · La elección viaja en la misma línea y se comprueba contra la hoja.
        null = pidió algo que este comercio no ofrece: la línea se cae. */
     var elegido = variantePedida(t[2], prod.variantes, avisos, prod.nombre);
-    if (elegido === null) return;
+    if (elegido === null) { recortado = true; return; }
 
     /* LA CLAVE ES PRODUCTO + VARIANTE. Dos tonos del mismo labial son dos
        líneas, no una: con la clave puesta solo en el id, la segunda se perdía
@@ -3706,9 +3772,20 @@ function validarPedido(p) {
        llevar la cuenta, dos tonos de tres unidades cada uno pasaban con un
        stock de cuatro. */
     var yaPedido = usado[id] || 0;
-    if (cant + yaPedido > prod.stock) {
-      avisos.push('De ' + prod.nombre + ' solo quedan ' + prod.stock + '.');
-      cant = Math.max(0, prod.stock - yaPedido);
+    var libre = Math.max(0, prod.stock - (apartado[id] || 0));
+    if (cant + yaPedido > libre) {
+      /* Al segundo comprador se le dice ANTES de pagar, y se le dice por qué:
+         «no hay» y «lo está pagando otra persona» piden cosas distintas —la
+         segunda, volver en unos minutos—. */
+      if (cant + yaPedido <= prod.stock) {
+        avisos.push(libre > 0
+          ? 'De ' + prod.nombre + ' quedan ' + libre + ' libres: las demás las está pagando otra persona en este momento.'
+          : 'Las últimas unidades de ' + prod.nombre + ' las está pagando otra persona en este momento. Vuelve en unos minutos: si no se pagan, se liberan.');
+      } else {
+        avisos.push('De ' + prod.nombre + ' solo quedan ' + libre + '.');
+      }
+      cant = Math.max(0, libre - yaPedido);
+      recortado = true;
     }
     if (cant >= 1) usado[id] = yaPedido + cant;
     if (cant < 1) return;
@@ -3716,7 +3793,13 @@ function validarPedido(p) {
                  variante: elegido });
     sub += cant * prod.precio;
   });
-  if (!items.length) return { ok: false, error: 'No hay productos válidos en el pedido.' };
+  /* Sin líneas, el motivo es lo único que sirve: «no hay productos válidos»
+     a secas le escondía al segundo comprador que la última unidad la estaba
+     pagando otra persona, que es justo lo que E-1 le quiere decir. */
+  if (!items.length) {
+    return { ok: false, recortado: recortado, avisos: avisos,
+             error: avisos.length ? avisos.join(' ') : 'No hay productos válidos en el pedido.' };
+  }
 
   // --- envío ---
   /* El id distingue mayúsculas —'MEDELLIN' no es 'medellin'— y eso es una
@@ -3750,6 +3833,7 @@ function validarPedido(p) {
       ? 'El envío que elegiste ya no está disponible; te confirmamos el costo por WhatsApp.'
       : 'No recibimos la zona de envío; te confirmamos el costo por WhatsApp.');
   }
+  var envioDudoso = !env.id || !!env.ilegible;
   if (env.ilegible) {
     avisos.push('El costo de envío de ' + env.nombre +
                 ' no se pudo leer en la hoja; te lo confirmamos por WhatsApp.');
@@ -3793,7 +3877,15 @@ function validarPedido(p) {
   var respuesta = {
     ok: true, sub: sub, descuento: descuento, envio: valorEnvio, total: total,
     envioNombre: env.nombre, cupon: cupon, avisos: avisos, items: items,
-    ilegibles: CELDAS_ILEGIBLES.slice(0)
+    ilegibles: CELDAS_ILEGIBLES.slice(0),
+    /* La tarifa de la zona antes del envío gratis: decide si hay que pedir
+       dirección, que es otra pregunta que cuánto se cobra. */
+    envioTarifa: Number(env.valor) || 0,
+    /* ¿Se puede COBRAR este total tal cual? No, si algún número salió de una
+       celda que no se pudo leer o si el envío no se reconoció: por WhatsApp
+       eso se confirma después; en la pasarela el cobro ya se habría hecho. */
+    recortado: recortado,
+    cobrable: !CELDAS_ILEGIBLES.length && !envioDudoso
   };
 
   if (String(p.sellar) === '1') {
@@ -3826,63 +3918,72 @@ function sellar(p, items, r, autorizada) {
   var lock = LockService.getScriptLock();
   try { lock.waitLock(15000); } catch (e) { return codigo; }
   try {
-    var h = hoja(H_VALIDACIONES, ENCABEZADO_VALIDACIONES);
-    asegurarColumnas(H_VALIDACIONES, ENCABEZADO_VALIDACIONES);
-    var ultima = h.getLastRow();
-    var encontrada = 0;
-    if (ultima >= 2) {
-      var desde = Math.max(2, ultima - 300);
-      var codigos = h.getRange(desde, 2, ultima - desde + 1, 1).getValues();
-      for (var i = codigos.length - 1; i >= 0; i--) {
-        if (String(codigos[i][0]).trim() === codigo) { encontrada = desde + i; break; }
-      }
-    }
-
-    /* El registro no manda `sub` en las páginas anteriores a esta versión, y
-       poner 0 borraría el subtotal que la validación sí había guardado. R3 del
-       contrato: un campo nuevo es opcional, y lo viejo tiene que seguir
-       funcionando. Así que si no viene, se conserva el que ya estaba. */
-    if (!subPagina && encontrada) {
-      subPagina = numeroSeguro(h.getRange(encontrada, 5, 1, 1).getValues()[0][0], MAX_TOTAL);
-    }
-
-    var discrepancia = (subPagina && subPagina !== r.sub)
-      ? celdaSegura('La página dijo ' + pesos(subPagina) +
-                    ' y la hoja calcula ' + pesos(r.sub), MAX_ACTA)
-      : '';
-
-    var fila = [new Date(), codigo, celdaSegura(r.cupon.ok ? r.cupon.codigo : ''),
-                r.sub, subPagina, discrepancia, r.descuento, r.envio, r.total,
-                celdaSegura(items.map(function (i) { return i.id + ' x' + i.cantidad; }).join(' · '), MAX_ACTA),
-                celdaSegura((r.avisos || []).join(' · '), MAX_ACTA)];
-
-    if (encontrada) {
-      /* Si el pedido YA se registró, su validación queda congelada: es la prueba
-         de cuánto valía cuando se envió y nadie debe poder reescribirla después.
-         Como el número lo elige la tienda, sin esto alguien que adivinara un
-         número en curso podría pisar la fila de otro cliente. Después de enviado,
-         ya no.
-
-         OJO CON EL MOMENTO, QUE AQUÍ HUBO UN ERROR Y VALE LA PENA DEJARLO ESCRITO.
-         El sello sale con 400 ms de espera y el registro sale al instante. Si el
-         cliente cambiaba la zona de envío y pulsaba enseguida, el registro
-         marcaba el pedido y el sello nuevo —el bueno— llegaba después y se
-         descartaba aquí: el acta se quedaba con la zona anterior. El mensaje y la
-         hoja Pedidos decían $17.900 y el acta decía $8.900.
-         La protección era correcta; congelaba antes de tiempo. Ahora el acta la
-         escribe registrarPedido() con SU propia revalidación —la autorizada, la
-         que produjo el total guardado—, y esa escritura pasa con `autorizada`.
-         Lo que sigue cerrado es lo que la protección quería cerrar: cualquier
-         ?a=validar de fuera sobre un pedido ya enviado. */
-      if (!autorizada && yaRegistrado(codigo)) return codigo;
-      h.getRange(encontrada, 1, 1, fila.length).setValues([fila]);
-    } else if (ultima <= MAX_FILAS) {
-      h.appendRow(fila);
-    }
+    escribirActa(codigo, subPagina, items, r, autorizada);
   } finally {
     try { lock.releaseLock(); } catch (e) {}
   }
   return codigo;
+}
+
+/* EL ACTA, SIN TOMAR LA LLAVE. La llave de Apps Script no se anida: quien la
+   pide otra vez la recibe, y quien la suelta la suelta para TODOS. Así que
+   cobrar en línea —que ya trabaja bajo llave— no puede llamar a sellar(): al
+   terminar el acta soltaría la llave del cobro a medio escribir. Esta es la
+   misma escritura, para quien ya la tiene tomada. */
+function escribirActa(codigo, subPagina, items, r, autorizada) {
+  var h = hoja(H_VALIDACIONES, ENCABEZADO_VALIDACIONES);
+  asegurarColumnas(H_VALIDACIONES, ENCABEZADO_VALIDACIONES);
+  var ultima = h.getLastRow();
+  var encontrada = 0;
+  if (ultima >= 2) {
+    var desde = Math.max(2, ultima - 300);
+    var codigos = h.getRange(desde, 2, ultima - desde + 1, 1).getValues();
+    for (var i = codigos.length - 1; i >= 0; i--) {
+      if (String(codigos[i][0]).trim() === codigo) { encontrada = desde + i; break; }
+    }
+  }
+
+  /* El registro no manda `sub` en las páginas anteriores a esta versión, y
+     poner 0 borraría el subtotal que la validación sí había guardado. R3 del
+     contrato: un campo nuevo es opcional, y lo viejo tiene que seguir
+     funcionando. Así que si no viene, se conserva el que ya estaba. */
+  if (!subPagina && encontrada) {
+    subPagina = numeroSeguro(h.getRange(encontrada, 5, 1, 1).getValues()[0][0], MAX_TOTAL);
+  }
+
+  var discrepancia = (subPagina && subPagina !== r.sub)
+    ? celdaSegura('La página dijo ' + pesos(subPagina) +
+                  ' y la hoja calcula ' + pesos(r.sub), MAX_ACTA)
+    : '';
+
+  var fila = [new Date(), codigo, celdaSegura(r.cupon.ok ? r.cupon.codigo : ''),
+              r.sub, subPagina, discrepancia, r.descuento, r.envio, r.total,
+              celdaSegura(items.map(function (i) { return i.id + ' x' + i.cantidad; }).join(' · '), MAX_ACTA),
+              celdaSegura((r.avisos || []).join(' · '), MAX_ACTA)];
+
+  if (encontrada) {
+    /* Si el pedido YA se registró, su validación queda congelada: es la prueba
+       de cuánto valía cuando se envió y nadie debe poder reescribirla después.
+       Como el número lo elige la tienda, sin esto alguien que adivinara un
+       número en curso podría pisar la fila de otro cliente. Después de enviado,
+       ya no.
+
+       OJO CON EL MOMENTO, QUE AQUÍ HUBO UN ERROR Y VALE LA PENA DEJARLO ESCRITO.
+       El sello sale con 400 ms de espera y el registro sale al instante. Si el
+       cliente cambiaba la zona de envío y pulsaba enseguida, el registro
+       marcaba el pedido y el sello nuevo —el bueno— llegaba después y se
+       descartaba aquí: el acta se quedaba con la zona anterior. El mensaje y la
+       hoja Pedidos decían $17.900 y el acta decía $8.900.
+       La protección era correcta; congelaba antes de tiempo. Ahora el acta la
+       escribe registrarPedido() con SU propia revalidación —la autorizada, la
+       que produjo el total guardado—, y esa escritura pasa con `autorizada`.
+       Lo que sigue cerrado es lo que la protección quería cerrar: cualquier
+       ?a=validar de fuera sobre un pedido ya enviado. */
+    if (!autorizada && yaRegistrado(codigo)) return;
+    h.getRange(encontrada, 1, 1, fila.length).setValues([fila]);
+  } else if (ultima <= MAX_FILAS) {
+    h.appendRow(fila);
+  }
 }
 
 /* ==========================================================================
@@ -4157,10 +4258,16 @@ function guardarPedido(d) {
      fila llega hasta Variante porque escribir por POSICIÓN obliga a nombrar
      todas las de en medio; saltárselas correría la elección cuatro columnas a
      la izquierda y la dejaría en «Inventario». */
+  /* Un pedido cobrado en línea llega YA pagado: trae su fecha de pago y con
+     qué se cobró. Los de WhatsApp siguen igual, con esas celdas vacías. */
+  var pago = d.pago || null;
   var f = d.items.map(function (i) {
-    return [ahora, d.pedido, d.ref, d.estado, d.ciudad, d.cupon, i.nombre, i.id,
-            i.cantidad, i.precio, i.cantidad * i.precio, d.total,
-            '', '', '', '', celdaSegura(i.variante || '')];
+    var fila = [ahora, d.pedido, d.ref, d.estado, d.ciudad, d.cupon, i.nombre, i.id,
+                i.cantidad, i.precio, i.cantidad * i.precio, d.total,
+                '', pago ? ahora : '', '', '', celdaSegura(i.variante || '')];
+    if (pago) fila.push(celdaSegura(pago.proveedor), celdaSegura(pago.referencia),
+                        celdaSegura(pago.transaccion, 80));
+    return fila;
   });
   h.getRange(h.getLastRow() + 1, 1, f.length, f[0].length).setValues(f);
 }
@@ -4713,7 +4820,10 @@ var LISTA_DE_ALTA = [
     porQue: 'sin celular el pedido no llega a ninguna parte' },
   { clave: 'sitio_url',         bloquea: true,
     porQue: 'sin dirección no funcionan «Ver mi tienda» ni la comprobación de publicación' },
+  /* Solo cuando la venta se cierra por WhatsApp: cobrando en línea, el
+     comprador paga en la pasarela y la llave Bre-B no hace falta. */
   { clave: 'pago_llave',        bloquea: true,
+    evaluar: function (c) { return sinLlenar(c.pago_llave) && cobroVigente(c).modo !== 'pasarela'; },
     porQue: 'el comprador termina el pedido y no tiene cómo pagar' },
 
   /* DECISIÓN 09 (docs/DECISIONES.md): sin quién responde, un texto de
@@ -4741,7 +4851,19 @@ var LISTA_DE_ALTA = [
   { clave: 'correo_resumen',    porQue: 'no llega el resumen diario del negocio' },
   { clave: 'sitio_titulo',      porQue: 'el enlace se comparte sin decir qué es' },
   { clave: 'sitio_descripcion', porQue: 'el texto que se ve debajo del enlace compartido queda en blanco' },
-  { clave: 'respaldo_carpeta',  porQue: 'no se guarda copia semanal de la hoja' }
+  { clave: 'respaldo_carpeta',  porQue: 'no se guarda copia semanal de la hoja' },
+
+  /* M3.5. Ninguna de las dos bloquea, a propósito: la primera deja la tienda
+     vendiendo por WhatsApp, y la segunda es justamente el estado en que se
+     prueba la pasarela en la tienda publicada —bloquear impediría probarla—.
+     Pero las dos tienen que verse, y la segunda antes de abrir al público: en
+     pruebas, una tarjeta de prueba «paga» y descuenta inventario. */
+  { clave: 'cobro_modo',
+    evaluar: function (c) { return !!cobroVigente(c).problema; },
+    porQue: 'se pidió cobrar en línea y la pasarela no está lista: la tienda sigue por WhatsApp' },
+  { clave: 'cobro_ambiente',
+    evaluar: function (c) { var v = cobroVigente(c); return v.modo === 'pasarela' && v.ambiente !== 'produccion'; },
+    porQue: 'la pasarela está en PRUEBAS: nadie paga de verdad y una tarjeta de prueba descuenta inventario' }
 ];
 
 function sinLlenar(valor) {
@@ -4918,6 +5040,8 @@ function presentarHojas() {
     cfgH.getRange(2, 3, n, 1).setFontColor('#777777').setFontSize(9);
     validarPorClave(cfgH, 'correo_siempre', lista(SI_NO, false));
     validarPorClave(cfgH, 'fotos_webp', lista(SI_NO, false));
+    validarPorClave(cfgH, 'cobro_modo', lista(COBRO_MODOS, false));
+    validarPorClave(cfgH, 'cobro_ambiente', lista(COBRO_AMBIENTES, false));
     sincronizarColores();
   }
 
@@ -6027,4 +6151,666 @@ function registrarError(err, e) {
     // no está unido a una hoja), no tumbamos la respuesta por eso.
     console.log('No se pudo registrar el error: ' + err);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   M3.5 · COBRAR EN LÍNEA (Bold, Botón de pagos)
+   --------------------------------------------------------------------------
+   La tienda cierra la venta de una de dos maneras, y la elige la hoja
+   (Configuración › cobro_modo): por WhatsApp, como siempre, o cobrando en
+   línea. Cobrar en línea es el mismo carrito con otro final:
+
+     1. La página manda el carrito y los datos de entrega a `pago_crear`. El
+        maestro vuelve a calcular TODO —precios, cupón, envío, stock— y no
+        acepta un total de la página.
+     2. APARTA las unidades (E-1): mientras dura el apartado, lo que otro
+        comprador ve disponible es el stock menos eso.
+     3. Firma el cobro —SHA-256 de pedido + monto + moneda + llave secreta,
+        la fórmula de Bold— y le devuelve a la página solo lo público: la llave
+        de identidad y la firma. La secreta no sale de las propiedades.
+     4. La página abre la pasarela de Bold con eso. El comprador paga allí:
+        la tarjeta y el banco nunca pasan por la tienda ni por el maestro.
+     5. Al volver, la página pregunta a `pago_estado`, y el maestro le
+        pregunta a Bold por la referencia (E-4). NUNCA se cree el estado que
+        trae la dirección de vuelta: esa la puede escribir cualquiera.
+     6. Aprobado y con el monto que calculó el maestro → el pedido entra a
+        Pedidos ya Pagado, y lo que pasa después es lo MISMO que cuando el
+        comerciante marca Pagado a mano (trasCambiarEstado, llamado, no
+        copiado). Correo al comprador y al comercio.
+     7. Si el comprador no vuelve, un disparador cada cinco minutos pregunta
+        por los cobros abiertos —y se borra solo cuando no queda ninguno—.
+
+   POR QUÉ NO EL AVISO (WEBHOOK) DE BOLD. `doPost` de Apps Script no ve las
+   cabeceras HTTP, y Bold firma su aviso en una cabecera. Un aviso que no se
+   puede verificar no puede marcar nada como pagado. La verdad se le pregunta
+   a la API de Bold, que es autenticada. (Decisión 12.)
+
+   LO QUE ESTO PORTA Y LO QUE NO. La integración con Bold se probó primero en
+   la línea anterior del producto, con una compra completa en el ambiente de
+   pruebas, y de ahí sale
+   la forma de hablarle a Bold: la librería, la firma, la consulta y sus
+   estados. Lo que cambia aquí es el alrededor, porque esta tienda tiene sus
+   propias reglas escritas en el plan (M3.5): el apartado dura minutos y no un
+   día, se sostiene mientras el banco diga «pendiente», los cobros abiertos
+   viven en un solo sitio, la llave no se anida, y si la pasarela no está
+   lista la tienda NO se queda sin vender: sigue por WhatsApp.
+   ══════════════════════════════════════════════════════════════════════════ */
+var H_PAGOS    = 'Pagos';
+var H_ENTREGAS = 'Datos de entrega';
+
+/* El libro de los cobros. Una fila por intento de pago, que se va poniendo al
+   día. NO sale por ninguna puerta: lleva lo que se cobró y a quién. */
+var ENCABEZADO_PAGOS = ['Fecha', 'Pedido', 'Proveedor', 'Ambiente', 'Estado', 'Estado en Bold',
+                        'Transacción', 'Medio de pago', 'Total', 'Líneas', 'Cupón', 'Envío',
+                        'Subtotal', 'Descuento', 'Valor envío', 'Apartado hasta', 'Token',
+                        'Última consulta', 'Comprador avisado', 'Comercio avisado', 'Nota'];
+
+/* Por WhatsApp los datos de entrega viajan en el chat y la hoja no los
+   guarda. Cobrando en línea no hay chat antes del pago: el comercio necesita
+   saber a dónde despachar, y esta es la única pestaña que lo guarda. Tampoco
+   sale por ninguna puerta. */
+var ENCABEZADO_ENTREGAS = ['Fecha', 'Pedido', 'Nombre', 'Celular', 'Correo', 'Ciudad',
+                           'Dirección', 'Notas'];
+
+var COBRO_MODOS     = ['WhatsApp', 'Pasarela'];
+var COBRO_AMBIENTES = ['Pruebas', 'Producción'];
+
+/* E-1: el apartado dura esto, y se estira de a esto mismo mientras Bold diga
+   que el pago está en curso (PSE puede tardar). El tope son las 24 horas en
+   que Bold deja consultar una transacción: pasado eso ya no hay a quién
+   preguntar, y el cobro se da por vencido y se le avisa al comercio. */
+var MINUTOS_APARTADO   = 15;
+var HORAS_CONSULTABLE  = 24;
+/* Una consulta a Bold por cobro cada tanto, no una por cada vez que la página
+   pregunte: la página pregunta con paciencia, pero la paciencia de un
+   navegador no es una garantía. */
+var SEGUNDOS_ENTRE_CONSULTAS = 20;
+/* Una tienda pequeña no tiene cuarenta pagos abiertos a la vez. Si los tiene,
+   algo está mal —o alguien está apartando el catálogo a propósito—, y lo
+   sensato es no apartar más. */
+var MAX_COBROS_ABIERTOS = 40;
+var BOLD_MINIMO = 1000;                // Bold no cobra menos de $1.000
+var BOLD_CONSULTA = 'https://payments.api.bold.co/v2/payment-voucher/';
+var PROPIEDAD_COBROS = 'COBROS_ABIERTOS';
+
+/* ── Qué modo manda de verdad ─────────────────────────────────────────────
+   Lo que PIDE la hoja y lo que la tienda PUEDE hacer no siempre coinciden.
+   Pedir «Pasarela» sin las llaves de Bold, o con una dirección de tienda
+   vacía, no deja la tienda sin vender: sigue por WhatsApp, y el problema se
+   dice (en el panel, en el diagnóstico). Y un valor que no se entiende no se
+   adivina — tampoco el ambiente: confundir pruebas con producción es cobrar
+   de mentira o de verdad sin saberlo. */
+function cobroVigente(cfg) {
+  cfg = cfg || leerConfiguracion();
+  var pedido = llano(cfg.cobro_modo);
+  var ambiente = llano(cfg.cobro_ambiente);
+  var r = { modo: 'whatsapp', pedido: 'whatsapp', ambiente: 'pruebas', problema: '' };
+  if (!pedido || pedido === 'whatsapp') return r;
+  if (pedido !== 'pasarela') {
+    r.problema = 'cobro_modo dice «' + String(cfg.cobro_modo).slice(0, 30) +
+                 '»: tiene que ser WhatsApp o Pasarela. Mientras tanto se vende por WhatsApp.';
+    return r;
+  }
+  r.pedido = 'pasarela';
+  if (ambiente === 'produccion') r.ambiente = 'produccion';
+  else if (ambiente && ambiente !== 'pruebas') {
+    r.problema = 'cobro_ambiente dice «' + String(cfg.cobro_ambiente).slice(0, 30) +
+                 '»: tiene que ser Pruebas o Producción. Mientras tanto se vende por WhatsApp.';
+    return r;
+  }
+  var ll = llavesBold(r.ambiente);
+  if (!ll.identidad || !ll.secreta) {
+    r.problema = 'Faltan las llaves de Bold de ' + (r.ambiente === 'produccion' ? 'producción' : 'pruebas') +
+                 ' en las propiedades del script (' + ll.nombres.join(', ') +
+                 '). Mientras tanto se vende por WhatsApp.';
+    return r;
+  }
+  if (sinLlenar(cfg.sitio_url)) {
+    r.problema = 'Falta sitio_url: Bold necesita saber a dónde devolver al comprador. ' +
+                 'Mientras tanto se vende por WhatsApp.';
+    return r;
+  }
+  r.modo = 'pasarela';
+  return r;
+}
+
+/* Los mismos nombres que en la línea anterior, a propósito: dos tiendas del mismo
+   titular de Bold comparten llaves, y copiarlas no debería exigir traducir. */
+function llavesBold(ambiente) {
+  var sufijo = ambiente === 'produccion' ? 'PRODUCCION' : 'SANDBOX';
+  var props = PropertiesService.getScriptProperties();
+  var n = ['BOLD_IDENTIDAD_' + sufijo, 'BOLD_SECRETA_' + sufijo];
+  return { identidad: String(props.getProperty(n[0]) || '').trim(),
+           secreta: String(props.getProperty(n[1]) || '').trim(), nombres: n };
+}
+
+/* ── Los cobros abiertos, en un solo sitio ────────────────────────────────
+   Un mapa en las propiedades: pedido → { l: líneas [[id, cantidad]],
+   h: apartado hasta, c: consultable hasta, t: token, u: última consulta,
+   a: 1 si quedan correos por mandar }. Es lo que leen la validación (qué está
+   apartado), el disparador (qué hay que preguntar) y la página (por su token).
+
+   La pestaña Pagos es el LIBRO, para las personas; esto es la lista de
+   trabajo. No son dos copias de lo mismo: el libro guarda todo lo que pasó, y
+   la lista solo lo que falta cerrar — y se vacía sola. Leer una propiedad es
+   mucho más barato que leer una pestaña, y la validación corre con cada
+   cambio del carrito. */
+function leerCobros() {
+  try {
+    var t = PropertiesService.getScriptProperties().getProperty(PROPIEDAD_COBROS);
+    var m = t ? JSON.parse(t) : {};
+    return (m && typeof m === 'object') ? m : {};
+  } catch (e) { return {}; }
+}
+
+function guardarCobros(m) {
+  var props = PropertiesService.getScriptProperties();
+  if (!Object.keys(m).length) props.deleteProperty(PROPIEDAD_COBROS);
+  else props.setProperty(PROPIEDAD_COBROS, JSON.stringify(m));
+}
+
+/* Lo apartado que NO ha vencido, por producto. Lo vencido se ignora al leer:
+   no hace falta un disparador que lo limpie para que deje de contar. */
+function unidadesApartadas() {
+  var m = leerCobros(), ahora = Date.now(), r = {};
+  Object.keys(m).forEach(function (codigo) {
+    var c = m[codigo];
+    if (!c || !(Number(c.h) > ahora)) return;
+    (c.l || []).forEach(function (x) {
+      var id = String(x[0]);
+      r[id] = (r[id] || 0) + (Number(x[1]) || 0);
+    });
+  });
+  return r;
+}
+
+/* ── Los datos de entrega ───────────────────────────────────────────────── */
+function entregaDelPago(e, conDireccion) {
+  e = e || {};
+  var d = {
+    nombre:    celdaSegura(e.nombre, 60),
+    tel:       String(e.tel || '').replace(/\D/g, '').slice(-12),
+    correo:    celdaSegura(e.correo, 120).toLowerCase(),
+    ciudad:    celdaSegura(e.ciudad, 40),
+    direccion: celdaSegura(e.direccion, 120),
+    notas:     celdaSegura(e.notas, 300)
+  };
+  var falta = [];
+  if (d.nombre.length < 3) falta.push('tu nombre');
+  if (d.tel.length < 7) falta.push('tu celular');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.correo)) falta.push('un correo válido');
+  if (d.ciudad.length < 2) falta.push('tu ciudad');
+  if (conDireccion && d.direccion.length < 5) falta.push('la dirección');
+  if (falta.length) d.error = 'Para pagar falta ' + falta.join(', ') + '.';
+  return d;
+}
+
+function sha256Hex(texto) {
+  return enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(texto)));
+}
+
+function sitioBase() {
+  return conEsquema(leerConfiguracion().sitio_url).replace(/[#?].*$/, '').replace(/\/+$/, '') + '/';
+}
+
+function tokenDeCobro() {
+  return 'pg' + Utilities.getUuid().replace(/-/g, '');
+}
+
+/* ── pago_crear ───────────────────────────────────────────────────────────
+   Pública (la llama el comprador) y SOLO POR POST: lleva datos personales, y
+   una dirección se queda en el historial y en los registros de Google.
+   Con número de operación: el doble toque de «Pagar», o el reintento de un
+   celular sin señal, contesta el MISMO cobro en vez de apartar dos veces. */
+function atenderPagoCrear(p) {
+  try {
+    return conOperacion(p, function () { return crearCobro(p); });
+  } catch (err) {
+    /* Pública: el motivo va al registro, no al comprador. */
+    registrarError('pago_crear: ' + (err && err.message ? err.message : err), null);
+    return { ok: false, error: 'No pudimos preparar el pago. Intenta de nuevo en un momento.' };
+  }
+}
+
+function crearCobro(p) {
+  var cfg = leerConfiguracion();
+  var cobro = cobroVigente(cfg);
+  /* La página puede estar vieja —la tienda pasó a WhatsApp y el archivo
+     publicado todavía no—. No es un error del comprador: se le dice que siga
+     por WhatsApp, y la página lo hace. */
+  if (cobro.modo !== 'pasarela') {
+    return { ok: false, cobro: 'whatsapp',
+             error: 'Esta tienda está recibiendo los pedidos por WhatsApp.' };
+  }
+
+  var abiertos = leerCobros();
+  if (Object.keys(abiertos).length >= MAX_COBROS_ABIERTOS) {
+    anotarError('Demasiados cobros abiertos a la vez',
+                Object.keys(abiertos).length + ' pagos en curso; no se apartan más hasta que se cierren.');
+    return { ok: false, error: 'Hay muchos pagos en curso en este momento. Intenta en unos minutos.' };
+  }
+
+  var r = validarPedido({ items: p.items, cupon: p.cupon, envio: p.envio });
+  if (!r.ok) return { ok: false, recortado: !!r.recortado, avisos: r.avisos || [],
+                      error: r.error || 'No hay productos válidos en el pedido.' };
+  /* No se cobra un carrito distinto del que el comprador vio. */
+  if (r.recortado) {
+    return { ok: false, recortado: true, avisos: r.avisos,
+             error: (r.avisos || []).join(' ') || 'Tu pedido cambió: revísalo antes de pagar.' };
+  }
+  if (!r.cobrable) {
+    return { ok: false, cobro: 'whatsapp', avisos: r.avisos,
+             error: 'Este pedido no se puede cobrar en línea ahora mismo: ' + (r.avisos || []).join(' ') +
+                    ' Envíalo por WhatsApp y te confirmamos el total.' };
+  }
+  if (r.total < BOLD_MINIMO) return { ok: false, error: 'El pago en línea es desde ' + pesos(BOLD_MINIMO) + '.' };
+  if (r.total > MAX_TOTAL) return { ok: false, error: 'El total pasa del máximo para pagar en línea.' };
+
+  var d = entregaDelPago(p.entrega, r.envioTarifa > 0);
+  if (d.error) return { ok: false, error: d.error };
+
+  var codigo;
+  do { codigo = aleatorio(8); } while (abiertos[codigo] || yaRegistrado(codigo));
+  var token = tokenDeCobro();
+  var ll = llavesBold(cobro.ambiente);
+  var monto = String(Math.round(r.total));
+  var ahora = Date.now();
+
+  /* El apartado primero: si algo de lo que sigue falla, conOperacion no
+     guarda la respuesta y el apartado se queda sin cobro que lo use — y vence
+     solo en quince minutos. Al revés, un cobro sin apartado podría vender
+     dos veces la misma unidad, que es justo lo que E-1 existe para impedir. */
+  abiertos[codigo] = { l: r.items.map(function (i) { return [i.id, i.cantidad]; }),
+                       h: ahora + MINUTOS_APARTADO * 60000,
+                       c: ahora + HORAS_CONSULTABLE * 3600000, t: token, u: 0 };
+  guardarCobros(abiertos);
+
+  var lineas = r.items.map(function (i) {
+    return { id: i.id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio, variante: i.variante || '' };
+  });
+  /* El acta, con el mismo número: Validaciones, Pagos y Pedidos dicen el
+     mismo código. PRIMERO el acta y con escribirActa, no con sellar(): sellar
+     toma la llave y al terminar la SUELTA, y todo lo que viniera después —el
+     libro de pagos, los datos de entrega— quedaría escrito sin llave. */
+  escribirActa(codigo, numeroSeguro(p.sub, MAX_TOTAL), r.items, r, true);
+  var hp = hoja(H_PAGOS, ENCABEZADO_PAGOS);
+  hp.appendRow([new Date(ahora), codigo, 'Bold', cobro.ambiente === 'produccion' ? 'Producción' : 'Pruebas',
+                'Esperando pago', '', '', '', r.total, JSON.stringify(lineas),
+                celdaSegura(r.cupon.ok ? r.cupon.codigo : ''), celdaSegura(r.envioNombre),
+                r.sub, r.descuento, r.envio, new Date(abiertos[codigo].h), token, '', '', '', '']);
+  hoja(H_ENTREGAS, ENCABEZADO_ENTREGAS).appendRow(
+    [new Date(ahora), codigo, d.nombre, d.tel, d.correo, d.ciudad, d.direccion, d.notas]);
+  asegurarConciliador();
+
+  var base = sitioBase();
+  var checkout = {
+    orderId: codigo, currency: 'COP', amount: monto, apiKey: ll.identidad,
+    integritySignature: sha256Hex(codigo + monto + 'COP' + ll.secreta),
+    description: ('Pedido ' + codigo + ' · ' + (cfg.negocio || 'Tienda')).slice(0, 100),
+    redirectionUrl: base + '?pago=' + token,
+    originUrl: base + '?pago=' + token + '&abandono=1',
+    customerData: { email: d.correo, fullName: d.nombre, phone: d.tel, dialCode: '+57' }
+  };
+  if (d.direccion) checkout.billingAddress = { address: d.direccion, city: d.ciudad, country: 'CO' };
+  return { ok: true, pedido: codigo, token: token, total: r.total, moneda: 'COP',
+           pruebas: cobro.ambiente !== 'produccion', checkout: checkout };
+}
+
+/* ── pago_estado ──────────────────────────────────────────────────────────
+   Pública, por el token opaco que la página recibió al crear el cobro (y que
+   Bold le devuelve en la dirección). No dice nada del comprador: pedido,
+   estado y total. */
+function atenderPagoEstado(p) {
+  var token = String(p.token || '').trim();
+  if (!/^pg[0-9a-f]{32}$/.test(token)) return { ok: false, error: 'Pago no encontrado.' };
+  try {
+    var abiertos = leerCobros();
+    var codigo = null;
+    Object.keys(abiertos).forEach(function (k) { if (abiertos[k].t === token) codigo = k; });
+    if (codigo) revisarCobro(codigo, false);
+    var f = filaDelCobro(token);
+    if (!f) return { ok: false, error: 'Pago no encontrado.' };
+    return { ok: true, pedido: String(f.datos[1]), estado: estadoPublico(f.datos[4]),
+             total: Number(f.datos[8]) || 0, transaccion: String(f.datos[6] || '') };
+  } catch (err) {
+    registrarError('pago_estado: ' + (err && err.message ? err.message : err), null);
+    return { ok: false, error: 'No pudimos consultar el pago. Intenta en un momento.' };
+  }
+}
+
+/* Lo que la página necesita saber, sin los matices del libro. */
+function estadoPublico(texto) {
+  var t = llano(texto);
+  if (t === 'pagado' || t === 'pagado sin existencias') return 'pagado';
+  if (t === 'rechazado') return 'rechazado';
+  if (t === 'vencido') return 'vencido';
+  if (t === 'revisar monto') return 'revisar';
+  return 'esperando';
+}
+
+function filaDelCobro(token) {
+  var h = elLibro().getSheetByName(H_PAGOS);
+  if (!h || h.getLastRow() < 2) return null;
+  var desde = Math.max(2, h.getLastRow() - 500);
+  var datos = h.getRange(desde, 1, h.getLastRow() - desde + 1, ENCABEZADO_PAGOS.length).getValues();
+  for (var i = datos.length - 1; i >= 0; i--) {
+    if (String(datos[i][16]).trim() === token) return { h: h, fila: desde + i, datos: datos[i] };
+  }
+  return null;
+}
+
+/* ── Preguntarle a Bold ───────────────────────────────────────────────────
+   GET /v2/payment-voucher/<referencia>, con la llave de identidad. Justo
+   después de pagar puede contestar NO_TRANSACTION_FOUND durante unos minutos:
+   eso NO es un rechazo, es que todavía no lo sabe. */
+function consultarBold(codigo, ambiente) {
+  var ll = llavesBold(ambiente);
+  if (!ll.identidad) throw new Error('Faltan las llaves de Bold de ' + ambiente + '.');
+  var res = UrlFetchApp.fetch(BOLD_CONSULTA + encodeURIComponent(codigo), {
+    method: 'get', muteHttpExceptions: true,
+    headers: { Authorization: 'x-api-key ' + ll.identidad, Accept: 'application/json' }
+  });
+  var codigoHttp = res.getResponseCode();
+  var dato;
+  try { dato = JSON.parse(res.getContentText() || '{}'); } catch (e) { dato = null; }
+  /* 404 con cuerpo es la forma en que Bold dice «no encontré nada todavía». */
+  if (codigoHttp === 404) return { estado: 'NO_TRANSACTION_FOUND' };
+  if (codigoHttp < 200 || codigoHttp >= 300 || !dato) {
+    throw new Error('Bold contestó ' + codigoHttp + ' al consultar ' + codigo + '.');
+  }
+  var d = dato.payload || dato;
+  return { estado: String(d.payment_status || 'NO_TRANSACTION_FOUND').toUpperCase(),
+           total: d.total === undefined || d.total === null || d.total === '' ? null : Number(d.total),
+           transaccion: celdaSegura(d.transaction_id || '', 80),
+           medio: celdaSegura(d.payment_method || '', 40) };
+}
+
+/* ── Revisar un cobro abierto ─────────────────────────────────────────────
+   La pregunta a Bold va FUERA de la llave (puede tardar segundos) y lo que se
+   hace con la respuesta va DENTRO, releyendo la lista: entre medias otro
+   camino —el disparador, la página— puede haberlo cerrado ya. */
+function revisarCobro(codigo, forzar) {
+  var abiertos = leerCobros();
+  var c = abiertos[codigo];
+  if (!c) return null;
+  var ahora = Date.now();
+  if (!forzar && ahora - (Number(c.u) || 0) < SEGUNDOS_ENTRE_CONSULTAS * 1000) return null;
+  var f = filaDelCobro(c.t);
+  if (!f) {                                  // un cobro sin fila no se puede cerrar: se suelta
+    delete abiertos[codigo]; guardarCobros(abiertos); return null;
+  }
+  var ambiente = llano(f.datos[3]) === 'produccion' ? 'produccion' : 'pruebas';
+
+  var bold = null, fallo = '';
+  if (c.a && estadoPublico(f.datos[4]) === 'pagado') bold = { estado: 'YA_PAGADO' };
+  else {
+    try { bold = consultarBold(codigo, ambiente); }
+    catch (err) { fallo = String(err && err.message ? err.message : err); }
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    abiertos = leerCobros();
+    c = abiertos[codigo];
+    if (!c) return null;
+    f = filaDelCobro(c.t);
+    ahora = Date.now();
+    c.u = ahora;
+    var h = f.h, fila = f.fila;
+    h.getRange(fila, 18).setValue(new Date(ahora));                    // Última consulta
+    if (fallo) {
+      h.getRange(fila, 21).setValue(celdaSegura(fallo, 200));
+      if (ahora > c.c) cerrarCobro(abiertos, codigo, f, 'Vencido', 'Bold no contestó y pasó el plazo para consultarlo.');
+      guardarCobros(abiertos);
+      return null;
+    }
+    if (bold.estado === 'YA_PAGADO') {
+      avisarPago(codigo, f, abiertos);
+      guardarCobros(abiertos);
+      return 'pagado';
+    }
+    h.getRange(fila, 6).setValue(bold.estado);                          // Estado en Bold
+    if (bold.transaccion) h.getRange(fila, 7).setValue(bold.transaccion);
+    if (bold.medio) h.getRange(fila, 8).setValue(bold.medio);
+
+    if (bold.estado === 'APPROVED') {
+      /* E-4 · UN MONTO DISTINTO NO SE DA POR PAGADO. La firma ata el monto al
+         pedido, así que esto no debería pasar; si pasa, alguien tocó algo, y
+         decidir qué hacer es del comerciante, con los dos números delante. */
+      if (bold.total !== null && bold.total !== Number(f.datos[8])) {
+        cerrarCobro(abiertos, codigo, f, 'Revisar monto',
+                    'Bold aprobó ' + pesos(bold.total) + ' y el pedido vale ' + pesos(f.datos[8]) + '.');
+        anotarError('Un pago aprobado con un monto distinto',
+                    'Pedido ' + codigo + ': Bold aprobó ' + pesos(bold.total) + ' y el maestro calculó ' +
+                    pesos(f.datos[8]) + '. No se registró como venta: revísalo en Pagos.');
+        guardarCobros(abiertos);
+        return 'revisar';
+      }
+      confirmarCobro(codigo, f, bold, abiertos);
+      guardarCobros(abiertos);
+      return 'pagado';
+    }
+    if (bold.estado === 'REJECTED' || bold.estado === 'FAILED' || bold.estado === 'VOIDED') {
+      cerrarCobro(abiertos, codigo, f, 'Rechazado', '');
+      guardarCobros(abiertos);
+      return 'rechazado';
+    }
+    if (bold.estado === 'PENDING' || bold.estado === 'PROCESSING') {
+      /* E-5 · PSE PENDIENTE: el apartado se sostiene mientras el banco diga
+         que está en curso, de a quince minutos, hasta el tope. */
+      c.h = Math.min(c.c, Math.max(Number(c.h) || 0, ahora + MINUTOS_APARTADO * 60000));
+      h.getRange(fila, 16).setValue(new Date(c.h));
+    }
+    if (ahora > c.c) {
+      cerrarCobro(abiertos, codigo, f, 'Vencido', bold.estado === 'NO_TRANSACTION_FOUND' ? '' :
+                  'Bold seguía diciendo ' + bold.estado + ' al pasar el plazo: revísalo en el panel de Bold.');
+      if (bold.estado !== 'NO_TRANSACTION_FOUND') {
+        anotarError('Un pago quedó en curso más de ' + HORAS_CONSULTABLE + ' horas',
+                    'Pedido ' + codigo + ': Bold dice ' + bold.estado + '. Revísalo en el panel de Bold.');
+      }
+    }
+    guardarCobros(abiertos);
+    return 'esperando';
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cerrarCobro(abiertos, codigo, f, estado, nota) {
+  f.h.getRange(f.fila, 5).setValue(estado);
+  if (nota) f.h.getRange(f.fila, 21).setValue(celdaSegura(nota, 200));
+  delete abiertos[codigo];
+}
+
+/* ── Aprobado: la venta ───────────────────────────────────────────────────
+   Bajo la llave de revisarCobro. Idempotente por el número del pedido: si ya
+   está en Pedidos, no se escribe otra vez ni se descuenta otra vez. */
+function confirmarCobro(codigo, f, bold, abiertos) {
+  var c = abiertos[codigo];
+  var datos = f.datos;
+  var lineas;
+  try { lineas = JSON.parse(String(datos[9] || '[]')); } catch (e) { lineas = []; }
+
+  var sinExistencias = [];
+  if (!yaRegistrado(codigo)) {
+    /* E-5 · APROBADO CON EL APARTADO VENCIDO. Si el apartado ya no cubre, se
+       mira si las unidades siguen ahí —sin contar lo que otros tienen
+       apartado—. Si no están, la plata YA entró: el pedido se registra igual,
+       y el comercio recibe el aviso de que tiene que devolver o conseguir. */
+    if (!(Number(c.h) > Date.now())) {
+      delete abiertos[codigo];
+      var apartado = unidadesApartadasDe(abiertos);
+      var stock = stockPorId();
+      var pedido = {};
+      lineas.forEach(function (i) { pedido[i.id] = (pedido[i.id] || 0) + (Number(i.cantidad) || 0); });
+      Object.keys(pedido).forEach(function (id) {
+        var libre = (stock[id] || 0) - (apartado[id] || 0);
+        if (libre < pedido[id]) sinExistencias.push(pedido[id] + ' × ' + id + ' (quedaban ' + Math.max(0, libre) + ')');
+      });
+      abiertos[codigo] = c;
+    }
+    var entrega = entregaDelCobro(codigo);
+    guardarPedido({
+      pedido: codigo, ref: codigo, estado: 'Pagado',
+      ciudad: entrega ? celdaSegura(entrega[5]) : '',
+      cupon: celdaSegura(datos[10]), total: Number(datos[8]) || 0,
+      items: lineas.map(function (i) {
+        return { id: i.id, nombre: celdaSegura(i.nombre), cantidad: Number(i.cantidad) || 0,
+                 precio: Number(i.precio) || 0, variante: i.variante || '' };
+      }),
+      pago: { proveedor: 'Bold' + (llano(datos[3]) === 'produccion' ? '' : ' (pruebas)'),
+              referencia: codigo, transaccion: bold.transaccion || '' }
+    });
+    marcarRegistrado(codigo);
+    /* El apartado se suelta en el MISMO momento en que el inventario baja: si
+       quedaran los dos, esas unidades contarían dos veces como no disponibles
+       —nunca de más, que es el lado seguro, pero sí de menos—. */
+    c.h = 0;
+    trasCambiarEstado();
+  }
+  f.h.getRange(f.fila, 5).setValue(sinExistencias.length ? 'Pagado sin existencias' : 'Pagado');
+  if (sinExistencias.length) {
+    f.h.getRange(f.fila, 21).setValue(celdaSegura('Sin existencias: ' + sinExistencias.join(', '), 200));
+    anotarError('Pago aprobado sin existencias',
+                'Pedido ' + codigo + ': ' + sinExistencias.join(', ') +
+                '. El pago ya entró: hay que conseguir las unidades o devolver el dinero.');
+  }
+  c.a = 1;                                  // los correos, a continuación
+  avisarPago(codigo, filaDelCobro(c.t) || f, abiertos, sinExistencias);
+}
+
+function unidadesApartadasDe(m) {
+  var ahora = Date.now(), r = {};
+  Object.keys(m).forEach(function (k) {
+    if (!(Number(m[k].h) > ahora)) return;
+    (m[k].l || []).forEach(function (x) { r[String(x[0])] = (r[String(x[0])] || 0) + (Number(x[1]) || 0); });
+  });
+  return r;
+}
+
+function stockPorId() {
+  var r = {};
+  filasDelCatalogo().filas.forEach(function (f) {
+    var id = String(f[0]).trim();
+    if (id) r[id] = Number(f[COL_STOCK - 1]) || 0;
+  });
+  return r;
+}
+
+function entregaDelCobro(codigo) {
+  var datos = filas(H_ENTREGAS);
+  for (var i = datos.length - 1; i >= 0; i--) if (String(datos[i][1]) === codigo) return datos[i];
+  return null;
+}
+
+/* ── Los correos ──────────────────────────────────────────────────────────
+   Uno al comprador y uno al comercio. Cada uno se marca al salir, así que
+   volver a pasar por aquí —el disparador, la página que vuelve a preguntar—
+   no los repite. Si no hay cuota, el cobro se queda abierto con `a` puesto y
+   se reintenta en la siguiente vuelta. */
+function avisarPago(codigo, f, abiertos, sinExistencias) {
+  var datos = f.datos, entrega = entregaDelCobro(codigo);
+  var cfg = leerConfiguracion();
+  var negocio = sinLlenar(cfg.negocio) ? 'Tu tienda' : cfg.negocio;
+  var pruebas = llano(datos[3]) !== 'produccion';
+  var lineas;
+  try { lineas = JSON.parse(String(datos[9] || '[]')); } catch (e) { lineas = []; }
+  var detalle = '<ul>' + lineas.map(function (i) {
+    return '<li>' + escaparHtml(String(i.cantidad)) + ' × ' + escaparHtml(i.nombre) +
+           (i.variante ? ' · ' + escaparHtml(i.variante) : '') + ' — ' + escaparHtml(pesos(i.cantidad * i.precio)) + '</li>';
+  }).join('') + '</ul>';
+  var total = '<p>Total pagado: <strong>' + escaparHtml(pesos(datos[8])) + '</strong></p>';
+  var pendiente = false;
+
+  if (!datos[18] && entrega && entrega[4]) {
+    if (cuotaDeCorreo() < 1) pendiente = true;
+    else {
+      try {
+        MailApp.sendEmail({ to: String(entrega[4]), name: negocio,
+          subject: (pruebas ? '[PRUEBA] ' : '') + negocio + ' · pago confirmado · pedido ' + codigo,
+          htmlBody: '<p>Hola ' + escaparHtml(entrega[2]) + ', recibimos tu pago.</p>' +
+                    '<p>Pedido <strong>' + escaparHtml(codigo) + '</strong></p>' + detalle + total +
+                    '<p>' + escaparHtml(negocio) + ' te contacta para coordinar la entrega.</p>' });
+        f.h.getRange(f.fila, 19).setValue('Sí');
+      } catch (e1) {
+        f.h.getRange(f.fila, 21).setValue(celdaSegura('Correo al comprador: ' + e1.message, 200));
+      }
+    }
+  }
+  if (!datos[19]) {
+    var para = listaDeCorreos((cfg.correo_resumen || '') + ',' +
+                              (sinLlenar(cfg.empresa_correo) ? '' : cfg.empresa_correo));
+    if (para.length) {
+      if (cuotaDeCorreo() < 1) pendiente = true;
+      else {
+        try {
+          MailApp.sendEmail({ to: para.join(','), name: negocio,
+            subject: (pruebas ? '[PRUEBA — no despachar] ' : '') +
+                     (sinExistencias && sinExistencias.length ? 'Pago SIN EXISTENCIAS · ' : 'Pago recibido · ') +
+                     'pedido ' + codigo + ' · ' + pesos(datos[8]),
+            htmlBody: (sinExistencias && sinExistencias.length
+                        ? '<p><strong>El pago entró pero no alcanzan las unidades: ' +
+                          escaparHtml(sinExistencias.join(', ')) +
+                          '. Consíguelas o devuelve el dinero desde el panel de Bold.</strong></p>' : '') +
+                      '<p>Pedido <strong>' + escaparHtml(codigo) + '</strong> · Bold' +
+                      (datos[6] ? ' · transacción ' + escaparHtml(datos[6]) : '') + '</p>' + detalle + total +
+                      (entrega ? '<p>Entregar a <strong>' + escaparHtml(entrega[2]) + '</strong> · ' +
+                                 escaparHtml(entrega[3]) + ' · ' + escaparHtml(entrega[4]) + '<br>' +
+                                 escaparHtml(entrega[6] || 'Recoge en tienda') + ', ' + escaparHtml(entrega[5]) +
+                                 (entrega[7] ? '<br>Notas: ' + escaparHtml(entrega[7]) : '') + '</p>' : '') });
+          f.h.getRange(f.fila, 20).setValue('Sí');
+        } catch (e2) {
+          f.h.getRange(f.fila, 21).setValue(celdaSegura('Correo al comercio: ' + e2.message, 200));
+        }
+      }
+    }
+  }
+  if (pendiente) abiertos[codigo].a = 1;
+  else delete abiertos[codigo];
+}
+
+/* ── El disparador, solo mientras haga falta ──────────────────────────────
+   Una tienda que vende por WhatsApp, o que no tiene pagos en curso, no gasta
+   una sola ejecución en esto (§6, el presupuesto de ejecuciones). */
+function conciliarPagos() {
+  var abiertos = leerCobros();
+  var codigos = Object.keys(abiertos);
+  if (!codigos.length) { quitarConciliador(); return 0; }
+  var n = 0;
+  codigos.slice(0, 20).forEach(function (codigo) {
+    try { revisarCobro(codigo, true); n++; }
+    catch (err) { registrarError('conciliarPagos ' + codigo + ': ' + err.message, null); }
+  });
+  if (!Object.keys(leerCobros()).length) quitarConciliador();
+  return n;
+}
+
+function asegurarConciliador() {
+  try {
+    var ya = ScriptApp.getProjectTriggers().some(function (t) {
+      return t.getHandlerFunction() === 'conciliarPagos';
+    });
+    if (!ya) ScriptApp.newTrigger('conciliarPagos').timeBased().everyMinutes(5).create();
+  } catch (err) {
+    /* Si no se puede crear, la revisión de cada hora también concilia: tarda
+       más, pero no se pierde ningún pago. */
+    anotarError('No se pudo programar la revisión de pagos', String(err && err.message || err));
+  }
+}
+
+function quitarConciliador() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'conciliarPagos') ScriptApp.deleteTrigger(t);
+  });
+}
+
+/* La revisión de cada hora. Antes el disparador llamaba directo a
+   recalcularResumen; ahora primero concilia, por si el disparador de cinco
+   minutos no se pudo crear. NO va dentro de recalcularResumen: esa la llama
+   también el panel, bajo su llave, y conciliar toma la suya. */
+function revisionHoraria() {
+  try { if (Object.keys(leerCobros()).length) conciliarPagos(); }
+  catch (err) { registrarError('revisionHoraria: ' + err.message, null); }
+  recalcularResumen();
 }

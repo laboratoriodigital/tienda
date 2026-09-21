@@ -1607,3 +1607,57 @@ por qué. Un defecto tiene que producir un rojo legible, o no sirve de control.
 Queda escrito un hueco: el test de navegador solo ve la barra de publicar en el
 estado «no está configurado» (el servidor de pruebas no tiene GitHub); los otros
 estados los cubre `panelpublicar.js` del lado del maestro, no la página.
+
+**45 · La llave que se soltaba sola.** Cobrar en línea tiene que escribir tres
+cosas juntas —el libro de pagos, los datos de entrega y el acta de
+Validaciones— bajo la llave de Apps Script, para que dos compradores no aparten
+la misma unidad. El acta la escribía `sellar()`, que **toma la llave y la suelta
+al terminar**. La llave de Apps Script no se anida: pedirla otra vez la da, y
+soltarla la suelta para todos. Así que el acta, escrita primero, dejaba el libro
+de pagos y los datos de entrega escritos SIN llave. Lo cazó el emulador desde
+que la llave sabe si está tomada (D-2): `pagos.js` exige que cada escritura del
+cobro vaya `conLlave`. Arreglado partiendo `sellar()` en dos —la llave, y
+`escribirActa()` para quien ya la tiene—. Verificado en rojo volviendo a
+`sellar()`. Es el tipo de fallo que en producción no se ve nunca, hasta el día
+en que dos personas pagan la misma torta en el mismo segundo.
+
+**46 · Los datos del comprador que se colaban por la puerta de atrás.** La
+página guarda el cobro en `sessionStorage` para sobrevivir a la ida y vuelta de
+la pasarela. La regla era no guardar nada del comprador —la misma de la bandeja
+de salida— y el objeto que se guardaba lo cumplía… salvo por `checkout`, que es
+lo que se le pasa a Bold y lleva dentro nombre, correo, celular y dirección. Lo
+vio una traza de depuración, no una prueba. Ahora se guarda sin esos dos campos
+—Bold los tiene como opcionales— y `pagoweb.js` busca el nombre, el celular, el
+correo y la dirección en lo guardado. Verificado en rojo. La lección es la de
+siempre con los objetos anidados: «no guardo X» se comprueba buscando X en lo
+guardado, no leyendo el código que arma lo guardado.
+
+**47 · El carrito que se perdía al volver de pagar.** Al volver de la pasarela
+la página se recarga y arranca con el catálogo de RESPALDO, el que va horneado
+en el archivo. El carrito guardado se filtraba contra ese catálogo, y un
+producto dado de alta en la hoja después del último horneado no está ahí: el
+carrito volvía vacío y el comprador que había sido rechazado no tenía qué
+reintentar. Ahora el carrito vuelve tal cual y **no se sanea mientras hay un
+cobro en pantalla** (es el pedido que el maestro ya firmó); se sanea al volver
+al carrito, ya con el catálogo bueno. `pagoweb.js` lo prueba con un producto
+que solo existe en la hoja.
+
+**48 · Una prueba que miraba la pantalla que se estaba yendo.** La batería de
+navegador leía el número del cobro justo después de pulsar «Pagar» — pero la
+pasarela de mentira navega a la vuelta cincuenta milisegundos después, y a
+veces el número era el de la página que se iba. El síntoma era un carrito
+vacío, y parecía el fallo 47; no lo era. Se espera la vuelta, no el reloj. Y en
+el camino: el servidor de pruebas escribía toda celda como texto, y el maestro
+—con razón— no lee «1» escrito como texto como un número (una cifra que no se
+puede leer no vale nada). Una hoja de verdad guarda un 1 tecleado como número;
+`/__celda?num=1` hace lo mismo.
+
+**49 · Lo que la otra línea hizo con sus Actions, y lo que ya teníamos.** El
+dueño pidió comparar. De sus siete medidas, cinco ya estaban aquí desde M1, dos
+no: `release` repetía la suite entera sobre el commit que el push ya había
+probado, y `fotos`/`montaje` corrían las 45 baterías para publicar datos. Se
+tomaron las dos, con una diferencia: allá la guardia corta se usa siempre; aquí
+**solo si GitHub confirma que el último commit de código pasó la suite**. Si el
+código entró en rojo, o no se puede preguntar, corren todas. Una guardia que se
+salta pruebas tiene que saber por qué se las puede saltar — si no, es un atajo.
+Medido en la misma máquina: 47 s la corta, 102 s la entera.

@@ -900,6 +900,7 @@ function abrirPedido(p){
      </table>
      ${p.fechaPago ? `<p class="dato">Pagado: <b>${escapar(fechaCorta(p.fechaPago))}</b></p>` : ""}
      ${p.fechaDespacho ? `<p class="dato">Despachado: <b>${escapar(fechaCorta(p.fechaDespacho))}</b>${p.guia ? " · Guía " + escapar(p.guia) : ""}</p>` : ""}
+     ${p.pago ? `<p class="dato">Cobrado en línea: <b>${escapar(p.pago)}</b>${p.transaccion ? " · transacción " + escapar(p.transaccion) : ""}. Los datos de entrega están en la pestaña «Datos de entrega» de la hoja.</p>` : ""}
      ${p.validacion ? `<p class="dato">Referencia de validación: ${escapar(p.validacion)}</p>` : ""}`;
   /* Un estado que la hoja no entiende sale primero, tal cual y sin poder
      elegirse: el comerciante ve qué dice y elige el bueno. No se muestra como

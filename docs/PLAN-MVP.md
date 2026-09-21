@@ -678,6 +678,18 @@ cada una:
 por núcleo». Medido en dos núcleos —151 s con uno, 94 s con dos, **73 s con
 cuatro**— resultó que estas baterías no gastan CPU, esperan. Son cuatro fijos.
 
+**Revisado contra la línea anterior (21 de septiembre).** La otra línea del
+producto hizo su propio plan de rendimiento de Actions. De sus siete medidas,
+cinco ya estaban aquí (cuatro trabajadores fijos en un solo runner, no repetir
+`pruebas` sobre los pull request del bot, caché de npm y del navegador con la
+clave del lock y `restore-keys`, `--with-deps` solo cuando la caché falla, y
+las lecturas al maestro a la vez). Dos no, y se tomaron: **`release` ya no
+repite la suite** —pregunta por la corrida verde del mismo commit—, y **`fotos` y
+`montaje` corren una guardia corta** sobre lo publicado (13 baterías, 47 s
+frente a 102 s de la suite en la misma máquina). La guardia lleva una condición
+que allá no tiene: solo se usa si el último commit de CÓDIGO tiene `pruebas` en
+verde; si no se puede confirmar, corren todas (`pruebas/publicacion.sh`).
+
 **Lo que queda abierto de M1, y por qué:** los dos criterios de B-2 que hablan
 del **panel** del comerciante. No son deuda: son M3.
 
@@ -1032,65 +1044,72 @@ del **panel** del comerciante. No son deuda: son M3.
 > los dos pagan, y a uno hay que devolverle el dinero. Por eso la primera
 > historia de este hito es apartar la unidad, y va **antes** que el proveedor.
 
-**E-1 · Apartar la unidad mientras se paga**  · 5 pts
-- [ ] Al empezar a pagar, el maestro **aparta** las unidades por un tiempo
-      corto (propuesta: 15 minutos) en una pestaña `Reservas`, bajo llave. Lo
-      disponible es el stock menos lo apartado que no ha vencido, y es lo que
-      usan la validación y el botón de pagar.
-- [ ] Al segundo comprador se le dice **antes de pagar**: «la última unidad la
+**E-1 · Apartar la unidad mientras se paga**  · 5 pts · ✅ 21-sep-2026
+- [x] Al empezar a pagar, el maestro **aparta** las unidades por un tiempo
+      corto (15 minutos), bajo llave. Lo disponible es el stock menos lo
+      apartado que no ha vencido, y es lo que usan la validación y el botón de
+      pagar. *(No en una pestaña sino en una propiedad, `COBROS_ABIERTOS`: la
+      validación la lee con cada cambio del carrito, y leer una propiedad
+      cuesta mucho menos que leer una hoja. El libro para las personas es la
+      pestaña `Pagos`.)*
+- [x] Al segundo comprador se le dice **antes de pagar**: «la última unidad la
       está pagando otra persona; vuelve en unos minutos». Nunca después.
-- [ ] La reserva se vuelve venta cuando el pago se confirma, o vence sola.
+      *(Y no se le cobra un carrito recortado: si el maestro tuvo que quitar
+      algo, `pago_crear` no firma y la página lo dice.)*
+- [x] La reserva se vuelve venta cuando el pago se confirma, o vence sola.
       Sin disparador que la limpie: lo vencido se ignora al leer.
-- [ ] Funciona por combinación cuando exista C-1b: se aparta la rosa M, no la
-      camiseta.
-- [ ] Batería con dos compradores a la vez sobre la última unidad: uno aparta
-      y el otro recibe el aviso; y si el primero no paga, a los quince minutos
-      el segundo puede.
+- [ ] Funciona por combinación cuando exista C-1b. *(El apartado va por id de
+      producto porque el stock hoy es del producto; cuando C-1b baje el stock a
+      la combinación, la clave del apartado baja con él.)*
+- [x] Batería con dos compradores a la vez sobre la última unidad. *(`pagos.js`
+      §6 y `pagoweb.js` §4.)*
 
-**E-2 · Elegir el proveedor**  · 2 pts · decisión 12, abierta
-- [ ] PSE y tarjeta, con **pago en la página del proveedor** (redirección): los
-      datos de la tarjeta nunca pasan por la tienda ni por el maestro.
-- [ ] Candidatos a evaluar con números en la mano —comisión, días hasta el
-      desembolso, costo fijo—: Wompi, ePayco, Mercado Pago, PayU. No se elige
-      por la documentación, se elige por el criterio de abajo.
-- [ ] **El criterio que decide, y que casi ningún comparativo mira**: que se
-      pueda **consultar una transacción por su referencia** desde el servidor.
-      Ver E-4: en Apps Script es la única forma segura de confirmar un pago.
+**E-2 · Elegir el proveedor**  · 2 pts · ✅ Bold (decisión 12, cerrada)
+- [x] PSE y tarjeta, con **pago en la página del proveedor**: Bold, Botón de
+      pagos. Los datos de la tarjeta nunca pasan por la tienda.
+- [x] **El criterio que decide**: Bold deja consultar una transacción por su
+      referencia (`GET /v2/payment-voucher/<referencia>`). Y ya estaba
+      validado con una compra completa de pruebas en la línea anterior.
+- [ ] Comparar comisión y días de desembolso con números de la tienda real.
+      *(Queda para cuando haya una tienda cobrando: el adaptador es uno solo,
+      y cambiar de proveedor no toca carrito, pedidos ni inventario.)*
 
-**E-3 · Cobrar**  · 5 pts
-- [ ] El botón lleva al pago con **la referencia del pedido y el total que
-      calculó el maestro**, nunca el de la página. La firma o el hash de
-      integridad los calcula el maestro con la llave del proveedor, que vive en
-      las propiedades del proyecto — como `pago_*`, no sale por ninguna puerta.
-- [ ] Al volver del pago, la tienda le pregunta al maestro cómo quedó, y lo dice.
-- [ ] Interruptor por tienda: sin proveedor configurado, el pedido sigue por
-      WhatsApp como hoy.
+**E-3 · Cobrar**  · 5 pts · ✅ 21-sep-2026
+- [x] El botón lleva al pago con **la referencia del pedido y el total que
+      calculó el maestro**, nunca el de la página. La firma la calcula el
+      maestro con la llave secreta, que vive en las propiedades del proyecto.
+- [x] Al volver del pago, la tienda le pregunta al maestro cómo quedó, y lo
+      dice. *(Sin creerle a la dirección de vuelta: `pagoweb.js` vuelve con
+      `bold-tx-status=approved` y exige que la página NO diga «pagado».)*
+- [x] Interruptor por tienda: `cobro_modo` en la hoja. Sin proveedor
+      configurado, el pedido sigue por WhatsApp como hoy. *(Y con la pasarela
+      pedida pero sin llaves, también: la tienda no se queda muda.)*
 
-**E-4 · Confirmar el pago sin creerle al aviso**  · 5 pts
-- [ ] **Lo que Apps Script no puede hacer, dicho desde el principio**: `doPost`
-      no ve las cabeceras HTTP, así que no puede verificar un aviso firmado en
-      la cabecera; y contesta los POST con una redirección que algunos
-      proveedores no siguen. Por eso el aviso del proveedor, si llega, es solo
-      un timbre: **la verdad se le pregunta a su API**, por la referencia.
-- [ ] Se pregunta en tres momentos: al llegar el aviso, al volver el comprador,
-      y con un disparador cada pocos minutos **solo mientras haya reservas
-      pendientes** —con cero pendientes no corre, por el presupuesto de
-      ejecuciones de §6—.
-- [ ] Pago aprobado y con el monto que calculó el maestro → el pedido pasa a
-      Pagado solo, con el mismo efecto sobre el inventario que marcarlo a mano
-      (`aplicarInventario`, llamado, no copiado). Idempotente por referencia:
-      confirmar dos veces no descuenta dos veces.
-- [ ] Un monto distinto del calculado **no** se da por pagado: queda para el
-      comerciante, con los dos números.
+**E-4 · Confirmar el pago sin creerle al aviso**  · 5 pts · ✅ 21-sep-2026
+- [x] `doPost` no ve las cabeceras, así que no se usa el aviso de Bold: **la
+      verdad se le pregunta a su API**, por la referencia.
+- [x] Se pregunta al volver el comprador (con freno: una consulta cada 20 s
+      por cobro, aunque la página insista) y con un disparador cada 5 minutos
+      **solo mientras haya cobros abiertos** —se crea con el primero y se borra
+      solo—. La revisión de cada hora también concilia, de red.
+- [x] Aprobado y con el monto calculado → el pedido entra a `Pedidos` ya
+      Pagado, y el inventario se mueve por `trasCambiarEstado`, llamado, no
+      copiado. Idempotente: preguntar otra vez no duplica pedido, descuento
+      ni correo.
+- [x] Un monto distinto **no** se da por pagado: `Revisar monto`, con los dos
+      números en Errores.
 
-**E-5 · Lo que sale mal**  · 3 pts
-- [ ] Pago aprobado con la reserva vencida y la unidad ya vendida: el pedido
-      queda **«Pagado sin existencias»**, y el comerciante recibe un aviso con
-      lo que tiene que devolver. Es raro con E-1, pero no imposible —PSE puede
-      tardar—, y tiene que tener nombre antes de que pase.
-- [ ] PSE pendiente: la reserva se sostiene mientras el proveedor diga
-      pendiente, con un tope, y lo que pasa al tope está escrito.
-- [ ] Rechazado o abandonado: la reserva se libera y el pedido lo dice.
+**E-5 · Lo que sale mal**  · 3 pts · ✅ 21-sep-2026
+- [x] Aprobado con la reserva vencida y la unidad ya vendida: **«Pagado sin
+      existencias»**, con correo al comercio: conseguir o devolver.
+- [x] PSE pendiente: la reserva se sostiene de a 15 minutos mientras Bold diga
+      pendiente, hasta las 24 horas en que Bold deja consultar; al tope,
+      `Vencido` y, si Bold seguía «en curso», aviso en Errores.
+- [x] Rechazado o abandonado: la reserva se libera y la página lo dice, con el
+      carrito intacto.
+
+*(Todo el detalle operativo —llaves, prueba de sandbox, qué se portó de la
+línea anterior y qué se hizo distinto— en `docs/PAGOS-BOLD.md`.)*
 
 ### Lo que sigue después del MVP
 
@@ -1170,6 +1189,5 @@ Las cuatro primeras están también en `DECISIONES.md`, con su contrapartida.
 3. **Cuándo se hace pública la semilla.** No bloquea nada del MVP: con las
    tiendas privadas hace falta el secreto de lectura de todos modos, y solo lo
    necesita M6.
-4. **El proveedor de pagos** (E-2, decisión 12). Con un criterio que manda sobre
-   la comisión: que su API deje consultar una transacción por referencia.
-   Bloquea E-3, no E-1: apartar la unidad se construye antes de elegir.
+4. ~~**El proveedor de pagos**~~ — cerrada el 21 de septiembre: **Bold**
+   (decisión 12).

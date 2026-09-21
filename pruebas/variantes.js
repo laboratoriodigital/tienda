@@ -196,8 +196,11 @@ const puerta = (g, o) => j(g.api.doGet({ parameter: Object.assign({ t: g.token }
        posición, así que una columna en medio descuadra todo en silencio. */
     ok('LA COLUMNA Variantes va AL FINAL de Catálogo',
        cat[cat.length - 1] === 'Variantes', cat.slice(-3).join(' | '));
-    ok('LA COLUMNA Variante va AL FINAL de Pedidos',
-       ped[ped.length - 1] === 'Variante', ped.slice(-3).join(' | '));
+    /* Era la última hasta M3.5, que agregó las tres del cobro en línea DETRÁS
+       de ella —que es lo que pide R1—. Lo que no puede pasar es que se corra:
+       sigue en la columna 17, justo después de Guía. */
+    ok('LA COLUMNA Variante sigue donde nació, justo después de Guía',
+       ped[16] === 'Variante' && ped[15] === 'Guía', ped.slice(14, 18).join(' | '));
   }
 
   console.log(T.join('\n'));

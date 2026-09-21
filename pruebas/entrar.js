@@ -259,7 +259,10 @@ function conPanel(g, usuario) {
        de un dato —y este proyecto las persigue—, pero esta se quiere: si
        alguien marca `publica` una puerta nueva, tiene que venir hasta esta
        línea y escribirlo, y eso es exactamente la revisión que hace falta. */
-    const PUBLICAS = ['version', 'catalogo', 'validar', 'registrar', 'entrar'];
+    /* M3.5: pago_crear y pago_estado. Las abre el comprador, que no tiene
+       credenciales; lo que las protege es el número de operación, el token
+       opaco y que nada se da por pagado sin preguntarle a Bold. */
+    const PUBLICAS = ['version', 'catalogo', 'validar', 'registrar', 'entrar', 'pago_crear', 'pago_estado'];
     const publicas = Object.keys(guardas).filter(k => guardas[k] === 'publica');
     ok('SOLO ESTAS PUERTAS son públicas, y están escritas una por una',
        publicas.sort().join(',') === PUBLICAS.sort().join(','),

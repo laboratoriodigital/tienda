@@ -17,6 +17,18 @@ gas.api.instalar();
 // corchetes, celular vacío). La que sirve este servidor está configurada.
 configurar(gas);
 
+/* M3.5 · Bold, de mentira. Contesta la consulta de un cobro con lo que diga
+   `boldEstados[referencia]`; sin nada, lo que dice el de verdad justo después
+   de pagar: que todavía no sabe nada. Se registra una vez: `reiniciar()` borra
+   las hojas, no la red. */
+let boldEstados = {};
+gas.responder('payments.api.bold.co/v2/payment-voucher/', (url) => {
+  const ref = decodeURIComponent(url.split('/payment-voucher/')[1]);
+  const e = boldEstados[ref];
+  if (!e) return { codigo: 404, cuerpo: { payment_status: 'NO_TRANSACTION_FOUND' } };
+  return { cuerpo: Object.assign({ transaction_id: 'TX-' + ref, payment_method: 'PSE' }, e) };
+});
+
 let fallasPendientes = 0;   // simula la red móvil que se cae
 let tumbarTodo = false;     // 'muerto': falla también el catálogo
 let demoraMs = 0;
@@ -58,7 +70,22 @@ const servidor = http.createServer((req, res) => {
     fallasPendientes = 0; demoraMs = 0; tumbarTodo = false; peticiones = [];
     return responderJson(res, { ok: true });
   }
-  if (u.pathname === '/__reset') { gas.reiniciar(); gas.api.instalar(); configurar(gas);
+  /* M3.5 · una propiedad del script (las llaves de Bold viven ahí), lo que
+     contesta Bold por una referencia, y «que la próxima pregunta vaya a Bold
+     ya» — el freno de veinte segundos es para la red de verdad, no para una
+     prueba que tendría que esperarlo. */
+  if (u.pathname === '/__prop') { gas.props[u.query.k] = String(u.query.v || ''); return responderJson(res, { ok: true }); }
+  if (u.pathname === '/__bold') {
+    boldEstados[u.query.ref] = { payment_status: u.query.estado, total: Number(u.query.total) };
+    return responderJson(res, { ok: true });
+  }
+  if (u.pathname === '/__cobros') {
+    const m = JSON.parse(gas.props.COBROS_ABIERTOS || '{}');
+    Object.keys(m).forEach(k => { m[k].u = 0; });
+    if (Object.keys(m).length) gas.props.COBROS_ABIERTOS = JSON.stringify(m);
+    return responderJson(res, m);
+  }
+  if (u.pathname === '/__reset') { gas.reiniciar(); gas.api.instalar(); configurar(gas); boldEstados = {};
     fallasPendientes = 0; demoraMs = 0; tumbarTodo = false; peticiones = []; perderRespuestas = 0; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__fallar') { fallasPendientes = Number(u.query.n) || 1; peticiones = []; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__modo') {
@@ -116,7 +143,9 @@ const servidor = http.createServer((req, res) => {
   if (u.pathname === '/__demora') { demoraMs = Number(u.query.ms) || 0; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__celda') {          // escribir una celda como lo haría el dueño
     const h = gas.hojas.get(u.query.hoja);
-    h.getRange(Number(u.query.f), Number(u.query.c)).setValue(u.query.v);
+    /* Por la dirección todo llega como texto; una hoja de verdad guarda un 1
+       tecleado como NÚMERO. `num=1` hace lo mismo que la hoja. */
+    h.getRange(Number(u.query.f), Number(u.query.c)).setValue(u.query.num === '1' ? Number(u.query.v) : u.query.v);
     // En producción el catálogo va en caché 60 s; en la prueba no queremos esperarlos.
     delete gas.cache['catalogo'];
     if (u.query.disparar === '1') {

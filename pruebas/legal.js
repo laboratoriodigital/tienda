@@ -51,8 +51,10 @@ const LEGALES_SRC = extraer('const LEGALES = {', '\nfunction abrirLegal', 'LEGAL
 
 /* Arma los tres textos legales para una configuración dada. `tarifas` imita
    ENVIOS: solo se usa para el aviso de "recoger sin costo" de Términos. */
-function armar(negocio, empresa, excepciones, tarifas) {
+function armar(negocio, empresa, excepciones, tarifas, enLinea) {
   const cuerpo = [
+    /* M3.5: los textos dicen cómo se cierra la venta. */
+    'const cobraEnLinea = () => ' + (enLinea ? 'true' : 'false') + ';',
     'let NEGOCIO = ' + JSON.stringify(negocio) + ';',
     'let EMPRESA = ' + JSON.stringify(empresa) + ';',
     'let EXCEPCIONES_RETRACTO = ' + JSON.stringify(excepciones || []) + ';',
@@ -134,6 +136,22 @@ const PANADERIA = {
   ok('SIN retracto_excepciones, Retracto no inventa qué es perecedero',
      !/Cuándo no aplica/.test(t.retracto) && !/no admite/.test(t.retracto),
      'vacío = ningún producto queda excluido, y el texto no lo menciona');
+}
+
+// ═══ 2b. Cobrando en línea, los textos dicen lo que de verdad pasa ═══
+{
+  const w = armar(PANADERIA.negocio, PANADERIA.empresa, [], PANADERIA.tarifas, false);
+  const t = armar(PANADERIA.negocio, PANADERIA.empresa, [], PANADERIA.tarifas, true);
+  ok('POR WHATSAPP, Términos sigue diciendo que la página no cobra',
+     /no cobra ni procesa pagos/.test(w.terminos) && !/Bold/.test(w.terminos + w.datos));
+  ok('COBRANDO EN LÍNEA, ya no dice «no cobra» —sería falso— y nombra a Bold',
+     !/no cobra ni procesa pagos/.test(t.terminos) && /pasarela de Bold/.test(t.terminos) &&
+     /<strong>Bold<\/strong>/.test(t.datos));
+  ok('  ...y el tratamiento de datos cuenta que ahora se guardan (el correo, la hoja de pedidos)',
+     /Correo electrónico/.test(t.datos) && /hoja de pedidos/.test(t.datos) &&
+     !/no tiene servidor ni base de datos/.test(t.datos));
+  ok('  ...y ya no promete que el registro va «sin tu nombre, celular ni dirección»',
+     !/sin tu nombre/.test(t.datos) && /sin tu nombre/.test(w.datos));
 }
 
 // ═══ 3. Sin datos de empresa (la hoja recién instalada), el texto no inventa ═══

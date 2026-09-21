@@ -69,7 +69,7 @@ los nombres viejos desde un servidor nuevo.
 
 ---
 
-## 4. Las nueve pestañas
+## 4. Las once pestañas
 
 ### `Catálogo`
 
@@ -201,6 +201,16 @@ Una fila por línea de pedido, no por pedido. La columna Inventario la escribe e
 | 15 | `Fecha de despacho` |
 | 16 | `Guía` |
 | 17 | `Variante` |
+| 18 | `Proveedor de pago` |
+| 19 | `Referencia de pago` |
+| 20 | `Transacción de pago` |
+
+**Las tres del cobro en línea (M3.5).** Las escribe el maestro cuando un pedido
+se cobró en la pasarela: con qué (`Bold`, o `Bold (pruebas)` en el ambiente de
+pruebas), la referencia —el mismo número del pedido— y el número de transacción
+que da Bold. Vacías en los pedidos de WhatsApp. Un pedido cobrado en línea
+**nace en `Pagado`**, con su `Fecha de pago`, y el inventario se descuenta por
+el mismo camino que marcar Pagado a mano.
 
 **`Variante` (C-1).** Qué eligió el comprador, ya comprobado contra la hoja y
 escrito con el texto del catálogo —no con el que mandó la página—: `Talla: M ·
@@ -273,6 +283,45 @@ vuelta. Solo se agrega; nadie escribe aquí a mano.
 | 15 | `Borrado el` |
 | 16 | `Desde` |
 
+### `Pagos` (M3.5)
+
+El libro de los cobros en línea: una fila por intento de pago, que se pone al
+día sola. **No sale por ninguna puerta.** La crea `instalar()` aunque la tienda
+venda por WhatsApp, para que pasar a Pasarela no exija reinstalar.
+
+| # | Columna | Qué guarda |
+|---|---|---|
+| 1 | `Fecha` | cuándo se preparó el cobro |
+| 2 | `Pedido` | el número: el mismo en `Validaciones`, `Pedidos` y Bold |
+| 3 | `Proveedor` | `Bold` |
+| 4 | `Ambiente` | `Pruebas` o `Producción` |
+| 5 | `Estado` | `Esperando pago` · `Pagado` · `Pagado sin existencias` · `Rechazado` · `Vencido` · `Revisar monto` |
+| 6 | `Estado en Bold` | lo último que contestó Bold (`APPROVED`, `PENDING`, `NO_TRANSACTION_FOUND`…) |
+| 7 | `Transacción` | el número de Bold |
+| 8 | `Medio de pago` | PSE, tarjeta… según Bold |
+| 9 | `Total` | lo que calculó el maestro y firmó |
+| 10 | `Líneas` | lo que se cobró, en JSON, con precio |
+| 11–15 | `Cupón` · `Envío` · `Subtotal` · `Descuento` · `Valor envío` | el desglose |
+| 16 | `Apartado hasta` | hasta cuándo están apartadas las unidades |
+| 17 | `Token` | el identificador opaco con que la página pregunta |
+| 18 | `Última consulta` | cuándo se le preguntó a Bold |
+| 19 | `Comprador avisado` | `Sí` cuando salió su correo |
+| 20 | `Comercio avisado` | `Sí` cuando salió el del comercio |
+| 21 | `Nota` | lo que salió mal, en palabras |
+
+### `Datos de entrega` (M3.5)
+
+Por WhatsApp los datos de entrega viajan en el chat y la hoja no los guarda.
+Cobrando en línea no hay chat antes del pago, así que el comercio necesita
+saber a dónde despachar: esta es la **única** pestaña con datos personales del
+comprador, y **no sale por ninguna puerta** —tampoco por el panel—.
+
+| # | Columna |
+|---|---|
+| 1–2 | `Fecha` · `Pedido` |
+| 3–5 | `Nombre` · `Celular` · `Correo` |
+| 6–8 | `Ciudad` · `Dirección` · `Notas` |
+
 > **`Pedidos` merece una nota.** Es una fila **por línea de pedido**, no por
 > pedido: cinco productos son cinco filas con el mismo número en `Pedido`. Y la
 > última columna, `Inventario`, la escribe el script para saber si esa línea ya
@@ -310,6 +359,7 @@ no pisar lo que el comerciante puso.
 | **El retracto** | `retracto_excepciones` — productos que no admiten cambio de opinión por ser perecederos (art. 47, Ley 1480), separados por \|. Vacío = ninguno queda excluido |
 | **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
 | **El orden del catálogo** | `orden_catalogo` — en qué orden ve el catálogo quien entra. De fábrica, `Destacados primero` |
+| **Cómo se cierra la venta (M3.5)** | `cobro_modo` — `WhatsApp` (de fábrica, como siempre) o `Pasarela` (paga en línea con Bold). `cobro_ambiente` — `Pruebas` o `Producción`. **Las llaves de Bold no van aquí**: van en las propiedades del script (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`). Pedir Pasarela sin sus llaves, o sin `sitio_url`, deja la tienda en WhatsApp y el diagnóstico lo dice |
 | **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
 **`orden_catalogo` (C-4).** Uno de estos cinco, escrito tal cual —se lee sin
@@ -460,6 +510,7 @@ cumplen el filtro), `conteo` (por estado, con `revisar`) y `estados`
 (`id`, `rotulo`, `vendido`). Cada pedido: `pedido`, `fecha`, `estado` (tal como
 dice la hoja), `estadoId` (vacío si no se entiende), `problema`, `total`,
 `ciudad`, `cupon`, `validacion`, `fechaPago`, `fechaDespacho`, `guia`,
+`pago` y `transaccion` (con qué se cobró, si se cobró en línea — M3.5),
 `lineas` (`producto`, `id`, `variante`, `cantidad`, `precio`, `subtotal`,
 `inventario`) y `version`. **No sale ningún dato personal del cliente**: la hoja
 no los guarda y el panel no los inventa.
@@ -497,6 +548,31 @@ defecto), `ultimaEdicion`, `pedida`, `corrida` (`estado`, `resultado`, `desde`,
 el menú *Publicar ahora* (`dispararPublicacion`). La misma `op` dos veces es
 **un** disparo. Contesta `ok`, `pedida`; o `ok: false`, `error` en palabras de
 quién lo arregla.
+
+**`pago_crear`** (M3.5, pública, **solo por POST**) — pide `op`, `items`,
+`cupon`, `envio`, `sub` y `entrega` (`nombre`, `tel`, `correo`, `ciudad`,
+`direccion`, `notas`). Vuelve a calcular todo, **aparta** las unidades quince
+minutos y firma el cobro con la llave secreta. Contesta `ok`, `pedido`, `token`,
+`total`, `moneda`, `pruebas` y `checkout` (`orderId`, `currency`, `amount`,
+`apiKey` —la identidad—, `integritySignature`, `description`, `redirectionUrl`,
+`originUrl`, `customerData`, `billingAddress`), que es lo que pide la librería de
+Bold. O `ok: false`, `error` y: `cobro: 'whatsapp'` si la tienda no está
+cobrando en línea o el pedido no se puede cobrar tal cual (un envío o una celda
+que no se leyó); `recortado: true` y `avisos` si el pedido cambió —otro está
+pagando la última unidad, no alcanza el stock—. **No se cobra un carrito
+distinto del que se vio.** La misma `op` dos veces es el mismo cobro.
+
+**`pago_estado`** (M3.5, pública) — pide `token`. Si hace falta, le pregunta a
+Bold (`GET /v2/payment-voucher/<pedido>` con la llave de identidad), como mucho
+una vez cada veinte segundos por cobro. Contesta `ok`, `pedido`, `estado`
+(`esperando` · `pagado` · `rechazado` · `vencido` · `revisar`), `total`,
+`transaccion`. **Nada del comprador.**
+
+**`COBROS_ABIERTOS`** (propiedad del script, M3.5) — los cobros que falta
+cerrar: qué apartan y hasta cuándo, su token y cuándo se le preguntó a Bold. Lo
+leen la validación (lo apartado no se ofrece), la consulta y el disparador
+`conciliarPagos`, que corre cada cinco minutos **solo mientras haya alguno** y
+se borra solo. Se vacía sola: no es un libro, es la lista de trabajo.
 
 **`ULTIMA_EDICION`** (propiedad del script) — la hora de la última edición que
 cambia la vitrina: guardar desde el panel (productos, fotos, configuración) o
@@ -602,6 +678,13 @@ llave nunca estuvo en el repositorio.
 
 El filtro es **por prefijo, no por lista**: una clave `pago_algo` que alguien
 agregue mañana queda protegida sin que nadie tenga que acordarse de volver aquí.
+
+**Del cobro en línea sale solo el resultado.** `config.cobro` dice `whatsapp` o
+`pasarela` —lo que la tienda PUEDE hacer, no lo que pidió la hoja— y
+`config.cobro_pruebas` dice `Sí` mientras sea el ambiente de pruebas. Las llaves
+de Bold viven en las propiedades del script y no salen por ninguna puerta; la de
+identidad llega a la página solo dentro de un cobro ya preparado, que es donde
+Bold la exige, y la secreta nunca.
 
 ---
 

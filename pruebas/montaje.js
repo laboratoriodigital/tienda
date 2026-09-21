@@ -918,7 +918,7 @@ const configurar = (g, clave, valor) => {
   ok('UN SOLO FLUJO monta la tienda entera, en orden',
      !fs.existsSync('../.github/workflows/maestro.yml') &&
      /publicar-maestro\.mjs/.test(maestro) && /preparar-index\.mjs/.test(maestro) &&
-     /traer-fotos\.mjs/.test(maestro) && /todas\.sh/.test(maestro),
+     /traer-fotos\.mjs/.test(maestro) && /publicacion\.sh/.test(maestro),
      'dos flujos se disparan en el orden equivocado sin que se note');
   ok('  ...y el maestro va ANTES que el index, que es lo que importa',
      maestro.indexOf('publicar-maestro.mjs') < maestro.indexOf('preparar-index.mjs'),
@@ -1909,8 +1909,36 @@ const configurar = (g, clave, valor) => {
      empuja directo a `main` en vez de abrir un pull request y fusionarlo, esta
      es la ÚNICA vez que corren: lo que empuja el GITHUB_TOKEN no dispara
      `pruebas`. Si dejaran de correr aquí, no correrían en ninguna parte. */
+  /* Desde M3.5 corren por publicacion.sh, que elige la guardia corta SOLO si
+     el código ya pasó la suite completa, y si no, todas. Se exige que siga
+     siendo así: que la corta no pueda elegirse sin esa condición. */
+  const publicacion = fs.readFileSync('publicacion.sh', 'utf8');
+  /* LA DECISIÓN, PROBADA Y NO LEÍDA. Con un `gh` de mentira que contesta lo
+     que se le diga: la guardia corta sale SOLO con una corrida en verde del
+     código; todo lo demás —rojo, sin red, fuera de un flujo— es «todas». */
+  {
+    const { execFileSync } = require('child_process');
+    const os = require('os');
+    const dir = fs.mkdtempSync(require('path').join(os.tmpdir(), 'gh-'));
+    const decide = (contesta, entorno) => {
+      const gh = require('path').join(dir, 'gh');
+      fs.writeFileSync(gh, contesta === null ? '#!/bin/sh\nexit 1\n' : '#!/bin/sh\necho ' + contesta + '\n');
+      fs.chmodSync(gh, 0o755);
+      try {
+        return execFileSync('bash', ['publicacion.sh'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+          env: Object.assign({}, process.env, { PATH: dir + ':' + process.env.PATH, SOLO_DECIDIR: '1',
+                                                GUARDIA: '' }, entorno) }).trim();
+      } catch (e) { return 'reventó'; }
+    };
+    const enFlujo = { GITHUB_REPOSITORY: 'x/y', GH_TOKEN: 't' };
+    const r = [decide('1', enFlujo), decide('0', enFlujo), decide(null, enFlujo),
+               decide('1', { GITHUB_REPOSITORY: '', GH_TOKEN: '' })];
+    ok('LA GUARDIA CORTA sale solo si el código tiene una corrida de pruebas en verde',
+       r.join(' ') === 'corta todas todas todas', r.join(' '));
+  }
   ok('  ...con las baterías corriendo antes de publicar',
-     f.indexOf('todas.sh') < f.indexOf('"$rama":main'),
+     f.indexOf('publicacion.sh') > 0 && f.indexOf('publicacion.sh') < f.indexOf('"$rama":main') &&
+     /exec \.\/todas\.sh/.test(publicacion),
      'lo que empuja GITHUB_TOKEN no dispara pruebas');
 
   /* Y SI SE CAE, QUE DIGA QUÉ. Este paso se cayó una vez y averiguar por qué
@@ -2944,7 +2972,7 @@ const configurar = (g, clave, valor) => {
        porque `fotos` ya las corrió antes de publicar. El día que eso deje de
        pasar, esto publicaría sin haber probado nada. */
     ok('  ...porque `fotos` YA las corrió antes de publicar, y eso sigue siendo cierto',
-       f.indexOf('todas.sh') > 0 && f.indexOf('todas.sh') < f.indexOf('"$rama":main'),
+       f.indexOf('publicacion.sh') > 0 && f.indexOf('publicacion.sh') < f.indexOf('"$rama":main'),
        'sin esto, saltarse pruebas sería publicar a ciegas');
     ok('  ...y el de `montaje`, que espera a una persona, se sigue comprobando',
        !/montaje\/desde-la-hoja/.test(p),
@@ -3312,8 +3340,8 @@ const configurar = (g, clave, valor) => {
      'el pull request del bot deja una corrida retenida que caduca en X roja');
   ok('  ...y se puede volver al pull request cuando se quiera',
      /options: \[automatica, con-pull-request\]/.test(mont));
-  ok('  ...pero NO sin haber corrido todas las baterías sobre lo ya escrito',
-     mont.indexOf('todas.sh') < mont.indexOf(PUSH),
+  ok('  ...pero NO sin haber corrido las baterías sobre lo ya escrito',
+     mont.indexOf('publicacion.sh') > 0 && mont.indexOf('publicacion.sh') < mont.indexOf(PUSH),
      'publicar sin probar es lo que ninguna de las dos guardas puede recuperar');
   ok('  ...ni sin comprobar que la hoja es la de esta tienda',
      mont.indexOf('misma-tienda.mjs') < mont.indexOf(PUSH),
@@ -3504,13 +3532,15 @@ const configurar = (g, clave, valor) => {
   ok('  ...y para ANTES de tocar el repositorio',
      rel.indexOf('¿Este repositorio es la semilla?') < rel.indexOf('gh release create'),
      'pararse después de etiquetar no sirve de nada');
-  ok('  ...sin gastar una corrida de baterías para nada', (() => {
-       /* Las baterías son el `needs` de este trabajo, así que corren igual.
-          Es el precio de que la guarda viva donde se ve el fallo, y se acepta:
-          son dos minutos frente a una etiqueta paralela en el repositorio de
-          un cliente. Se anota para que no parezca un descuido. */
-       return /needs: pruebas/.test(rel);
-     })(), 'corren igual: la guarda va después, donde se ve el fallo');
+  /* ANTES release corría la suite entera como `needs`, sobre el mismo commit
+     que el push ya había probado. Ahora le pregunta a GitHub por ESA corrida:
+     la guarda es la misma —nada se corta sin baterías en verde— y no se
+     pagan dos minutos por repetirlas. */
+  ok('  ...sin repetir las baterías que el push ya corrió sobre ESTE commit',
+     !/needs: pruebas/.test(rel) && /head_sha=\$GITHUB_SHA/.test(rel) &&
+     /select\(\.conclusion == "success"\)/.test(rel) &&
+     rel.indexOf('head_sha=$GITHUB_SHA') < rel.indexOf('gh release create'),
+     'y sin verde del mismo commit, no se corta nada');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

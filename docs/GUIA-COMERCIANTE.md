@@ -31,7 +31,12 @@ Imágenes —mayúsculas incluidas—. Después, **Publicar ahora**.
 
 **Llegó un pedido**
 Te llega por WhatsApp y queda en la pestaña **Pedidos**. Cambia **Estado** a
-**Confirmado**: eso descuenta el inventario. No hay que hacer nada más.
+**Pagado** cuando te paguen: eso descuenta el inventario. No hay que hacer nada más.
+
+**Si tu tienda cobra en línea** (Configuración › `cobro_modo` = Pasarela), el
+comprador paga con Bold y el pedido te llega **ya Pagado**, con un correo que
+dice a quién y a dónde despachar. Los datos de entrega están en la pestaña
+**Datos de entrega**. Tú solo despachas y cambias el Estado a Despachado.
 
 ---
 

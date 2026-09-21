@@ -66,7 +66,7 @@ después hay que mantener sincronizada.
 2. Fusiona a `main`.
 3. Actions > **release** > Run workflow.
 
-Eso corre las pruebas, crea la etiqueta `v1.1.0` y publica la versión con
+Eso comprueba que el push de ese commit pasó `pruebas` en verde (no las repite), crea la etiqueta `v1.1.0` y publica la versión con
 `index.html`, `maestro.gs` y `publicar.tar.gz` colgados. Falla a propósito si
 la versión ya existe: se sube en `package.json` o no se corta.
 

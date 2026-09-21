@@ -501,6 +501,14 @@ las propiedades del maestro. Sin ellas el panel lo dice («eso lo hace una vez
 quien la montó») y manda al menú. Con ellas, además, enseña cómo va la
 publicación y cómo terminó.
 
+**Cobrar en línea (M3.5), si el comercio lo quiere.** De fábrica la tienda
+vende por WhatsApp. Para cobrar con Bold: las cuatro llaves en las propiedades
+del script del maestro (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, y las
+dos de `PRODUCCION`), `cobro_modo = Pasarela` y `cobro_ambiente = Pruebas` en la
+hoja, publicar, y la prueba completa de `docs/PAGOS-BOLD.md`. **Solo después**
+`cobro_ambiente = Producción`. Mientras falte algo, la tienda sigue vendiendo
+por WhatsApp y el diagnóstico dice qué falta.
+
 - [ ] **El domingo siguiente a la entrega:** Diagnóstico → *Último respaldo*.
       Si dice «nunca» o «falló», la cuenta de la tienda no tiene permiso sobre
       `backup_tiendas` (paso 13) o falta correr `A0_instalar()` con el maestro

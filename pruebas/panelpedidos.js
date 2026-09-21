@@ -98,7 +98,10 @@ const lineas = (g, codigo) => g.filas('Pedidos').filter(f => String(f[1]) === co
        esta aserción se cae y alguien tiene que decidirlo. */
     const CAMPOS = ['cantidad', 'ciudad', 'cupon', 'estado', 'estadoId', 'fecha', 'fechaDespacho',
                     'fechaPago', 'guia', 'id', 'inventario', 'lineas', 'pedido', 'precio', 'problema',
-                    'producto', 'subtotal', 'total', 'validacion', 'variante', 'version'];
+                    'producto', 'subtotal', 'total', 'validacion', 'variante', 'version',
+                    /* M3.5: con qué se cobró y el número de la transacción. Del
+                       comercio, no del comprador. */
+                    'pago', 'transaccion'];
     const vistos = new Set();
     r.pedidos.forEach(x => { Object.keys(x).forEach(c => vistos.add(c));
                              x.lineas.forEach(l => Object.keys(l).forEach(c => vistos.add(c))); });

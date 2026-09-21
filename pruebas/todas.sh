@@ -109,13 +109,15 @@ rm -rf "$SALIDA"; mkdir -p "$SALIDA" || { echo "ERROR: no se pudo crear $SALIDA"
 # De más lenta a más rápida. No es cosmético: con trabajadores fijos, empezar
 # por la más larga es lo que evita terminar esperando a una sola. e2e.js dura
 # 81 s y marca el suelo de toda la corrida.
-BATERIAS="e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
+# Una selección puede venir de fuera —la guardia de publicacion.sh—; sin
+# ella, son todas. El corredor es uno solo: puertos, cupo y salida no se copian.
+BATERIAS=${BATERIAS:-"e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
           cat.js version.js hoja.js sec2.js exif.js montaje.js panel.js \
           pedidos.js correo.js presentacion.js menu.js tablero.js esquema.js \
           calendario.js respaldo.js marca.js plantilla.js worker.js legal.js \
           determinismo.js escribe.js limites.js tiempos.js sondeo.js seo.js variantes.js \
           varpag.js orden.js entrar.js productos.js admin.js \
-          panelpedidos.js panelconfig.js panelpublicar.js"
+          panelpedidos.js panelconfig.js panelpublicar.js pagos.js pagoweb.js"}
 
 # ── CUATRO, Y NO UNO POR NÚCLEO ─────────────────────────────────────────────
 # Esto decía «uno por núcleo hasta cuatro», con el razonamiento de que cada

@@ -588,50 +588,51 @@ mano y porque todo lo que ya lee esa columna sigue funcionando sin tocarlo.
 
 ## 12 · El proveedor de pagos, y el criterio que manda
 
-**Estado:** ABIERTA desde el 21 de septiembre de 2026. La abre la entrada de
-M3.5 al MVP. Bloquea E-3; no bloquea E-1.
+**Estado:** CERRADA el 21 de septiembre de 2026: **Bold, Botón de pagos**.
+Abierta el mismo día con la entrada de M3.5 al MVP.
 
-### Qué hace hoy
+### Qué hacía
 
-No se cobra en línea. El pedido sale por WhatsApp, el comerciante confirma el
-pago a mano (transferencia, llave, efectivo) y marca el pedido como Pagado, que
-es lo que descuenta el inventario.
+No se cobraba en línea. El pedido salía por WhatsApp, el comerciante confirmaba
+el pago a mano y marcaba el pedido como Pagado, que es lo que descuenta el
+inventario. **Sigue siendo el modo de fábrica** (`cobro_modo = WhatsApp`).
 
 ### El límite real
 
-No es la comisión, aunque sea lo primero que se compara. Es **cómo se entera el
-maestro de que un pago se hizo**. Los proveedores avisan con un POST a una
-dirección nuestra y lo firman —muchos en una cabecera HTTP—. El maestro es un
-Apps Script: su `doPost` **no ve las cabeceras**, así que no puede comprobar esa
-firma, y contesta los POST con una redirección que algunos no siguen. Un aviso
-que no se puede verificar no puede marcar nada como pagado: sería la puerta para
-que cualquiera «pague» con un POST inventado.
+No es la comisión. Es **cómo se entera el maestro de que un pago se hizo**. Los
+proveedores avisan con un POST firmado —Bold, en la cabecera
+`x-bold-signature`—, y el `doPost` de Apps Script **no ve las cabeceras**. Un
+aviso que no se puede verificar no puede marcar nada como pagado.
 
 ### La decisión
 
-Se elige el proveedor con este criterio por encima de los demás: **que su API
-permita consultar una transacción por su referencia**, desde el servidor. Con
-eso el aviso es solo un timbre y la confirmación se le pregunta al proveedor
-(E-4). Entre los que lo cumplan, se comparan comisión, costo fijo y días hasta
-el desembolso, con números de la tienda real y no de la documentación.
-Candidatos a evaluar: Wompi, ePayco, Mercado Pago, PayU.
+**Bold**, con el Botón de pagos personalizado: la página abre la pasarela de Bold
+(la tarjeta y el banco nunca pasan por la tienda), y la confirmación se le
+pregunta a su API por la referencia (`GET /v2/payment-voucher/<referencia>`),
+que es el criterio que decidía. Dos razones más, por orden: la integración ya
+estaba **validada con una compra completa de pruebas** en la línea anterior del
+producto, y el dueño la pidió así. PSE, tarjeta y los demás medios los ofrece
+Bold en su pasarela.
 
-Y el pago es **en la página del proveedor** (redirección): los datos de la
-tarjeta nunca pasan por la tienda ni por el maestro.
+El aviso (webhook) de Bold **no se usa**. Si algún día hiciera falta, tendría que
+pasar por un intermediario que conserve el cuerpo crudo y verifique la firma
+antes de reenviarlo; mientras tanto, la consulta y el disparador bastan.
 
 ### Condición de disparo
 
-Antes de empezar E-3. E-1 —apartar la unidad— se construye sin esperar esta
-decisión, y va primero a propósito.
+Cumplida: M3.5 entra al MVP. Para cambiar de proveedor: que haya una tienda
+cobrando y los números reales (comisión, días hasta el desembolso) digan que
+otro sale mejor. El adaptador es uno solo —`crearCobro`, `consultarBold`— y
+cambiarlo no toca carrito, pedidos, inventario ni correos.
 
 ### Contrapartida
 
-Consultar al proveedor cuesta ejecuciones de Apps Script, y el presupuesto de
-§6 del plan dice «ninguna mientras nadie mire». Por eso el disparador que
-pregunta por los pagos pendientes corre **solo mientras haya reservas
-pendientes**: con cero, no corre. Y queda descartado de entrada cualquier
-proveedor que solo confirme por aviso firmado en cabecera, aunque sea el más
-barato.
+Consultar a Bold cuesta ejecuciones y tarda: justo después de pagar, Bold puede
+contestar «no sé nada» durante unos minutos. Por eso el comprador ve «estamos
+confirmando» un rato, y el disparador de cada cinco minutos existe **solo
+mientras haya cobros abiertos** (§6 del plan). Y cada tienda tiene que cargar sus
+cuatro llaves en las propiedades del script: es un paso más de alta, a mano, que
+la lista de alta vigila.
 
 ---
 

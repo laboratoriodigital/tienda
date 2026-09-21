@@ -74,10 +74,12 @@ function crear(rutaScript, opciones) {
     }
   });
 
-  const respuestaDe = (url) => {
+  /* La petición entera llega a quien contesta —método, cabeceras—: una API
+     autenticada se prueba mirando CON QUÉ se le preguntó, no solo a qué. */
+  const respuestaDe = (url, op) => {
     for (const [patron, fn] of rutas) {
       if (url.indexOf(patron) !== -1) {
-        const r = fn(url);
+        const r = fn(url, op || {});
         return { getResponseCode: () => r.codigo === undefined ? 200 : r.codigo,
                  getContentText: () => typeof r.cuerpo === 'string'
                    ? r.cuerpo : JSON.stringify(r.cuerpo) };
@@ -287,6 +289,7 @@ function crear(rutaScript, opciones) {
         const diario = { everyDays: () => ({ create: alta }) };
         const semanal = { atHour: () => ({ create: alta }), create: alta };
         return { timeBased: () => ({ everyHours: () => ({ create: alta }),
+                                     everyMinutes: () => ({ create: alta }),
                                      atHour: () => diario,
                                      onWeekDay: () => semanal,
                                      everyDays: () => ({ create: alta }) }),
@@ -389,7 +392,7 @@ function crear(rutaScript, opciones) {
       }
     },
     UrlFetchApp: {
-      fetch(url) { return respuestaDe(url); },
+      fetch(url, op) { return respuestaDe(url, op); },
       fetchAll(peticiones) {
         peticionesVistas.push(peticiones.map(p => p.url));
         if (fetchAllRevienta) throw new Error('fetchAll caído');

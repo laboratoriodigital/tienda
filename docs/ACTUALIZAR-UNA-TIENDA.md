@@ -21,6 +21,19 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.6.0 (tienda): cobrar en línea — hay que ejecutar `instalar()`
+
+1. `git push` → `release` → `montaje` con `maestro` + `PUBLICAR`.
+2. **`A0_instalar()`** en el editor del maestro. Agrega `cobro_modo` y
+   `cobro_ambiente` a Configuración (con `WhatsApp` y `Pruebas`: **no cambia
+   nada** para la tienda), crea las pestañas `Pagos` y `Datos de entrega`, y
+   cambia el disparador de cada hora por `revisionHoraria`. Sin `instalar()` la
+   tienda sigue funcionando igual: solo no puede cobrar en línea.
+3. El stub **no** hay que repegarlo: el menú no cambió.
+4. Para cobrar con Bold: `docs/PAGOS-BOLD.md`.
+
+---
+
 ## Qué es una tienda nueva y qué es una tienda que se actualiza
 
 No son el mismo problema y conviene no mezclarlos.

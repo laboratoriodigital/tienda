@@ -20,14 +20,10 @@ env:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
-  # Nada se publica sin todas las baterías en verde.
-  pruebas:
-    uses: ./.github/workflows/pruebas.yml
-
   publicar:
-    needs: pruebas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -70,6 +66,36 @@ jobs:
             echo "No se rompió nada: este flujo paró antes de tocar el repositorio."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::error::release corta la versión de la plantilla y este repositorio no es $SEMILLA."
+          exit 1
+
+      # NADA SE PUBLICA SIN TODAS LAS BATERÍAS EN VERDE — pero no se corren dos
+      # veces. El push a main ya corrió la suite completa sobre ESTE commit;
+      # aquí se le pregunta a GitHub por esa corrida en vez de repetirla. Si
+      # todavía corre, se espera; si no existe o falló, no se corta nada.
+      # (Idea de la línea anterior: release pasó de minutos a segundos.)
+      - name: Las baterías de este commit, en verde
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for intento in $(seq 1 30); do
+            corridas=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pruebas.yml/runs?head_sha=$GITHUB_SHA&event=push&per_page=10")
+            verdes=$(echo "$corridas" | jq '[.workflow_runs[] | select(.conclusion == "success")] | length')
+            activas=$(echo "$corridas" | jq '[.workflow_runs[] | select(.status != "completed")] | length')
+            if [ "$verdes" -gt 0 ]; then echo "La suite completa de $GITHUB_SHA ya está en verde."; exit 0; fi
+            if [ "$activas" -eq 0 ] && [ "$intento" -gt 3 ]; then
+              {
+                echo "### No hay baterías en verde para este commit"
+                echo ""
+                echo "\`release\` no corta una versión cuyo código no pasó \`pruebas\`."
+                echo "Haz push a main, espera a que \`pruebas\` termine en verde y vuelve a correr esto."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::error::Este commit no tiene una corrida de pruebas por push en verde."
+              exit 1
+            fi
+            echo "Esperando las pruebas de $GITHUB_SHA ($intento/30)…"
+            sleep 10
+          done
+          echo "::error::Las pruebas de este commit no terminaron en cinco minutos."
           exit 1
 
       - name: Leer la versión

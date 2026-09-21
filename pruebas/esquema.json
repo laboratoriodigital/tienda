@@ -67,7 +67,10 @@
       "Fecha de pago",
       "Fecha de despacho",
       "Guía",
-      "Variante"
+      "Variante",
+      "Proveedor de pago",
+      "Referencia de pago",
+      "Transacción de pago"
     ],
     "Más vendidos": [
       "Producto",
@@ -85,6 +88,39 @@
       "Fecha",
       "Error",
       "Primeros 200 caracteres recibidos"
+    ],
+    "Pagos": [
+      "Fecha",
+      "Pedido",
+      "Proveedor",
+      "Ambiente",
+      "Estado",
+      "Estado en Bold",
+      "Transacción",
+      "Medio de pago",
+      "Total",
+      "Líneas",
+      "Cupón",
+      "Envío",
+      "Subtotal",
+      "Descuento",
+      "Valor envío",
+      "Apartado hasta",
+      "Token",
+      "Última consulta",
+      "Comprador avisado",
+      "Comercio avisado",
+      "Nota"
+    ],
+    "Datos de entrega": [
+      "Fecha",
+      "Pedido",
+      "Nombre",
+      "Celular",
+      "Correo",
+      "Ciudad",
+      "Dirección",
+      "Notas"
     ]
   },
   "configuracion": [
@@ -132,7 +168,9 @@
     "retracto_excepciones",
     "f_variantes",
     "orden_catalogo",
-    "panel_usuario"
+    "panel_usuario",
+    "cobro_modo",
+    "cobro_ambiente"
   ],
   "nombresDePuertas": [
     "version",
@@ -158,7 +196,9 @@
     "configuracion",
     "guardar_configuracion",
     "publicacion",
-    "publicar"
+    "publicar",
+    "pago_crear",
+    "pago_estado"
   ],
   "puertas": {
     "version": [

@@ -166,7 +166,7 @@ for (const r of Object.keys(foto.registros)) {
   const d = sinTilde(doc);
 
   const hojasFuera = Object.keys(vivo.hojas).filter(h => d.indexOf(sinTilde(h)) === -1);
-  ok('EL DOCUMENTO nombra las nueve pestañas', hojasFuera.length === 0, hojasFuera.join(', '));
+  ok('EL DOCUMENTO nombra todas las pestañas', hojasFuera.length === 0, hojasFuera.join(', '));
 
   const colsFuera = [];
   for (const h of Object.keys(vivo.hojas))

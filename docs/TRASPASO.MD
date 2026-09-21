@@ -28,7 +28,7 @@ actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 | **M1** · Rendimiento y cuota | **Cerrado.** Las siete historias. De B-2 quedan abiertos sus dos criterios de panel, que son M3 y no deuda |
 | **M2** · La tienda para todo producto | C-1 (variantes), C-2 (SEO) y C-4 (orden del catálogo) **cerradas**. Faltan **C-3** y **C-1b** — inventario y fotos por variante, agregada el 21 de septiembre (decisión 11) |
 | **M3** · El panel del comerciante | D-1 a D-5 **cerradas**: el panel entra, edita productos y fotos, cambia el estado de los pedidos, edita la configuración del comerciante y publica. Faltan D-6 (registro de cambios) y D-7 (guía) |
-| **M3.5** · Cobrar en línea | Escrita el 21 de septiembre. Empieza por E-1, apartar la unidad. El proveedor espera la decisión 12 |
+| **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) y, con C-1b, apartar por combinación |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
 
@@ -54,9 +54,14 @@ distingue qué hojas cambian la vitrina (`hojasQueSePublican`). Después **D-7**
 la guía del comerciante rehecha para el panel.
 
 Luego, por orden del dueño: **C-1b** —stock y fotos por combinación, con sus
-topes ya decididos (3 tipos, 20 valores, 100 combinaciones)—, **C-3** (envío
-gratis anunciado, horario, tienda cerrada, mínimo de pedido) y **M3.5**,
-empezando por E-1.
+topes ya decididos (3 tipos, 20 valores, 100 combinaciones); cuando baje el
+stock a la combinación, el apartado del cobro en línea tiene que bajar con él—
+y **C-3** (envío gratis anunciado, horario, tienda cerrada, mínimo de pedido).
+
+**El cobro en línea está hecho pero no probado contra Bold de verdad**: las
+pruebas usan un Bold de mentira que contesta lo que contesta el real. Antes de
+cobrarle a nadie hay que hacer la prueba de `docs/PAGOS-BOLD.md` con las llaves
+de pruebas en una tienda publicada.
 
 Un pendiente chico que no es de ninguna historia: `publicar/404.html` todavía
 dice «Orgánico» y lleva sus colores. Es de la línea anterior y ninguna batería

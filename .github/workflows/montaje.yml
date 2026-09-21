@@ -85,6 +85,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # Para preguntar si el código de main ya pasó la suite completa (publicacion.sh).
+  actions: read
 
 # Nunca a la vez que `fotos`: los dos escriben en publicar/.
 concurrency:
@@ -97,6 +99,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 50
 
       - uses: actions/setup-node@v7
         with:
@@ -525,12 +529,15 @@ jobs:
       # obliga a abrir el log, buscar el paso y desplegarlo es una corrida que
       # cuesta una conversación entera. Las líneas FALLA y el marcador van al
       # resumen, que es lo primero que se ve.
-      - name: Todas las baterías sobre el archivo ya modificado
+      - name: Las baterías sobre el archivo ya modificado
         if: steps.cambios.outputs.hay == 'si'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
           cd pruebas
-          ./todas.sh 2>&1 | tee /tmp/pruebas.txt || estado=$?
+          # Solo las de lo publicado si el código ya pasó todas; si no, todas.
+          ./publicacion.sh 2>&1 | tee /tmp/pruebas.txt || estado=$?
           {
             echo "### Las baterías"
             echo '```'
