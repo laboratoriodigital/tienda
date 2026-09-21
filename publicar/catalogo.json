@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-12-1",
- "generado": "2026-09-21T13:38:31.738Z",
+ "generado": "2026-09-21T14:44:26.736Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -98,6 +98,7 @@
   "retracto_excepciones": "",
   "f_variantes": "Sí",
   "orden_catalogo": "Precio: de menor a mayor",
+  "panel_usuario": "sebas",
   "tope_pago": "12110000"
  },
  "fotos": {
