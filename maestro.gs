@@ -1315,7 +1315,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-2';
+var VERSION = '2026-09-21-3';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2615,7 +2615,10 @@ var PUERTAS = {
   pago_crear:  { guarda: 'publica', soloPost: true, fn: function (p) { return conVersion(atenderPagoCrear(p)); } },
   pago_estado: { guarda: 'publica', fn: function (p) { return conVersion(atenderPagoEstado(p)); } },
   /* C-1b · el stock de cada combinación, desde el panel. */
-  guardar_combinaciones: { guarda: 'panel', soloPost: true, fn: atenderGuardarCombinaciones }
+  guardar_combinaciones: { guarda: 'panel', soloPost: true, fn: atenderGuardarCombinaciones },
+  /* M4 · el tablero del panel. Solo lectura, y aun así con sesión: son las
+     ventas del comercio. */
+  tablero:               { guarda: 'panel', soloPost: true, fn: atenderTablero }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -3507,6 +3510,75 @@ function resumenParaPanel() {
       return { bloquean: a.bloquean.map(function (x) { return x.clave; }),
                avisan:   a.avisan.map(function (x) { return x.clave; }) };
     })()
+  };
+}
+
+/* ==========================================================================
+   M4 · EL TABLERO EN EL PANEL
+   --------------------------------------------------------------------------
+   Los mismos números de la pestaña Tablero de la hoja, para dibujarlos en el
+   panel. SALEN DE calcularMetricas() Y DE NINGÚN OTRO SITIO: la pestaña, el
+   correo del día y esta puerta leen la misma función, y paneltablero.js
+   comprueba que la página y la hoja dicen la misma cifra. Si un día no cuadran,
+   alguien copió la cuenta en vez de llamarla (patrón 2).
+
+   Lo que NO lleva, a propósito: ni un nombre, ni un celular, ni una dirección.
+   Los pedidos van contados; los productos, por su nombre; las ciudades, por
+   cuántos pedidos. Es lo mismo que ya muestra la pestaña de la hoja.
+
+   UNA PETICIÓN POR VISITA. La página la pide al abrir la pestaña Tablero y no
+   la repite sola: ni refresco cada tanto ni nada programado. Cada lectura es
+   una ejecución de Apps Script, y un tablero abierto en el mostrador todo el
+   día no puede costar una ejecución por minuto. Para ver cifras nuevas está el
+   botón Actualizar.
+
+   Las variaciones van hechas desde aquí con variacion(), la misma que pinta la
+   hoja: la página no recalcula porcentajes por su cuenta.
+   ========================================================================== */
+var MAX_LISTA_TABLERO = 20;
+
+function atenderTablero() {
+  try { return tableroParaElPanel(); }
+  catch (err) {
+    registrarError('tablero: ' + err.message, null);
+    return { ok: false, error: 'No se pudo leer el tablero: ' + err.message };
+  }
+}
+
+function tableroParaElPanel() {
+  var m = calcularMetricas();
+  var A = m.A, H = m.Bhasta;
+  var mes = function (x) {
+    return { ventas: x.ventas, pedidos: x.confirmados, hechos: x.enviados, carritos: x.carritos,
+             ticket: x.ticket, tasaPedido: x.tasaEnvio, tasaCierre: x.tasaCierre };
+  };
+  var corta = function (l) { return l.slice(0, MAX_LISTA_TABLERO); };
+  return {
+    ok: true,
+    consultado: m.ahora.toISOString(),
+    dia: m.diaDelMes,
+    esteMes: mes(A),
+    aEstaAltura: mes(H),
+    mesAnterior: mes(m.B),
+    variacion: {
+      ventas:  variacion(A.ventas, H.ventas).texto,
+      pedidos: variacion(A.confirmados, H.confirmados).texto,
+      ticket:  variacion(A.ticket, H.ticket).texto
+    },
+    meses: m.meses.map(function (x) {
+      return { etiqueta: x.etiqueta, ventas: x.ventas, pedidos: x.pedidos, actual: !!x.actual };
+    }),
+    porConfirmar: m.porConfirmar,
+    atrasados: m.viejos,
+    errores: m.errores,
+    agotados: corta(m.listaAgotados),
+    cuantosAgotados: m.agotados,
+    pocos: corta(m.listaPocos),
+    cuantosPocos: m.pocos,
+    sinVender: corta(m.sinVender),
+    cuantosSinVender: m.sinVender.length,
+    masVendidos: m.masVendidos.map(function (x) { return { nombre: x[0], unidades: x[1], ingresos: x[2] }; }),
+    porCiudad: m.porCiudad.map(function (x) { return { ciudad: x[0], pedidos: x[1] }; })
   };
 }
 

@@ -294,7 +294,21 @@ jobs:
         env:
           MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
-        run: node montar/preparar-index.mjs --desde
+        # Se para ANTES de escribir si el maestro vivo no es el del
+        # repositorio, y dice qué casilla marcar (bitácora 56). Ese mensaje va
+        # al resumen: es lo primero que se lee de una corrida roja.
+        run: |
+          set -o pipefail
+          node montar/preparar-index.mjs --desde 2>&1 | tee /tmp/index.txt || estado=$?
+          if [ -n "$estado" ]; then
+            {
+              echo "### El index NO se horneó"
+              echo '```'
+              cat /tmp/index.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit ${estado:-0}
 
       # El panel del comerciante (D-2), con la dirección del maestro que acaba
       # de escribir el paso de arriba en el index — y de ningún otro sitio: la

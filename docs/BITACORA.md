@@ -303,6 +303,10 @@ eran mentira. Todas las rectificaste tú.
    dije dos veces: en la conversación y en dos documentos. El stub solo lo
    imprime `generarStub` —y `instalar()` al final— en el editor del maestro.
    Lo descubriste al pegar y no encontrar cambios que guardar.
+5. **«El montaje falló porque se corrió sin la casilla del maestro»** (entrada
+   50). Probablemente falso: con la casilla marcada fallaba igual, porque el
+   index se horneaba con lo que el sondeo había preguntado antes de publicar
+   el maestro. Lo dije sin mirar el orden de los pasos. Ver la entrada 56.
 
 ---
 
@@ -1714,3 +1718,21 @@ a venderse por combinación solo cuando UNA de sus filas tiene un número.
 título y los colores de Orgánico. Se hornea desde la plantilla en cada
 montaje, pero ninguna batería miraba el archivo del repositorio. Ahora
 `marca.js` lo revisa como a la plantilla y al maestro.
+
+**56 · El index, siempre una publicación por detrás.** El montaje volvió a
+fallar igual que en la 50 —`LA VERSIÓN del maestro y la del index`, maestro
+2026-09-21-2 contra index 2026-09-21-1— y esta vez la explicación de la 50 no
+alcanzaba. Mirando el flujo en orden: el **sondeo** (B-3, M1) pregunta
+`bloques` al principio de la corrida, **antes** de publicar el maestro, y
+preparar-index lo lee de ahí con `--desde`. Con la casilla del maestro marcada,
+el index se horneaba con la versión que contestaba el maestro ANTES de
+publicarse: siempre una por detrás, y las baterías en rojo aunque todo se
+hubiera hecho bien. Lo metí yo con el sondeo y ninguna prueba cruzaba
+«sondeo» con «publicar el maestro». Tres arreglos: `publicar-maestro.mjs` tira
+el sondeo en cuanto la versión nueva queda publicada (`olvidarSondeo()`), su
+comprobación espera hasta un minuto a que Google sirva la versión nueva, y
+`preparar-index` **se niega a hornear** si el maestro vivo no es el del
+repositorio, con un mensaje que dice qué casilla marcar, en el resumen de la
+corrida. `montaje.js` prueba los tres, en rojo quitando cada uno. **Una caché
+de diez minutos también es una caché**: lo que cambia dentro de la corrida la
+invalida. *(mío)*

@@ -218,7 +218,8 @@
     "publicar",
     "pago_crear",
     "pago_estado",
-    "guardar_combinaciones"
+    "guardar_combinaciones",
+    "tablero"
   ],
   "puertas": {
     "version": [
@@ -298,6 +299,34 @@
     "sesion": [
       "ok",
       "error"
+    ],
+    "tablero": [
+      "ok",
+      "consultado",
+      "dia",
+      "esteMes",
+      "aEstaAltura",
+      "mesAnterior",
+      "variacion",
+      "meses",
+      "porConfirmar",
+      "atrasados",
+      "errores",
+      "agotados",
+      "cuantosAgotados",
+      "pocos",
+      "cuantosPocos",
+      "sinVender",
+      "cuantosSinVender",
+      "masVendidos",
+      "porCiudad",
+      "esteMes.ventas",
+      "esteMes.pedidos",
+      "esteMes.hechos",
+      "esteMes.carritos",
+      "esteMes.ticket",
+      "esteMes.tasaPedido",
+      "esteMes.tasaCierre"
     ]
   },
   "registros": {

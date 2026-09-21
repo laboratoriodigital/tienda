@@ -250,6 +250,8 @@ Resumen que recalcula el disparador. Nadie escribe aquí a mano.
 ### `Tablero`
 
 Los indicadores que ve el comerciante al abrir la hoja. Se recalcula solo.
+Los mismos números salen por la puerta `tablero` hacia la pestaña Tablero del
+panel (M4); `paneltablero.js` comprueba que coinciden.
 
 
 | # | Columna |
@@ -623,6 +625,18 @@ Bold (`GET /v2/payment-voucher/<pedido>` con la llave de identidad), como mucho
 una vez cada veinte segundos por cobro. Contesta `ok`, `pedido`, `estado`
 (`esperando` · `pagado` · `rechazado` · `vencido` · `revisar`), `total`,
 `transaccion`. **Nada del comprador.**
+
+**`tablero`** (M4, panel, **solo por POST**) — no pide nada más que el testigo.
+Contesta `ok`, `consultado`, `dia`, `esteMes`, `aEstaAltura` (el mes pasado
+hasta el mismo día) y `mesAnterior` —cada uno con `ventas`, `pedidos` (los
+vendidos), `hechos` (los registrados), `carritos`, `ticket`, `tasaPedido`,
+`tasaCierre`—; `variacion` (`ventas`, `pedidos`, `ticket`: el texto de la
+hoja, «▲ 12%»); `meses` (seis: `etiqueta`, `ventas`, `pedidos`, `actual`);
+`porConfirmar`, `atrasados`, `errores`; `agotados`, `pocos`, `sinVender` (hasta
+20 nombres cada una) con su total en `cuantosAgotados`, `cuantosPocos`,
+`cuantosSinVender`; `masVendidos` (`nombre`, `unidades`, `ingresos`, 30 días) y
+`porCiudad` (`ciudad`, `pedidos`). Todo sale de `calcularMetricas()`, lo mismo
+que escribe la pestaña `Tablero`. **Nada del comprador, ni el número de pedido.**
 
 **`COBROS_ABIERTOS`** (propiedad del script, M3.5) — los cobros que falta
 cerrar: qué apartan y hasta cuándo, su token y cuándo se le preguntó a Bold. Lo

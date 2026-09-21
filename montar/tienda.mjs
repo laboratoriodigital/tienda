@@ -12,7 +12,7 @@
  * stub— pero tampoco tiene por qué quedar en el historial de Git, así que el
  * archivo está en .gitignore y nunca se escribe desde aquí.
  */
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 
 /* Biblioteca compartida: helpers de red y de lectura de tienda.json. No
    escribe nada por su cuenta. */
@@ -144,6 +144,19 @@ export const SONDEO = 'sondeo.json';
 export const VIGENCIA_SONDEO = 10 * 60 * 1000;
 
 let sondeoEnMemoria;          // se lee una vez por proceso, no una por pregunta
+
+/* EL SONDEO SE TIRA CUANDO EL MAESTRO CAMBIA. Se toma al principio de la
+   corrida, ANTES de publicar el maestro, y `bloques` trae la versión que
+   contestaba entonces. Sin esto, un montaje con la casilla del maestro
+   horneaba el index con la versión ANTERIOR a la que acababa de publicar: el
+   index siempre una publicación por detrás, y las baterías en rojo con «LA
+   VERSIÓN del maestro y la del index son la misma». Pasó dos veces seguidas el
+   21 de septiembre de 2026 (bitácora 56). Lo llama publicar-maestro.mjs en
+   cuanto la versión nueva queda publicada; lo que venga después pregunta. */
+export async function olvidarSondeo() {
+  sondeoEnMemoria = undefined;
+  try { await rm(SONDEO, { force: true }); } catch { /* no estaba: nada que olvidar */ }
+}
 
 async function delSondeo(accion, extra) {
   if (!process.argv.includes('--desde')) return null;

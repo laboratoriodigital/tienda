@@ -47,6 +47,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync, copyFileSync,
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { olvidarSondeo } from './tienda.mjs';
 
 const CLASP  = 'montar/.clasp.json';
 const TIENDA = 'tienda.json';
@@ -193,6 +194,8 @@ function elProyecto() {
 /* La comprobación que convierte "el comando terminó" en "la tienda responde":
    ?a=bloques obliga al maestro publicado a ABRIR SU HOJA. Si subió sin
    HOJA_ID, se ve aquí y no dentro de tres días. */
+const ESPERAS_VERSION = 6, PAUSA_VERSION_MS = 10000;
+
 async function verificar(version) {
   const t = ficha();
   const url   = (process.env.MAESTRO_URL   || '').trim() || t.maestro || '';
@@ -206,9 +209,17 @@ async function verificar(version) {
   process.stdout.write('\nComprobando que el maestro publicado abre su hoja… ');
   const arranque = Date.now();
   try {
-    const r = await fetch(url + '?a=bloques&t=' + encodeURIComponent(token),
-                          { redirect: 'follow' });
-    const d = await r.json();
+    const pedir = async () => (await fetch(url + '?a=bloques&t=' + encodeURIComponent(token),
+                                           { redirect: 'follow' })).json();
+    let d = await pedir();
+    /* GOOGLE TARDA UNOS SEGUNDOS EN SERVIR LA VERSIÓN NUEVA. Antes esto lo
+       avisaba y seguía, y el paso siguiente horneaba el index con la versión
+       vieja. Ahora espera un poco a que conteste la nueva; si no llega, lo
+       dice, y preparar-index se niega a hornear con la vieja. */
+    for (let i = 0; i < ESPERAS_VERSION && d && d.ok && d.version !== version; i++) {
+      await new Promise(listo => setTimeout(listo, PAUSA_VERSION_MS));
+      d = await pedir();
+    }
     /* CUÁNTO TARDÓ, SIEMPRE. Esta llamada no lleva tope, así que puede tardar
        cuarenta segundos y decir «sí» tan tranquila — y el paso siguiente, que
        sí lo lleva, plantarse con la misma petición. Pasó montando la segunda
@@ -407,6 +418,10 @@ async function main() {
                     'implementaciones > lápiz > Versión: Nueva.\n');
       process.exit(1);
     }
+
+    /* Lo que se preguntó ANTES de publicar ya no vale: `bloques` traía la
+       versión vieja, y el index se horneaba con ella (bitácora 56). */
+    await olvidarSondeo();
 
     await verificar(version);
 

@@ -3586,5 +3586,49 @@ const configurar = (g, clave, valor) => {
      'ahí el diagnóstico de siempre es el bueno');
 }
 
+
+// ═══ El maestro vivo y el del repositorio (bitácora 56) ═══
+/* El montaje falló dos veces seguidas el 21 de septiembre con «LA VERSIÓN del
+   maestro y la del index son la misma», el index siempre UNA publicación por
+   detrás. La causa: el sondeo se toma antes de publicar el maestro, y `bloques`
+   salía de ahí con la versión vieja. Dos arreglos, y los dos se miran aquí. */
+{
+  const { versionDesalineada } = require('../montar/preparar-index.mjs');
+  ok('SI EL MAESTRO VIVO Y EL DEL REPOSITORIO COINCIDEN, preparar-index sigue',
+     versionDesalineada('v-del-repo', 'v-del-repo') === null);
+  const m = versionDesalineada('v-del-repo', 'v-la-viva') || '';
+  ok('  ...y si no, se para diciendo las dos versiones y QUÉ CASILLA marcar',
+     /v-la-viva/.test(m) && /v-del-repo/.test(m) && /Publicar también maestro\.gs/.test(m) &&
+     /PUBLICAR/.test(m) && /No toqué nada/.test(m), m.split('\n')[0]);
+  const pi = fs.readFileSync('../montar/preparar-index.mjs', 'utf8');
+  const cuerpo = pi.slice(pi.indexOf('async function main()'));
+  ok('  ...y lo mira ANTES de escribir el index, no después, y PARA',
+     cuerpo.indexOf('versionDesalineada(') !== -1 && /if \(falta\) throw new Error\(falta\)/.test(cuerpo) &&
+     cuerpo.indexOf('versionDesalineada(') < cuerpo.indexOf('escribirSiCambio(PUBLICAR'),
+     'parar después de escribir es dejar el index a medias');
+
+  const pm = fs.readFileSync('../montar/publicar-maestro.mjs', 'utf8');
+  const desp = pm.indexOf('clasp(desplegar');
+  ok('PUBLICAR EL MAESTRO TIRA EL SONDEO en cuanto la versión nueva queda publicada',
+     desp !== -1 && pm.indexOf('await olvidarSondeo()', desp) > desp &&
+     pm.indexOf('await olvidarSondeo()', desp) < pm.indexOf('await verificar(version)', desp),
+     'si no, el index se hornea con lo que contestaba el maestro ANTES');
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync('/tmp/tienda-sondeo-');
+  fs.writeFileSync(dir + '/sondeo.json', JSON.stringify({ cuando: new Date().toISOString(),
+                                                          respuestas: { bloques: { version: 'vieja' } } }));
+  execFileSync(process.execPath, ['--input-type=module', '-e',
+    "import(" + JSON.stringify(require('path').resolve('../montar/tienda.mjs')) + ").then(m => m.olvidarSondeo())"],
+    { cwd: dir });
+  ok('  ...y olvidarSondeo() de verdad lo borra', !fs.existsSync(dir + '/sondeo.json'));
+  ok('  ...y la comprobación espera a que Google sirva la versión nueva antes de rendirse',
+     /ESPERAS_VERSION/.test(pm) && /d\.version !== version/.test(pm));
+
+  const my = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
+  ok('EL MONTAJE PONE EN EL RESUMEN por qué no horneó el index',
+     /preparar-index\.mjs --desde 2>&1 \| tee \/tmp\/index\.txt/.test(my) && /### El index NO se horneó/.test(my),
+     'el mensaje que dice qué casilla marcar tiene que verse sin abrir el log');
+}
+
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);

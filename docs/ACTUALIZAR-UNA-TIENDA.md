@@ -21,10 +21,24 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.8.0 (tienda): el tablero en el panel — nada a mano en la hoja
+
+1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
+   **Desde esta versión eso funciona a la primera**: hasta la 0.7.0 el montaje
+   con la casilla horneaba el index con la versión anterior y fallaba igual
+   (bitácora 56). Si se dispara sin la casilla y el maestro vivo es otro, ya
+   no hornea nada: se para al principio y lo dice en el resumen.
+2. Ni `instalar()` ni el stub: el tablero lee lo que la hoja ya tiene.
+3. Comprobarlo: entrar al panel → pestaña **Tablero** → la cifra de ventas del
+   mes tiene que ser la de la pestaña Tablero de la hoja.
+
+---
+
 ## La 0.7.0 (tienda): inventario por combinación, registro, tienda cerrada — `instalar()`
 
 1. `git push` → `release` → `montaje` **con** `maestro` + `PUBLICAR`. Sin la
    casilla del maestro el montaje se niega —las versiones no casan— y tiene razón.
+   *(Con la casilla también fallaba, hasta la 0.8.0: ver arriba.)*
 2. **`A0_instalar()`**. Crea las pestañas `Inventario por variante` y
    `Registro`, genera las filas de los productos que ya tienen Variantes (con el
    stock vacío: **nada cambia** hasta que alguien ponga un número), y agrega

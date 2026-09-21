@@ -15,9 +15,9 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 >
 > **El alcance quedó cerrado el 18 de septiembre de 2026: el MVP son los hitos
 > M0 a M3** — y el 21 de septiembre el dueño le sumó **M3.5 · Cobrar en línea**
-> (PSE o botón de pago). El tablero gráfico, el rastreo del pedido y la actualización
-> automática de la flota **salen del MVP** y son la entrega siguiente (1.1), con
-> su orden ya decidido en el `ROADMAP.md`. El producto se llama **tienda**, el
+> (PSE o botón de pago) y **M4 · El tablero**. El rastreo del pedido y la
+> actualización automática de la flota **salen del MVP** y son la entrega
+> siguiente (1.1), con su orden ya decidido en el `ROADMAP.md`. El producto se llama **tienda**, el
 > repositorio empieza en **0.1.0** y el MVP sale como **1.0.0**.
 >
 > **Caduca cuando la 1.0.0 esté publicada.** Entonces: la arquitectura se
@@ -318,13 +318,18 @@ panel guarda al instante y marca «hay cambios sin publicar»; publicar es un
 botón que corre el flujo **una vez**. Publicar en cada guardado, con
 repositorios privados, sería pagar minutos por cada tecla.
 
-### 4.4 El tablero y el rastreo — **entrega 1.1, no el MVP**
+### 4.4 El tablero y el rastreo — **el tablero entró al MVP (M4); el rastreo, 1.1**
 
-Las dos páginas están diseñadas y **no se construyen todavía**:
+> **El 21 de septiembre de 2026 el tablero entró al MVP como M4**, y no como
+> página aparte sino como **pestaña del panel** (decisión 13). El resto de lo
+> diseñado se cumple igual: SVG escrito a mano, una petición por visita, la
+> tabla debajo de cada gráfica. El detalle está en §5, M4.
 
-- **`tablero.html`** — las métricas que ya calcula el maestro, en gráficas SVG
+Las dos piezas, como se diseñaron:
+
+- **El tablero** — las métricas que ya calcula el maestro, en gráficas SVG
   escritas a mano, sin librerías, con una sola petición por visita y la tabla de
-  datos debajo de cada gráfica.
+  datos debajo de cada gráfica. *Hecho en M4, dentro de `admin.html`.*
 - **`pedido.html`** — el comprador consulta su pedido con el número que ya
   viaja en su conversación de WhatsApp, sin que se guarde ni un dato suyo más.
   Antes hace falta que **el número no se pueda adivinar**.
@@ -420,17 +425,21 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 5. Si cambia un contrato de datos, la versión anterior sigue funcionando.
 6. Si toca `maestro.gs`, `panel.gs` o `plantilla/`, sube `version`.
 
-**El MVP son cinco hitos, y este es el orden:**
+**El MVP son seis hitos, y este es el orden:**
 
 ```
-M0 → M1 → M2 → M3 → M3.5        ← la 1.0.0
-                        M4 → M5 → M6   ← la 1.1, ya en el ROADMAP
+M0 → M1 → M2 → M3 → M3.5 → M4        ← la 1.0.0
+                             M5 → M6   ← la 1.1, ya en el ROADMAP
 ```
 
 > **M3.5 · Cobrar en línea entró al MVP el 21 de septiembre de 2026**, por
 > decisión del dueño: un integrador de pagos con PSE o botón de pago. Se numera
 > 3.5 y no 4 para no renumerar la 1.1, que ya está escrita con M4 a M6 en el
 > `ROADMAP.md` y en varias decisiones.
+>
+> **M4 · El tablero entró al MVP el mismo día**, también por decisión del
+> dueño. Era el primero de la 1.1 y el más barato: las cuentas ya existían
+> (`calcularMetricas`) y la puerta con sesión la dejó M3. Conserva su número.
 
 **M0 primero, y no es negociable**: hasta que `publicar/` sea producto y no
 fuente, todo lo demás se construye sobre arena — y los datos del comercio
@@ -1092,10 +1101,59 @@ hablaban del panel los cerró D-5.
 *(Todo el detalle operativo —llaves, prueba de sandbox, qué se portó de la
 línea anterior y qué se hizo distinto— en `docs/PAGOS-BOLD.md`.)*
 
+### M4 · El tablero   · entró al MVP el 21 de septiembre de 2026
+
+> **Por qué entra, y por qué es barato.** El comerciante ya tenía sus números
+> en la pestaña Tablero de la hoja, pero M3 le quitó la hoja como interfaz: lo
+> que no esté en el panel, para él no existe. Las cuentas ya estaban hechas y
+> probadas (`calcularMetricas`, `tablero.js`), y la sesión del panel ya existía.
+> Lo que faltaba era una puerta de solo lectura y el dibujo.
+
+**T-1 · La puerta del tablero**  · 2 pts · ✅ 21-sep-2026
+*Como comerciante, quiero ver mis números en el panel sin abrir la hoja.*
+- [x] Puerta `tablero`, con sesión y solo por POST, **al final** de `PUERTAS`
+      (R1). Congelada en `esquema.json`.
+- [x] Sale de `calcularMetricas()` y de ningún otro sitio: la pestaña Tablero,
+      el correo del día y esta puerta leen la misma función. Las variaciones
+      también llegan hechas, con la `variacion()` de la hoja.
+- [x] **Ni un dato de un comprador**: pedidos contados, productos por nombre,
+      ciudades por cuántos pedidos. Ni el número de pedido viaja.
+- [x] Listas con tope (20) y el total aparte: «y 7 más».
+
+**T-2 · Las gráficas, en el panel**  · 3 pts · ✅ 21-sep-2026
+*Como comerciante, quiero entender de un vistazo cómo va el mes.*
+- [x] Pestaña **Tablero** en `admin.html`: cuatro cifras (ventas, pedidos,
+      ticket, cierre) contra el mes pasado **a la misma altura**; ventas mes a
+      mes (seis meses); embudo carrito → pedido → venta; lo más vendido;
+      dónde compran; para atender hoy; inventario.
+- [x] **SVG escrito a mano, sin librerías.** Cada gráfica con `role="img"`,
+      su resumen en palabras, y **su tabla debajo** con las mismas cifras.
+- [x] Lo que viene de la hoja entra por `escapar()`, **también dentro del SVG**
+      —un `<img>` dentro de un `<svg>` pintado con innerHTML se ejecuta—.
+- [x] Sin ventas, lo dice en vez de dibujar barras vacías.
+- [x] En un celular de 390 px no hay que desplazarse de lado.
+
+**T-3 · Una petición por visita**  · 1 pt · ✅ 21-sep-2026
+- [x] Se pide al abrir la pestaña, no al entrar al panel. Ir y volver no
+      vuelve a pedir; **Actualizar** sí. Nada se refresca solo ni se programa:
+      cada lectura es una ejecución de Apps Script (§6).
+- [x] Salir borra lo leído: el siguiente en el computador del mostrador no ve
+      las ventas del anterior.
+
+**Lo prueba** `pruebas/paneltablero.js` (24 aserciones), con sus controles
+negativos verificados en rojo: la puerta sin guarda, una cuenta copiada que se
+desvía un peso, la página que vuelve a pedir en cada visita y el nombre sin
+escapar dentro del SVG.
+
+**Qué no hace, a propósito:** no dibuja tendencias diarias ni compara años —la
+hoja no guarda visitas, y con cientos de pedidos al mes una serie diaria es
+ruido—; no exporta; no se ve sin sesión.
+
 ### Lo que sigue después del MVP
 
-**M4 · El tablero · M5 · El rastreo del pedido · M6 · La flota que se actualiza
-sola.** Están diseñados y **fuera de esta entrega** (D11). Su detalle —qué
+**M5 · El rastreo del pedido · M6 · La flota que se actualiza sola.** Están
+diseñados y **fuera de esta entrega** (D11). *(M4 · El tablero entró al MVP el
+21 de septiembre.)* Su detalle —qué
 hacen, en qué orden, y las dos condiciones que no se pueden olvidar: que el
 número de pedido no se pueda adivinar antes de abrir el rastreo, y que la
 publicación automática del maestro se verifique contra la tienda viva y sepa
@@ -1103,7 +1161,8 @@ volver atrás sola— está en `ROADMAP.md`, fase 2.
 
 **Lo que el MVP les deja hecho**, y por eso después son baratos: el horneado
 determinista y `publicar/` como producto (M0) son la mitad de M6; el testigo de
-sesión y las acciones `?a=admin.*` de M3 son la puerta que M4 necesita; y el
+sesión y las acciones del panel de M3 fueron la puerta que M4 necesitaba —y por
+eso M4 cupo en el MVP—; y el
 número de pedido de M5 solo depende de una decisión, no de la infraestructura.
 
 ---
@@ -1151,7 +1210,7 @@ vivo», ese es el número que hay que mirar.
 | **Nombre** | El producto se llama **tienda**. Este repositorio es la semilla de su segunda versión |
 | **Versión** | Empieza en **0.1.0**; el MVP sale como **1.0.0**. `organico` sigue en 3.x, aparte |
 | **Datos de empresa** | **Bloquean**: sin ellos no se publica (§4.2) |
-| **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1. *(Ampliado el 21 de septiembre: entra **M3.5 · Cobrar en línea**.)* |
+| **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1. *(Ampliado el 21 de septiembre: entran **M3.5 · Cobrar en línea** y **M4 · El tablero**.)* |
 | **Repositorios** | Semilla y tiendas privadas. La semilla se hará pública cuando el consumo llegue al umbral que el dueño está midiendo; las tiendas, nunca |
 | **Fusión** | El único pull request manual es el de la semilla |
 

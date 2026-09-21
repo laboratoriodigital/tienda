@@ -123,6 +123,26 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
 .fila-combo{display:grid;grid-template-columns:1fr 96px;gap:2px 10px;align-items:center;margin:0 0 6px}
 .fila-combo label{margin:0;font-weight:500}
 .fila-combo .error-campo{grid-column:1/-1;margin:0}
+
+/* ── Tablero (M4) ── */
+.cabeza-tablero{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 6px}
+.cabeza-tablero .cuenta{margin:0}
+.cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 4px}
+.cifra{background:var(--blanco);border:1px solid var(--linea);border-radius:var(--radio);padding:12px 14px}
+.cifra .rotulo{font-size:.78rem;color:var(--tenue)}
+.cifra .valor{font-size:1.35rem;font-weight:700;line-height:1.25;margin:2px 0}
+.cifra .antes{font-size:.78rem;color:var(--tenue)}
+.cifra .sube{color:var(--verde);font-weight:600}.cifra .baja{color:var(--rojo);font-weight:600}
+.grafica{margin:14px 0}
+.grafica h3{font-size:.95rem;margin:0 0 2px}
+.grafica .ayuda{margin:0 0 8px}
+.grafica svg{display:block;width:100%;height:auto;max-width:640px}
+.grafica table.lineas{margin-top:8px;table-layout:fixed}
+.grafica table.lineas td,.grafica table.lineas th{overflow-wrap:anywhere}
+.grafica table.lineas th{font-size:.75rem;font-weight:600;color:var(--tenue);text-align:left;padding:4px;border-bottom:1px solid var(--linea)}
+.grafica table.lineas th.n{text-align:right}
+.lista-corta{font-size:.88rem;margin:4px 0 0 18px}
+.alerta{color:var(--rojo);font-weight:600}
 </style>
 </head>
 <body>
@@ -178,6 +198,7 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
       <button type="button" role="tab" id="tab-productos" aria-selected="true" data-vista="productos">Productos</button>
       <button type="button" role="tab" id="tab-pedidos" aria-selected="false" data-vista="pedidos">Pedidos</button>
       <button type="button" role="tab" id="tab-tienda" aria-selected="false" data-vista="tienda">Tu tienda</button>
+      <button type="button" role="tab" id="tab-tablero" aria-selected="false" data-vista="tablero">Tablero</button>
     </nav>
 
     <!-- ═══ PRODUCTOS (D-2) ═══ -->
@@ -334,6 +355,20 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
         </div>
       </form>
     </div>
+
+    <!-- ═══ TABLERO (M4) ═══
+         Los números de la pestaña Tablero de la hoja, dibujados. UNA PETICIÓN
+         POR VISITA: se piden al abrir esta pestaña y no se repiten solos; para
+         cifras nuevas está Actualizar. Cada gráfica lleva su tabla debajo, que
+         dice lo mismo en texto: se lee sin ver la gráfica. -->
+    <div id="vista-tablero" hidden>
+      <div class="cabeza-tablero">
+        <p class="cuenta" id="consultadoTablero"></p>
+        <button class="btn linea chico" type="button" id="actualizarTablero">Actualizar</button>
+      </div>
+      <p class="aviso" id="avisoTablero" role="status" hidden></p>
+      <div id="tablero"></div>
+    </div>
   </section>
 </main>
 
@@ -445,8 +480,8 @@ async function entrar(ev){
 function cerrarSesion(motivo){
   guardarTestigo("");
   clearTimeout(sondeo);
-  productos = []; editando = null;
-  $("#lista").innerHTML = "";
+  productos = []; editando = null; datosTablero = null;
+  $("#lista").innerHTML = ""; $("#tablero").innerHTML = "";
   mostrar("entrar");
   aviso("#avisoEntrar", motivo ? "info" : "", motivo || "");
 }
@@ -805,12 +840,14 @@ async function borrar(){
    LAS PESTAÑAS
    ═══════════════════════════════════════════════════════════════════════════ */
 function mostrarVista(v){
-  ["productos", "pedidos", "tienda"].forEach(x => {
+  ["productos", "pedidos", "tienda", "tablero"].forEach(x => {
     $("#vista-" + x).hidden = x !== v;
     $("#tab-" + x).setAttribute("aria-selected", String(x === v));
   });
   if (v === "pedidos") cargarPedidos();
   if (v === "tienda") cargarTienda();
+  /* Una petición por visita: si ya se leyó, se vuelve a pintar lo leído. */
+  if (v === "tablero" && !datosTablero) cargarTablero();
 }
 
 /* Cuándo, dicho como lo dice una persona. */
@@ -1148,6 +1185,169 @@ async function guardarTienda(ev){
   } finally { $("#guardarTienda").disabled = false; }
 }
 
+/* ── El tablero (M4) ────────────────────────────────────────────────────────
+   Las gráficas son SVG escrito aquí, sin librerías: una dependencia pesaría
+   más que todo esto junto, pediría otra entrada en la política de seguridad y
+   tardaría en un celular. Todo texto que viene de la hoja —nombres de
+   producto, ciudades— entra por escapar(), también dentro del SVG.
+
+   Las cuentas NO se hacen aquí. Llegan hechas de calcularMetricas(), la misma
+   función que escribe la pestaña Tablero de la hoja y el correo del día; la
+   página solo dibuja. Los porcentajes de variación también llegan hechos. */
+let datosTablero = null;
+
+async function cargarTablero(){
+  $("#actualizarTablero").disabled = true;
+  aviso("#avisoTablero", "", datosTablero ? "" : "Leyendo tus números…");
+  try {
+    const r = await llamar("tablero");
+    if (!r.ok) { aviso("#avisoTablero", "mal", r.error || "No se pudo leer el tablero."); return; }
+    datosTablero = r;
+    aviso("#avisoTablero", "", "");
+    pintarTablero();
+  } catch (e) {
+    if (e.message !== "sesion") aviso("#avisoTablero", "mal", "No se pudo hablar con tu tienda. Revisa la conexión y pulsa Actualizar.");
+  } finally {
+    $("#actualizarTablero").disabled = false;
+  }
+}
+
+const porciento = x => Math.round((Number(x) || 0) * 100) + "%";
+/* Pesos cortos para dentro de la gráfica, donde no cabe «$1.250.000». */
+function pesosCortos(n){
+  n = Math.round(Number(n) || 0);
+  if (n >= 1e6) return "$" + (n / 1e6).toLocaleString("es-CO", { maximumFractionDigits: 1 }) + " M";
+  if (n >= 1e3) return "$" + Math.round(n / 1e3).toLocaleString("es-CO") + " mil";
+  return "$" + n;
+}
+
+/* Barras verticales: una por mes. */
+function svgColumnas(filas, resumen){
+  const W = 600, H = 190, arriba = 22, abajo = 26, alto = H - arriba - abajo;
+  const tope = Math.max(1, ...filas.map(f => f.valor));
+  const paso = W / filas.length, ancho = Math.min(64, paso * 0.62);
+  const barras = filas.map((f, i) => {
+    const h = f.valor > 0 ? Math.max(2, Math.round(f.valor / tope * alto)) : 0;
+    const x = Math.round(i * paso + (paso - ancho) / 2), y = arriba + alto - h, cx = Math.round(i * paso + paso / 2);
+    return `<rect x="${x}" y="${y}" width="${Math.round(ancho)}" height="${h}" rx="3" fill="${f.resaltar ? "#111" : "#9DB8A6"}"></rect>` +
+      `<text x="${cx}" y="${y - 6}" text-anchor="middle" font-size="13" fill="#111">${escapar(f.corto)}</text>` +
+      `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="13" fill="#6E6E6E"${f.resaltar ? ' font-weight="700"' : ""}>${escapar(f.rotulo)}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapar(resumen)}">` +
+    `<line x1="0" y1="${arriba + alto}" x2="${W}" y2="${arriba + alto}" stroke="#E4E4E4"></line>${barras}</svg>`;
+}
+
+/* Barras horizontales: el rótulo encima, la barra debajo y la cifra al final. */
+function svgBarras(filas, resumen){
+  const W = 600, fila = 42;
+  const tope = Math.max(1, ...filas.map(f => f.valor));
+  const cuerpo = filas.map((f, i) => {
+    const y = i * fila, largo = f.valor > 0 ? Math.max(3, Math.round(f.valor / tope * (W - 110))) : 0;
+    return `<text x="0" y="${y + 15}" font-size="14" fill="#111">${escapar(f.rotulo)}</text>` +
+      `<rect x="0" y="${y + 21}" width="${largo}" height="12" rx="3" fill="${f.color || "#9DB8A6"}"></rect>` +
+      `<text x="${largo + 8}" y="${y + 32}" font-size="13" fill="#6E6E6E">${escapar(f.corto)}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${filas.length * fila}" role="img" aria-label="${escapar(resumen)}">${cuerpo}</svg>`;
+}
+
+function tabla(columnas, filas){
+  return `<table class="lineas"><thead><tr>${columnas.map((c, i) => `<th${i ? ' class="n"' : ""}>${escapar(c)}</th>`).join("")}</tr></thead>` +
+    `<tbody>${filas.map(f => `<tr>${f.map((v, i) => `<td${i ? ' class="n"' : ""}>${escapar(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function cifra(rotulo, valor, antes, variacion){
+  const clase = /▲/.test(variacion || "") ? "sube" : /▼/.test(variacion || "") ? "baja" : "";
+  return `<div class="cifra"><div class="rotulo">${escapar(rotulo)}</div><div class="valor">${escapar(valor)}</div>` +
+    `<div class="antes">${escapar(antes)}${variacion ? ` · <span class="${clase}">${escapar(variacion)}</span>` : ""}</div></div>`;
+}
+
+function listaConResto(nombres, total){
+  if (!total) return "";
+  const resto = total - nombres.length;
+  return `<ul class="lista-corta">${nombres.map(n => `<li>${escapar(n)}</li>`).join("")}` +
+    `${resto > 0 ? `<li>y ${resto} más</li>` : ""}</ul>`;
+}
+
+function pintarTablero(){
+  const d = datosTablero; if (!d) return;
+  const A = d.esteMes, H = d.aEstaAltura;
+  $("#consultadoTablero").textContent = "Tus números, leídos " + hace(d.consultado) +
+    ". No se actualizan solos: pulsa Actualizar para verlos de nuevo.";
+  const tramo = "El mes pasado a día " + d.dia + ": ";
+  const partes = [];
+
+  partes.push(`<div class="cifras">` +
+    cifra("Ventas de este mes", pesos(A.ventas), tramo + pesos(H.ventas), d.variacion.ventas) +
+    cifra("Pedidos vendidos", String(A.pedidos), tramo + H.pedidos, d.variacion.pedidos) +
+    cifra("Ticket promedio", pesos(A.ticket), tramo + pesos(H.ticket), d.variacion.ticket) +
+    cifra("Pedidos que se cerraron", A.hechos ? porciento(A.tasaCierre) : "—",
+          A.hechos ? A.pedidos + " de " + A.hechos + " pedidos hechos" : "Todavía no hay pedidos este mes", "") +
+    `</div>`);
+
+  // Ventas mes a mes
+  const conVentas = d.meses.some(m => m.ventas > 0);
+  partes.push(`<section class="grafica tarjeta" id="grafica-meses"><h3>Ventas mes a mes</h3>` +
+    `<p class="ayuda">Solo lo vendido: pedidos en Pagado, Despachado o Entregado. El mes en curso va en negro.</p>` +
+    (conVentas
+      ? svgColumnas(d.meses.map(m => ({ rotulo: m.etiqueta, valor: m.ventas, corto: m.ventas ? pesosCortos(m.ventas) : "", resaltar: m.actual })),
+                    "Ventas de los últimos seis meses: " + d.meses.map(m => m.etiqueta + " " + pesos(m.ventas)).join(", "))
+      : `<p class="dato">Todavía no hay ventas confirmadas.</p>`) +
+    tabla(["Mes", "Ventas", "Pedidos"], d.meses.map(m => [m.etiqueta, pesos(m.ventas), String(m.pedidos)])) +
+    `</section>`);
+
+  // Embudo
+  const pasos = [
+    { rotulo: "Armaron un carrito", valor: A.carritos, nota: "" },
+    { rotulo: "Hicieron el pedido", valor: A.hechos, nota: A.carritos ? porciento(A.tasaPedido) + " de los carritos" : "" },
+    { rotulo: "Se vendió", valor: A.pedidos, nota: A.hechos ? porciento(A.tasaCierre) + " de los pedidos" : "" }
+  ];
+  partes.push(`<section class="grafica tarjeta" id="grafica-embudo"><h3>De carrito a venta, este mes</h3>` +
+    `<p class="ayuda">Si cae el primer paso, revisa precios o envío. Si cae el segundo, la conversación.</p>` +
+    (A.carritos || A.hechos
+      ? svgBarras(pasos.map(x => ({ rotulo: x.rotulo, valor: x.valor, corto: String(x.valor) + (x.nota ? " · " + x.nota : ""), color: "#7FA38C" })),
+                  "Embudo de este mes: " + pasos.map(x => x.rotulo + " " + x.valor).join(", "))
+      : `<p class="dato">Todavía no hay carritos este mes.</p>`) +
+    tabla(["Paso", "Cuántos", "De cada paso al siguiente"], pasos.map(x => [x.rotulo, String(x.valor), x.nota])) +
+    `</section>`);
+
+  // Para atender hoy
+  partes.push(`<section class="grafica tarjeta" id="bloque-atender"><h3>Para atender hoy</h3>` +
+    `<p class="dato">Pedidos por confirmar: <b>${d.porConfirmar}</b>` +
+    (d.atrasados ? ` · <span class="alerta">${d.atrasados} de más de 24 horas: escríbeles hoy</span>` : "") + `</p>` +
+    (d.errores ? `<p class="dato"><span class="alerta">Errores registrados: ${d.errores}</span> · míralos en la pestaña Errores de la hoja</p>` : "") +
+    `</section>`);
+
+  // Lo que más se vende
+  partes.push(`<section class="grafica tarjeta" id="grafica-vendidos"><h3>Lo que más se vende</h3>` +
+    `<p class="ayuda">Unidades vendidas en los últimos 30 días.</p>` +
+    (d.masVendidos.length
+      ? svgBarras(d.masVendidos.map(x => ({ rotulo: x.nombre, valor: x.unidades, corto: x.unidades + " · " + pesosCortos(x.ingresos), color: "#111" })),
+                  "Lo más vendido en 30 días: " + d.masVendidos.map(x => x.nombre + " " + x.unidades).join(", ")) +
+        tabla(["Producto", "Unidades", "Ingresos"], d.masVendidos.map(x => [x.nombre, String(x.unidades), pesos(x.ingresos)]))
+      : `<p class="dato">Todavía no hay ventas en los últimos 30 días.</p>`) +
+    `</section>`);
+
+  // Dónde compran
+  partes.push(`<section class="grafica tarjeta" id="grafica-ciudades"><h3>Dónde compran</h3>` +
+    `<p class="ayuda">Pedidos vendidos por ciudad, últimos 30 días.</p>` +
+    (d.porCiudad.length
+      ? svgBarras(d.porCiudad.map(x => ({ rotulo: x.ciudad, valor: x.pedidos, corto: String(x.pedidos) })),
+                  "Pedidos por ciudad: " + d.porCiudad.map(x => x.ciudad + " " + x.pedidos).join(", ")) +
+        tabla(["Ciudad", "Pedidos"], d.porCiudad.map(x => [x.ciudad, String(x.pedidos)]))
+      : `<p class="dato">Todavía no hay ventas en los últimos 30 días.</p>`) +
+    `</section>`);
+
+  // Inventario
+  partes.push(`<section class="grafica tarjeta" id="bloque-inventario"><h3>Inventario</h3>` +
+    `<p class="dato">Agotados: <b${d.cuantosAgotados ? ' class="alerta"' : ""}>${d.cuantosAgotados}</b></p>${listaConResto(d.agotados, d.cuantosAgotados)}` +
+    `<p class="dato">Con 5 unidades o menos: <b>${d.cuantosPocos}</b></p>${listaConResto(d.pocos, d.cuantosPocos)}` +
+    `<p class="dato">Sin vender en 30 días: <b>${d.cuantosSinVender}</b></p>${listaConResto(d.sinVender, d.cuantosSinVender)}` +
+    `</section>`);
+
+  partes.push(`<p class="ayuda" style="margin:10px 0 40px">Son los mismos números de la pestaña Tablero de tu hoja.</p>`);
+  $("#tablero").innerHTML = partes.join("");
+}
+
 /* ── Arranque ── */
 $("#formEntrar").addEventListener("submit", entrar);
 $("#salir").addEventListener("click", () => cerrarSesion(""));
@@ -1163,6 +1363,7 @@ $("#f-foto").addEventListener("change", subirFoto);
 $("#guardarCombinaciones").addEventListener("click", guardarCombinaciones);
 document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.vista)));
 $("#publicar").addEventListener("click", publicar);
+$("#actualizarTablero").addEventListener("click", cargarTablero);
 $("#chipsEstados").addEventListener("click", ev => { const b = ev.target.closest("button[data-estado]");
   if (!b) return; filtroEstado = b.dataset.estado; cargarPedidos(); });
 let tempBuscarPedido = null;

@@ -16,9 +16,10 @@ Este repositorio es **la semilla de la segunda versión de la tienda virtual**.
 El producto se llama **tienda**. Nació como copia de la semilla de la línea
 anterior en su versión 3.0.0, con sus defectos dentro.
 
-El repositorio arranca en **0.1.0** y el MVP sale como **1.0.0**. El MVP son
-**cuatro hitos, M0 a M3** — el tablero gráfico, el rastreo del pedido y la
-actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
+El repositorio arranca en **0.1.0** y el MVP sale como **1.0.0**. El MVP
+empezó siendo **M0 a M3**; el 21 de septiembre el dueño le sumó **M3.5 · Cobrar
+en línea** y **M4 · El tablero**. El rastreo del pedido (M5) y la actualización
+automática de la flota (M6) siguen **fuera**, y son la entrega 1.1.
 
 **Dónde va el trabajo (21 de septiembre de 2026):**
 
@@ -28,7 +29,8 @@ actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 | **M1** · Rendimiento y cuota | **Cerrado entero.** Los dos criterios de panel de B-2 los cerró D-5 |
 | **M2** · La tienda para todo producto | **Cerrado** el 21 de septiembre: C-1, C-1b (inventario y fotos por combinación), C-2, C-3 (envío gratis anunciado, horario, tienda cerrada, pedido mínimo) y C-4 |
 | **M3** · El panel del comerciante | **Cerrado** el 21 de septiembre: D-1 a D-7. Entra, edita productos, fotos y stock por combinación, cambia pedidos, edita la configuración, publica, deja registro de todo, y la guía de una página ya explica el panel |
-| **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) y, |
+| **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) |
+| **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
 
@@ -46,7 +48,7 @@ real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
 entero por delante. Los dos, holgadamente dentro del presupuesto de
 `presupuesto.json`.
 
-**El MVP está construido** (M0 a M3.5). Lo que queda antes de llamarlo 1.0.0
+**El MVP está construido** (M0 a M4). Lo que queda antes de llamarlo 1.0.0
 no es código nuevo, es comprobarlo en una tienda de verdad:
 
 1. **La prueba de Bold** con las llaves de pruebas en una tienda publicada
@@ -65,6 +67,11 @@ de pruebas en una tienda publicada.
 
 El `publicar/404.html` con la marca de la línea anterior quedó resuelto el 21 de
 septiembre (bitácora 55).
+
+**El montaje con la casilla del maestro fallaba siempre** hasta la versión
+2026-09-21-3: horneaba el index con la versión que contestaba el maestro antes
+de publicarse (bitácora 56). Arreglado; y si el maestro vivo no es el del
+repositorio, el montaje ahora se para al principio y dice qué casilla marcar.
 
 ---
 

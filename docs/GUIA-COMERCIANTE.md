@@ -41,6 +41,10 @@ despachar. Tú solo despachas y lo pasas a Despachado.
 **Tu tienda** — textos, colores, horario, envío gratis, **pedido mínimo** y
 **cerrar la tienda** por unos días (se puede mirar, no se puede pedir).
 
+**Tablero** — cómo va el mes: ventas contra el mes pasado a la misma altura,
+de carrito a venta, lo que más se vende, dónde compran y qué se está
+acabando. No se actualiza solo: pulsa **Actualizar** para ver lo último.
+
 Todo lo que cambias queda en la pestaña **Registro** de la hoja: quién, cuándo,
 y cómo estaba antes.
 

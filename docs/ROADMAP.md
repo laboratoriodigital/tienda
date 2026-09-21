@@ -32,6 +32,8 @@ cualquier comercio; el cuarto es la mitad del trabajo.
 | M1 | Rendimiento y cuota | Publicación a demanda, sin el cron de cuatro horas; una sola pregunta al maestro; fotos en paralelo; presupuesto con guardia. **De ~535 a ~100 minutos de Actions al mes por tienda** |
 | M2 | La tienda para todo producto | Variantes; SEO horneado con JSON-LD y sitemap; envío gratis anunciado; horario; mínimo de pedido; orden del catálogo |
 | M3 | El panel básico del comerciante | Productos, pedidos, configuración y publicar, desde una página web con usuario y clave. La hoja deja de ser la interfaz |
+| M3.5 | Cobrar en línea *(entró el 21-sep)* | `cobro_modo` en la hoja: WhatsApp, o la pasarela de Bold con la unidad apartada mientras se paga (decisión 12) |
+| M4 | El tablero *(entró el 21-sep)* | La pestaña Tablero del panel: los números de la hoja en gráficas SVG, con su tabla debajo y una petición por visita (decisión 13) |
 
 Lo que **no** entra, y su consecuencia, está escrito en `PLAN-MVP.md` §4.9.
 
@@ -42,8 +44,10 @@ Tres cosas diseñadas y aplazadas el 18 de septiembre. **No se vuelven a
 discutir: se construyen en este orden**, y lo que sigue guarda las decisiones
 que ya se tomaron, para no volver a tomarlas.
 
-**S1 · El tablero gráfico**   [1.1]
-`publicar/tablero.html`: ventas, ticket, tasa de cierre, embudo, más vendidos y
+**S1 · El tablero gráfico**   [MVP · M4, hecho el 21 de septiembre de 2026]
+*Entró al MVP como M4, y como pestaña del panel en vez de página aparte
+(decisión 13). Lo demás, como estaba escrito aquí.*
+~~`publicar/tablero.html`~~ la pestaña Tablero de `admin.html`: ventas, ticket, tasa de cierre, embudo, más vendidos y
 agotados, en gráficas. **Una sola petición por visita** —ni refresco solo, ni
 nada programado—, **SVG escrito a mano sin librerías** —más barato que una
 dependencia, cabe en la política de seguridad y carga en un móvil—, y **cada

@@ -59,7 +59,18 @@ function esquemaVivo() {
          que se rechaza, que es tan contrato como la forma con la que se
          acepta — la página la lee para saber si pintar el formulario. */
       entrar:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"entrar"}' } })._texto)),
-      sesion:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"sesion"}' } })._texto))
+      sesion:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"sesion"}' } })._texto)),
+      /* M4 · lo que dibuja la pestaña Tablero del panel. Con sesión, porque
+         sin ella no contesta nada que valga la pena fotografiar. */
+      tablero:   (function () {
+        const post = o => JSON.parse(g.api.doPost({ postData: { contents: JSON.stringify(o) } })._texto);
+        const f = g.filas('Configuración').findIndex(x => String(x[0]) === 'panel_usuario') + 1;
+        g.hojas.get('Configuración').getRange(f, 2).setValue('dona.rosa');
+        const clave = (String(g.api.claveDelPanel().texto || '').match(/Clave:\s+(\S+)/) || [])[1];
+        const k = post({ a: 'entrar', u: 'dona.rosa', c: clave }).testigo;
+        const d = post({ a: 'tablero', k: k });
+        return Object.keys(d).concat(Object.keys(d.esteMes || {}).map(x => 'esteMes.' + x));
+      })()
     },
     registros: {
       producto: Object.keys((catalogo.productos || [])[0] || {}),

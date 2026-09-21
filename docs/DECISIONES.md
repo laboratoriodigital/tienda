@@ -636,6 +636,46 @@ la lista de alta vigila.
 
 ---
 
+## 13 · El tablero, dentro del panel y no en una página aparte
+
+**Estado:** CERRADA el 21 de septiembre de 2026, con la entrada de M4 al MVP.
+
+### Qué hacía
+
+El comerciante leía sus números en la pestaña Tablero de la hoja. El
+`ROADMAP.md` tenía diseñado `publicar/tablero.html`: una página propia, que
+entraba «por el mismo testigo de sesión que el panel».
+
+### El límite real
+
+El testigo vive en `sessionStorage`, que es **por pestaña del navegador** (así
+se cierra la sesión al cerrarla: M3). Una página aparte abierta en otra pestaña
+no lo ve y pide la clave otra vez; pasarlo en la dirección es justo lo que M3
+prohíbe. Y una página más es un horneado más, una política de seguridad más y
+una batería de marca más que mantener.
+
+### La decisión
+
+El tablero es una **pestaña del panel** (`admin.html`), con su propia puerta de
+solo lectura (`tablero`). Todo lo demás que se decidió para S1 se cumple igual:
+SVG escrito a mano, una petición por visita, la tabla debajo de cada gráfica, y
+las cuentas en `calcularMetricas()` y en ningún otro sitio.
+
+### Condición de disparo
+
+Pasarlo a página propia solo si el panel empieza a pesar lo bastante como para
+que abrirlo en un celular se note (hoy: 1 petición al entrar, el tablero no se
+pide hasta que se abre su pestaña), o si alguien que no administra —un socio—
+necesita ver los números sin poder editar: eso es la historia de roles (fase 2.2),
+no un problema de página.
+
+### Contrapartida
+
+El tablero no tiene dirección propia: no se puede dejar como marcador ni
+mandarle el enlace a alguien. Y el panel crece unas 180 líneas.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

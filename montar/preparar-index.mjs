@@ -234,9 +234,51 @@ async function escribirSiCambio(ruta, nuevo, etiqueta) {
   return false;
 }
 
+/* ── EL MAESTRO VIVO Y EL DEL REPOSITORIO TIENEN QUE SER EL MISMO ──────────
+   SCRIPT_VERSION se hornea con lo que CONTESTA el maestro publicado, y las
+   baterías exigen que sea la VERSION de maestro.gs. Si el repositorio trae un
+   maestro nuevo y nadie lo publicó, seguir es escribir un index que las
+   baterías tumban diez minutos después con «LA VERSIÓN del maestro y la del
+   index son la misma», un mensaje que dice QUÉ pasó pero no QUÉ HACER.
+
+   Pasó dos veces seguidas el 21 de septiembre de 2026 (bitácora 56): el
+   repositorio subió de versión y el montaje se disparó sin la casilla del
+   maestro. Aquí se para antes de escribir nada, y dice qué casilla marcar.
+
+   Devuelve el mensaje, o null si coinciden. Si la versión del repositorio no
+   se puede leer no se inventa un fallo: las baterías siguen mirando. */
+export function versionDesalineada(delRepositorio, laViva) {
+  if (!delRepositorio || delRepositorio === laViva) return null;
+  return [
+    'EL MAESTRO PUBLICADO CONTESTA LA VERSIÓN ' + (laViva || '(ninguna)') +
+      ' Y ESTE REPOSITORIO TRAE LA ' + delRepositorio + '.',
+    '',
+    'El index se hornea con la versión que contesta el maestro vivo, y las baterías',
+    'exigen la del repositorio: seguir era escribir un index que no pasa.',
+    '',
+    'Qué hacer: vuelve a disparar «montaje» con la casilla',
+    '«¿Publicar también maestro.gs?» MARCADA y PUBLICAR escrito abajo.',
+    'O pega maestro.gs en el editor de Apps Script, publica una versión nueva de',
+    'la implementación, y vuelve a dispararlo sin la casilla.',
+    '',
+    'No toqué nada.'
+  ].join('\n');
+}
+
+async function versionDelRepositorio() {
+  try {
+    return ((await readFile('maestro.gs', 'utf8')).match(/var VERSION = '([^']+)'/) || [])[1] || '';
+  } catch { return ''; }
+}
+
 async function main() {
   const tienda = await laTienda();
   const datos = await alMaestro(tienda, 'bloques');
+
+  if (!revisar) {
+    const falta = versionDesalineada(await versionDelRepositorio(), datos.valores.SCRIPT_VERSION);
+    if (falta) throw new Error(falta);
+  }
 
   const plantilla = await readFile(PLANTILLA, 'utf8');
   const nuevo = aplicar(plantilla, datos);
