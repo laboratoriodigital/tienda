@@ -273,10 +273,24 @@ async function versionDelRepositorio() {
 
 async function main() {
   const tienda = await laTienda();
-  const datos = await alMaestro(tienda, 'bloques');
+  let datos = await alMaestro(tienda, 'bloques');
 
   if (!revisar) {
-    const falta = versionDesalineada(await versionDelRepositorio(), datos.valores.SCRIPT_VERSION);
+    const delRepo = await versionDelRepositorio();
+    /* RECIÉN PUBLICADO, GOOGLE PUEDE TARDAR EN SERVIRLO. El flujo lo avisa con
+       ESPERAR_MAESTRO_S cuando publicó el maestro en esta misma corrida: se
+       vuelve a preguntar cada quince segundos hasta ese tope antes de rendirse.
+       Sin la variable no se espera: si nadie publicó, esperar no arregla nada.
+       (Bitácora 57: el primer montaje de la 0.8.0 falló justo aquí y el
+       segundo, un minuto después, pasó.) */
+    const tope = Date.now() + (Number(process.env.ESPERAR_MAESTRO_S) || 0) * 1000;
+    while (versionDesalineada(delRepo, datos.valores.SCRIPT_VERSION) && Date.now() < tope) {
+      console.log('  · El maestro todavía contesta ' + datos.valores.SCRIPT_VERSION +
+                  '; espero a que Google sirva la ' + delRepo + '…');
+      await new Promise(listo => setTimeout(listo, 15000));
+      datos = await alMaestro(tienda, 'bloques');
+    }
+    const falta = versionDesalineada(delRepo, datos.valores.SCRIPT_VERSION);
     if (falta) throw new Error(falta);
   }
 

@@ -85,24 +85,27 @@ const cuantasTablero = async () => ((await (await fetch(U + '/__peticiones')).js
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
 
-  await p.goto(U + '/admin.html');
-  await hasta(p, () => !document.querySelector('#entrar').hidden);
-  await p.fill('#usuario', 'dona.rosa'); await p.fill('#clave', clave);
-  await p.click('#botonEntrar');
-  await hasta(p, () => !document.querySelector('#panel').hidden && document.querySelectorAll('#lista .fila').length > 0);
   /* Las dos de arriba, las de la puerta, también están contadas: lo que se
      mira es cuántas pide la PÁGINA desde aquí. */
   const antes = await cuantasTablero();
   const pidio = async () => (await cuantasTablero()) - antes;
-  ok('ABRIR EL PANEL no pide el tablero: se pide al abrir su pestaña', (await pidio()) === 0, (await pidio()) + ' peticiones');
+  await p.goto(U + '/admin.html');
+  await hasta(p, () => !document.querySelector('#entrar').hidden);
+  await p.fill('#usuario', 'dona.rosa'); await p.fill('#clave', clave);
+  await p.click('#botonEntrar');
+  /* 0.9.0 · se entra por Ventas: el tablero arriba, los pedidos, las gráficas. */
+  await hasta(p, () => document.querySelectorAll('#pantalla-ventas svg').length > 0);
+  ok('AL ENTRAR se ve Ventas, con las gráficas', (await p.locator('#pantalla-ventas svg').count()) >= 4 &&
+     !(await p.locator('#pantalla-ventas').isHidden()), (await p.locator('#pantalla-ventas svg').count()) + ' gráficas');
+  ok('  ...con UNA petición del tablero', (await pidio()) === 1);
+  await hasta(p, () => document.querySelectorAll('#listaPedidos .fila').length > 0);
+  ok('  ...y los pedidos en la misma pantalla, entre las cifras y las gráficas',
+     await p.evaluate(() => {
+       const y = s => document.querySelector(s).getBoundingClientRect().top;
+       return y('#tableroCifras') < y('#listaPedidos') && y('#listaPedidos') < y('#tableroGraficas');
+     }));
 
-  await p.click('#tab-tablero');
-  await hasta(p, () => document.querySelectorAll('#tablero svg').length > 0);
-  ok('AL ABRIR LA PESTAÑA se dibujan las gráficas', (await p.locator('#tablero svg').count()) >= 4,
-     (await p.locator('#tablero svg').count()) + ' gráficas');
-  ok('  ...con UNA petición', (await pidio()) === 1);
-
-  const primera = await p.locator('#tablero .cifra .valor').first().innerText();
+  const primera = await p.locator('#tableroCifras .cifra .valor').first().innerText();
   ok('LA CIFRA DE VENTAS de la página es la de la hoja', primera === pesos(de('Ventas confirmadas')),
      primera + ' / ' + pesos(de('Ventas confirmadas')));
 
@@ -118,12 +121,12 @@ const cuantasTablero = async () => ((await (await fetch(U + '/__peticiones')).js
   ok('EL EMBUDO: tres pasos, con la tabla debajo', embudo.length === 3 && /Hicieron el pedido3/.test(embudo[1]), embudo.join(' | '));
   const vendidos = await p.$$eval('#grafica-vendidos tbody tr td:first-child', t => t.map(x => x.textContent));
   ok('LO MÁS VENDIDO lleva su tabla, con el nombre tal como está en la hoja', vendidos[0] === MALO, vendidos[0]);
-  const xss = await p.evaluate(() => ({ img: document.querySelectorAll('#tablero img').length, marca: !!window.__xss,
+  const xss = await p.evaluate(() => ({ img: document.querySelectorAll('#pantalla-ventas img').length, marca: !!window.__xss,
                                           enSvg: [...document.querySelectorAll('#grafica-vendidos svg text')].some(t => /onerror/.test(t.textContent)) }));
   ok('  ...Y SE PINTA COMO TEXTO, también dentro del SVG: ni una etiqueta ejecutada',
      xss.img === 0 && !xss.marca && xss.enSvg, JSON.stringify(xss));
   ok('CADA GRÁFICA DICE en palabras lo que dibuja, para quien no la ve',
-     await p.$$eval('#tablero svg', s => s.every(x => x.getAttribute('role') === 'img' && (x.getAttribute('aria-label') || '').length > 10)));
+     await p.$$eval('#pantalla-ventas svg', s => s.every(x => x.getAttribute('role') === 'img' && (x.getAttribute('aria-label') || '').length > 10)));
   const ancho = await p.evaluate(() => {
     const W = window.innerWidth;
     return { total: document.documentElement.scrollWidth, W,
@@ -132,15 +135,15 @@ const cuantasTablero = async () => ((await (await fetch(U + '/__peticiones')).js
   });
   ok('EN UN CELULAR no hay que desplazarse de lado', ancho.total <= ancho.W, JSON.stringify(ancho));
 
-  await p.click('#tab-productos');
-  await p.click('#tab-tablero');
+  await p.click('#tab-tienda');
+  await p.click('#tab-ventas');
   ok('IR Y VOLVER no pide otra vez: una petición por visita', (await pidio()) === 1,
      (await pidio()) + ' peticiones');
   await pedido('TAB04', 'baguette:2', 'Medellín'); await vender('TAB04');
   await p.click('#actualizarTablero');
-  await p.waitForFunction(v => document.querySelector('#tablero .cifra .valor').innerText !== v, primera);
+  await p.waitForFunction(v => document.querySelector('#tableroCifras .cifra .valor').innerText !== v, primera);
   ok('ACTUALIZAR sí pide, y trae lo nuevo', (await pidio()) === 2 &&
-     (await p.locator('#tablero .cifra .valor').first().innerText()) !== primera);
+     (await p.locator('#tableroCifras .cifra .valor').first().innerText()) !== primera);
   ok('  ...y dice cuándo se leyó y que no se actualiza solo',
      /leídos .*No se actualizan solos/.test(await p.locator('#consultadoTablero').innerText()));
 
@@ -152,17 +155,39 @@ const cuantasTablero = async () => ((await (await fetch(U + '/__peticiones')).js
   await hasta(p, () => !document.querySelector('#entrar').hidden);
   await p.fill('#usuario', 'dona.rosa'); await p.fill('#clave', c2);
   await p.click('#botonEntrar');
-  await hasta(p, () => !document.querySelector('#panel').hidden);
-  await p.click('#tab-tablero');
-  await hasta(p, () => document.querySelectorAll('#tablero .cifra').length > 0);
-  const vacio = await p.locator('#tablero').innerText();
+  await hasta(p, () => document.querySelectorAll('#tableroCifras .cifra').length > 0);
+  const vacio = await p.locator('#pantalla-ventas').innerText();
   ok('SIN VENTAS, el tablero lo dice en vez de dibujar barras vacías',
      /Todavía no hay ventas confirmadas/.test(vacio) && (await p.locator('#grafica-meses svg').count()) === 0);
 
   /* Salir borra lo leído: el siguiente que se siente al computador del
      mostrador no ve las ventas del anterior. */
   await p.click('#salir');
-  ok('AL SALIR se borra el tablero de la página', (await p.locator('#tablero').innerHTML()) === '');
+  ok('AL SALIR se borra el tablero de la página',
+     (await p.locator('#tableroCifras').innerHTML()) === '' && (await p.locator('#tableroGraficas').innerHTML()) === '');
+
+  // ═══ 4. La hoja pide Pasarela y la tienda sigue por WhatsApp (bitácora 57) ═══
+  await fetch(U + '/__reset');
+  const { clave: c3 } = await (await fetch(U + '/__panel?usuario=dona.rosa')).json();
+  const fm = ((await hojas())['Configuración'] || []).findIndex(f => f[0] === 'cobro_modo') + 1;
+  await celda('Configuración', fm, 2, 'Pasarela');
+  await p.fill('#usuario', 'dona.rosa'); await p.fill('#clave', c3);
+  await p.click('#botonEntrar');
+  await hasta(p, () => !document.querySelector('#avisoCobro').hidden);
+  const avisoCobro = await p.locator('#avisoCobro').innerText();
+  ok('SI LA HOJA PIDE PASARELA Y FALTAN LAS LLAVES, se dice arriba y con sus nombres',
+     /cobrando por WhatsApp/.test(avisoCobro) && /BOLD_IDENTIDAD_SANDBOX/.test(avisoCobro), avisoCobro);
+  /* Las llaves con el nombre de la línea anterior —el alias BOLD_BOTON_*—, con
+     un espacio al final del nombre, que en el editor de Apps Script no se ve. */
+  await fetch(U + '/__prop?k=' + encodeURIComponent('BOLD_BOTON_IDENTIDAD_SANDBOX ') + '&v=identidad-de-prueba');
+  await fetch(U + '/__prop?k=BOLD_BOTON_SECRETA_SANDBOX&v=secreta-de-prueba');
+  await p.click('#actualizarTablero');
+  await hasta(p, () => document.querySelector('#avisoCobro').hidden).catch(() => {});
+  ok('  ...y con las llaves puestas con el nombre de la línea anterior, la pasarela queda lista y el aviso se va',
+     await p.locator('#avisoCobro').isHidden());
+  const cat = await (await fetch(U + '/exec?a=catalogo')).json();
+  ok('  ...y la tienda en vivo ya ofrece pagar en línea', cat.config && cat.config.cobro === 'pasarela',
+     cat.config && cat.config.cobro);
 
   ok('Ningún error de JavaScript en toda la corrida', errs.length === 0, errs.join(' | '));
   await b.close();

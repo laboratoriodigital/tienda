@@ -1149,6 +1149,55 @@ escapar dentro del SVG.
 hoja no guarda visitas, y con cientos de pedidos al mes una serie diaria es
 ruido—; no exporta; no se ve sin sesión.
 
+### M3 bis · El panel alcanza para todo   · pedido por el dueño el 21 de septiembre de 2026 · 0.9.0
+
+> Después de probar el panel y el cobro en la tienda de pruebas, el dueño pidió
+> tres cosas: que todo lo que se escribe a mano en la hoja se pueda hacer desde
+> el panel, que el panel sean **dos pantallas** y no cuatro pestañas, y que la
+> hoja siga funcionando igual como respaldo. Son historias de M3 que vuelven a
+> abrirse, por eso llevan la D.
+
+**D-8 · Dos pantallas: Ventas y Tienda**  · 2 pts · ✅ 21-sep-2026
+- [x] **Ventas**: las cuatro cifras del mes y lo que hay que atender hoy,
+      arriba; los pedidos; las gráficas debajo. Se entra por aquí.
+- [x] **Tienda**: los productos arriba; debajo, los ajustes en secciones
+      plegables, Zonas de envío y Cupones. Releer no cierra la sección abierta.
+- [x] El tablero sigue siendo una petición por visita a Ventas; los productos
+      se piden al abrir Tienda, no al entrar.
+
+**D-9 · Toda la configuración desde el panel**  · 3 pts · ✅ 21-sep-2026
+- [x] Salen las 48 claves que se escriben a mano. Quedan fuera dos, a
+      propósito: `correo_ultimo` (la escribe el script) y `panel_usuario` (va
+      con la clave, que solo da el menú de la hoja).
+- [x] **Lo que decide a dónde va la plata pide la clave otra vez**: WhatsApp,
+      `cobro_ambiente` y los cuatro `pago_*` (decisión 14). Sin ella no se
+      escribe nada; una clave mala cuenta como intento fallido de entrar; la
+      clave no queda en ninguna pestaña ni en la página.
+- [x] Las **llaves de Bold no** están en el panel: siguen en las propiedades
+      del script.
+- [x] La sección «El cobro» dice cómo se está cobrando de verdad, y arriba de
+      las dos pantallas sale un aviso rojo si la hoja pide Pasarela y la tienda
+      sigue por WhatsApp, con el porqué (bitácora 57).
+
+**D-10 · Zonas de envío y cupones desde el panel**  · 3 pts · ✅ 21-sep-2026
+*(era el 2.1 del `ROADMAP.md`)*
+- [x] Una fila a la vez, con huella y número de operación, como un producto.
+- [x] El código de una zona no cambia después de creada: viaja en los pedidos.
+- [x] «Usos confirmados» es del script: editar un cupón no lo toca, y una venta
+      con el cupón no invalida la edición. Un cupón usado no se borra: se
+      desactiva.
+- [x] Una zona marca «cambios sin publicar» (se hornea); un cupón funciona al
+      guardarlo.
+
+**E-6 · El botón de pago dice PSE**  · ½ pt · ✅ 21-sep-2026
+- [x] «Pagar con PSE» con dinero real y «Pagar con PSE - Pruebas» en el
+      ambiente de pruebas, como lo pidió el dueño.
+
+**Lo prueba** `pruebas/panelajustes.js` (36 aserciones), más `admin.js`,
+`panelconfig.js` y `paneltablero.js` al día. Controles negativos verificados en
+rojo: sin la guarda de la clave, sin el alias de las llaves, un cupón que pisa
+los usos, una zona que cambia de código.
+
 ### Lo que sigue después del MVP
 
 **M5 · El rastreo del pedido · M6 · La flota que se actualiza sola.** Están

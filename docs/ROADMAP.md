@@ -83,7 +83,7 @@ deja hecha la mitad, con el horneado determinista y `publicar/` como producto.*
 
 ## Fase 2 · El panel crece   ·  después del MVP
 
-**2.1 Cupones y zonas de envío en el panel**   [SIGUIENTE]
+**2.1 Cupones y zonas de envío en el panel**   [HECHO · 0.9.0, 21-sep-2026, historia D-10]
 En el MVP se siguen editando en la hoja porque se tocan una vez al montar. En
 cuanto haya un comercio que cambie cupones cada semana, esto sube.
 

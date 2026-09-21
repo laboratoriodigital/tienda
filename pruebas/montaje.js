@@ -3607,6 +3607,11 @@ const configurar = (g, clave, valor) => {
      cuerpo.indexOf('versionDesalineada(') < cuerpo.indexOf('escribirSiCambio(PUBLICAR'),
      'parar después de escribir es dejar el index a medias');
 
+  ok('  ...y si el maestro se publicó en esta corrida, ESPERA a que Google lo sirva antes de rendirse',
+     /ESPERAR_MAESTRO_S/.test(cuerpo) && /while \(versionDesalineada\(/.test(cuerpo) &&
+     /ESPERAR_MAESTRO_S: \$\{\{ steps\.quiere\.outputs\.publica == 'si' && '180' \|\| '0' \}\}/.test(
+       fs.readFileSync('../.github/workflows/montaje.yml', 'utf8')),
+     'el primer montaje de la 0.8.0 falló aquí y el segundo pasó');
   const pm = fs.readFileSync('../montar/publicar-maestro.mjs', 'utf8');
   const desp = pm.indexOf('clasp(desplegar');
   ok('PUBLICAR EL MAESTRO TIRA EL SONDEO en cuanto la versión nueva queda publicada',

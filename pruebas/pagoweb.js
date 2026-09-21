@@ -88,8 +88,13 @@ async function llenar(p, conCorreo) {
      !bt.listo && /tu correo/.test(await texto('#faltanTexto')), await texto('#faltanTexto'));
   await p.fill('#fCorreo', 'maria@example.com');
   bt = await boton();
-  ok('  ...con el correo, el botón dice «Pagar» y el total, y NO abre WhatsApp',
-     bt.listo && /^Pagar \$19\.000/.test(bt.texto) && bt.href === '#', JSON.stringify(bt));
+  ok('  ...con el correo, el botón dice «Pagar con PSE - Pruebas», y NO abre WhatsApp',
+     bt.listo && bt.texto === 'Pagar con PSE - Pruebas' && bt.href === '#', JSON.stringify(bt));
+  /* Y en producción, sin «Pruebas». Se cambia la marca que manda el maestro
+     y se repinta: es lo que hace la página al leer la configuración. */
+  const enProduccion = await p.evaluate(() => { const antes = COBRO_PRUEBAS; COBRO_PRUEBAS = false; revisarFormulario();
+    const t = document.querySelector('#btnTexto').textContent; COBRO_PRUEBAS = antes; revisarFormulario(); return t; });
+  ok('  ...y con dinero real, «Pagar con PSE»', enProduccion === 'Pagar con PSE', enProduccion);
   ok('  ...y avisa que está en pruebas', /modo de pruebas/i.test(await texto('#totales')));
 
   /* La página se equivoca de total a propósito: lo que le llega a Bold tiene

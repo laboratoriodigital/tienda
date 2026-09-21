@@ -62,14 +62,27 @@ function esquemaVivo() {
       sesion:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"sesion"}' } })._texto)),
       /* M4 · lo que dibuja la pestaña Tablero del panel. Con sesión, porque
          sin ella no contesta nada que valga la pena fotografiar. */
-      tablero:   (function () {
+      /* M4 · lo que dibuja el tablero del panel, y (0.9.0) lo que lee la
+         pantalla Tienda. Con sesión, porque sin ella no contestan nada que
+         valga la pena fotografiar. Cada objeto anidado va en su propia lista:
+         mezclados en una, agregar un campo al final de la de arriba parecía
+         mover los de abajo. */
+      ...(function () {
         const post = o => JSON.parse(g.api.doPost({ postData: { contents: JSON.stringify(o) } })._texto);
         const f = g.filas('Configuración').findIndex(x => String(x[0]) === 'panel_usuario') + 1;
         g.hojas.get('Configuración').getRange(f, 2).setValue('dona.rosa');
         const clave = (String(g.api.claveDelPanel().texto || '').match(/Clave:\s+(\S+)/) || [])[1];
         const k = post({ a: 'entrar', u: 'dona.rosa', c: clave }).testigo;
-        const d = post({ a: 'tablero', k: k });
-        return Object.keys(d).concat(Object.keys(d.esteMes || {}).map(x => 'esteMes.' + x));
+        const t = post({ a: 'tablero', k: k });
+        const c = post({ a: 'configuracion', k: k });
+        return {
+          tablero: Object.keys(t),
+          'tablero.esteMes': Object.keys(t.esteMes || {}),
+          configuracion: Object.keys(c),
+          'configuracion.clave': Object.keys((c.claves || [])[0] || {}),
+          'configuracion.envio': Object.keys((c.envios || [])[0] || {}),
+          'configuracion.cupon': Object.keys((c.cupones || [])[0] || {})
+        };
       })()
     },
     registros: {

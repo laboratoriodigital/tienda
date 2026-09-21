@@ -669,7 +669,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXuK42kftKAue18ZtfH
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-3";
+const SCRIPT_VERSION = "2026-09-21-4";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -2403,13 +2403,15 @@ function revisarFormulario(){
   const btn = $("#btnFinalizar");
   if(!btn) return;
   btn.setAttribute("aria-disabled", listo ? "false" : "true");
-  /* COBRANDO EN LÍNEA el botón no abre WhatsApp: prepara el pago. Dice
-     cuánto, porque es lo que va a pasar al tocarlo. */
+  /* COBRANDO EN LÍNEA el botón no abre WhatsApp: prepara el pago. El texto
+     lo pidió el dueño el 21 de septiembre: «Pagar con PSE», y en el ambiente
+     de pruebas «Pagar con PSE - Pruebas», para que nadie crea que pagó de
+     verdad. El total ya está a la vista justo encima del botón. */
   const enLinea = cobraEnLinea();
   const icono = document.getElementById("btnIcono"), rotulo = document.getElementById("btnTexto");
   if(icono) icono.style.display = enLinea ? "none" : "";
   if(rotulo) rotulo.textContent = enLinea
-    ? "Pagar " + pesos(calcular().total) + (COBRO_PRUEBAS ? " · pruebas" : "")
+    ? "Pagar con PSE" + (COBRO_PRUEBAS ? " - Pruebas" : "")
     : "Enviar pedido por WhatsApp";
   // El enlace se rearma aquí, así que siempre lleva el estado más reciente:
   // el cupón que acaba de validarse, la cantidad que acaba de cambiar.

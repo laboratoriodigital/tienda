@@ -44,6 +44,15 @@ Propiedades del script*, las mismas donde vive `GITHUB_TOKEN`:
 | `BOLD_IDENTIDAD_PRODUCCION` | llave de identidad, producción |
 | `BOLD_SECRETA_PRODUCCION` | llave secreta, producción |
 
+**Guárdalas con el botón «Guardar propiedades del script»**: si se cierra la
+ventana sin guardar, no quedan, y la tienda sigue por WhatsApp. Pasó en la
+primera tienda (bitácora 57). Desde la 0.9.0 el panel lo dice arriba, en rojo,
+con el nombre de la llave que falta. También se aceptan los nombres de la línea
+anterior (`BOLD_BOTON_IDENTIDAD_*`) y `_PRUEBAS` en vez de `_SANDBOX`.
+
+**El botón** dice «Pagar con PSE» con dinero real y «Pagar con PSE - Pruebas»
+en el ambiente de pruebas.
+
 Son los mismos nombres que usa la línea anterior: dos tiendas del mismo titular
 de Bold pueden tener los mismos cuatro valores, y copiarlos no exige traducir.
 Se cargan igual en cada proyecto: compartir cuenta de Bold no es compartir

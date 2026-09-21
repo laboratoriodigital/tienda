@@ -351,6 +351,7 @@ function crear(rutaScript, opciones) {
     PropertiesService: {
       getScriptProperties: () => ({
         getProperty: k => (k in props ? props[k] : null),
+        getProperties: () => Object.assign({}, props),
         setProperty: (k, v) => { props[k] = String(v); },
         deleteProperty: k => { delete props[k]; }
       })

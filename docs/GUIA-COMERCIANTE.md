@@ -23,27 +23,24 @@ mañana se revisa sola y te avisa si quedó algo sin publicar.
 Entras con tu usuario y tu clave (menú de la hoja › **Clave del panel** te da
 una nueva; se ve una sola vez).
 
-**Productos** — cambiar precio o stock, agregar, desactivar, borrar (va a la
-Papelera de la hoja, no se pierde) y **subir fotos**: el nombre se pone solo.
-Si el producto tiene variantes (talla, color), abajo aparece **Stock por
-combinación**: pon cuántas hay de cada una. Mientras estén vacías, se vende con
-el Stock de siempre. Las fotos de un color se suben eligiendo «Foto de color:
-Rosa»: al elegir Rosa, el comprador ve esas.
+Tiene **dos pantallas**:
 
-**Pedidos** — cambia el estado a **Pagado** cuando te paguen: eso descuenta el
-inventario (te lo dice antes de guardar). Cancelar un pedido pagado devuelve
-las unidades, y pide un segundo toque.
+**Ventas** — cómo va el mes arriba, tus **pedidos**, y las gráficas debajo.
+Cambia un pedido a **Pagado** cuando te paguen: eso descuenta el inventario (te
+lo dice antes de guardar). Cancelar un pedido pagado devuelve las unidades, y
+pide un segundo toque. Las cifras no se actualizan solas: **Actualizar**.
 
-**Si tu tienda cobra en línea** (Configuración › `cobro_modo` = Pasarela), el
-pedido te llega **ya Pagado** con un correo que dice a quién y a dónde
-despachar. Tú solo despachas y lo pasas a Despachado.
+**Si tu tienda cobra en línea** (Tienda › El cobro › Pasarela), el pedido te
+llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si
+arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 
-**Tu tienda** — textos, colores, horario, envío gratis, **pedido mínimo** y
-**cerrar la tienda** por unos días (se puede mirar, no se puede pedir).
-
-**Tablero** — cómo va el mes: ventas contra el mes pasado a la misma altura,
-de carrito a venta, lo que más se vende, dónde compran y qué se está
-acabando. No se actualiza solo: pulsa **Actualizar** para ver lo último.
+**Tienda** — tus **productos** (precio, stock, fotos, variantes: con variantes
+aparece **Stock por combinación**; las fotos de un color se suben eligiendo
+«Foto de color: Rosa») y debajo **todos los ajustes** de tu hoja, por
+secciones: tu tienda, la venta, el cobro, la portada, los textos, los colores,
+Google, datos legales, el correo del día y **Avanzado** (no lo toques si no
+sabes para qué). También las **zonas de envío** y los **cupones**. Cambiar el
+WhatsApp o los datos de pago **pide tu clave otra vez**.
 
 Todo lo que cambias queda en la pestaña **Registro** de la hoja: quién, cuándo,
 y cómo estaba antes.

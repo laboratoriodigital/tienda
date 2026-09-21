@@ -55,15 +55,20 @@ const poner = (g, clave, v) => {
     ok('LA CONFIGURACIÓN trae las claves del comerciante, con su explicación',
        r.ok && claves.indexOf('negocio') !== -1 && claves.indexOf('color_principal') !== -1 &&
        r.claves.every(c => c.ayuda && c.rotulo && c.grupo), claves.length + ' claves');
-    /* Las técnicas NO. Cambiar sitio_url desde un celular rompe la tienda de
-       formas que el comerciante no ve; los datos de pago no son para pantalla. */
-    const TECNICAS = ['sitio_url', 'repositorio', 'fotos_drive', 'fotos_origen', 'respaldo_carpeta',
-                      'pago_llave', 'pago_titular', 'pago_tope', 'correo_ultimo', 'panel_usuario',
-                      'f_autoria', 'autoria_url'];
-    const salen = TECNICAS.filter(t => claves.indexOf(t) !== -1);
-    ok('LAS CLAVES TÉCNICAS no aparecen', salen.length === 0, salen.join(', '));
-    ok('  ...ni ningún valor de pago en toda la respuesta',
-       !/pago_/.test(JSON.stringify(r)));
+    /* DESDE LA 0.9.0 SALEN TODAS LAS QUE SE ESCRIBEN A MANO —el dueño pidió que
+       el panel alcance para todo—, menos dos: la que escribe el script y la
+       del usuario, que va con la clave del menú de la hoja. */
+    const hoja = g.filas('Configuración').slice(1).map(f => String(f[0]));
+    const FUERA = ['correo_ultimo', 'panel_usuario'];
+    const faltan = hoja.filter(c => FUERA.indexOf(c) === -1 && claves.indexOf(c) === -1);
+    ok('TODAS LAS CLAVES DE LA HOJA salen en el panel', faltan.length === 0, faltan.join(', '));
+    const salen = FUERA.filter(t => claves.indexOf(t) !== -1);
+    ok('  ...menos la que escribe el script y la del usuario', salen.length === 0, salen.join(', '));
+    const SENSIBLES = ['whatsapp', 'cobro_ambiente', 'pago_llave', 'pago_titular', 'pago_entidad', 'pago_texto'];
+    ok('  ...y las que deciden a dónde va la plata salen marcadas como sensibles',
+       SENSIBLES.every(c => (r.claves.find(x => x.clave === c) || {}).sensible === true) &&
+       r.claves.filter(x => x.sensible).length === SENSIBLES.length,
+       r.claves.filter(x => x.sensible).map(x => x.clave).join(', '));
   }
 
   // ═══ 3. Lo ilegible se marca ═══
@@ -133,16 +138,16 @@ const poner = (g, clave, v) => {
   // ═══ 6. Lo que no es del comerciante no se escribe, aunque se pida por su nombre ═══
   {
     const { g, k } = conSesion();
-    const antes = valor(g, 'sitio_url');
+    const antes = valor(g, 'correo_ultimo');
     /* CON LA VERSIÓN BUENA, a propósito. Si se manda sin versión, lo que la
        para es el control de «cambió mientras editabas», no la lista — y esta
        aserción pasaba con la lista quitada. Así solo la lista puede pararla. */
     const r = post(g, { a: 'guardar_configuracion', k, op: op(),
-      cambios: { sitio_url: 'https://tienda-falsa.example', repositorio: 'otro/repo' },
-      versiones: { sitio_url: g.api.versionDeValor(antes), repositorio: g.api.versionDeValor(valor(g, 'repositorio')) } });
-    ok('PEDIR UNA CLAVE TÉCNICA POR SU NOMBRE no la escribe, aunque traiga su versión',
-       !r.ok && valor(g, 'sitio_url') === antes && valor(g, 'repositorio') !== 'otro/repo' &&
-       /no se cambia desde el panel/.test(r.errores.sitio_url),
+      cambios: { correo_ultimo: '2020-01-01', panel_usuario: 'otro' },
+      versiones: { correo_ultimo: g.api.versionDeValor(antes), panel_usuario: g.api.versionDeValor(valor(g, 'panel_usuario')) } });
+    ok('PEDIR POR SU NOMBRE LA CLAVE QUE ESCRIBE EL SCRIPT, o la del usuario, no la escribe',
+       !r.ok && valor(g, 'correo_ultimo') === antes && valor(g, 'panel_usuario') !== 'otro' &&
+       /no se cambia desde el panel/.test(r.errores.correo_ultimo) && /no se cambia desde el panel/.test(r.errores.panel_usuario),
        JSON.stringify(r.errores));
   }
 

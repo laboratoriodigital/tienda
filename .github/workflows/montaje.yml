@@ -294,6 +294,9 @@ jobs:
         env:
           MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
+          # Si el maestro se publicó en esta corrida, hasta tres minutos para
+          # que Google lo sirva (bitácora 57). Si no, cero: no hay qué esperar.
+          ESPERAR_MAESTRO_S: ${{ steps.quiere.outputs.publica == 'si' && '180' || '0' }}
         # Se para ANTES de escribir si el maestro vivo no es el del
         # repositorio, y dice qué casilla marcar (bitácora 56). Ese mensaje va
         # al resumen: es lo primero que se lee de una corrida roja.

@@ -1736,3 +1736,21 @@ repositorio, con un mensaje que dice qué casilla marcar, en el resumen de la
 corrida. `montaje.js` prueba los tres, en rojo quitando cada uno. **Una caché
 de diez minutos también es una caché**: lo que cambia dentro de la corrida la
 invalida. *(mío)*
+
+**57 · La hoja decía Pasarela y la tienda cobraba por WhatsApp.** Con la 0.8.0
+publicada, `cobro_modo` en Pasarela y la tienda seguía mandando al WhatsApp.
+La causa, confirmada por el dueño: las llaves de Bold no habían quedado
+guardadas en las propiedades del script. El maestro hacía lo correcto —sin
+llaves no se ofrece un botón que va a fallar— y lo decía en el Diagnóstico y
+junto al campo en «Tu tienda»… donde nadie estaba mirando. Tres cambios: el
+panel lo dice **arriba, en rojo, en las dos pantallas**, con el nombre exacto
+de la llave que falta; las llaves se buscan también con el alias de la línea
+anterior (`BOLD_BOTON_*`), sin mirar mayúsculas ni espacios en el nombre, y con
+`_PRUEBAS` además de `_SANDBOX`; y `PAGOS-BOLD.md` dice que hay que pulsar
+«Guardar propiedades del script». Del mismo día: el primer montaje de la 0.8.0
+volvió a fallar y el segundo, un minuto después, pasó. Lo más probable es
+Google tardando en servir la versión recién publicada; `preparar-index` ahora
+espera hasta tres minutos **solo si el maestro se publicó en esa misma
+corrida**. Sin haber visto el log no lo doy por seguro: si vuelve a pasar, el
+resumen de la corrida ya trae el mensaje entero. **Un aviso que existe pero se
+lee en otra pestaña no es un aviso.** *(el mensaje, mío)*

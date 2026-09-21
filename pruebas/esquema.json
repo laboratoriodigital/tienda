@@ -219,7 +219,9 @@
     "pago_crear",
     "pago_estado",
     "guardar_combinaciones",
-    "tablero"
+    "tablero",
+    "guardar_envio",
+    "guardar_cupon"
   ],
   "puertas": {
     "version": [
@@ -320,13 +322,54 @@
       "cuantosSinVender",
       "masVendidos",
       "porCiudad",
-      "esteMes.ventas",
-      "esteMes.pedidos",
-      "esteMes.hechos",
-      "esteMes.carritos",
-      "esteMes.ticket",
-      "esteMes.tasaPedido",
-      "esteMes.tasaCierre"
+      "cobro"
+    ],
+    "tablero.esteMes": [
+      "ventas",
+      "pedidos",
+      "hechos",
+      "carritos",
+      "ticket",
+      "tasaPedido",
+      "tasaCierre"
+    ],
+    "configuracion": [
+      "ok",
+      "claves",
+      "cobro",
+      "envios",
+      "cupones"
+    ],
+    "configuracion.clave": [
+      "clave",
+      "grupo",
+      "tipo",
+      "rotulo",
+      "opciones",
+      "ayuda",
+      "valor",
+      "problema",
+      "version",
+      "sensible"
+    ],
+    "configuracion.envio": [
+      "id",
+      "nombre",
+      "valor",
+      "version",
+      "problema"
+    ],
+    "configuracion.cupon": [
+      "codigo",
+      "tipo",
+      "valor",
+      "minimo",
+      "vence",
+      "usosMaximos",
+      "usados",
+      "activo",
+      "notas",
+      "version"
     ]
   },
   "registros": {

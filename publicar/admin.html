@@ -124,6 +124,22 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
 .fila-combo label{margin:0;font-weight:500}
 .fila-combo .error-campo{grid-column:1/-1;margin:0}
 
+/* ── Dos pantallas y ajustes (0.9.0) ── */
+.titulo-bloque{font-size:1.05rem;margin:22px 0 6px}
+details.seccion{border-top:1px solid var(--linea);padding:4px 0}
+details.seccion:first-child{border-top:none}
+details.seccion>summary{cursor:pointer;font-weight:700;padding:10px 0;list-style-position:inside}
+details.seccion[open]>summary{margin-bottom:4px}
+.tarjeta.seccion{margin-top:12px;padding:6px 20px 14px;border-top:1px solid var(--linea)}
+.sensible{font-weight:400;font-size:.78rem;color:var(--ambar)}
+.fila-ajuste{border:1px solid var(--linea);border-radius:var(--radio);padding:8px 12px;margin:8px 0}
+.fila-ajuste>summary{cursor:pointer;font-size:.9rem;font-weight:600;padding:2px 0}
+.rejilla-ajuste{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 12px}
+.rejilla-ajuste label{margin-top:4px}
+.pie-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.estado-fila{font-size:.82rem;color:var(--tenue)}
+#formTienda .pie-form{position:sticky;bottom:0;background:var(--blanco);padding:10px 0 4px;margin-bottom:0}
+
 /* ── Tablero (M4) ── */
 .cabeza-tablero{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 6px}
 .cabeza-tablero .cuenta{margin:0}
@@ -194,13 +210,71 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
       <button class="btn" type="button" id="publicar" hidden>Publicar ahora</button>
     </div>
 
+    <p class="aviso mal" id="avisoCobro" role="alert" hidden></p>
+
+    <!-- ═══ DOS PANTALLAS (0.9.0) ═══
+         Eran cuatro pestañas —Productos, Pedidos, Tu tienda, Tablero— y el
+         dueño pidió dos: lo del día en una, lo que se arma en la otra.
+         VENTAS: cómo va el mes arriba, los pedidos, y las gráficas debajo.
+         TIENDA: los productos arriba, y debajo TODO lo que antes solo se
+         cambiaba en la hoja, en secciones plegables. La hoja sigue sirviendo
+         igual: es el respaldo si la página falla. -->
     <nav class="pestanas" role="tablist" aria-label="Secciones del panel">
-      <button type="button" role="tab" id="tab-productos" aria-selected="true" data-vista="productos">Productos</button>
-      <button type="button" role="tab" id="tab-pedidos" aria-selected="false" data-vista="pedidos">Pedidos</button>
-      <button type="button" role="tab" id="tab-tienda" aria-selected="false" data-vista="tienda">Tu tienda</button>
-      <button type="button" role="tab" id="tab-tablero" aria-selected="false" data-vista="tablero">Tablero</button>
+      <button type="button" role="tab" id="tab-ventas" aria-selected="true" data-vista="ventas">Ventas</button>
+      <button type="button" role="tab" id="tab-tienda" aria-selected="false" data-vista="tienda">Tienda</button>
     </nav>
 
+    <!-- ═══════════════ VENTAS ═══════════════ -->
+    <div id="pantalla-ventas">
+      <!-- El tablero (M4). UNA PETICIÓN POR VISITA: se piden al abrir esta
+           pantalla y no se repiten solos; para cifras nuevas está Actualizar. -->
+      <div id="resumenVentas">
+        <div class="cabeza-tablero">
+          <p class="cuenta" id="consultadoTablero"></p>
+          <button class="btn linea chico" type="button" id="actualizarTablero">Actualizar</button>
+        </div>
+        <p class="aviso" id="avisoTablero" role="status" hidden></p>
+        <div id="tableroCifras"></div>
+        <h2 class="titulo-bloque">Pedidos</h2>
+      </div>
+
+
+    <!-- ═══ PEDIDOS (D-3) ═══ -->
+    <div id="vista-pedidos">
+      <div id="pedidos-lista-vista">
+        <div class="chips" id="chipsEstados" role="group" aria-label="Filtrar por estado"></div>
+        <div class="herramientas">
+          <input class="campo" id="buscarPedido" type="search" placeholder="Buscar por número de pedido" aria-label="Buscar pedidos">
+        </div>
+        <p class="aviso" id="avisoPedidos" role="status" hidden></p>
+        <p class="cuenta" id="cuentaPedidos"></p>
+        <div class="lista" id="listaPedidos"></div>
+      </div>
+
+      <section id="pedido" class="tarjeta" hidden style="margin:16px 0 40px" aria-labelledby="tituloPedido">
+        <h2 id="tituloPedido">Pedido</h2>
+        <div id="detallePedido"></div>
+        <label for="p-estado">Estado</label>
+        <select class="campo" id="p-estado"></select>
+        <div id="p-guia-caja" hidden>
+          <label for="p-guia">Guía del envío <span style="font-weight:400;color:var(--tenue)">(opcional)</span></label>
+          <input class="campo" id="p-guia" maxlength="60" placeholder="Transportadora y número">
+        </div>
+        <p class="ayuda" id="p-efecto"></p>
+        <p class="aviso" id="avisoPedido" role="alert" hidden></p>
+        <div class="pie-form">
+          <button class="btn" type="button" id="guardarPedido">Cambiar estado</button>
+          <button class="btn peligro firme" type="button" id="guardarPedidoSi" hidden>Sí, cambiarlo</button>
+          <button class="btn linea" type="button" id="cerrarPedido">Volver</button>
+        </div>
+      </section>
+    </div>
+
+      <div id="tableroGraficas"></div>
+    </div>
+
+    <!-- ═══════════════ TIENDA ═══════════════ -->
+    <div id="pantalla-tienda" hidden>
     <!-- ═══ PRODUCTOS (D-2) ═══ -->
     <div id="vista-productos">
     <div id="lista-vista">
@@ -310,64 +384,46 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
     </section>
     </div>
 
-    <!-- ═══ PEDIDOS (D-3) ═══ -->
-    <div id="vista-pedidos" hidden>
-      <div id="pedidos-lista-vista">
-        <div class="chips" id="chipsEstados" role="group" aria-label="Filtrar por estado"></div>
-        <div class="herramientas">
-          <input class="campo" id="buscarPedido" type="search" placeholder="Buscar por número de pedido" aria-label="Buscar pedidos">
-        </div>
-        <p class="aviso" id="avisoPedidos" role="status" hidden></p>
-        <p class="cuenta" id="cuentaPedidos"></p>
-        <div class="lista" id="listaPedidos"></div>
-      </div>
-
-      <section id="pedido" class="tarjeta" hidden style="margin:16px 0 40px" aria-labelledby="tituloPedido">
-        <h2 id="tituloPedido">Pedido</h2>
-        <div id="detallePedido"></div>
-        <label for="p-estado">Estado</label>
-        <select class="campo" id="p-estado"></select>
-        <div id="p-guia-caja" hidden>
-          <label for="p-guia">Guía del envío <span style="font-weight:400;color:var(--tenue)">(opcional)</span></label>
-          <input class="campo" id="p-guia" maxlength="60" placeholder="Transportadora y número">
-        </div>
-        <p class="ayuda" id="p-efecto"></p>
-        <p class="aviso" id="avisoPedido" role="alert" hidden></p>
-        <div class="pie-form">
-          <button class="btn" type="button" id="guardarPedido">Cambiar estado</button>
-          <button class="btn peligro firme" type="button" id="guardarPedidoSi" hidden>Sí, cambiarlo</button>
-          <button class="btn linea" type="button" id="cerrarPedido">Volver</button>
-        </div>
-      </section>
-    </div>
-
-    <!-- ═══ TU TIENDA (D-4) ═══ -->
-    <div id="vista-tienda" hidden>
-      <p class="ayuda" style="margin:14px 0">Los textos, los colores y los datos de tu tienda. Lo técnico
-        —la dirección del sitio, las carpetas, los datos de pago— sigue en la hoja: cambiarlo desde aquí
-        podría romper la tienda sin que se note.</p>
+    <!-- ═══ AJUSTES (D-4 y 0.9.0) ═══
+         Todo lo de la pestaña Configuración de la hoja, más Envíos y Cupones.
+         Quedan fuera solo dos claves: `correo_ultimo` (la escribe el script) y
+         `panel_usuario` (va con la clave, que da el menú de la hoja). -->
+    <div id="ajustes">
+      <h2 class="titulo-bloque">Ajustes de tu tienda</h2>
+      <p class="ayuda" style="margin:0 0 10px">Lo mismo que la pestaña Configuración de tu hoja, que sigue
+        funcionando igual. Abre la sección que quieras cambiar.</p>
+      <div id="vista-tienda">
       <form id="formTienda" class="tarjeta" novalidate>
         <div id="camposTienda"></div>
+        <div id="claveConfirmar" hidden>
+          <label for="t-clave">Tu clave del panel</label>
+          <input class="campo" id="t-clave" type="password" autocomplete="current-password">
+          <p class="ayuda">Cambiaste algo que decide a dónde llega la plata o los pedidos: por eso se pide tu clave otra vez.</p>
+        </div>
         <p class="aviso" id="avisoTienda" role="alert" hidden></p>
         <div class="pie-form">
-          <button class="btn" type="submit" id="guardarTienda">Guardar</button>
+          <button class="btn" type="submit" id="guardarTienda">Guardar ajustes</button>
           <button class="btn linea" type="button" id="deshacerTienda">Deshacer cambios</button>
         </div>
       </form>
-    </div>
-
-    <!-- ═══ TABLERO (M4) ═══
-         Los números de la pestaña Tablero de la hoja, dibujados. UNA PETICIÓN
-         POR VISITA: se piden al abrir esta pestaña y no se repiten solos; para
-         cifras nuevas está Actualizar. Cada gráfica lleva su tabla debajo, que
-         dice lo mismo en texto: se lee sin ver la gráfica. -->
-    <div id="vista-tablero" hidden>
-      <div class="cabeza-tablero">
-        <p class="cuenta" id="consultadoTablero"></p>
-        <button class="btn linea chico" type="button" id="actualizarTablero">Actualizar</button>
       </div>
-      <p class="aviso" id="avisoTablero" role="status" hidden></p>
-      <div id="tablero"></div>
+
+      <details class="seccion tarjeta" id="seccionEnvios">
+        <summary>Zonas de envío</summary>
+        <p class="ayuda">Lo que el comprador elige al pedir. El código no se cambia después de creado: viaja en los pedidos.</p>
+        <div id="listaEnvios"></div>
+        <p class="aviso" id="avisoEnvios" role="status" hidden></p>
+        <button class="btn linea chico" type="button" id="nuevoEnvio">+ Nueva zona</button>
+      </details>
+
+      <details class="seccion tarjeta" id="seccionCupones">
+        <summary>Cupones</summary>
+        <p class="ayuda">Funcionan en cuanto los guardas: no hace falta publicar. Un cupón que ya se usó no se borra; se desactiva.</p>
+        <div id="listaCupones"></div>
+        <p class="aviso" id="avisoCupones" role="status" hidden></p>
+        <button class="btn linea chico" type="button" id="nuevoCupon">+ Nuevo cupón</button>
+      </details>
+    </div>
     </div>
   </section>
 </main>
@@ -480,8 +536,11 @@ async function entrar(ev){
 function cerrarSesion(motivo){
   guardarTestigo("");
   clearTimeout(sondeo);
-  productos = []; editando = null; datosTablero = null;
-  $("#lista").innerHTML = ""; $("#tablero").innerHTML = "";
+  productos = []; editando = null; datosTablero = null; productosLeidos = false; clavesTienda = [];
+  pedidoAbierto = null;
+  $("#lista").innerHTML = ""; $("#tableroCifras").innerHTML = ""; $("#tableroGraficas").innerHTML = "";
+  $("#camposTienda").innerHTML = ""; $("#listaEnvios").innerHTML = ""; $("#listaCupones").innerHTML = "";
+  $("#consultadoTablero").textContent = ""; $("#avisoCobro").hidden = true;
   mostrar("entrar");
   aviso("#avisoEntrar", motivo ? "info" : "", motivo || "");
 }
@@ -490,9 +549,10 @@ async function abrirPanel(usuario){
   $("#usuarioActual").textContent = usuario || "";
   mostrar("panel");
   cerrarEditor();
-  mostrarVista("productos");
+  /* Se entra por Ventas: es lo que se mira cada día. Los productos y los
+     ajustes se piden al abrir Tienda, no antes. */
+  mostrarVista("ventas");
   revisarPublicacion();                // no se espera: la lista no tiene por qué esperar a GitHub
-  await cargar();
 }
 
 /* ── La lista ── */
@@ -505,6 +565,7 @@ async function cargar(){
     if (!r.ok) { aviso("#avisoLista", "mal", r.error || "No se pudo leer el catálogo."); return; }
     productos = r.productos || [];
     categorias = r.categorias || [];
+    productosLeidos = true;
     pintarFiltros();
     pintarLista();
   } catch (e) {
@@ -598,6 +659,7 @@ function abrirEditor(p){
   operacion = nuevaOperacion();
   codigoTocado = !!p;
   $("#lista-vista").hidden = true;
+  $("#ajustes").hidden = true;
   $("#editor").hidden = false;
   $("#tituloEditor").textContent = p ? "Editar producto" : "Nuevo producto";
   CAMPOS.forEach(k => { const el = $("#f-" + k); el.value = p ? (p[k] == null ? "" : p[k]) : ""; el.classList.remove("mal"); });
@@ -627,6 +689,7 @@ function cerrarEditor(){
   editando = null; operacion = null;
   $("#editor").hidden = true;
   $("#lista-vista").hidden = false;
+  $("#ajustes").hidden = false;
 }
 
 function leerFormulario(){
@@ -839,15 +902,27 @@ async function borrar(){
 /* ═══════════════════════════════════════════════════════════════════════════
    LAS PESTAÑAS
    ═══════════════════════════════════════════════════════════════════════════ */
+/* DOS PANTALLAS. Los nombres viejos siguen valiendo —«productos» es la
+   pantalla Tienda, «pedidos» y «tablero» son Ventas— para que nada que los
+   llame se quede apuntando a una pestaña que ya no existe. */
+let productosLeidos = false;
 function mostrarVista(v){
-  ["productos", "pedidos", "tienda", "tablero"].forEach(x => {
-    $("#vista-" + x).hidden = x !== v;
-    $("#tab-" + x).setAttribute("aria-selected", String(x === v));
+  const pantalla = (v === "tienda" || v === "productos") ? "tienda" : "ventas";
+  ["ventas", "tienda"].forEach(x => {
+    $("#pantalla-" + x).hidden = x !== pantalla;
+    $("#tab-" + x).setAttribute("aria-selected", String(x === pantalla));
   });
-  if (v === "pedidos") cargarPedidos();
-  if (v === "tienda") cargarTienda();
-  /* Una petición por visita: si ya se leyó, se vuelve a pintar lo leído. */
-  if (v === "tablero" && !datosTablero) cargarTablero();
+  if (pantalla === "ventas") {
+    /* Una petición por visita para el tablero: si ya se leyó, se queda lo
+       leído. Los pedidos sí se releen: es lo que cambia mientras se mira. */
+    if (!datosTablero) cargarTablero();
+    if (!pedidoAbierto) cargarPedidos();
+  } else {
+    /* Los ajustes se releen en cada visita, como antes la pestaña Tu tienda:
+       alguien pudo cambiarlos en la hoja. Los productos, al entrar y al guardar. */
+    if (!productosLeidos) cargar();
+    cargarTienda();
+  }
 }
 
 /* Cuándo, dicho como lo dice una persona. */
@@ -1014,6 +1089,7 @@ function abrirPedido(p){
   pedidoAbierto = p;
   opPedido = nuevaOperacion();
   $("#pedidos-lista-vista").hidden = true;
+  $("#resumenVentas").hidden = true; $("#tableroGraficas").hidden = true;
   $("#pedido").hidden = false;
   $("#tituloPedido").textContent = "Pedido #" + p.pedido;
   $("#detallePedido").innerHTML =
@@ -1101,6 +1177,7 @@ function cerrarPedido(){
   pedidoAbierto = null;
   $("#pedido").hidden = true;
   $("#pedidos-lista-vista").hidden = false;
+  $("#resumenVentas").hidden = false; $("#tableroGraficas").hidden = false;
   cargarPedidos();
 }
 
@@ -1121,7 +1198,13 @@ async function cargarTienda(){
     const r = await llamar("configuracion");
     if (!r.ok) { aviso("#avisoTienda", "mal", r.error || "No se pudo leer la configuración."); return; }
     clavesTienda = r.claves;
+    estadoCobro = r.cobro || null;
+    envios = r.envios || [];
+    cupones = r.cupones || [];
     pintarTienda();
+    pintarEnvios();
+    pintarCupones();
+    pintarCobro(estadoCobro);
   } catch (e) { if (e.message !== "sesion") aviso("#avisoTienda", "mal", "No se pudo hablar con tu tienda."); }
 }
 
@@ -1130,59 +1213,221 @@ function campoDe(c){
   if (c.tipo === "largo") return `<textarea class="campo${mal}" id="${id}" data-clave="${escapar(c.clave)}">${escapar(v)}</textarea>`;
   if (c.tipo === "sino" || c.tipo === "opcion") {
     const opciones = c.tipo === "sino" ? ["Sí", "No"] : (c.opciones || []);
-    const actual = opciones.find(o => o.toLowerCase() === String(v).trim().toLowerCase());
+    const llana = t => String(t).trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const actual = opciones.find(o => llana(o) === llana(v));
     return `<select class="campo${mal}" id="${id}" data-clave="${escapar(c.clave)}">` +
       (!actual ? `<option value="${escapar(v)}" selected>${escapar(v || "(vacío)")}${c.problema ? " — no se entiende" : ""}</option>` : "") +
       opciones.map(o => `<option value="${escapar(o)}" ${o === actual ? "selected" : ""}>${escapar(o)}</option>`).join("") + `</select>`;
   }
   const muestra = c.tipo === "color" && /^#[0-9a-f]{6}$/i.test(v) ? `<span class="muestra" style="background:${escapar(v)}"></span>` : "";
-  const modo = c.tipo === "cifra" ? ' inputmode="numeric"' : c.tipo === "celular" ? ' inputmode="tel"' : c.tipo === "correo" ? ' inputmode="email"' : "";
+  const modo = (c.tipo === "cifra" || c.tipo === "hora") ? ' inputmode="numeric"' : c.tipo === "celular" ? ' inputmode="tel"' :
+               c.tipo === "correo" ? ' inputmode="email"' : c.tipo === "url" ? ' inputmode="url"' : "";
   return `<input class="campo${mal}" id="${id}" data-clave="${escapar(c.clave)}" value="${escapar(v)}"${modo} spellcheck="false">${muestra}`;
 }
 
+/* Lo que la sección El cobro dice arriba: cómo se está cobrando DE VERDAD. */
+let estadoCobro = null;
+function textoDelCobro(c){
+  if (!c) return "";
+  if (c.modo === "pasarela") return "Hoy tu tienda cobra con la pasarela de Bold" +
+    (c.ambiente === "produccion" ? ", con dinero real." : ", en modo de pruebas: no se mueve dinero.");
+  return "Hoy tu tienda cierra la venta por WhatsApp." + (c.pedido === "pasarela" && c.problema ? " " + c.problema : "");
+}
+
+const AVISO_GRUPO = {
+  "Avanzado": "Esto lo dejó listo quien montó tu tienda. Cambiarlo puede dejarla sin fotos o sin publicar: tócalo solo si sabes para qué.",
+  "El cobro": ""
+};
+
 function pintarTienda(){
+  /* Releer no cierra lo que estaba abierto: se vuelve a leer en cada visita, y
+     cerrarle la sección a quien está escribiendo es perderle el sitio. */
+  const abiertas = [...document.querySelectorAll("#camposTienda details[open]")].map(d => d.dataset.grupo);
   const grupos = [];
   clavesTienda.forEach(c => { if (grupos.indexOf(c.grupo) === -1) grupos.push(c.grupo); });
-  $("#camposTienda").innerHTML = grupos.map(g => `<fieldset><legend>${escapar(g)}</legend>` +
-    clavesTienda.filter(c => c.grupo === g).map(c => `
-      <label for="t-${escapar(c.clave)}">${escapar(c.rotulo)}</label>
+  /* Plegadas, para que la pantalla se lea de un vistazo. Se abre sola la que
+     tiene algo que la hoja no entiende: eso hay que verlo sin buscarlo. */
+  $("#camposTienda").innerHTML = grupos.map((g, i) => {
+    const suyas = clavesTienda.filter(c => c.grupo === g);
+    const abrir = suyas.some(c => c.problema) || abiertas.indexOf(g) !== -1;
+    const cabeza = g === "El cobro" && estadoCobro
+      ? `<p class="aviso ${estadoCobro.pedido === "pasarela" && estadoCobro.modo !== "pasarela" ? "mal" : "info"}" id="estadoCobro">${escapar(textoDelCobro(estadoCobro))}</p>` : "";
+    return `<details class="seccion" data-grupo="${escapar(g)}"${abrir ? " open" : ""}><summary>${escapar(g)}</summary>` + cabeza +
+      (AVISO_GRUPO[g] ? `<p class="aviso info">${escapar(AVISO_GRUPO[g])}</p>` : "") +
+      suyas.map(c => `
+      <label for="t-${escapar(c.clave)}">${escapar(c.rotulo)}${c.sensible ? ' <span class="sensible">· pide tu clave</span>' : ""}</label>
       ${campoDe(c)}
       ${c.problema ? `<p class="error-campo">En la hoja dice «${escapar(c.valor)}»: ${escapar(c.problema)}</p>` : ""}
       <p class="error-campo" id="err-${escapar(c.clave)}" hidden></p>
-      ${c.ayuda ? `<p class="ayuda">${escapar(c.ayuda)}</p>` : ""}`).join("") + `</fieldset>`).join("");
+      ${c.ayuda ? `<p class="ayuda">${escapar(c.ayuda)}</p>` : ""}`).join("") + `</details>`;
+  }).join("");
+  $("#claveConfirmar").hidden = true;
+  $("#t-clave").value = "";
 }
 
-let opTienda = null;
-async function guardarTienda(ev){
-  ev.preventDefault();
+/* ¿Hay un cambio sensible sin guardar? Entonces se pide la clave ya, antes de
+   pulsar Guardar, y no después de un rechazo. */
+function cambiosDeTienda(){
   const cambios = {}, versiones = {};
+  let sensible = false;
   clavesTienda.forEach(c => {
     const el = document.getElementById("t-" + c.clave);
     if (!el) return;
     const v = el.value.trim();
-    if (v !== String(c.valor).trim()) { cambios[c.clave] = v; versiones[c.clave] = c.version; }
+    if (v !== String(c.valor).trim()) { cambios[c.clave] = v; versiones[c.clave] = c.version; if (c.sensible) sensible = true; }
   });
+  return { cambios, versiones, sensible };
+}
+function revisarClave(){ $("#claveConfirmar").hidden = !cambiosDeTienda().sensible; }
+
+let opTienda = null;
+async function guardarTienda(ev){
+  ev.preventDefault();
+  const { cambios, versiones, sensible } = cambiosDeTienda();
   document.querySelectorAll("#camposTienda .error-campo[id^='err-']").forEach(e => { e.hidden = true; });
   if (!Object.keys(cambios).length) { aviso("#avisoTienda", "info", "No cambiaste nada."); return; }
+  const datos = { cambios: cambios, versiones: versiones };
+  if (sensible) {
+    $("#claveConfirmar").hidden = false;
+    const c = $("#t-clave").value;
+    if (!c) { aviso("#avisoTienda", "mal", "Escribe tu clave del panel para guardar este cambio."); $("#t-clave").focus(); return; }
+    datos.c = c;
+  }
   if (!opTienda) opTienda = nuevaOperacion();
+  datos.op = opTienda;
   $("#guardarTienda").disabled = true;
   try {
-    const r = await llamar("guardar_configuracion", { op: opTienda, cambios: cambios, versiones: versiones });
-    opTienda = null;
+    const r = await llamar("guardar_configuracion", datos);
+    $("#t-clave").value = "";          // la clave no se queda en la página
     if (!r.ok) {
+      /* Nada se escribió: la misma operación puede volver a intentarse. */
+      if (r.necesitaClave) { $("#claveConfirmar").hidden = false; $("#t-clave").focus(); }
       Object.keys(r.errores || {}).forEach(k => { const e = document.getElementById("err-" + k);
-        if (e) { e.hidden = false; e.textContent = r.errores[k]; } });
+        if (e) { e.hidden = false; e.textContent = r.errores[k];
+                 const d = e.closest("details"); if (d) d.open = true; } });
       aviso("#avisoTienda", "mal", r.error || "No se guardó.");
       return;
     }
+    opTienda = null;
     aviso("#avisoTienda", "bien", "Guardado. Se verá en la tienda al publicar.");
     revisarPublicacion();
     const aviso1 = $("#avisoTienda").textContent;
     await cargarTienda();
     aviso("#avisoTienda", "bien", aviso1);
   } catch (e) {
+    $("#t-clave").value = "";
     if (e.message !== "sesion") aviso("#avisoTienda", "mal", "No sabemos si se guardó: se perdió la conexión. Pulsa Guardar otra vez; no se va a repetir.");
   } finally { $("#guardarTienda").disabled = false; }
+}
+
+/* ── Envíos y cupones (0.9.0) ───────────────────────────────────────────────
+   Una fila a la vez, cada una con su Guardar: como un producto, con la huella
+   de lo que se leyó y un número de operación que nace con el primer intento y
+   se conserva si la respuesta se pierde. */
+let envios = [], cupones = [];
+const opsFila = {};
+const TIPOS_CUPON = [["porcentaje", "Porcentaje"], ["fijo", "Valor fijo"], ["envio", "Envío gratis"]];
+
+function filaEnvio(e){
+  const nuevo = !e.id;
+  const resumen = nuevo ? "Zona nueva" : `${e.nombre || e.id} · ${pesos(e.valor)}${e.problema ? " · revisar" : ""}`;
+  return `<details class="fila-ajuste" data-tipo="envio" data-original="${escapar(e.id || "")}" data-version="${escapar(e.version || "")}"${nuevo || e.problema ? " open" : ""}>
+    <summary>${escapar(resumen)}</summary>
+    <div class="rejilla-ajuste">
+      <div><label>Código</label><input class="campo" aria-label="Código" data-campo="id" value="${escapar(e.id || "")}"${nuevo ? "" : " readonly"} spellcheck="false" placeholder="zona-norte">
+        <p class="error-campo" data-err="id" hidden></p></div>
+      <div><label>Nombre</label><input class="campo" aria-label="Nombre" data-campo="nombre" value="${escapar(e.nombre || "")}">
+        <p class="error-campo" data-err="nombre" hidden></p></div>
+      <div><label>Valor</label><input class="campo" aria-label="Valor" data-campo="valor" value="${escapar(e.valor || "")}" inputmode="numeric" placeholder="0">
+        <p class="error-campo" data-err="valor" hidden></p></div>
+    </div>
+    ${e.problema ? `<p class="error-campo">${escapar(e.problema)}</p>` : ""}
+    <div class="pie-fila"><button class="btn chico" type="button" data-accion="guardar">Guardar</button>
+      ${nuevo ? `<button class="btn linea chico" type="button" data-accion="quitar">Cancelar</button>` :
+        `<button class="btn peligro chico" type="button" data-accion="borrar">Borrar</button>`}
+      <span class="estado-fila" role="status"></span></div>
+  </details>`;
+}
+
+function filaCupon(c){
+  const nuevo = !c.codigo;
+  const tipo = c.tipo || "porcentaje";
+  const cuanto = tipo === "envio" ? "envío gratis" : tipo === "porcentaje" ? (c.valor || "?") + "%" : pesos(c.valor);
+  const resumen = nuevo ? "Cupón nuevo" : `${c.codigo} · ${cuanto} · ${c.activo === "No" ? "inactivo" : "activo"}${c.vence ? " · vence " + c.vence : ""}`;
+  return `<details class="fila-ajuste" data-tipo="cupon" data-original="${escapar(c.codigo || "")}" data-version="${escapar(c.version || "")}"${nuevo ? " open" : ""}>
+    <summary>${escapar(resumen)}</summary>
+    <div class="rejilla-ajuste">
+      <div><label>Código</label><input class="campo" aria-label="Código" data-campo="codigo" value="${escapar(c.codigo || "")}"${nuevo ? "" : " readonly"} spellcheck="false" placeholder="BIENVENIDA10">
+        <p class="error-campo" data-err="codigo" hidden></p></div>
+      <div><label>Tipo</label><select class="campo" aria-label="Tipo" data-campo="tipo">${TIPOS_CUPON.map(([v, t]) =>
+        `<option value="${v}"${v === tipo ? " selected" : ""}>${t}</option>`).join("")}</select>
+        <p class="error-campo" data-err="tipo" hidden></p></div>
+      <div><label>Valor</label><input class="campo" aria-label="Valor" data-campo="valor" value="${escapar(c.valor || "")}" inputmode="numeric">
+        <p class="error-campo" data-err="valor" hidden></p></div>
+      <div><label>Compra mínima</label><input class="campo" aria-label="Compra mínima" data-campo="minimo" value="${escapar(c.minimo || "")}" inputmode="numeric" placeholder="0">
+        <p class="error-campo" data-err="minimo" hidden></p></div>
+      <div><label>Vence</label><input class="campo" aria-label="Vence" data-campo="vence" type="date" value="${escapar(c.vence || "")}">
+        <p class="error-campo" data-err="vence" hidden></p></div>
+      <div><label>Usos máximos (0 = sin tope)</label><input class="campo" aria-label="Usos máximos (0 = sin tope)" data-campo="usosMaximos" value="${escapar(c.usosMaximos || "")}" inputmode="numeric" placeholder="0">
+        <p class="error-campo" data-err="usosMaximos" hidden></p></div>
+      <div><label>Activo</label><select class="campo" aria-label="Activo" data-campo="activo">${["Sí", "No"].map(v =>
+        `<option${v === (c.activo || "Sí") ? " selected" : ""}>${v}</option>`).join("")}</select></div>
+      <div><label>Notas</label><input class="campo" aria-label="Notas" data-campo="notas" value="${escapar(c.notas || "")}"></div>
+    </div>
+    ${nuevo ? "" : `<p class="dato">Usado en ${Number(c.usados) || 0} venta(s).</p>`}
+    <div class="pie-fila"><button class="btn chico" type="button" data-accion="guardar">Guardar</button>
+      ${nuevo ? `<button class="btn linea chico" type="button" data-accion="quitar">Cancelar</button>` :
+        `<button class="btn peligro chico" type="button" data-accion="borrar">Borrar</button>`}
+      <span class="estado-fila" role="status"></span></div>
+  </details>`;
+}
+
+function pintarEnvios(){ $("#listaEnvios").innerHTML = envios.map(filaEnvio).join("") || `<p class="dato">Todavía no hay zonas.</p>`; }
+function pintarCupones(){ $("#listaCupones").innerHTML = cupones.map(filaCupon).join("") || `<p class="dato">Todavía no hay cupones.</p>`; }
+
+async function alPulsarAjuste(ev){
+  const b = ev.target.closest("button[data-accion]");
+  if (!b) return;
+  const fila = b.closest(".fila-ajuste");
+  const tipo = fila.dataset.tipo, original = fila.dataset.original;
+  const estado = fila.querySelector(".estado-fila");
+  if (b.dataset.accion === "quitar") { fila.remove(); return; }
+  /* Borrar pide un segundo toque, como en productos: en un celular se pulsa sin leer. */
+  if (b.dataset.accion === "borrar" && !b.dataset.seguro) {
+    b.dataset.seguro = "1"; b.textContent = "¿Seguro? Borrar"; b.classList.add("firme"); return;
+  }
+  const datos = { original: original, version: fila.dataset.version };
+  if (b.dataset.accion === "borrar") datos.borrar = true;
+  else {
+    const d = {};
+    fila.querySelectorAll("[data-campo]").forEach(el => { d[el.dataset.campo] = el.value.trim(); });
+    datos[tipo] = d;
+  }
+  const llaveOp = tipo + ":" + (original || "nuevo") + ":" + (datos.borrar ? "b" : "g");
+  if (!opsFila[llaveOp]) opsFila[llaveOp] = nuevaOperacion();
+  datos.op = opsFila[llaveOp];
+  fila.querySelectorAll("[data-err]").forEach(e => { e.hidden = true; });
+  b.disabled = true; estado.textContent = "Guardando…";
+  try {
+    const r = await llamar(tipo === "envio" ? "guardar_envio" : "guardar_cupon", datos);
+    delete opsFila[llaveOp];
+    if (!r.ok) {
+      Object.keys(r.errores || {}).forEach(k => { const e = fila.querySelector(`[data-err="${k}"]`);
+        if (e) { e.hidden = false; e.textContent = r.errores[k]; } });
+      estado.textContent = r.error || "No se guardó.";
+      return;
+    }
+    const texto = tipo === "envio"
+      ? (datos.borrar ? "Zona borrada." : "Zona guardada.") + " Se verá en la tienda al publicar."
+      : (datos.borrar ? "Cupón borrado." : "Cupón guardado.") + " Ya funciona en la tienda.";
+    await cargarTienda();
+    const sec = tipo === "envio" ? "#seccionEnvios" : "#seccionCupones";
+    $(sec).open = true;
+    aviso(tipo === "envio" ? "#avisoEnvios" : "#avisoCupones", "bien", texto);
+    if (tipo === "envio") revisarPublicacion();
+  } catch (e) {
+    if (e.message !== "sesion") estado.textContent = "No sabemos si se guardó: se perdió la conexión. Pulsa otra vez; no se va a repetir.";
+  } finally { b.disabled = false; }
 }
 
 /* ── El tablero (M4) ────────────────────────────────────────────────────────
@@ -1223,15 +1468,17 @@ function pesosCortos(n){
 
 /* Barras verticales: una por mes. */
 function svgColumnas(filas, resumen){
-  const W = 600, H = 190, arriba = 22, abajo = 26, alto = H - arriba - abajo;
+  /* Letra grande DENTRO del dibujo: el SVG se encoge a la mitad en un celular,
+     y 13 unidades aquí eran 7 píxeles allá. */
+  const W = 600, H = 230, arriba = 34, abajo = 38, alto = H - arriba - abajo;
   const tope = Math.max(1, ...filas.map(f => f.valor));
   const paso = W / filas.length, ancho = Math.min(64, paso * 0.62);
   const barras = filas.map((f, i) => {
     const h = f.valor > 0 ? Math.max(2, Math.round(f.valor / tope * alto)) : 0;
     const x = Math.round(i * paso + (paso - ancho) / 2), y = arriba + alto - h, cx = Math.round(i * paso + paso / 2);
     return `<rect x="${x}" y="${y}" width="${Math.round(ancho)}" height="${h}" rx="3" fill="${f.resaltar ? "#111" : "#9DB8A6"}"></rect>` +
-      `<text x="${cx}" y="${y - 6}" text-anchor="middle" font-size="13" fill="#111">${escapar(f.corto)}</text>` +
-      `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="13" fill="#6E6E6E"${f.resaltar ? ' font-weight="700"' : ""}>${escapar(f.rotulo)}</text>`;
+      `<text x="${cx}" y="${y - 8}" text-anchor="middle" font-size="22" fill="#111">${escapar(f.corto)}</text>` +
+      `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="22" fill="#6E6E6E"${f.resaltar ? ' font-weight="700"' : ""}>${escapar(f.rotulo)}</text>`;
   }).join("");
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapar(resumen)}">` +
     `<line x1="0" y1="${arriba + alto}" x2="${W}" y2="${arriba + alto}" stroke="#E4E4E4"></line>${barras}</svg>`;
@@ -1239,13 +1486,17 @@ function svgColumnas(filas, resumen){
 
 /* Barras horizontales: el rótulo encima, la barra debajo y la cifra al final. */
 function svgBarras(filas, resumen){
-  const W = 600, fila = 42;
+  const W = 600, fila = 64;
+  /* Sitio a la derecha para la cifra más larga: si no, «3 · 100% de los
+     carritos» se sale del dibujo. Y el rótulo, cortado: la tabla lo trae entero. */
+  const reserva = Math.min(330, 16 + 11 * Math.max(...filas.map(f => String(f.corto).length)));
+  const corto = t => { t = String(t); return t.length > 44 ? t.slice(0, 43) + "…" : t; };
   const tope = Math.max(1, ...filas.map(f => f.valor));
   const cuerpo = filas.map((f, i) => {
-    const y = i * fila, largo = f.valor > 0 ? Math.max(3, Math.round(f.valor / tope * (W - 110))) : 0;
-    return `<text x="0" y="${y + 15}" font-size="14" fill="#111">${escapar(f.rotulo)}</text>` +
-      `<rect x="0" y="${y + 21}" width="${largo}" height="12" rx="3" fill="${f.color || "#9DB8A6"}"></rect>` +
-      `<text x="${largo + 8}" y="${y + 32}" font-size="13" fill="#6E6E6E">${escapar(f.corto)}</text>`;
+    const y = i * fila, largo = f.valor > 0 ? Math.max(3, Math.round(f.valor / tope * (W - reserva))) : 0;
+    return `<text x="0" y="${y + 24}" font-size="23" fill="#111">${escapar(corto(f.rotulo))}</text>` +
+      `<rect x="0" y="${y + 34}" width="${largo}" height="18" rx="4" fill="${f.color || "#9DB8A6"}"></rect>` +
+      `<text x="${largo + 10}" y="${y + 51}" font-size="20" fill="#6E6E6E">${escapar(f.corto)}</text>`;
   }).join("");
   return `<svg viewBox="0 0 ${W} ${filas.length * fila}" role="img" aria-label="${escapar(resumen)}">${cuerpo}</svg>`;
 }
@@ -1345,7 +1596,24 @@ function pintarTablero(){
     `</section>`);
 
   partes.push(`<p class="ayuda" style="margin:10px 0 40px">Son los mismos números de la pestaña Tablero de tu hoja.</p>`);
-  $("#tablero").innerHTML = partes.join("");
+  /* Arriba lo que se mira de un vistazo —las cuatro cifras y lo que hay que
+     atender hoy—; debajo de los pedidos, las gráficas. */
+  const arriba = partes.filter(x => /class="cifras"|id="bloque-atender"/.test(x));
+  $("#tableroCifras").innerHTML = arriba.join("");
+  $("#tableroGraficas").innerHTML = `<h2 class="titulo-bloque">Cómo va el mes</h2>` +
+    partes.filter(x => arriba.indexOf(x) === -1).join("");
+  pintarCobro(d.cobro);
+}
+
+/* LA HOJA PIDE PASARELA Y LA TIENDA COBRA POR WHATSAPP: se dice arriba, en
+   las dos pantallas, con el porqué. Pasó en la primera tienda y nada en la
+   página lo decía (bitácora 57). */
+function pintarCobro(c){
+  const el = $("#avisoCobro");
+  if (!c || c.pedido !== "pasarela" || c.modo === "pasarela") { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false;
+  el.textContent = "Tu tienda está cobrando por WhatsApp aunque pediste la pasarela de Bold. " +
+    (c.problema || "Revisa la sección «El cobro» en Tienda.");
 }
 
 /* ── Arranque ── */
@@ -1375,6 +1643,14 @@ $("#guardarPedido").addEventListener("click", () => guardarEstadoPedido(false));
 $("#guardarPedidoSi").addEventListener("click", () => guardarEstadoPedido(true));
 $("#cerrarPedido").addEventListener("click", cerrarPedido);
 $("#formTienda").addEventListener("submit", guardarTienda);
+$("#camposTienda").addEventListener("input", revisarClave);
+$("#camposTienda").addEventListener("change", revisarClave);
+$("#listaEnvios").addEventListener("click", alPulsarAjuste);
+$("#listaCupones").addEventListener("click", alPulsarAjuste);
+$("#nuevoEnvio").addEventListener("click", () => { $("#listaEnvios").insertAdjacentHTML("beforeend", filaEnvio({}));
+  const x = $("#listaEnvios .fila-ajuste:last-child [data-campo='id']"); if (x) x.focus(); });
+$("#nuevoCupon").addEventListener("click", () => { $("#listaCupones").insertAdjacentHTML("beforeend", filaCupon({}));
+  const x = $("#listaCupones .fila-ajuste:last-child [data-campo='codigo']"); if (x) x.focus(); });
 $("#deshacerTienda").addEventListener("click", () => { pintarTienda(); aviso("#avisoTienda", "", ""); });
 $("#camposTienda").addEventListener("input", ev => { const el = ev.target;
   if (el.nextElementSibling && el.nextElementSibling.classList.contains("muestra") && /^#[0-9a-f]{6}$/i.test(el.value))

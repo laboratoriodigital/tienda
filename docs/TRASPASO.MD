@@ -30,6 +30,7 @@ automática de la flota (M6) siguen **fuera**, y son la entrega 1.1.
 | **M2** · La tienda para todo producto | **Cerrado** el 21 de septiembre: C-1, C-1b (inventario y fotos por combinación), C-2, C-3 (envío gratis anunciado, horario, tienda cerrada, pedido mínimo) y C-4 |
 | **M3** · El panel del comerciante | **Cerrado** el 21 de septiembre: D-1 a D-7. Entra, edita productos, fotos y stock por combinación, cambia pedidos, edita la configuración, publica, deja registro de todo, y la guía de una página ya explica el panel |
 | **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) |
+| **M3 bis** · El panel alcanza para todo | **Hecho** el 21 de septiembre (0.9.0, decisión 14): dos pantallas, Ventas y Tienda; toda la configuración, zonas de envío y cupones desde el panel; lo que mueve la plata pide la clave otra vez; aviso rojo si la pasarela no está lista. La hoja sigue funcionando igual |
 | **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
@@ -48,7 +49,7 @@ real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
 entero por delante. Los dos, holgadamente dentro del presupuesto de
 `presupuesto.json`.
 
-**El MVP está construido** (M0 a M4). Lo que queda antes de llamarlo 1.0.0
+**El MVP está construido** (M0 a M4, más el panel completo de la 0.9.0). Lo que queda antes de llamarlo 1.0.0
 no es código nuevo, es comprobarlo en una tienda de verdad:
 
 1. **La prueba de Bold** con las llaves de pruebas en una tienda publicada

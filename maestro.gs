@@ -1053,7 +1053,9 @@ function atenderEstadoPedido(p) {
 
 var CLAVES_DEL_PANEL = [
   { clave: 'negocio',              grupo: 'Tu tienda',  tipo: 'texto',  rotulo: 'Nombre del comercio' },
-  { clave: 'whatsapp',             grupo: 'Tu tienda',  tipo: 'celular', rotulo: 'WhatsApp para pedidos' },
+  /* SENSIBLE: a ese número llegan los pedidos y, por WhatsApp, las
+     instrucciones de pago. Cambiarlo pide la clave otra vez (ver abajo). */
+  { clave: 'whatsapp',             grupo: 'Tu tienda',  tipo: 'celular', rotulo: 'WhatsApp para pedidos', sensible: true },
   { clave: 'horario',              grupo: 'Tu tienda',  tipo: 'texto',  rotulo: 'Horario de atención' },
   { clave: 'portada_titulo',       grupo: 'La portada', tipo: 'texto',  rotulo: 'Título de la portada' },
   { clave: 'portada_texto',        grupo: 'La portada', tipo: 'largo',  rotulo: 'Texto de la portada' },
@@ -1076,15 +1078,53 @@ var CLAVES_DEL_PANEL = [
   { clave: 'empresa_tel',          grupo: 'Datos legales', tipo: 'texto',  rotulo: 'Teléfono' },
   { clave: 'empresa_correo',       grupo: 'Datos legales', tipo: 'correo', rotulo: 'Correo' },
   { clave: 'correo_resumen',       grupo: 'El correo del día', tipo: 'correo', rotulo: 'A qué correo llega el resumen' },
-  /* M3.5. El modo sí; el ambiente NO: pasar a Producción es una decisión que
-     va con la prueba completa y con las llaves de producción, y eso lo hace
-     quien montó la tienda, no un toque desde el celular. */
-  { clave: 'cobro_modo',           grupo: 'La venta',   tipo: 'opcion', rotulo: 'Cómo se cierra la venta',
+  { clave: 'cobro_modo',           grupo: 'El cobro',   tipo: 'opcion', rotulo: 'Cómo se cierra la venta',
     opciones: ['WhatsApp', 'Pasarela'] },
   { clave: 'pedido_minimo',        grupo: 'La venta',   tipo: 'cifra',  rotulo: 'Pedido mínimo (vacío = sin mínimo)' },
   { clave: 'tienda_abierta',       grupo: 'Tu tienda',  tipo: 'sino',   rotulo: 'La tienda recibe pedidos' },
-  { clave: 'tienda_cerrada_mensaje', grupo: 'Tu tienda', tipo: 'largo', rotulo: 'Mensaje cuando está cerrada' }
+  { clave: 'tienda_cerrada_mensaje', grupo: 'Tu tienda', tipo: 'largo', rotulo: 'Mensaje cuando está cerrada' },
+
+  /* ── DESDE EL 21 DE SEPTIEMBRE (0.9.0): TODO LO DEMÁS QUE SE ESCRIBE A MANO ──
+     El dueño lo pidió así: que el panel alcance para todo y la hoja quede de
+     respaldo. Dos quedan fuera, y es a propósito: `correo_ultimo` lo escribe el
+     script, y `panel_usuario` va con la clave, que solo da el menú de la hoja
+     —cambiar el usuario desde dentro de la sesión dejaría una clave sin dueño—.
+
+     EL AMBIENTE DEL COBRO Y LOS DATOS DE PAGO SON SENSIBLES: con una sesión
+     robada, cambiar la cuenta a la que se transfiere o pasar a Producción es
+     llevarse la plata. Por eso piden la clave otra vez, cada vez (`sensible`).
+     Las LLAVES de Bold no están aquí ni van a estar: viven en las propiedades
+     del script, donde solo llega quien edita el proyecto. */
+  { clave: 'logo',                 grupo: 'Tu tienda',  tipo: 'url',    rotulo: 'Logo (URL de Cloudinary; vacío = el signo con tus colores)' },
+  { clave: 'favicon',              grupo: 'Tu tienda',  tipo: 'url',    rotulo: 'Ícono de la pestaña (URL de Cloudinary, cuadrado)' },
+  { clave: 'cobro_ambiente',       grupo: 'El cobro',   tipo: 'opcion', rotulo: 'Pasarela: ¿pruebas o dinero real?',
+    opciones: ['Pruebas', 'Producción'], sensible: true },
+  { clave: 'pago_llave',           grupo: 'El cobro',   tipo: 'texto',  rotulo: 'Transferencia: llave Bre-B o número de cuenta', sensible: true },
+  { clave: 'pago_titular',         grupo: 'El cobro',   tipo: 'texto',  rotulo: 'Transferencia: a nombre de quién', sensible: true },
+  { clave: 'pago_entidad',         grupo: 'El cobro',   tipo: 'texto',  rotulo: 'Transferencia: banco o billetera', sensible: true },
+  { clave: 'pago_texto',           grupo: 'El cobro',   tipo: 'largo',  rotulo: 'Transferencia: el mensaje de pago (vacío = se arma solo)', sensible: true },
+  { clave: 'pago_tope',            grupo: 'El cobro',   tipo: 'cifra',  rotulo: 'Transferencia: tope por pago (Bre-B)' },
+  { clave: 'legal_actualizado',    grupo: 'Datos legales', tipo: 'texto', rotulo: 'Fecha al pie de los textos legales' },
+  { clave: 'sitio_titulo',         grupo: 'Google y WhatsApp', tipo: 'texto', rotulo: 'Título en el buscador y al compartir' },
+  { clave: 'sitio_descripcion',    grupo: 'Google y WhatsApp', tipo: 'largo', rotulo: 'Descripción en el buscador y al compartir' },
+  { clave: 'correo_hora',          grupo: 'El correo del día', tipo: 'hora', rotulo: 'A qué hora sale (0 a 23)' },
+  { clave: 'correo_siempre',       grupo: 'El correo del día', tipo: 'sino', rotulo: 'Llega todos los días (No = solo si hay algo)' },
+  { clave: 'sitio_url',            grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Dirección de la tienda' },
+  { clave: 'repositorio',          grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Repositorio (dueño/nombre)' },
+  { clave: 'fotos_drive',          grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Carpeta de Drive con las fotos crudas' },
+  { clave: 'fotos_origen',         grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Dónde se sirven las fotos' },
+  { clave: 'fotos_cdn',            grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Transformación de fotos' },
+  { clave: 'fotos_webp',           grupo: 'Avanzado',   tipo: 'sino',   rotulo: 'Fotos en varios tamaños (webp)' },
+  { clave: 'respaldo_carpeta',     grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Carpeta del respaldo semanal' },
+  { clave: 'f_autoria',            grupo: 'Avanzado',   tipo: 'sino',   rotulo: 'Mostrar la autoría al pie' },
+  { clave: 'autoria_url',          grupo: 'Avanzado',   tipo: 'url',    rotulo: 'A dónde enlaza la autoría' }
 ];
+
+/* EL ORDEN EN QUE SE ENSEÑAN LOS GRUPOS. La lista de arriba solo crece al
+   final (así se lee la historia de qué entró cuándo); el orden de pantalla es
+   otra cosa y vive aquí. */
+var GRUPOS_DEL_PANEL = ['Tu tienda', 'La venta', 'El cobro', 'La portada', 'Los textos', 'Los colores',
+                        'Google y WhatsApp', 'Datos legales', 'El correo del día', 'Avanzado'];
 
 /* ¿Se entiende este valor? Devuelve null si sí, o el motivo. Vacío siempre se
    entiende: toda clave puede estar vacía (CONTRATOS §5). */
@@ -1104,6 +1144,8 @@ function problemaDeValor(def, valor) {
   }
   if (def.tipo === 'celular' && !/^\+?[\d\s-]{10,16}$/.test(v)) return 'Un celular con indicativo: 573001234567';
   if (def.tipo === 'correo' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Eso no parece un correo.';
+  if (def.tipo === 'url' && !/^https:\/\/\S+$/.test(v)) return 'Una dirección completa, que empiece por https://';
+  if (def.tipo === 'hora' && !(/^\d{1,2}$/.test(v) && Number(v) <= 23)) return 'Una hora de 0 a 23.';
   return null;
 }
 
@@ -1113,6 +1155,198 @@ function problemaDeValor(def, valor) {
 function problemaDelCobro(def, valor) {
   if (def.clave !== 'cobro_modo' || llano(valor) !== 'pasarela') return null;
   return cobroVigente().problema || null;
+}
+
+/* La clave del panel, pedida otra vez para un cambio sensible. Devuelve null
+   si está bien, o la respuesta de rechazo. Usa el mismo contador de intentos
+   que la entrada: si no, este sería el sitio donde probar claves sin freno. */
+var PIDE_CLAVE = 'Para cambiar esto escribe tu clave del panel otra vez.';
+function claveOtraVez(p) {
+  var bloqueo = estadoDeIntentos();
+  if (bloqueo.hasta > Date.now()) {
+    return { ok: false, necesitaClave: true, error: 'Demasiados intentos. Prueba de nuevo en ' +
+             Math.ceil((bloqueo.hasta - Date.now()) / 60000) + ' minuto(s).' };
+  }
+  var clave = String(p.c || '');
+  if (!clave) return { ok: false, necesitaClave: true, error: PIDE_CLAVE };
+  if (!claveDelPanelCorrecta(clave)) {
+    var s0 = leerTestigo(p.k);
+    anotarIntentoFallido(s0 ? s0.usuario : '');
+    return { ok: false, necesitaClave: true, error: 'Esa no es tu clave. No se guardó nada.' };
+  }
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ENVÍOS Y CUPONES DESDE EL PANEL (0.9.0)
+   --------------------------------------------------------------------------
+   Una fila a la vez, como los productos: con su huella para no pisar lo que
+   cambió en la hoja entre medias, y con su número de operación. La hoja
+   sigue siendo la fuente y se puede seguir editando a mano.
+
+   EL CÓDIGO DE UNA ZONA NO SE CAMBIA después de creada: viaja en los
+   carritos abiertos y en los pedidos, y renombrarla sería dejarlos apuntando a
+   nada. Se cambia el nombre y el valor; para otro código, zona nueva.
+
+   «USOS CONFIRMADOS» NO SE ESCRIBE NUNCA desde aquí: lo cuenta el script a
+   partir de las ventas. Tampoco entra en la huella, para que una venta con
+   el cupón no invalide la edición de sus notas. Un cupón que ya se usó no se
+   borra —es historia de ventas—: se desactiva.
+   ══════════════════════════════════════════════════════════════════════════ */
+function fechaIso(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    var dd = function (n) { return (n < 10 ? '0' : '') + n; };
+    return v.getFullYear() + '-' + dd(v.getMonth() + 1) + '-' + dd(v.getDate());
+  }
+  return String(v === null || v === undefined ? '' : v).trim();
+}
+function texto0(v) { return String(v === null || v === undefined ? '' : v).trim(); }
+
+function filasDe(nombre, ancho) {
+  var h = elLibro().getSheetByName(nombre);
+  if (!h || h.getLastRow() < 2) return { h: h, filas: [] };
+  return { h: h, filas: h.getRange(2, 1, h.getLastRow() - 1, ancho).getValues() };
+}
+
+var CODIGO_ENVIO = /^[a-z0-9][a-z0-9-]{0,39}$/;
+var CODIGO_CUPON = /^[A-Z0-9][A-Z0-9_-]{2,29}$/;
+var TIPOS_CUPON = ['porcentaje', 'fijo', 'envio'];
+
+function versionDeEnvio(f) { return versionDeFila([texto0(f[0]), texto0(f[1]), texto0(f[2])]); }
+function versionDeCupon(f) {
+  return versionDeFila([texto0(f[0]), texto0(f[1]), texto0(f[2]), texto0(f[3]), fechaIso(f[4]),
+                        texto0(f[5]), texto0(f[7]), texto0(f[8])]);
+}
+
+function enviosParaElPanel() {
+  return filasDe(H_ENVIOS, 3).filas.filter(function (f) { return texto0(f[0]); }).map(function (f) {
+    var n = cifraDeTexto(f[2], 'Envíos');
+    return { id: texto0(f[0]), nombre: texto0(f[1]), valor: texto0(f[2]), version: versionDeEnvio(f),
+             problema: n === null ? 'El valor no se entiende: esta zona no se ofrece hasta que sea un número.' : '' };
+  });
+}
+
+function cuponesParaElPanel() {
+  return filasDe(H_CUPONES, 9).filas.filter(function (f) { return texto0(f[0]); }).map(function (f) {
+    return { codigo: texto0(f[0]), tipo: texto0(f[1]).toLowerCase(), valor: texto0(f[2]), minimo: texto0(f[3]),
+             vence: fechaIso(f[4]), usosMaximos: texto0(f[5]), usados: Number(f[6]) || 0,
+             activo: esSi(f[7]) ? 'Sí' : 'No', notas: texto0(f[8]), version: versionDeCupon(f) };
+  });
+}
+
+/* Un número del panel: vacío vale `vacio`; si no se entiende, null. */
+function cifraDelPanel(v, vacio) {
+  var t = texto0(v);
+  if (!t) return vacio;
+  CELDAS_ILEGIBLES = [];
+  var n = cifraDeTexto(t, 'panel');
+  CELDAS_ILEGIBLES = [];
+  return n === null || n < 0 ? null : n;
+}
+
+function atenderGuardarEnvio(p) {
+  return conOperacion(p, function () {
+    var t = filasDe(H_ENVIOS, 3);
+    var original = texto0(p.original);
+    var i = -1;
+    t.filas.forEach(function (f, k) { if (texto0(f[0]) === original && original) i = k; });
+    if (original) {
+      if (i === -1) return { ok: false, error: 'Esa zona ya no está en la hoja. Vuelve a abrir la lista.' };
+      if (String(p.version || '') !== versionDeEnvio(t.filas[i])) {
+        return { ok: false, error: 'Esa zona cambió en la hoja mientras la editabas. Vuelve a abrir la lista.' };
+      }
+    }
+    var antes = i === -1 ? '' : texto0(t.filas[i][1]) + ' · $' + texto0(t.filas[i][2]);
+    if (p.borrar === true) {
+      if (i === -1) return { ok: false, error: 'No hay nada que borrar.' };
+      t.h.deleteRows(i + 2, 1);
+      return { ok: true, borrado: original,
+               _registro: [{ que: 'Borró la zona de envío', donde: 'Envíos · ' + original, antes: antes, despues: '' }] };
+    }
+    var d = p.envio || {};
+    var id = original || texto0(d.id).toLowerCase();
+    var nombre = celdaSegura(d.nombre, 80);
+    var valor = cifraDelPanel(d.valor, null);
+    var errores = {};
+    if (!CODIGO_ENVIO.test(id)) errores.id = 'El código va en minúsculas, sin espacios ni tildes: zona-norte';
+    else if (!original && t.filas.some(function (f) { return texto0(f[0]) === id; })) errores.id = 'Ya hay una zona con ese código.';
+    if (!nombre) errores.nombre = 'Ponle un nombre: es lo que ve el comprador.';
+    if (valor === null) errores.valor = 'Un número (0 si no cuesta), sin puntos ni signo.';
+    if (Object.keys(errores).length) return { ok: false, errores: errores, error: 'No se guardó: hay datos por corregir.' };
+    var h = t.h || hoja(H_ENVIOS, ['ID', 'Nombre', 'Valor']);
+    if (i === -1) h.appendRow([id, nombre, valor]);
+    else h.getRange(i + 2, 1, 1, 3).setValues([[id, nombre, valor]]);
+    return { ok: true, id: id, version: versionDeEnvio([id, nombre, valor]),
+             _registro: [{ que: i === -1 ? 'Creó la zona de envío' : 'Editó la zona de envío', donde: 'Envíos · ' + id,
+                           antes: antes, despues: nombre + ' · $' + valor }] };
+  }, true);
+}
+
+function atenderGuardarCupon(p) {
+  return conOperacion(p, function () {
+    var t = filasDe(H_CUPONES, 9);
+    var original = texto0(p.original).toUpperCase();
+    var i = -1;
+    t.filas.forEach(function (f, k) { if (original && texto0(f[0]).toUpperCase() === original) i = k; });
+    if (original) {
+      if (i === -1) return { ok: false, error: 'Ese cupón ya no está en la hoja. Vuelve a abrir la lista.' };
+      if (String(p.version || '') !== versionDeCupon(t.filas[i])) {
+        return { ok: false, error: 'Ese cupón cambió en la hoja mientras lo editabas. Vuelve a abrir la lista.' };
+      }
+    }
+    var resumen = function (f) {
+      return [texto0(f[1]), texto0(f[2]), 'mínimo ' + (texto0(f[3]) || '0'), fechaIso(f[4]) ? 'vence ' + fechaIso(f[4]) : '',
+              esSi(f[7]) ? 'activo' : 'inactivo'].filter(function (x) { return x; }).join(' · ');
+    };
+    var antes = i === -1 ? '' : resumen(t.filas[i]);
+    if (p.borrar === true) {
+      if (i === -1) return { ok: false, error: 'No hay nada que borrar.' };
+      if ((Number(t.filas[i][6]) || 0) > 0) {
+        return { ok: false, error: 'Este cupón ya se usó en ventas: no se borra, se desactiva. Así queda la historia.' };
+      }
+      t.h.deleteRows(i + 2, 1);
+      return { ok: true, borrado: original,
+               _registro: [{ que: 'Borró el cupón', donde: 'Cupones · ' + original, antes: antes, despues: '' }] };
+    }
+    var d = p.cupon || {};
+    var codigo = original || texto0(d.codigo).toUpperCase();
+    var tipo = texto0(d.tipo).toLowerCase();
+    var valor = cifraDelPanel(d.valor, tipo === 'envio' ? 0 : null);
+    var minimo = cifraDelPanel(d.minimo, 0);
+    var maximos = cifraDelPanel(d.usosMaximos, 0);
+    var vence = texto0(d.vence);
+    var activo = llano(d.activo) === 'no' ? 'No' : 'Sí';
+    var notas = celdaSegura(d.notas, 200);
+    var errores = {};
+    if (!CODIGO_CUPON.test(codigo)) errores.codigo = 'De 3 a 30 letras o números, sin espacios: BIENVENIDA10';
+    else if (!original && t.filas.some(function (f) { return texto0(f[0]).toUpperCase() === codigo; })) errores.codigo = 'Ya hay un cupón con ese código.';
+    if (TIPOS_CUPON.indexOf(tipo) === -1) errores.tipo = 'Elige: porcentaje, fijo o envío gratis.';
+    if (valor === null || (tipo === 'porcentaje' && (valor <= 0 || valor > 100)) || (tipo === 'fijo' && valor <= 0)) {
+      errores.valor = tipo === 'porcentaje' ? 'Un porcentaje de 1 a 100.' : 'Cuánto descuenta, en pesos.';
+    }
+    if (minimo === null) errores.minimo = 'Un número, o vacío para sin mínimo.';
+    if (maximos === null || Math.floor(maximos) !== maximos) errores.usosMaximos = 'Un número entero; 0 = sin tope.';
+    if (vence && (!/^\d{4}-\d{2}-\d{2}$/.test(vence) || isNaN(new Date(vence + 'T12:00:00').getTime()))) {
+      errores.vence = 'Una fecha como 2026-12-31, o vacío para que no venza.';
+    }
+    if (Object.keys(errores).length) return { ok: false, errores: errores, error: 'No se guardó: hay datos por corregir.' };
+    var h = t.h || hoja(H_CUPONES, ['Código', 'Tipo', 'Valor', 'Mínimo', 'Vence', 'Usos máximos', 'Usos confirmados', 'Activo', 'Notas']);
+    var nueva = [codigo, tipo, valor, minimo, vence, maximos];
+    var fila;
+    if (i === -1) {
+      fila = nueva.concat([0, activo, notas]);
+      h.appendRow(fila);
+    } else {
+      /* Dos escrituras y no una: la columna G (usos confirmados) queda en medio
+         y es del script. */
+      h.getRange(i + 2, 1, 1, 6).setValues([nueva]);
+      h.getRange(i + 2, 8, 1, 2).setValues([[activo, notas]]);
+      fila = nueva.concat([t.filas[i][6], activo, notas]);
+    }
+    return { ok: true, codigo: codigo, version: versionDeCupon(fila),
+             _registro: [{ que: i === -1 ? 'Creó el cupón' : 'Editó el cupón', donde: 'Cupones · ' + codigo,
+                           antes: antes, despues: resumen(fila) }] };
+  });
 }
 
 function filasDeConfiguracion() {
@@ -1130,15 +1364,31 @@ function atenderConfiguracion() {
   var cfg = filasDeConfiguracion();
   var fila = {};
   cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
-  return { ok: true, claves: CLAVES_DEL_PANEL.filter(function (d) { return fila[d.clave] !== undefined; })
-    .map(function (d) {
+  var orden = function (d) { var i = GRUPOS_DEL_PANEL.indexOf(d.grupo); return i === -1 ? 99 : i; };
+  var claves = CLAVES_DEL_PANEL.filter(function (d) { return fila[d.clave] !== undefined; })
+    .map(function (d, i) { return { d: d, i: i }; })
+    .sort(function (x, y) { return orden(x.d) - orden(y.d) || x.i - y.i; })
+    .map(function (x) {
+      var d = x.d;
       var f = cfg.filas[fila[d.clave]];
       var valor = String(f[1] === null || f[1] === undefined ? '' : f[1]);
       return { clave: d.clave, grupo: d.grupo, tipo: d.tipo, rotulo: d.rotulo,
                opciones: d.opciones || null, ayuda: String(f[2] || ''),
                valor: valor, problema: problemaDeValor(d, valor) || problemaDelCobro(d, valor),
-               version: versionDeValor(valor) };
-    }) };
+               version: versionDeValor(valor), sensible: !!d.sensible };
+    });
+  /* AL FINAL, Y NO EN MEDIO (R1). Lo que el panel necesita para su segunda
+     pantalla: cómo se está cobrando de verdad, y las dos pestañas que antes
+     solo se editaban en la hoja. */
+  return { ok: true, claves: claves, cobro: estadoDelCobro(), envios: enviosParaElPanel(),
+           cupones: cuponesParaElPanel() };
+}
+
+/* Lo que se pidió en la hoja y lo que la tienda está haciendo, con el porqué.
+   Sin las llaves, sin nada que no sea una frase para el comerciante. */
+function estadoDelCobro() {
+  var v = cobroVigente();
+  return { pedido: v.pedido, modo: v.modo, ambiente: v.ambiente, problema: v.problema || '' };
 }
 
 /* Todo o nada: si una clave no valida, no se escribe ninguna. Guardar media
@@ -1153,6 +1403,20 @@ function atenderGuardarConfiguracion(p) {
     var cfg = filasDeConfiguracion();
     var fila = {};
     cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
+
+    /* LO SENSIBLE PIDE LA CLAVE OTRA VEZ. Solo si de verdad cambia: mandar el
+       mismo número de siempre no es tocarlo. Una clave mala cuenta como un
+       intento fallido de entrar, con el mismo bloqueo. */
+    var tocaSensible = Object.keys(cambios).some(function (k) {
+      var d = defs[k];
+      if (!d || !d.sensible || fila[k] === undefined) return false;
+      var actual = String(cfg.filas[fila[k]][1] === null || cfg.filas[fila[k]][1] === undefined ? '' : cfg.filas[fila[k]][1]).trim();
+      return String(cambios[k] === null || cambios[k] === undefined ? '' : cambios[k]).trim() !== actual;
+    });
+    if (tocaSensible) {
+      var rechazo = claveOtraVez(p);
+      if (rechazo) return rechazo;
+    }
 
     var errores = {}, aEscribir = [];
     Object.keys(cambios).forEach(function (k) {
@@ -1315,7 +1579,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-3';
+var VERSION = '2026-09-21-4';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2618,7 +2882,10 @@ var PUERTAS = {
   guardar_combinaciones: { guarda: 'panel', soloPost: true, fn: atenderGuardarCombinaciones },
   /* M4 · el tablero del panel. Solo lectura, y aun así con sesión: son las
      ventas del comercio. */
-  tablero:               { guarda: 'panel', soloPost: true, fn: atenderTablero }
+  tablero:               { guarda: 'panel', soloPost: true, fn: atenderTablero },
+  /* 0.9.0 · el panel alcanza para todo: las zonas de envío y los cupones. */
+  guardar_envio:         { guarda: 'panel', soloPost: true, fn: atenderGuardarEnvio },
+  guardar_cupon:         { guarda: 'panel', soloPost: true, fn: atenderGuardarCupon }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -3578,7 +3845,10 @@ function tableroParaElPanel() {
     sinVender: corta(m.sinVender),
     cuantosSinVender: m.sinVender.length,
     masVendidos: m.masVendidos.map(function (x) { return { nombre: x[0], unidades: x[1], ingresos: x[2] }; }),
-    porCiudad: m.porCiudad.map(function (x) { return { ciudad: x[0], pedidos: x[1] }; })
+    porCiudad: m.porCiudad.map(function (x) { return { ciudad: x[0], pedidos: x[1] }; }),
+    /* AL FINAL (R1). La pantalla de Ventas avisa arriba si la hoja pide
+       Pasarela y la tienda sigue por WhatsApp, y por qué. */
+    cobro: estadoDelCobro()
   };
 }
 
@@ -6493,9 +6763,10 @@ function cobroVigente(cfg) {
   }
   var ll = llavesBold(r.ambiente);
   if (!ll.identidad || !ll.secreta) {
-    r.problema = 'Faltan las llaves de Bold de ' + (r.ambiente === 'produccion' ? 'producción' : 'pruebas') +
-                 ' en las propiedades del script (' + ll.nombres.join(', ') +
-                 '). Mientras tanto se vende por WhatsApp.';
+    r.problema = (ll.faltan.length === 1 ? 'Falta la llave ' : 'Faltan las llaves ') + ll.faltan.join(' y ') +
+                 ' (Bold, ' + (r.ambiente === 'produccion' ? 'producción' : 'pruebas') +
+                 ') en Apps Script › Configuración del proyecto › Propiedades del script.' +
+                 ' Mientras tanto se vende por WhatsApp.';
     return r;
   }
   if (sinLlenar(cfg.sitio_url)) {
@@ -6508,13 +6779,39 @@ function cobroVigente(cfg) {
 }
 
 /* Los mismos nombres que en la línea anterior, a propósito: dos tiendas del mismo
-   titular de Bold comparten llaves, y copiarlas no debería exigir traducir. */
+   titular de Bold comparten llaves, y copiarlas no debería exigir traducir.
+
+   Y SE ACEPTAN LOS DOS NOMBRES QUE USA ESA LÍNEA: `BOLD_IDENTIDAD_*` y su alias
+   `BOLD_BOTON_IDENTIDAD_*`. Una tienda que copió las propiedades de la otra
+   con el alias quedaba vendiendo por WhatsApp con la hoja diciendo Pasarela,
+   y nada lo decía en la página (bitácora 57). Por lo mismo se busca sin
+   mirar mayúsculas ni espacios al final: en el editor de propiedades de Apps
+   Script un espacio al final del nombre no se ve. */
 function llavesBold(ambiente) {
   var sufijo = ambiente === 'produccion' ? 'PRODUCCION' : 'SANDBOX';
-  var props = PropertiesService.getScriptProperties();
-  var n = ['BOLD_IDENTIDAD_' + sufijo, 'BOLD_SECRETA_' + sufijo];
-  return { identidad: String(props.getProperty(n[0]) || '').trim(),
-           secreta: String(props.getProperty(n[1]) || '').trim(), nombres: n };
+  var todas = {};
+  try { todas = PropertiesService.getScriptProperties().getProperties() || {}; } catch (e) { todas = {}; }
+  var limpias = {};
+  Object.keys(todas).forEach(function (k) {
+    var v = String(todas[k] === null || todas[k] === undefined ? '' : todas[k]).trim();
+    if (v) limpias[String(k).trim().toUpperCase()] = v;
+  });
+  /* «Pruebas» es como lo dice la hoja; SANDBOX, como lo dice Bold. Alguien
+     que escribe BOLD_IDENTIDAD_PRUEBAS no está equivocado. */
+  var sufijos = sufijo === 'SANDBOX' ? ['SANDBOX', 'PRUEBAS'] : ['PRODUCCION'];
+  var leer = function (tipo) {
+    for (var i = 0; i < sufijos.length; i++) {
+      var v = limpias['BOLD_' + tipo + '_' + sufijos[i]] || limpias['BOLD_BOTON_' + tipo + '_' + sufijos[i]];
+      if (v) return v;
+    }
+    return '';
+  };
+  var r = { identidad: leer('IDENTIDAD'), secreta: leer('SECRETA'),
+            nombres: ['BOLD_IDENTIDAD_' + sufijo, 'BOLD_SECRETA_' + sufijo] };
+  /* Qué falta, con nombre propio: «faltan las llaves» cuando falta UNA manda a
+     revisar las dos. */
+  r.faltan = r.nombres.filter(function (n, i) { return !(i === 0 ? r.identidad : r.secreta); });
+  return r;
 }
 
 /* ── Los cobros abiertos, en un solo sitio ────────────────────────────────

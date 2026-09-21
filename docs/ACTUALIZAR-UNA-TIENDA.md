@@ -21,6 +21,20 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.9.0 (tienda): el panel alcanza para todo — nada a mano en la hoja
+
+1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
+   Si Google tarda en servir el maestro nuevo, el montaje espera hasta tres
+   minutos antes de rendirse.
+2. Ni `instalar()` ni el stub.
+3. Comprobarlo en el panel: entra por **Ventas**; en **Tienda** están los
+   ajustes, las zonas y los cupones. Cambiar el WhatsApp pide la clave.
+4. Si cobra con Bold: el botón dice «Pagar con PSE - Pruebas» (o «Pagar con
+   PSE» en producción). Si arriba del panel sale un aviso rojo, las llaves no
+   están guardadas en las propiedades del script.
+
+---
+
 ## La 0.8.0 (tienda): el tablero en el panel — nada a mano en la hoja
 
 1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.

@@ -564,19 +564,42 @@ marca «cambios sin publicar»: un pedido no cambia lo que se hornea. Contesta
 `ok`, `movidos`, `pedido` (el pedido ya cambiado); o `ok: false`, `error` y,
 si cambió entre medias, `cambiado`.
 
-**`configuracion`** (D-4) — contesta `ok`, `claves`. Solo las de la lista
-`CLAVES_DEL_PANEL` (textos, colores, interruptores, datos de la empresa); las
-técnicas —`sitio_url`, `repositorio`, carpetas, datos de pago, `panel_usuario`—
-no salen. Cada clave: `clave`, `grupo`, `tipo`, `rotulo`, `opciones`, `valor`
-(tal como está escrito), `ayuda`, `problema` (si no se entiende: se marca, no se
-degrada) y `version`.
+**`configuracion`** (D-4 y D-9) — contesta `ok`, `claves`, `cobro`, `envios`,
+`cupones`. Desde la 0.9.0 salen **todas** las claves que se escriben a mano,
+menos `correo_ultimo` y `panel_usuario` (decisión 14), ordenadas por grupo. Cada
+clave: `clave`, `grupo`, `tipo`, `rotulo`, `opciones`, `valor` (tal como está
+escrito), `ayuda`, `problema` (si no se entiende: se marca, no se degrada),
+`version` y `sensible`. `cobro`: `pedido`, `modo`, `ambiente`, `problema` —lo
+que pide la hoja y lo que la tienda está haciendo, con el porqué—. Cada envío:
+`id`, `nombre`, `valor`, `version`, `problema`. Cada cupón: `codigo`, `tipo`,
+`valor`, `minimo`, `vence` (AAAA-MM-DD), `usosMaximos`, `usados`, `activo`,
+`notas`, `version` (sin los usos: una venta no la cambia).
 
 **`guardar_configuracion`** (D-4) — pide `op`, `cambios` (`{clave: valor}`) y
 `versiones` (`{clave: version}`). **Todo o nada**: si una clave no valida, no se
 escribe ninguna, y `errores` dice por qué clave por clave. Una clave fuera de la
-lista se rechaza **aunque traiga su versión buena**. Normaliza Sí/No y los
+lista se rechaza **aunque traiga su versión buena**. Si cambia una clave
+`sensible` pide además `c` (la clave del panel): sin ella o mala contesta
+`necesitaClave: true` y no escribe nada; una mala cuenta como intento fallido
+de entrar. Normaliza Sí/No y los
 colores a mayúscula, pinta la celda del color y deja anotado que hay cambios sin
 publicar. Contesta `ok`, `guardadas`; o `ok: false`, `error`, `errores`.
+
+**`guardar_envio`** (D-10, panel) — pide `op`, `original` (el código, vacío
+si es nueva), `version`, y `envio` (`id`, `nombre`, `valor`) o `borrar: true`.
+El código no cambia después de creado. Marca cambios sin publicar. Contesta
+`ok`, `id`, `version`; o `ok: false`, `error`, `errores` por campo.
+
+**`guardar_cupon`** (D-10, panel) — igual, con `cupon` (`codigo`, `tipo`:
+`porcentaje` · `fijo` · `envio`, `valor`, `minimo`, `vence`, `usosMaximos`,
+`activo`, `notas`). Nunca escribe «Usos confirmados». Un cupón con usos no se
+borra. Funciona sin publicar.
+
+**`tablero`** además contesta, al final, `cobro` (lo mismo que `configuracion`).
+
+**Las llaves de Bold** se buscan con y sin el alias de la línea anterior
+(`BOLD_BOTON_IDENTIDAD_*`), sin mirar mayúsculas ni espacios en el nombre, y
+`_PRUEBAS` vale como `_SANDBOX`.
 
 **`publicacion`** (D-5) — contesta `ok`, `servido` (el `generado` del
 `catalogo.json` que la tienda está sirviendo; vacío si no contesta),

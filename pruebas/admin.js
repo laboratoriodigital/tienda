@@ -39,8 +39,13 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
     await p.fill('#usuario', u); await p.fill('#clave', c);
     await p.click('#botonEntrar');
   };
-  const listo = () => hasta(p, () => !document.querySelector('#panel').hidden &&
-                                     document.querySelectorAll('#lista .fila').length > 0);
+  /* Desde la 0.9.0 se entra por Ventas: los productos están en Tienda. */
+  const listo = async () => {
+    await hasta(p, () => !document.querySelector('#panel').hidden);
+    if (await p.locator('#pantalla-tienda').isHidden()) await p.click('#tab-tienda');
+    await hasta(p, () => document.querySelectorAll('#lista .fila').length > 0);
+  };
+  const abrirGrupo = g => p.evaluate(g => { document.querySelector('#camposTienda details[data-grupo="' + g + '"]').open = true; }, g);
 
   await fetch(U + '/__reset');
   const { clave } = await (await fetch(U + '/__panel?usuario=dona.rosa')).json();
@@ -268,7 +273,7 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
   const stock = async id => Number((await fila(id))[5]);
   const stock0 = await stock('croissant');
 
-  await p.click('#tab-pedidos');
+  await p.click('#tab-ventas');
   await quizas(hasta(p, () => document.querySelectorAll('#listaPedidos .fila').length >= 2));
   ok('LA PESTAÑA PEDIDOS lista los pedidos de la hoja',
      await p.locator('#listaPedidos .fila[data-pedido="PANEL1"]').count() === 1 &&
@@ -326,7 +331,10 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
   const fv = ((await hojas())['Configuración'] || []).findIndex(f => String(f[0]) === 'f_variantes') + 1;
   await celda('Configuración', fv, 2, 'tal vez');
   await p.click('#tab-tienda');
-  await quizas(hasta(p, () => !!document.querySelector('#t-portada_titulo')));
+  /* Se espera a que llegue la lectura NUEVA —la que ya trae el «tal vez»—, no
+     a que exista el campo: existía desde la visita anterior. */
+  await quizas(hasta(p, () => { const x = document.querySelector('#t-f_variantes'); return x && x.value === 'tal vez'; }));
+  await abrirGrupo('La portada'); await abrirGrupo('Los colores');
   const sel = await p.evaluate(() => { const s = document.querySelector('#t-f_variantes');
     return { v: s.value, t: s.options[s.selectedIndex].textContent }; });
   ok('UN INTERRUPTOR QUE EN LA HOJA DICE «tal vez» sale así, marcado — no como «No»',
@@ -347,14 +355,14 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
      /Un color se escribe así/.test(await texto('#err-color_principal')) && (await conf('color_principal')) === color0,
      await texto('#err-color_principal'));
 
-  await p.click('#tab-productos');
+  await p.click('#tab-tienda');
   await listo();
 
   // ═══ 9e. El stock por combinación (C-1b) ═══
   {
     const fc = ((await hojas())['Catálogo'] || []).findIndex(f => f[0] === 'baguette') + 1;
     await fetch(U + '/__celda?hoja=Cat%C3%A1logo&f=' + fc + '&c=14&v=' + encodeURIComponent('Talla: S|M ; Color: Rosa') + '&disparar=1');
-    await p.click('#tab-productos');
+    await p.click('#tab-tienda');
     await p.reload(); await listo();
     await abrir('baguette');
     await quizas(hasta(p, () => !document.querySelector('#combinaciones').hidden));

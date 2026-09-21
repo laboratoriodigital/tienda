@@ -676,6 +676,47 @@ mandarle el enlace a alguien. Y el panel crece unas 180 líneas.
 
 ---
 
+## 14 · El panel alcanza para todo, y lo que mueve la plata pide la clave
+
+**Estado:** CERRADA el 21 de septiembre de 2026 (0.9.0). Deshace una parte de
+D-4.
+
+### Qué hacía
+
+D-4 dejaba fuera del panel las claves «técnicas» —la dirección del sitio, las
+carpetas, los datos de pago—: cambiarlas desde un celular podía romper la
+tienda sin que el comerciante lo viera.
+
+### El límite real
+
+El dueño pidió que el panel alcance para todo y la hoja quede de respaldo. El
+riesgo de las técnicas no desaparece, pero se maneja mejor avisando que
+escondiendo. El riesgo que sí es serio es otro: **una sesión robada** que
+cambia la cuenta de las transferencias, el WhatsApp de los pedidos o pasa la
+pasarela a Producción se lleva las ventas.
+
+### La decisión
+
+Salen todas las claves que se escriben a mano, menos `correo_ultimo` (del
+script) y `panel_usuario` (va con la clave). Las técnicas van en la sección
+**Avanzado**, con un aviso. Las que deciden a dónde va la plata —`whatsapp`,
+`cobro_ambiente`, `pago_llave`, `pago_titular`, `pago_entidad`, `pago_texto`—
+**piden la clave del panel otra vez** en cada cambio, con el mismo contador de
+intentos que la entrada. Las **llaves de Bold nunca** entran al panel: viven
+en las propiedades del script.
+
+### Condición de disparo
+
+Revisar si aparece un segundo usuario (fase 2.2): con roles, lo sensible sería
+del dueño y no solo «con clave».
+
+### Contrapartida
+
+Cambiar el WhatsApp o la cuenta pide un paso más. Y alguien puede romper la
+tienda desde Avanzado; queda en el Registro y la hoja lo deshace.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:
