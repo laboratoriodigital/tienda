@@ -459,7 +459,7 @@ sale de `pago_texto`, o se arma con `pago_llave`, `pago_titular` y
 - Enseñarle las tres cosas del día a día: cambiar un precio → **Publicar
   ahora**; pedido nuevo → **Pagado**; algo raro → **Diagnóstico**.
 
-El menú de su hoja tiene seis opciones, y conviene nombrárselas todas una vez:
+El menú de su hoja tiene siete opciones, y conviene nombrárselas todas una vez:
 
 | | |
 |---|---|
@@ -473,6 +473,16 @@ El menú de su hoja tiene seis opciones, y conviene nombrárselas todas una vez:
 
 > **Si explicar esto toma más de 30 minutos, el hallazgo es de diseño, no del
 > comerciante. Anótalo.**
+
+**El panel** (M3, en construcción) vive en `https://<su sitio>/admin.html`. Para
+dejarlo listo en la entrega: en `Configuración › panel_usuario` el nombre con el
+que va a entrar, y después menú › **Clave del panel** con el comerciante al
+lado — la clave se enseña una sola vez y no queda escrita en ninguna parte, así
+que la apunta él. Hoy el panel edita **productos** y sube sus **fotos** (D-2);
+pedidos, configuración y publicar desde ahí vienen en D-3 a D-5. Lo que se
+guarda en el panel queda en la hoja al instante, pero **la tienda lo muestra al
+publicar**: eso hay que decírselo, porque el panel también lo dice y la primera
+vez nadie lo lee.
 
 - [ ] **El domingo siguiente a la entrega:** Diagnóstico → *Último respaldo*.
       Si dice «nunca» o «falló», la cuenta de la tienda no tiene permiso sobre

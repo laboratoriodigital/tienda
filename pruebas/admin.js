@@ -1,0 +1,274 @@
+/* D-2 — el panel del comerciante, en el navegador.
+ * ---------------------------------------------------------------------------
+ * productos.js prueba el maestro: que lo que no valida no entra, que un
+ * formulario viejo no pisa una venta, que la misma operación no duplica. Esta
+ * prueba que la PÁGINA no deshace nada de eso por su lado:
+ *
+ *   · NI LA CLAVE NI EL TESTIGO EN UNA DIRECCIÓN. Se revisa cada petición que
+ *     llegó al servidor, no el código de la página.
+ *   · EL REINTENTO ES EL MISMO GESTO. Se pierde la respuesta DESPUÉS de que el
+ *     maestro guardó —el caso real del celular sin señal— y se pulsa Guardar
+ *     otra vez: tiene que quedar UN producto, no dos.
+ *   · LO QUE VIENE DE LA HOJA SE PINTA COMO TEXTO. Una celda admite cualquier
+ *     cosa, incluida una etiqueta que ejecuta código.
+ *
+ *   node pruebas/admin.js
+ */
+const { chromium } = require('playwright');
+const U = 'http://localhost:' + (process.env.PUERTO || 8099);
+const { pintado, hasta } = require('./esperar.js');
+
+const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -> '+d:''));
+
+const hojas = async () => (await fetch(U + '/__hojas')).json();
+const fila = async (id) => ((await hojas())['Catálogo'] || []).find(f => String(f[0]) === id);
+const celda = (hoja, f, c, v) =>
+  fetch(U + '/__celda?hoja=' + encodeURIComponent(hoja) + '&f=' + f + '&c=' + c + '&v=' + encodeURIComponent(v));
+const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(f => String(f[0]) === id) + 1;
+
+(async () => {
+  const b = await chromium.launch();
+  const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+  const errs = [];
+  p.on('pageerror', e => errs.push(e.message));
+
+  const visible = s => p.locator(s).isVisible();
+  const texto = s => p.locator(s).innerText();
+  const filas = () => p.locator('#lista .fila').count();
+  const entrar = async (u, c) => {
+    await p.fill('#usuario', u); await p.fill('#clave', c);
+    await p.click('#botonEntrar');
+  };
+  const listo = () => hasta(p, () => !document.querySelector('#panel').hidden &&
+                                     document.querySelectorAll('#lista .fila').length > 0);
+
+  await fetch(U + '/__reset');
+  const { clave } = await (await fetch(U + '/__panel?usuario=dona.rosa')).json();
+
+  // ═══ 1. Entrar ═══
+  await p.goto(U + '/admin.html');
+  await hasta(p, () => !document.querySelector('#entrar').hidden);
+  ok('SIN SESIÓN se ve el formulario de entrada, no el panel',
+     (await visible('#entrar')) && !(await visible('#panel')));
+  ok('  ...y la página no se indexa',
+     /noindex/.test(await p.getAttribute('meta[name="robots"]', 'content')));
+
+  await entrar('dona.rosa', 'la-que-no-es');
+  await hasta(p, () => !document.querySelector('#avisoEntrar').hidden);
+  ok('UNA CLAVE MALA no entra, y lo dice', !(await visible('#panel')) &&
+     /no corresponden/.test(await texto('#avisoEntrar')), await texto('#avisoEntrar'));
+
+  await entrar('dona.rosa', clave);
+  await listo();
+  ok('CON LA CLAVE BUENA se ve el panel con los productos de la hoja',
+     (await visible('#panel')) && (await filas()) === 8, (await filas()) + ' productos');
+  ok('  ...y dice quién entró', (await texto('#usuarioActual')) === 'dona.rosa');
+  ok('  ...y la clave no se queda escrita en la página', (await p.inputValue('#clave')) === '');
+  ok('  ...y avisa que guardar NO publica',
+     /cuando publicas/.test(await texto('.publicar')), (await texto('.publicar')).slice(0, 60));
+
+  /* LO QUE IMPORTA NO ES QUÉ HACE LA PÁGINA, SINO QUÉ LLEGÓ AL SERVIDOR. Se
+     revisan todas las peticiones: las que llegaron por GET traen su dirección
+     entera, y en ninguna puede estar la clave ni el testigo. */
+  const pet = await (await fetch(U + '/__peticiones')).json();
+  /* Y la dirección de los POST también: un POST a «…/exec?k=…» lleva el
+     testigo en la dirección igual que un GET. */
+  const enDireccion = q => q.metodo === 'POST' ? (q.direccion || {}) : q;
+  const conSecreto = pet.filter(q => {
+    const d = enDireccion(q);
+    return d.c || d.k || JSON.stringify(d).indexOf(clave) !== -1;
+  });
+  ok('NI LA CLAVE NI EL TESTIGO viajaron en una dirección',
+     conSecreto.length === 0 && pet.some(q => q.metodo === 'POST' && q.a === 'entrar') &&
+     pet.some(q => q.metodo === 'POST' && q.a === 'productos'),
+     pet.map(q => (q.metodo || 'GET') + ':' + q.a).join(' '));
+
+  const guardado = await p.evaluate(() => sessionStorage.getItem('panel-testigo'));
+  const enLocal = await p.evaluate(() => JSON.stringify(localStorage));
+  ok('EL TESTIGO vive en la pestaña (sessionStorage), no en localStorage',
+     !!guardado && enLocal.indexOf(guardado) === -1);
+
+  // ═══ 2. Buscar y filtrar ═══
+  await p.fill('#buscar', 'pan'); await pintado(p);
+  ok('BUSCAR filtra por nombre y código', (await filas()) === 3, (await filas()) + ' filas');
+  await p.fill('#buscar', ''); await p.selectOption('#filtroCategoria', 'Postres'); await pintado(p);
+  ok('FILTRAR por categoría', (await filas()) === 2, (await filas()) + ' filas');
+  await p.selectOption('#filtroCategoria', ''); await pintado(p);
+
+  // ═══ 3. Editar ═══
+  const abrir = async (id) => {
+    await p.click(`#lista .fila[data-id="${id}"] button[data-accion="editar"]`);
+    await hasta(p, () => !document.querySelector('#editor').hidden);
+  };
+  await abrir('croissant');
+  ok('EDITAR abre el formulario con lo que dice la hoja',
+     (await p.inputValue('#f-nombre')) === 'Croissant de mantequilla' &&
+     (await p.inputValue('#f-precio')) === '6500');
+  ok('  ...y el código NO se puede cambiar', await p.locator('#f-id').evaluate(e => e.readOnly));
+  await p.fill('#f-descripcion', 'Con mantequilla francesa, horneado a las seis.');
+  await p.click('#guardar');
+  await hasta(p, () => document.querySelector('#editor').hidden);
+  ok('GUARDAR escribe en la hoja', (await fila('croissant'))[6] === 'Con mantequilla francesa, horneado a las seis.');
+  ok('  ...y vuelve a la lista diciendo que falta publicar',
+     /Guardado.*publicar/.test(await texto('#avisoLista')), await texto('#avisoLista'));
+
+  // ═══ 4. Lo que el maestro rechaza se queda en el formulario ═══
+  await abrir('baguette');
+  await p.fill('#f-precio', 'doce mil');
+  await p.click('#guardar');
+  await hasta(p, () => !document.querySelector('#avisoEditor').hidden);
+  ok('UN PRECIO ILEGIBLE no se guarda: el motivo sale en el formulario',
+     /precio tiene que ser un número/.test(await texto('#avisoEditor')) &&
+     (await fila('baguette'))[4] === 8000, await texto('#avisoEditor'));
+  ok('  ...y el formulario sigue abierto con lo que escribió, para corregirlo',
+     (await visible('#editor')) && (await p.inputValue('#f-precio')) === 'doce mil');
+  await p.click('#cancelar');
+
+  // ═══ 5. El formulario viejo no pisa la venta ═══
+  await abrir('pan-integral');
+  const n = await filaNumero('pan-integral');
+  await celda('Catálogo', n, 6, 15);                         // se vendieron tres mientras tanto
+  await p.fill('#f-descripcion', 'Con semillas de girasol, linaza y chía.');
+  await p.click('#guardar');
+  await hasta(p, () => !document.querySelector('#avisoEditor').hidden);
+  ok('UN FORMULARIO VIEJO NO RESUCITA LO VENDIDO: la página lo dice y la hoja no cambia',
+     /cambió mientras lo editabas/.test(await texto('#avisoEditor')) &&
+     Number((await fila('pan-integral'))[5]) === 15,
+     'stock en la hoja: ' + (await fila('pan-integral'))[5]);
+  await p.click('#cancelar');
+
+  // ═══ 6. Crear, y el reintento que no duplica ═══
+  await p.click('#nuevo');
+  await hasta(p, () => !document.querySelector('#editor').hidden);
+  await p.fill('#f-nombre', 'Camiseta Básica Ñandú');
+  ok('EL CÓDIGO SE ARMA SOLO desde el nombre: minúsculas, sin tildes, sin eñe',
+     (await p.inputValue('#f-id')) === 'camiseta-basica-nandu', await p.inputValue('#f-id'));
+  await p.fill('#f-precio', '45000');
+  await p.fill('#f-stock', '12');
+  await p.fill('#f-categoria', 'Ropa');
+
+  /* EL CASO REAL: el maestro guarda y la respuesta se pierde por el camino. */
+  await fetch(U + '/__perder?n=1');
+  await p.click('#guardar');
+  await hasta(p, () => /No sabemos si se guardó/.test(document.querySelector('#avisoEditor').textContent));
+  ok('SI SE PIERDE LA RESPUESTA, la página dice que no sabe — no que falló',
+     /no se va a duplicar/.test(await texto('#avisoEditor')), await texto('#avisoEditor'));
+  const antesDelReintento = ((await hojas())['Catálogo']).filter(f => f[0] === 'camiseta-basica-nandu').length;
+  await p.evaluate(() => { document.querySelector('#avisoEditor').hidden = true; });
+  await p.click('#guardar');
+  /* Se espera a CUALQUIER respuesta —se cerró el editor, o salió un aviso—,
+     no solo a la buena: si el reintento fuera un gesto nuevo, el maestro
+     contestaría «ya existe» y el editor se quedaría abierto, y esperar solo a
+     que se cierre dejaría la batería colgada en vez de decir qué falló. */
+  await hasta(p, () => document.querySelector('#editor').hidden ||
+                       !document.querySelector('#avisoEditor').hidden);
+  const despues = ((await hojas())['Catálogo']).filter(f => f[0] === 'camiseta-basica-nandu').length;
+  ok('  ...Y REINTENTAR NO DUPLICA: el maestro ya lo tenía, y hay UNO',
+     antesDelReintento === 1 && despues === 1, 'antes ' + antesDelReintento + ', después ' + despues);
+  /* Esto solo no basta, y se supo poniendo el defecto: con un número de
+     operación NUEVO en el reintento tampoco se duplica, porque el maestro
+     rechaza el código repetido. Pero el comerciante lee «Ya hay un producto con
+     ese código» sobre el producto que acaba de crear, y cree que algo salió
+     mal. Lo que el mismo número compra es que el reintento TERMINE BIEN. */
+  ok('  ...y el reintento termina BIEN: «Creado», no «ya existe un producto con ese código»',
+     (await p.locator('#editor').isHidden()) && /Creado/.test(await texto('#avisoLista')),
+     (await p.locator('#editor').isHidden()) ? await texto('#avisoLista') : await texto('#avisoEditor'));
+  ok('  ...y aparece en la lista', await p.locator('#lista .fila[data-id="camiseta-basica-nandu"]').count() === 1);
+
+  // ═══ 6 bis. Subir una foto ═══
+  {
+    const filaCfg = ((await hojas())['Configuración']).findIndex(f => String(f[0]) === 'fotos_drive') + 1;
+    await celda('Configuración', filaCfg, 2, 'carpeta-de-fotos');
+    await fetch(U + '/__carpeta?id=carpeta-de-fotos');
+    if (await visible('#editor')) await p.click('#cancelar');
+    await abrir('baguette');
+    ok('AL EDITAR se puede subir una foto', await visible('#subirFoto'));
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    await p.setInputFiles('#f-foto', { name: 'IMG_4471.PNG', mimeType: 'image/png', buffer: png });
+    await hasta(p, () => /Subida|no se puede|no dejó|No sabemos/.test(
+      document.querySelector('#estadoFoto').textContent + document.querySelector('#avisoEditor').textContent));
+    const drive = await (await fetch(U + '/__drive?id=carpeta-de-fotos')).json();
+    /* «IMG_4471.PNG» es el nombre con el que llega del celular. En el Drive
+       tiene que quedar con el que le toca al producto: ese es todo el punto. */
+    ok('LA FOTO LLEGA AL DRIVE con el nombre del producto, no con «IMG_4471»',
+       drive.length === 1 && drive[0].nombre === 'baguette-1.jpg', JSON.stringify(drive));
+    ok('  ...achicada y en JPEG, que es lo que la página manda siempre',
+       drive[0] && drive[0].cabecera === 'ffd8ff' && drive[0].tipo === 'image/jpeg');
+    ok('  ...y el campo Fotos del formulario ya la trae',
+       /baguette-1\.jpg/.test(await p.inputValue('#f-imagenes')), await p.inputValue('#f-imagenes'));
+
+    /* LA FOTO CAMBIÓ LA FILA. Si la página no toma la versión nueva, el
+       siguiente Guardar sale con «este producto cambió mientras lo editabas»
+       por culpa de la foto que el comerciante acaba de subir. */
+    await p.fill('#f-formato', 'Unidad de 250 g');
+    await p.click('#guardar');
+    await hasta(p, () => document.querySelector('#editor').hidden ||
+                         !document.querySelector('#avisoEditor').hidden);
+    ok('  ...Y GUARDAR DESPUÉS DE SUBIRLA FUNCIONA: la foto no deja el formulario viejo',
+       (await p.locator('#editor').isHidden()) && (await fila('baguette'))[2] === 'Unidad de 250 g' &&
+       /baguette-1\.jpg/.test((await fila('baguette'))[7]),
+       (await p.locator('#editor').isHidden()) ? 'guardado' : await texto('#avisoEditor'));
+  }
+
+  // Si el reintento hubiera fallado, el editor seguiría abierto: se cierra para
+  // que lo que sigue mida lo suyo y no se cuelgue por este.
+  if (await visible('#editor')) await p.click('#cancelar');
+
+  // ═══ 7. Activar y desactivar ═══
+  await p.click('#lista .fila[data-id="galletas-avena"] button[data-accion="activar"]');
+  await hasta(p, () => /Desactivado/.test(document.querySelector('#avisoLista').textContent));
+  ok('DESACTIVAR lo marca en la hoja', (await fila('galletas-avena'))[9] === 'No');
+  ok('  ...y desaparece de la lista mientras no se pidan los desactivados',
+     await p.locator('#lista .fila[data-id="galletas-avena"]').count() === 0);
+  await p.check('#verApagados'); await pintado(p);
+  ok('  ...y vuelve a aparecer, marcado, al pedirlos',
+     /Desactivado/.test(await texto('#lista .fila[data-id="galletas-avena"]')));
+
+  // ═══ 8. Borrar, en dos pasos ═══
+  await abrir('cafe-grano');
+  await p.click('#borrar');
+  ok('BORRAR PIDE CONFIRMACIÓN y dice a dónde va', (await visible('#borrarSi')) &&
+     /Papelera/.test(await texto('#borrarSi')) && !!(await fila('cafe-grano')));
+  await p.click('#borrarSi');
+  await hasta(p, () => document.querySelector('#editor').hidden);
+  const h = await hojas();
+  ok('  ...y al confirmar, sale de Catálogo y queda en la Papelera',
+     !(h['Catálogo'].some(f => f[0] === 'cafe-grano')) && (h['Papelera'] || []).some(f => f[0] === 'cafe-grano'));
+
+  // ═══ 9. Lo que viene de la hoja se pinta como texto ═══
+  const nx = await filaNumero('torta-chocolate');
+  await celda('Catálogo', nx, 2, '<img src=x onerror="window.__xss=1">Torta');
+  await p.reload();
+  await listo();
+  ok('UN NOMBRE CON HTML EN LA HOJA se ve como texto y no se ejecuta',
+     !(await p.evaluate(() => window.__xss)) &&
+     /<img src=x/.test(await texto('#lista .fila[data-id="torta-chocolate"] h3')),
+     (await texto('#lista .fila[data-id="torta-chocolate"] h3')).slice(0, 40));
+  ok('RECARGAR LA PÁGINA no pide entrar otra vez: la sesión es de la pestaña',
+     await visible('#panel'));
+
+  // ═══ 10. La sesión que se cae ═══
+  await fetch(U + '/__panel?usuario=dona.rosa');          // clave nueva: cierra las sesiones
+  await p.click('#lista .fila[data-id="croissant"] button[data-accion="activar"]');
+  await hasta(p, () => !document.querySelector('#entrar').hidden);
+  ok('SI LA SESIÓN SE CIERRA desde la hoja, la página vuelve a pedir entrar y dice por qué',
+     /sesión terminó/.test(await texto('#avisoEntrar')) &&
+     !(await p.evaluate(() => sessionStorage.getItem('panel-testigo'))),
+     await texto('#avisoEntrar'));
+  ok('  ...y no se desactivó nada con la sesión muerta', (await fila('croissant'))[9] === 'Sí');
+
+  // ═══ 11. Un panel sin tienda detrás ═══
+  const p2 = await b.newPage();
+  await p2.goto(U + '/admin.html?sinmaestro=1');
+  await p2.waitForSelector('#sinHoja:not([hidden])');
+  ok('UN PANEL SIN MAESTRO dice que no está conectado, en vez de un formulario que no puede funcionar',
+     (await p2.isVisible('#sinHoja')) && !(await p2.isVisible('#entrar')));
+  await p2.close();
+
+  ok('Ningún error de JavaScript en toda la corrida', errs.length === 0, errs.join(' | '));
+
+  await b.close();
+  console.log(T.join('\n'));
+  console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
+  process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);
+})();

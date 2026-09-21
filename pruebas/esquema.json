@@ -147,7 +147,12 @@
     "sembrar",
     "fotos",
     "foto",
-    "sesion"
+    "sesion",
+    "productos",
+    "guardar_producto",
+    "activar_producto",
+    "borrar_producto",
+    "subir_foto"
   ],
   "puertas": {
     "version": [

@@ -292,6 +292,13 @@ jobs:
           MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
         run: node montar/preparar-index.mjs --desde
 
+      # El panel del comerciante (D-2), con la dirección del maestro que acaba
+      # de escribir el paso de arriba en el index — y de ningún otro sitio: la
+      # tienda y su panel tienen que hablarle al MISMO maestro. Sin red.
+      - name: El panel, con la misma dirección que la tienda
+        if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
+        run: node montar/preparar-admin.mjs
+
       # La imagen que enseña WhatsApp al compartir el enlace (A-3): mismo
       # nombre y color que acaba de escribir el paso de arriba, así que va
       # justo después y con la misma condición.

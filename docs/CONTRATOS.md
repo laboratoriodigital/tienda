@@ -260,6 +260,19 @@ Lo que llegó y no se pudo entender, y lo que se leyó mal. Existe para que un f
 | 2 | `Error` |
 | 3 | `Primeros 200 caracteres recibidos` |
 
+### `Papelera` (D-2)
+
+**No la crea `instalar()`**: nace la primera vez que se borra un producto desde
+el panel. Borrar desde el panel **no borra**: mueve la fila entera aquí, con la
+fecha y desde dónde, y la quita de `Catálogo`. Se recupera copiando la fila de
+vuelta. Solo se agrega; nadie escribe aquí a mano.
+
+| # | Columna |
+|---|---|
+| 1–14 | Las mismas catorce de `Catálogo`, en el mismo orden — para que devolver un producto sea copiar y pegar |
+| 15 | `Borrado el` |
+| 16 | `Desde` |
+
 > **`Pedidos` merece una nota.** Es una fila **por línea de pedido**, no por
 > pedido: cinco productos son cinco filas con el mismo número en `Pedido`. Y la
 > última columna, `Inventario`, la escribe el script para saber si esa línea ya
@@ -357,11 +370,45 @@ contrario es que una errata deje la puerta de par en par sin que se note.
 | `publica` | cualquiera | `version` · `catalogo` · `validar` · `registrar` · `entrar` |
 | `montaje` | el token de despliegue (`?t=`) | `panel` · `identidad` · `bloques` · `sembrar` · `fotos` · `foto` |
 | `menu` | el token del stub. Se guarda a sí misma, porque además distingue el token viejo del nuevo para la migración | `menu` |
-| `panel` | el testigo del comerciante (`?k=`), ocho horas, de esta tienda | `sesion` |
+| `panel` | el testigo del comerciante (`k`), ocho horas, de esta tienda | `sesion` · `productos` · `guardar_producto` · `activar_producto` · `borrar_producto` · `subir_foto` |
 
 `entrar` es pública porque es la que **entrega** las credenciales: no se puede
 pedir el testigo para pedir el testigo. Lo que la protege es el límite de
 intentos, no la guardia.
+
+**`entrar` y todas las del panel son solo por POST** (`soloPost` en la tabla).
+Por GET contestan que se usan por POST y no hacen nada — ni siquiera cuentan
+como intento fallido, porque si contaran, cualquiera bloquearía la tienda con
+cinco visitas a una dirección. La razón es una sola: por GET la clave y el
+testigo irían en la dirección, y la dirección se queda en el historial del
+navegador del mostrador y en los registros de Google.
+
+El cuerpo del POST es un JSON en texto plano (`Content-Type: text/plain`, para
+que el navegador no pregunte antes por CORS) con `a` diciendo la puerta y los
+mismos nombres de parámetro que por GET. Pasa por **la misma tabla y la misma
+guardia**. Un cuerpo sin `a` sigue siendo el registro de pedidos de siempre.
+Tope: 20.000 caracteres para el panel, menos `subir_foto`, que tiene el suyo
+(una foto no cabe en 20.000).
+
+**Las escrituras del panel** (`guardar_producto`, `activar_producto`,
+`borrar_producto`) tienen tres obligaciones que la hoja no tenía:
+
+- **Bajo llave** (`LockService`), soltada también si la escritura revienta.
+- **Con número de operación** (`op`, de 8 a 64 caracteres `A-Za-z0-9_-`). Sin
+  él no se escribe. La misma operación dos veces contesta lo mismo que la
+  primera y no hace nada. La caché puede olvidar antes de seis horas; si
+  olvida, lo que impide duplicar es la validación, no la caché.
+- **Contra lo que se leyó.** `productos` da una `version` por producto —la
+  huella de la fila—; `guardar_producto` al editar y `borrar_producto` la
+  exigen, y si la fila cambió entre medias **no se escribe** (`cambiado: true`).
+  Es lo que impide que guardar un formulario viejo resucite la unidad que se
+  vendió mientras estaba abierto. `activar_producto` no la pide: toca una sola
+  celda y el valor final es el pedido.
+
+Y al revés que el catálogo, **escribir falla cerrado**: lo que no valida no
+entra en la hoja, y el error lo dice en palabras del comerciante. El código del
+producto (`id`) no se cambia editando: lo usan los pedidos, las fotos y los
+enlaces compartidos.
 
 
 **`?a=version`** — `ok`, `version`
@@ -375,6 +422,35 @@ intentos, no la guardia.
 **`?a=entrar`** — `ok`, `error` · y cuando entra: `ok`, `testigo`, `usuario`, `vence`
 
 **`?a=sesion`** — `ok`, `error` · y con testigo bueno: `ok`, `usuario`, `vence`
+
+**`productos`** — `ok`, `productos`, `categorias`. Cada producto: `id`, `nombre`,
+`formato`, `categoria`, `precio`, `stock`, `descripcion`, `imagenes`,
+`destacado`, `activo`, `referencia`, `precioAntes`, `umbralBajo`, `variantes`,
+`version`, `problemas`. **Las cifras van como texto, tal como están escritas en
+la hoja**, y `problemas` nombra las que no se pueden leer: si la hoja dice «doce
+mil», el panel enseña «doce mil» marcado, no un 0 que se guardaría sin mirar.
+Trae también los desactivados.
+
+**`guardar_producto`** — pide `op`, `producto` y `nuevo: true` para crear, o
+`version` para editar. Contesta `ok`, `id`, `version` (la nueva) y `creado` al
+crear; o `ok: false`, `error` y, si la fila cambió entre medias, `cambiado`.
+Una respuesta repetida trae además `repetida: true`.
+
+**`activar_producto`** — pide `op`, `id`, `activo`. Contesta `ok`, `id`,
+`activo`, `version`.
+
+**`borrar_producto`** — pide `op`, `id`, `version`. Contesta `ok`, `id`,
+`borrado`.
+
+**`subir_foto`** — pide `op`, `id`, `tipo` (`image/jpeg`, `image/png` o
+`image/webp`) y `datos` (la foto en base64, sin el prefijo `data:`). Guarda el
+archivo en la carpeta de `fotos_drive` **con el nombre que le toca** —
+`<id>-<n>.<ext>`, con el primer número que no esté ni en la celda ni en la
+carpeta— y lo agrega a `Imágenes`, las dos cosas bajo la misma llave. Contesta
+`ok`, `id`, `nombre`, `imagenes`, `version` (la nueva: la foto cambió la fila).
+Si no puede, el error **dice el nombre exacto** con el que subirla a mano al
+Drive, que es el camino de siempre y sigue funcionando. La foto sale en la
+tienda al publicar, no al subirla.
 
 **`?a=panel`** — `ok`, `version`, `negocio`, `sitio`, `whatsapp`, `correo`, `hoja`, `productos`, `publicados`, `agotados`, `pocos`, `ventasMes`, `ventasMesAnterior`, `pedidosMes`, `ticket`, `tasaCierre`, `lecturasHoy`, `picoHora`, `cuotaCorreo`, `respaldo`, `ventasAyer`, `pedidosAyer`, `porConfirmar`, `atrasados`, `errores`, `meses`, `consultado`, `stub`, `tokenViejo`, `rescates`, `alta`
 

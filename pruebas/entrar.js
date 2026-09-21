@@ -35,7 +35,10 @@ const nuevo = (hojaId) => {
   return g;
 };
 const j = r => JSON.parse(r._texto);
-const puerta = (g, o) => j(g.api.doGet({ parameter: o }));
+/* Por POST, como lo llama el panel: desde D-2 `entrar` y las puertas del
+   panel se niegan a contestar por GET. */
+const puerta = (g, o) => j(g.api.doPost({ postData: { contents: JSON.stringify(o) } }));
+const porGet = (g, o) => j(g.api.doGet({ parameter: o }));
 
 /* Deja la tienda lista para entrar y devuelve la clave, que es la única vez
    que se puede ver — igual que le pasa al comerciante. */
@@ -284,6 +287,29 @@ function conPanel(g, usuario) {
     puerta(g, { a: 'sembrar', negocio: 'Tienda Secuestrada' });
     ok('  ...y en particular SIN TESTIGO NO SE ESCRIBE NADA',
        JSON.stringify(g.filas('Configuración')) === antes, 'la configuración quedó igual');
+  }
+
+  // ═══ 11 bis. La clave y el testigo no viajan en la dirección ═══
+  {
+    const g = nuevo();
+    const clave = conPanel(g, 'dona.rosa');
+    const r = porGet(g, { a: 'entrar', u: 'dona.rosa', c: clave });
+    ok('ENTRAR POR GET NO FUNCIONA, ni con la clave buena: la clave iría en la dirección',
+       !r.ok && !r.testigo && /POST/.test(r.error), r.error);
+    const testigo = puerta(g, { a: 'entrar', u: 'dona.rosa', c: clave }).testigo;
+    const s = porGet(g, { a: 'sesion', k: testigo });
+    ok('  ...y el testigo tampoco se acepta por GET',
+       !s.ok && !s.usuario, s.error);
+    const soloPost = Object.keys(g.api.PUERTAS)
+      .filter(k => g.api.PUERTAS[k].guarda === 'panel' || k === 'entrar');
+    const porGetSi = soloPost.filter(k => !g.api.PUERTAS[k].soloPost);
+    ok('  ...y TODA puerta del panel es solo por POST',
+       porGetSi.length === 0, porGetSi.join(', ') || soloPost.join(', '));
+    /* Un GET que se niega no puede contar como intento fallido: si contara,
+       cualquiera bloquearía la tienda con cinco visitas a una dirección. */
+    ok('  ...y rechazar por GET no gasta intentos',
+       g.props.PANEL_INTENTOS === undefined || /^0\|/.test(g.props.PANEL_INTENTOS),
+       String(g.props.PANEL_INTENTOS));
   }
 
   // ═══ 12. El menú ═══

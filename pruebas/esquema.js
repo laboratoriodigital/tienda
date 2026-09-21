@@ -58,8 +58,8 @@ function esquemaVivo() {
       /* Sin credenciales a propósito: lo que se fotografía es la forma con la
          que se rechaza, que es tan contrato como la forma con la que se
          acepta — la página la lee para saber si pintar el formulario. */
-      entrar:    Object.keys(JSON.parse(g.api.doGet({ parameter: { a: 'entrar' } })._texto)),
-      sesion:    Object.keys(JSON.parse(g.api.doGet({ parameter: { a: 'sesion' } })._texto))
+      entrar:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"entrar"}' } })._texto)),
+      sesion:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"sesion"}' } })._texto))
     },
     registros: {
       producto: Object.keys((catalogo.productos || [])[0] || {}),

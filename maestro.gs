@@ -416,6 +416,404 @@ function claveInventada() {
   return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12) + '-' + s.slice(12);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   PRODUCTOS DESDE EL PANEL (D-2)
+   --------------------------------------------------------------------------
+   La hoja sigue siendo la base de datos: el panel no guarda nada en otra
+   parte. Lo que cambia es QUIÉN escribe en ella, y eso trae tres obligaciones
+   que la hoja no tenía, porque en la hoja el que escribe ve lo que pisa:
+
+   1. BAJO LLAVE. Dos pestañas del panel abiertas, o el panel y el disparador
+      del inventario a la vez, escribiendo la misma fila: sin llave gana el
+      último y el otro no se entera.
+
+   2. CONTRA LO QUE SE LEYÓ, NO CONTRA LO QUE HAY. El formulario se abre a las
+      10:00 con 5 en Stock; a las 10:04 se paga un pedido y queda en 4; a las
+      10:05 el comerciante corrige una tilde en la descripción y guarda. Si se
+      escribe la fila entera, vuelve a poner 5: acaba de resucitar una unidad
+      que ya se vendió, y nadie tocó el stock. Por eso cada producto viaja con
+      su `version` —una huella de la fila tal como se leyó— y guardar la exige:
+      si la fila cambió entre medias, NO SE ESCRIBE y se dice qué cambió.
+
+   3. CON NÚMERO DE OPERACIÓN. El celular del mostrador pierde la señal justo
+      después de «Guardar»; la página no sabe si llegó y lo reintenta. Crear dos
+      veces el mismo producto, o borrar dos veces, no puede depender de la
+      suerte de la red.
+
+   Y una regla de fondo que es la contraria de la del catálogo: al LEER, una
+   celda que no se entiende falla abierto (el producto sigue a la venta); al
+   ESCRIBIR desde el panel se falla CERRADO. Lo que no valida no entra en la
+   hoja, y se dice por qué, en palabras del comerciante. Escribir basura en la
+   hoja para que después la lectura «falle abierto» sería fabricar el problema.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var ID_PRODUCTO = /^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/;
+var H_PAPELERA = 'Papelera';
+var HORAS_OPERACION = 6;
+
+/* La huella de una fila tal como está. Dieciséis hexadecimales bastan: no es
+   para seguridad, es para notar que alguien tocó la fila entre medias. */
+function versionDeFila(fila) {
+  var ancho = ENCABEZADO_CATALOGO.length;
+  var trozo = [];
+  for (var i = 0; i < ancho; i++) trozo.push(String(fila[i] === undefined ? '' : fila[i]));
+  return enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,
+                                       JSON.stringify(trozo))).slice(0, 16);
+}
+
+function filasDelCatalogo() {
+  var h = elLibro().getSheetByName(H_CATALOGO);
+  if (!h || h.getLastRow() < 2) return { h: h, filas: [] };
+  var ancho = Math.max(h.getLastColumn(), ENCABEZADO_CATALOGO.length);
+  return { h: h, filas: h.getRange(2, 1, h.getLastRow() - 1, ancho).getValues() };
+}
+
+function filaDelProducto(filasCat, id) {
+  for (var i = 0; i < filasCat.length; i++) {
+    if (String(filasCat[i][0]).trim() === id) return i;
+  }
+  return -1;
+}
+
+/* ── Lo que ve el panel ─────────────────────────────────────────────────────
+   Las cifras viajan COMO ESTÁN ESCRITAS, no convertidas. Si la hoja dice
+   «doce mil» en Precio, el formulario tiene que enseñar «doce mil» marcado
+   en rojo, no un 0 que el comerciante guardaría sin mirar. Una cifra que no se
+   puede leer no vale cero, tampoco en el panel. */
+function atenderProductos() {
+  var cat = filasDelCatalogo();
+  var categorias = {};
+  var productos = cat.filas.map(function (f, i) {
+    var id = String(f[0]).trim();
+    if (!id) return null;
+    var texto = function (k) { return String(f[k] === undefined || f[k] === null ? '' : f[k]); };
+    var problemas = [];
+    CELDAS_ILEGIBLES = [];
+    if (cifraDeTexto(f[4], 'Precio') === null || !texto(4).trim()) problemas.push('Precio');
+    if (cifraDeTexto(f[5], 'Stock') === null) problemas.push('Stock');
+    if (texto(11).trim() && cifraDeTexto(f[11], 'Precio antes') === null) problemas.push('Precio antes');
+    if (texto(12).trim() && cifraDeTexto(f[12], 'Umbral bajo') === null) problemas.push('Umbral bajo');
+    var cat_ = texto(3).trim() || 'Otros';
+    categorias[cat_] = true;
+    return {
+      id: id, nombre: texto(1), formato: texto(2), categoria: texto(3),
+      precio: texto(4), stock: texto(5), descripcion: texto(6), imagenes: texto(7),
+      destacado: esSi(f[8]), activo: esSi(f[9]), referencia: texto(10),
+      precioAntes: texto(11), umbralBajo: texto(12), variantes: texto(13),
+      version: versionDeFila(f), problemas: problemas
+    };
+  }).filter(function (p) { return p; });
+  CELDAS_ILEGIBLES = [];
+  return { ok: true, productos: productos, categorias: Object.keys(categorias).sort() };
+}
+
+/* ── Validar ANTES de escribir ──────────────────────────────────────────────
+   Devuelve { error } o { fila } con las catorce celdas ya saneadas. Los
+   mensajes están escritos para quien los va a leer: el comerciante, no el
+   técnico. */
+function filaDesdeElPanel(d) {
+  var t = function (v) { return String(v === undefined || v === null ? '' : v).trim(); };
+
+  /* No se pasa a minúsculas aquí: el código que se guarda tiene que ser el que
+     el comerciante vio escrito. La página lo normaliza mientras se escribe, a
+     la vista; el maestro solo comprueba. */
+  var id = t(d.id);
+  if (!ID_PRODUCTO.test(id)) {
+    return { error: 'El código del producto va en minúsculas y sin espacios ni tildes: ' +
+             'letras, números y guiones (ej: camiseta-basica).' };
+  }
+  var nombre = t(d.nombre);
+  if (!nombre) return { error: 'Falta el nombre del producto.' };
+  if (nombre.length > 120) return { error: 'El nombre es demasiado largo (máximo 120 letras).' };
+
+  CELDAS_ILEGIBLES = [];
+  if (!t(d.precio)) return { error: 'Falta el precio.' };
+  var precio = cifraDeTexto(t(d.precio), 'Precio');
+  if (precio === null || precio <= 0) {
+    return { error: 'El precio tiene que ser un número mayor que cero, sin decimales (ej: 45000).' };
+  }
+  var stock = cifraDeTexto(t(d.stock), 'Stock');
+  if (!t(d.stock) || stock === null) {
+    return { error: 'El stock tiene que ser un número entero, 0 o más (ej: 12).' };
+  }
+  var antes = '';
+  if (t(d.precioAntes)) {
+    var a = cifraDeTexto(t(d.precioAntes), 'Precio antes');
+    if (a === null || a <= precio) {
+      return { error: 'El «precio antes» tiene que ser mayor que el precio de hoy, o quedar vacío. ' +
+               'Si es igual o menor, la tienda no lo mostraría y parecería un error.' };
+    }
+    antes = a;
+  }
+  var umbral = '';
+  if (t(d.umbralBajo)) {
+    var u = cifraDeTexto(t(d.umbralBajo), 'Umbral bajo');
+    if (u === null) return { error: '«Pocas unidades desde» tiene que ser un número entero, o quedar vacío.' };
+    umbral = u;
+  }
+
+  var imagenes = (Array.isArray(d.imagenes) ? d.imagenes : t(d.imagenes).split('|'))
+    .map(function (x) { return t(x); }).filter(function (x) { return x; });
+  if (imagenes.length > 6) return { error: 'Son máximo seis fotos por producto.' };
+  if (imagenes.some(function (x) { return x.length > 300; })) {
+    return { error: 'El nombre de una de las fotos es demasiado largo.' };
+  }
+
+  /* LAS VARIANTES SE COMPRUEBAN AQUÍ CON LA MISMA LECTURA QUE USA LA TIENDA, y
+     además con lo que la tienda NO puede arreglar después: una coma o un signo
+     igual dentro de una opción no caben en la línea del pedido, así que la
+     página tumbaría ese grupo en silencio (C-1c). Desde la hoja no hay forma de
+     avisar antes; desde el panel sí, y es el único sitio donde se puede. */
+  var variantes = t(d.variantes);
+  if (variantes) {
+    CELDAS_ILEGIBLES = [];
+    var grupos = variantesDeCelda(variantes, 'Variantes');
+    if (CELDAS_ILEGIBLES.length || !grupos.length) {
+      CELDAS_ILEGIBLES = [];
+      return { error: 'Las variantes no se entienden. Se escriben así: ' +
+               'Talla: S|M|L ; Color: Rosa|Nude' };
+    }
+    var mala = null;
+    grupos.forEach(function (g) {
+      g.opciones.concat([g.nombre]).forEach(function (o) { if (/[,=]/.test(o)) mala = o; });
+    });
+    if (mala !== null) {
+      return { error: '«' + mala + '» lleva una coma o un signo igual, y eso no cabe en el ' +
+               'pedido. Escríbelo de otra forma (ej: 40.5 en vez de 40,5).' };
+    }
+  }
+  CELDAS_ILEGIBLES = [];
+
+  return { fila: [
+    id,
+    celdaSegura(nombre, 120),
+    celdaSegura(d.formato, 60),
+    celdaSegura(d.categoria, 60),
+    precio,
+    stock,
+    celdaSegura(d.descripcion, 2000),
+    celdaSegura(imagenes.join('|'), 1900),
+    (d.destacado === true || esSi(d.destacado)) ? 'Sí' : 'No',
+    /* Un producto nuevo nace ACTIVO si no se dice otra cosa: quien lo crea
+       desde el panel quiere venderlo. */
+    (d.activo === undefined || d.activo === true || esSi(d.activo)) ? 'Sí' : 'No',
+    celdaSegura(d.referencia, 60),
+    antes,
+    umbral,
+    celdaSegura(variantes, 500)
+  ] };
+}
+
+/* ── La operación: una vez, aunque llegue dos ──────────────────────────────
+   Se recuerda la respuesta de cada operación seis horas. Si el mismo número
+   vuelve —la página reintentó porque no supo si llegó—, se contesta lo mismo
+   que la primera vez y no se hace nada.
+
+   Y DICHO SIN ADORNO: la caché de Apps Script puede olvidar antes de las seis
+   horas. Si olvida, un «crear» repetido contesta «ya existe ese código» y un
+   «guardar» repetido contesta «el producto cambió mientras lo editabas». Las
+   dos respuestas son incómodas y ninguna duplica nada: lo que garantiza que no
+   se duplica es la validación de abajo; la caché solo hace que la respuesta
+   sea amable. */
+var OPERACION_VALIDA = /^[A-Za-z0-9_-]{8,64}$/;
+
+function conOperacion(p, hacer) {
+  var op = String(p.op || '');
+  if (!OPERACION_VALIDA.test(op)) return { ok: false, error: 'Falta el número de operación.' };
+  var cache = CacheService.getScriptCache();
+  var vista = cache.get('op:' + op);
+  if (vista) { var r0 = JSON.parse(vista); r0.repetida = true; return r0; }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    vista = cache.get('op:' + op);                      // pudo entrar mientras esperábamos
+    if (vista) { var r1 = JSON.parse(vista); r1.repetida = true; return r1; }
+    var r = hacer();
+    if (r && r.ok) {
+      cache.put('op:' + op, JSON.stringify(r), HORAS_OPERACION * 3600);
+      cache.remove('catalogo');                          // que la tienda en vivo lo vea ya
+    }
+    return r;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* Una sola frase para «la fila cambió desde que la miraste». No dice qué
+   cambió porque el maestro solo guarda la huella de lo que se leyó, no lo que
+   se leyó; la página sí lo tiene, y al volver a abrir el producto lo ve. */
+var CAMBIO_ENTRE_MEDIAS = 'Este producto cambió mientras lo editabas —puede ser un ' +
+  'pedido pagado o alguien más en la hoja—. Vuelve a abrirlo para ver cómo está ' +
+  'ahora y haz tu cambio encima.';
+
+function atenderGuardarProducto(p) {
+  return conOperacion(p, function () {
+    var d = p.producto || {};
+    var nuevo = p.nuevo === true;
+    var armado = filaDesdeElPanel(d);
+    if (armado.error) return { ok: false, error: armado.error };
+
+    var cat = filasDelCatalogo();
+    var i = filaDelProducto(cat.filas, armado.fila[0]);
+
+    if (nuevo) {
+      if (i !== -1) return { ok: false, error: 'Ya hay un producto con el código «' +
+                             armado.fila[0] + '». Elige otro.' };
+      var h = cat.h || hoja(H_CATALOGO, ENCABEZADO_CATALOGO);
+      h.appendRow(armado.fila);
+      return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila), creado: true };
+    }
+
+    /* El código no se cambia. Lo usan los pedidos que ya existen, los nombres
+       de las fotos y los enlaces que el comerciante compartió por WhatsApp:
+       cambiarlo en silencio los rompe todos a la vez. */
+    if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
+    if (String(p.version || '') !== versionDeFila(cat.filas[i])) {
+      return { ok: false, cambiado: true, error: CAMBIO_ENTRE_MEDIAS };
+    }
+    cat.h.getRange(i + 2, 1, 1, ENCABEZADO_CATALOGO.length).setValues([armado.fila]);
+    return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila) };
+  });
+}
+
+/* Activar y desactivar tocan UNA celda, y por eso no piden versión: el valor
+   final es el que se pidió, lo haya cambiado quien lo haya cambiado. */
+function atenderActivarProducto(p) {
+  return conOperacion(p, function () {
+    var id = String(p.id || '').trim();
+    var cat = filasDelCatalogo();
+    var i = filaDelProducto(cat.filas, id);
+    if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
+    var activo = p.activo === true;
+    cat.h.getRange(i + 2, 10).setValue(activo ? 'Sí' : 'No');
+    cat.filas[i][9] = activo ? 'Sí' : 'No';
+    return { ok: true, id: id, activo: activo, version: versionDeFila(cat.filas[i]) };
+  });
+}
+
+/* BORRAR NO BORRA: MUEVE A LA PAPELERA. La fila entera va a una pestaña de
+   solo agregar, con la fecha, y de ahí se recupera copiándola de vuelta. Un
+   borrado que no se puede deshacer es un botón que el comerciante aprende a no
+   tocar, y entonces la tienda se llena de productos desactivados «por si
+   acaso». Pide versión, como guardar: no se borra algo que cambió desde que se
+   miró. */
+function atenderBorrarProducto(p) {
+  return conOperacion(p, function () {
+    var id = String(p.id || '').trim();
+    var cat = filasDelCatalogo();
+    var i = filaDelProducto(cat.filas, id);
+    if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
+    if (String(p.version || '') !== versionDeFila(cat.filas[i])) {
+      return { ok: false, cambiado: true, error: CAMBIO_ENTRE_MEDIAS };
+    }
+    var papelera = hoja(H_PAPELERA, ENCABEZADO_CATALOGO.concat(['Borrado el', 'Desde']));
+    papelera.appendRow(cat.filas[i].slice(0, ENCABEZADO_CATALOGO.length)
+                       .concat([new Date(), 'Panel']));
+    cat.h.deleteRows(i + 2, 1);
+    return { ok: true, id: id, borrado: true };
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SUBIR UNA FOTO DESDE EL PANEL (D-2c)
+   --------------------------------------------------------------------------
+   El error más común de un producto nuevo es este: la foto está en el Drive
+   como «IMG_4471.jpg» y en la hoja dice «camiseta-basica-1.jpg». Las dos cosas
+   están bien hechas, y la tienda sale sin foto, sin un aviso en ninguna parte.
+
+   Desde el panel ese error NO PUEDE PASAR, porque el nombre no lo escribe
+   nadie: lo pone el maestro —`<código>-<n>.<ext>`, con el primer número libre—,
+   guarda el archivo en la carpeta de fotos con ese nombre y lo agrega a la
+   celda Imágenes, las dos cosas en la misma operación y bajo la misma llave.
+
+   Y SI FALLA, EL CAMINO VIEJO SIGUE EXISTIENDO, y el mensaje lo dice con el
+   nombre exacto que tiene que llevar el archivo. Una foto que no sube por
+   tamaño o porque la carpeta no deja escribir no puede dejar al comerciante
+   sin saber qué hacer: sube a mano, con ESE nombre, y funciona igual que antes.
+
+   La foto NO sale en la tienda al subirla: sale cuando se publica, porque es
+   el montaje el que la baja del Drive, la convierte y la sirve. Se dice.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var TIPOS_DE_FOTO = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+/* El tope va sobre el texto base64, que pesa un tercio más que la foto. La
+   página achica antes de mandar —a 1600 px de lado, en JPEG—, así que una
+   foto normal de celular llega en unos cientos de KB; esto es para la que no. */
+var MAX_FOTO_BASE64 = 7000000;
+
+function nombreLibreParaFoto(id, ext, enCelda, enCarpeta) {
+  var usados = {};
+  enCelda.concat(enCarpeta).forEach(function (n) {
+    var m = String(n).match(/^(.+)-(\d+)\.[a-z0-9]+$/i);
+    if (m && m[1] === id) usados[Number(m[2])] = true;
+  });
+  var n = 1;
+  while (usados[n]) n++;
+  return id + '-' + n + '.' + ext;
+}
+
+function atenderSubirFoto(p) {
+  var id = String(p.id || '').trim();
+  var tipo = String(p.tipo || '').toLowerCase();
+  var ext = TIPOS_DE_FOTO[tipo];
+  var datos = String(p.datos || '');
+  var comoAntes = function (nombre) {
+    return ' Mientras tanto, el camino de siempre funciona: sube la foto a tu carpeta ' +
+           'de fotos en Drive con el nombre «' + nombre + '» y escribe ese nombre en ' +
+           'Fotos, separado de los demás con |.';
+  };
+
+  if (!ext) return { ok: false, error: 'Esa foto no es JPG, PNG ni WEBP.' };
+  if (!datos) return { ok: false, error: 'No llegó ninguna foto.' };
+  if (datos.length > MAX_FOTO_BASE64) {
+    return { ok: false, error: 'La foto pesa demasiado para subirla desde aquí.' +
+             comoAntes(id + '-1.' + ext) };
+  }
+
+  return conOperacion(p, function () {
+    var cat = filasDelCatalogo();
+    var i = filaDelProducto(cat.filas, id);
+    if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
+
+    var enCelda = String(cat.filas[i][7] || '').split('|')
+      .map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+    if (enCelda.length >= 6) return { ok: false, error: 'Este producto ya tiene seis fotos, que es el máximo. Quita una antes de subir otra.' };
+
+    var carpeta, enCarpeta = [];
+    try {
+      carpeta = carpetaDeFotos();
+      var it = carpeta.getFiles();
+      while (it.hasNext()) enCarpeta.push(it.next().getName());
+    } catch (e) {
+      return { ok: false, error: 'No se pudo abrir tu carpeta de fotos: ' + e.message +
+               comoAntes(nombreLibreParaFoto(id, ext, enCelda, [])) };
+    }
+
+    var nombre = nombreLibreParaFoto(id, ext, enCelda, enCarpeta);
+    var bytes;
+    try { bytes = Utilities.base64Decode(datos); }
+    catch (e) { return { ok: false, error: 'La foto llegó dañada. Vuelve a intentarlo.' }; }
+
+    try {
+      carpeta.createFile(Utilities.newBlob(bytes, tipo, nombre));
+    } catch (e) {
+      anotarSeguridad('Panel: no se pudo guardar una foto en Drive.', nombre + ' · ' + e.message);
+      return { ok: false, error: 'Tu carpeta de Drive no dejó guardar la foto (' + e.message + ').' +
+               comoAntes(nombre) };
+    }
+
+    /* El archivo ya está en Drive: ahora la celda. Si esto fallara, la foto
+       quedaría en la carpeta sin estar en la hoja — que es exactamente el
+       estado del camino viejo a medias, y se arregla escribiendo el nombre. */
+    enCelda.push(nombre);
+    cat.h.getRange(i + 2, 8).setValue(celdaSegura(enCelda.join('|'), 1900));
+    cat.filas[i][7] = enCelda.join('|');
+    return { ok: true, id: id, nombre: nombre, imagenes: enCelda.join('|'),
+             version: versionDeFila(cat.filas[i]) };
+  });
+}
+
 var VERSION = '2026-09-12-1';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
@@ -1631,8 +2029,10 @@ var PUERTAS = {
   validar:   { guarda: 'publica', fn: function (p) { return conVersion(validarPedido(p)); } },
   registrar: { guarda: 'publica', fn: function (p) { return conVersion(registrarPedido(p)); } },
   /* Pública porque es la que ENTREGA las credenciales: no se puede pedir el
-     testigo para pedir el testigo. Lo que la protege es el límite de intentos. */
-  entrar:    { guarda: 'publica', fn: atenderEntrar },
+     testigo para pedir el testigo. Lo que la protege es el límite de intentos.
+     Y SOLO POR POST: por GET la clave viajaría en la dirección, y la dirección
+     se queda en el historial del navegador y en los registros de Google. */
+  entrar:    { guarda: 'publica', soloPost: true, fn: atenderEntrar },
 
   menu:      { guarda: 'menu',    fn: atenderMenu },
 
@@ -1643,8 +2043,24 @@ var PUERTAS = {
   fotos:     { guarda: 'montaje', fn: atenderFotos },
   foto:      { guarda: 'montaje', fn: atenderFoto },
 
-  sesion:    { guarda: 'panel',   fn: atenderSesion }
+  /* LAS DEL PANEL, TODAS SOLO POR POST. El testigo en una dirección es un
+     testigo en el historial del navegador del mostrador, y ocho horas es mucho
+     tiempo para que eso quede a la vista. */
+  sesion:            { guarda: 'panel', soloPost: true, fn: atenderSesion },
+  productos:         { guarda: 'panel', soloPost: true, fn: atenderProductos },
+  guardar_producto:  { guarda: 'panel', soloPost: true, fn: atenderGuardarProducto },
+  activar_producto:  { guarda: 'panel', soloPost: true, fn: atenderActivarProducto },
+  borrar_producto:   { guarda: 'panel', soloPost: true, fn: atenderBorrarProducto },
+  /* La única con un tope propio: una foto no cabe en los 20.000 del resto. El
+     doble del de la foto, para que una que se pasa un poco reciba el mensaje
+     amable de atenderSubirFoto —con el nombre para subirla a mano— y no el
+     seco de aquí, que queda solo para lo absurdo. */
+  subir_foto:        { guarda: 'panel', soloPost: true, tope: MAX_FOTO_BASE64 * 2, fn: atenderSubirFoto }
 };
+
+/* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
+   viejo tiene su propio tope, más chico, porque viene de cualquiera. */
+var MAX_CUERPO_PANEL = 20000;
 
 /* Devuelve el error si no pasa, o null si pasa. */
 function guardiaDe(puerta, p) {
@@ -1668,12 +2084,38 @@ function doGet(e) {
     if (!p.a) return ContentService.createTextOutput('Servicio activo. Versión ' + VERSION);
     var puerta = PUERTAS[p.a];
     if (!puerta) return json({ ok: false, error: 'Acción desconocida: ' + p.a, version: VERSION });
+    if (puerta.soloPost) {
+      return json({ ok: false, error: 'Esta puerta se usa por POST: ni la clave ni el ' +
+                                      'testigo viajan en la dirección.' });
+    }
     var no = guardiaDe(puerta, p);
     if (no) return json(no);
     return json(puerta.fn(p));
   } catch (err) {
     registrarError(err, null);
     return json({ ok: false, error: 'No pudimos validar en este momento.' });
+  }
+}
+
+/* EL PANEL POR POST. El cuerpo es un JSON en texto plano —así el navegador no
+   pregunta antes por CORS— con `a` diciendo qué puerta, y los mismos nombres
+   de parámetros que por GET. Pasa por la MISMA tabla y la MISMA guardia: una
+   sola lista de puertas, dos maneras de llamar a la puerta. */
+function atenderPorPost(cuerpo, largo) {
+  var puerta = PUERTAS[cuerpo.a];
+  if (!puerta) return { ok: false, error: 'Acción desconocida: ' + cuerpo.a, version: VERSION };
+  if (largo > (puerta.tope || MAX_CUERPO_PANEL)) return { ok: false, error: 'Lo enviado es demasiado grande.' };
+  var no = guardiaDe(puerta, cuerpo);
+  if (no) return no;
+  /* Pasada la guardia, un fallo se cuenta con su motivo: quien está del otro
+     lado es el comerciante, que entró con su clave, y «No pudimos validar en
+     este momento» no le dice qué hacer. Antes de la guardia, nada: ahí puede
+     haber cualquiera. */
+  try {
+    return puerta.fn(cuerpo);
+  } catch (err) {
+    registrarError('panel ' + cuerpo.a + ': ' + err.message, null);
+    return { ok: false, error: 'No se pudo completar: ' + err.message };
   }
 }
 
@@ -3109,6 +3551,17 @@ function aleatorio(n) {
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) throw new Error('POST vacío');
+
+    /* ¿Es el panel? Un cuerpo con `a` es una puerta; el registro de pedidos
+       viejo no trae `a` y sigue por su camino de siempre. Se mira antes del
+       tope del registro porque el panel tiene el suyo. */
+    var cuerpo = null;
+    try { cuerpo = JSON.parse(e.postData.contents); } catch (x) { cuerpo = null; }
+    if (cuerpo && typeof cuerpo === 'object' && typeof cuerpo.a === 'string') {
+      recordarMiUrl();
+      return json(atenderPorPost(cuerpo, e.postData.contents.length));
+    }
+
     if (e.postData.contents.length > MAX_CUERPO) throw new Error('Cuerpo demasiado grande');
 
     var pedido = validarRegistro(JSON.parse(e.postData.contents));

@@ -20,6 +20,10 @@ configurar(gas);
 let fallasPendientes = 0;   // simula la red móvil que se cae
 let tumbarTodo = false;     // 'muerto': falla también el catálogo
 let demoraMs = 0;
+/* La respuesta que se pierde DESPUÉS de hacer el trabajo: el caso real del
+   celular que se queda sin señal justo tras «Guardar». Distinto de /__fallar,
+   que tumba la petición antes de que llegue: ahí no hay nada que duplicar. */
+let perderRespuestas = 0;
 let peticiones = [];
 
 function responderJson(res, obj) {
@@ -55,7 +59,7 @@ const servidor = http.createServer((req, res) => {
     return responderJson(res, { ok: true });
   }
   if (u.pathname === '/__reset') { gas.reiniciar(); gas.api.instalar(); configurar(gas);
-    fallasPendientes = 0; demoraMs = 0; tumbarTodo = false; peticiones = []; return responderJson(res, { ok: true }); }
+    fallasPendientes = 0; demoraMs = 0; tumbarTodo = false; peticiones = []; perderRespuestas = 0; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__fallar') { fallasPendientes = Number(u.query.n) || 1; peticiones = []; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__modo') {
     peticiones = [];
@@ -121,6 +125,23 @@ const servidor = http.createServer((req, res) => {
     }
     return responderJson(res, { ok: true });
   }
+  if (u.pathname === '/__carpeta') {        // una carpeta de fotos en el Drive emulado
+    gas.enDrive(u.query.id, []);
+    if (u.query.soloLectura === '1') gas.carpetaDeSoloLectura(u.query.id);
+    return responderJson(res, { ok: true });
+  }
+  if (u.pathname === '/__drive') {          // qué hay en esa carpeta
+    return responderJson(res, gas.carpetaDrive(u.query.id).map(a =>
+      ({ nombre: a.nombre, tipo: a.tipo, bytes: a.bytes, cabecera: a._bytes ? a._bytes.slice(0, 3).toString('hex') : '' })));
+  }
+  if (u.pathname === '/__perder') { perderRespuestas = Number(u.query.n) || 1; return responderJson(res, { ok: true }); }
+  if (u.pathname === '/__panel') {          // dejar el panel listo: usuario y clave
+    const d = gas.filas('Configuración');
+    const fila = d.findIndex(f => String(f[0]) === 'panel_usuario') + 1;
+    gas.hojas.get('Configuración').getRange(fila, 2).setValue(u.query.usuario || 'dona.rosa');
+    const texto = String(gas.api.claveDelPanel().texto || '');
+    return responderJson(res, { ok: true, clave: (texto.match(/Clave:\s+(\S+)/) || [])[1] });
+  }
   if (u.pathname === '/__llamar') {         // ejecutar una función del script
     const f = gas.api[u.query.f];
     if (!f) return responderJson(res, { ok: false, error: 'no existe ' + u.query.f });
@@ -151,7 +172,8 @@ const servidor = http.createServer((req, res) => {
   }
 
   if (u.pathname === '/exec') {
-    peticiones.push(u.query);
+    // Los POST se anotan abajo, con su puerta; aquí solo lo que llega por GET.
+    if (req.method !== 'POST') peticiones.push(u.query);
     const atender = () => {
       if (fallasPendientes > 0 && (tumbarTodo || u.query.a !== 'catalogo')) {
         fallasPendientes--;
@@ -162,7 +184,17 @@ const servidor = http.createServer((req, res) => {
       if (req.method === 'POST') {
         let cuerpo = ''; req.on('data', d => cuerpo += d);
         return req.on('end', () => {
+          /* Se anota qué puerta y por dónde, para que una batería pueda
+             comprobar que la clave y el testigo NUNCA viajaron en una dirección:
+             lo que llega por GET queda en `u.query`, con todo lo que traiga. */
+          try { const c = JSON.parse(cuerpo); peticiones.push({ metodo: 'POST', a: c.a, direccion: u.query }); }
+          catch (e) { peticiones.push({ metodo: 'POST', direccion: u.query }); }
           salida = gas.api.doPost({ postData: { contents: cuerpo } });
+          if (perderRespuestas > 0) {
+            perderRespuestas--;
+            res.writeHead(503, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+            return res.end('se cortó la conexión');
+          }
           res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
           res.end(contenido(salida));
         });
@@ -172,6 +204,18 @@ const servidor = http.createServer((req, res) => {
       res.end(contenido(salida));
     };
     return demoraMs ? setTimeout(atender, demoraMs) : atender();
+  }
+
+  // ---- el panel ----
+  /* Igual que la tienda: la dirección del maestro se cambia por la de este
+     servidor, y la CSP de la página —que el panel no trae en <meta>, porque la
+     suya va en _headers— no hace falta tocarla. */
+  if (u.pathname === '/admin.html') {
+    let admin = fs.readFileSync('admin.html', 'utf8')
+      .replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "' + ORIGEN + '/exec";');
+    if (u.query.sinmaestro === '1') admin = admin.replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "";');
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(admin);
   }
 
   // ---- la tienda ----

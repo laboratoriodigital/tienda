@@ -1459,3 +1459,74 @@ fijo convierte cada opción nueva en un rojo que no significa nada, y **un rojo
 que no significa nada enseña a subir el número sin mirar**. El tope pasó a ser
 «64 más una por opción», que es lo que de verdad se quería vigilar: el stub
 creciendo por cualquier otra razón.
+
+
+---
+
+**37 · La clave iba en la dirección, y lo escribí yo en D-1.** `?a=entrar`
+aceptaba el usuario y la clave por GET: `…/exec?a=entrar&u=dona.rosa&c=…`. Toda
+la historia D-1 estaba construida alrededor de que la clave no quede escrita en
+ninguna parte —ni en la hoja, ni en el repositorio, ni en una celda—, y la
+propia puerta de entrada la dejaba en el historial del navegador del mostrador
+y en los registros de Google. El comentario de esa misma sección advertía del
+token de montaje «viajando en la barra de direcciones»; nadie lo leyó contra la
+puerta nueva, empezando por quien lo escribió. *(mío)*
+
+Se vio al diseñar D-2, al decidir cómo mandar el testigo en cada petición: la
+respuesta obvia para el testigo —POST, en el cuerpo— era la misma que hacía
+falta para la clave. Ahora `entrar` y todas las puertas del panel son **solo
+por POST**, declarado en la tabla de puertas (`soloPost`), y por GET contestan
+que no sin hacer nada — ni siquiera cuentan como intento fallido, porque si
+contaran, cualquiera bloquearía la tienda con cinco visitas a una dirección.
+`admin.js` no lo comprueba leyendo el código de la página: revisa **cada
+petición que llegó al servidor**, incluida la dirección de los POST, y exige
+que en ninguna esté la clave ni el testigo.
+
+**38 · Lo que se leyó, no lo que hay.** El error que más se paga de un panel no
+es de seguridad: es escribir la fila entera. El formulario se abre con 40 en
+Stock; mientras está abierto se paga un pedido y queda en 37; el comerciante
+corrige una tilde y guarda. La fila vuelve a decir 40. Nadie tocó el stock,
+nadie vio nada raro, y la tienda ofrece tres croissants que no existen.
+
+En la hoja eso no pasaba porque quien escribe ve lo que pisa. En el panel no lo
+ve. Así que cada producto viaja con la huella de su fila tal como se leyó, y
+guardar la exige: si la fila cambió entre medias, **no se escribe** y se dice.
+Es la aserción central de `productos.js`, y la de `admin.js` la repite desde el
+navegador cambiando la celda por detrás mientras el formulario está abierto.
+
+La consecuencia que salió al hacer la foto: subirla cambia la fila (la celda
+Imágenes), así que el formulario que la subió queda viejo por su propia mano. Si
+la página no toma la versión nueva, el siguiente Guardar dice «este producto
+cambió mientras lo editabas» — y lo cambió el comerciante, hace dos segundos.
+**Un control de concurrencia se dispara también contra uno mismo**, y cada
+escritura que hace la página tiene que devolver la versión con la que queda.
+
+**39 · Tres aserciones que pasaban con el defecto puesto.** D-2 se escribió con
+la regla de siempre —cada guardia se verifica ROJA con su defecto antes de
+darla por buena— y la regla cazó tres, todas del mismo tipo:
+
+- «La llave se suelta también cuando la operación falla» pasaba sin el
+  `finally`. La falla que usaba era un rechazo educado (un precio ilegible),
+  que vuelve por el camino normal y suelta la llave igual. La que importa es
+  una **excepción** a mitad de escritura —cuota agotada, hoja protegida—. Ahora
+  la prueba hace reventar la escritura.
+- «Reintentar no duplica» pasaba con un número de operación NUEVO en cada
+  reintento, porque el maestro rechaza el código repetido. No duplica, cierto;
+  pero el comerciante lee «ya hay un producto con ese código» sobre el que
+  acaba de crear. Lo que el mismo número compra es que el reintento **termine
+  bien**, y eso es lo que se exige ahora.
+- «Dice cómo subir la foto a mano» pasaba quitando la mitad del mensaje, porque
+  la otra mitad seguía nombrando Drive y el archivo. Un defecto demasiado
+  tímido no prueba la aserción; se rehízo quitándolo entero.
+
+La lección es la misma que la del emulador en la entrada 35, un nivel más
+arriba: **una aserción que pasa con el defecto está midiendo otro fallo**, y la
+única forma de saberlo es poner el defecto. Y de paso, `admin.js` cazó un error
+de verdad en la página: al guardar, el aviso «Guardado: … se verá al publicar»
+se pintaba y se borraba en el mismo instante, porque recargar la lista limpiaba
+los avisos. El comerciante nunca habría leído que tenía que publicar. *(mío)*
+
+Del mismo tipo que la entrada 35, en el emulador: `LockService` era un objeto
+que decía que sí a todo. Con eso «toda escritura va bajo llave» era imposible
+de comprobar — una escritura con llave y una sin ella se veían igual. Ahora la
+llave sabe si está tomada, y cada escritura del emulador queda anotada con eso.

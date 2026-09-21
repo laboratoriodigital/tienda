@@ -47,6 +47,7 @@ function crear(rutaScript, opciones) {
   const carpetasDrive = new Map();      // idCarpeta -> [archivo]
   const sueltosDrive = new Map();       // archivos del Drive fuera de esa carpeta
   const carpetasNegadas = new Set();    // carpetas sin permiso de escritura
+  const carpetasDeSoloLectura = new Set(); // se abren y se listan, pero no aceptan archivos
   let seqDrive = 0;
   const archivoDrive = (a, idCarpeta) => ({
     getId: () => a.id,
@@ -85,6 +86,14 @@ function crear(rutaScript, opciones) {
     return { getResponseCode: () => 404, getContentText: () => 'no encontrado' };
   };
 
+  /* LA LLAVE, DE VERDAD. Antes `LockService` era un objeto que decía que sí a
+     todo, y con eso «toda escritura va bajo llave» era imposible de comprobar:
+     una escritura sin llave y una con llave se veían igual. Ahora la llave
+     sabe si está tomada, y cada escritura queda anotada con eso. */
+  const llave = { tomada: false, veces: 0 };
+  const escrituras = [];
+  const anotarEscritura = (hoja, como) => escrituras.push({ hoja, como, conLlave: llave.tomada });
+
   function nuevaHoja(nombre) {
     const datos = [];   // matriz [fila][col], 0-based
     const formato = new Map();      // "fila,col" -> {fondo, color, negrita, ...}
@@ -119,10 +128,12 @@ function crear(rutaScript, opciones) {
       _anchos: anchos, _altos: altos,
       get _sinCuadricula() { return ocultarCuadricula; },
       appendRow(fila) {
+        anotarEscritura(nombre, 'appendRow');
         datos.push(fila.map(celda));
         return h;
       },
       deleteRows(desde, cuantas) {
+        anotarEscritura(nombre, 'deleteRows');
         datos.splice(desde - 1, cuantas);
         return h;
       },
@@ -142,6 +153,7 @@ function crear(rutaScript, opciones) {
             return out;
           },
           setValues(v) {
+            anotarEscritura(nombre, 'setValues');
             if (v.length !== nf) throw new Error('setValues: esperaba ' + nf + ' filas, recibió ' + v.length);
             v.forEach((fila, i) => {
               if (fila.length !== nc) throw new Error('setValues: esperaba ' + nc + ' columnas, recibió ' + fila.length);
@@ -150,7 +162,7 @@ function crear(rutaScript, opciones) {
             });
             return r;
           },
-          setValue(x) { asegurar(f, c)[c - 1] = celda(x); return r; },
+          setValue(x) { anotarEscritura(nombre, 'setValue'); asegurar(f, c)[c - 1] = celda(x); return r; },
           clearContent() {
             for (let i = 0; i < nf; i++) { const fila = datos[f - 1 + i];
               if (fila) for (let j = 0; j < nc; j++) fila[c - 1 + j] = ''; }
@@ -258,7 +270,12 @@ function crear(rutaScript, opciones) {
       put: (k, v) => { cache[k] = String(v); },
       remove: k => { delete cache[k]; }
     }) },
-    LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
+    LockService: { getScriptLock: () => ({
+      waitLock() { llave.tomada = true; llave.veces++; },
+      tryLock() { llave.tomada = true; llave.veces++; return true; },
+      hasLock: () => llave.tomada,
+      releaseLock() { llave.tomada = false; }
+    }) },
     ContentService: {
       createTextOutput: t => ({ _texto: t, setMimeType() { return this; }, getContent() { return this._texto; } }),
       MimeType: { JSON: 'application/json', TEXT: 'text/plain' }
@@ -313,10 +330,12 @@ function crear(rutaScript, opciones) {
          que forman. Antes pasaba por String() y `getDataAsString()` devolvía
          "104,111,108,97", que no se parece en nada a lo que devuelve Google. */
       newBlob: (contenido, tipo, nombre) => {
-        const texto = Array.isArray(contenido)
-          ? aSinSigno(contenido).toString('utf8') : String(contenido);
-        return { _contenido: texto, _tipo: tipo, _nombre: nombre,
-                 getName: () => nombre, getDataAsString: () => texto };
+        const bytes = Array.isArray(contenido) ? aSinSigno(contenido) : null;
+        const texto = bytes ? bytes.toString('utf8') : String(contenido);
+        return { _contenido: texto, _tipo: tipo, _nombre: nombre, _bytes: bytes,
+                 getName: () => nombre, getContentType: () => tipo,
+                 getBytes: () => (bytes ? conSigno(bytes) : conSigno(Buffer.from(texto))),
+                 getDataAsString: () => texto };
       }
     },
     PropertiesService: {
@@ -337,6 +356,18 @@ function crear(rutaScript, opciones) {
             let i = 0;
             return { hasNext: () => i < lista.length,
                      next: () => archivoDrive(lista[i++], id) };
+          },
+          /* D-2c · subir una foto. Guarda lo que se le da —nombre, tipo y
+             bytes— para que una prueba pueda mirar qué llegó a la carpeta. */
+          createFile(blob) {
+            if (carpetasDeSoloLectura.has(id)) throw new Error('Access denied: DriveApp.');
+            const a = { id: 'subida-' + (++seqDrive), nombre: blob.getName(),
+                        tipo: blob.getContentType ? blob.getContentType() : '',
+                        bytes: blob._bytes ? blob._bytes.length : String(blob._contenido || '').length,
+                        _bytes: blob._bytes || null,
+                        creado: new Date().toISOString(), modificado: new Date().toISOString() };
+            carpetasDrive.get(id).push(a);
+            return archivoDrive(a, id);
           }
         };
       },
@@ -401,6 +432,8 @@ function crear(rutaScript, opciones) {
            sinInterfaz() { hayInterfaz = false; },
            get idAbierto() { return idAbierto; },
            get props() { return props; },
+           get llave() { return llave; },
+           get escrituras() { return escrituras; },
            url: urlServicio,
            /* Para poder simular las dos caras de getUrl(): la /dev cuando se
               corre desde el editor y la /exec cuando atiende la web. */
@@ -411,6 +444,7 @@ function crear(rutaScript, opciones) {
            enDrive: (carpeta, archivos) => carpetasDrive.set(carpeta, archivos),
            sueltoEnDrive: (a) => sueltosDrive.set(a.id, a),
            carpetaNegada: (id) => carpetasNegadas.add(id),
+           carpetaDeSoloLectura: (id) => carpetasDeSoloLectura.add(id),
            carpetaDrive: (id) => (carpetasDrive.get(id) || []).filter(x => !x.papelera),
            sinRed() { fetchAllRevienta = true; },
            get peticiones() { return peticionesVistas; },

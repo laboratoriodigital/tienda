@@ -12,6 +12,7 @@ originales/
 pruebas/as.js
 pruebas/pn.js
 pruebas/index.html
+pruebas/admin.html
 pruebas/srv*.log
 pruebas/*.png
 pruebas/local.html

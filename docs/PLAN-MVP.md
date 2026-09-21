@@ -854,12 +854,11 @@ del **panel** del comerciante. No son deuda: son M3.
 > Como comerciante, quiero entrar a administrar mi tienda con un usuario y una
 > clave, sin abrir una hoja de cálculo.
 
-> **La mitad del maestro está cerrada.** Entrar, el testigo y todo lo que lo
-> protege existen y están probados (`entrar.js`, 46 aserciones, verificada ROJA
-> con siete defectos puestos). Lo que falta es la pantalla, y eso viaja con
-> D-2: la puerta `?a=sesion` está precisamente para que la página sepa si
-> pintar el panel o el formulario, sin tener que interpretar un testigo que no
-> puede verificar.
+> **Cerrada.** El maestro con D-1 (`entrar.js`, verificada ROJA con siete
+> defectos) y la pantalla con D-2: `admin.html` pide usuario y clave, guarda el
+> testigo en la pestaña y vuelve al formulario —diciendo por qué— en cuanto la
+> sesión se cae. Con D-2 `entrar` y todas las puertas del panel pasaron a ser
+> **solo por POST**: por GET la clave iba en la dirección.
 
 - [x] Usuario en la configuración; **hash con sal de la clave en las propiedades
       del proyecto**, nunca en la hoja ni en el repositorio. *(`panel_usuario`
@@ -899,15 +898,47 @@ del **panel** del comerciante. No son deuda: son M3.
       mira; y una guardia mal escrita **no abre**.)*
 
 **D-2 · Productos**  · 8 pts *(partir: listar+editar / crear+borrar / foto)*
-- [ ] Listar con búsqueda y filtro; crear, editar, activar/desactivar y borrar.
-- [ ] Toda escritura bajo `LockService`, con el saneado que ya cierra la
+> **Cerrada**, las tres partes. El maestro con `productos.js` (52 aserciones) y
+> la pantalla con `admin.js` (39), las dos verificadas ROJAS con sus defectos
+> puestos —once en el maestro, siete en la página— antes de darlas por buenas.
+
+- [x] Listar con búsqueda y filtro; crear, editar, activar/desactivar y borrar.
+      *(`publicar/admin.html`, horneado desde `plantilla/admin.html` por
+      `montar/preparar-admin.mjs` con la dirección del maestro sacada del
+      `index.html` recién horneado y de ningún otro sitio: la tienda y su panel
+      tienen que hablarle al mismo maestro. La lista trae también los
+      desactivados, y **las cifras llegan como están escritas**: si la hoja dice
+      «doce mil», el formulario enseña «doce mil» en rojo, no un 0 que se
+      guardaría sin mirar. **Borrar no borra**: la fila entera va a una pestaña
+      `Papelera`, con fecha, y se recupera copiándola de vuelta.)*
+- [x] Toda escritura bajo `LockService`, con el saneado que ya cierra la
       inyección de fórmulas, y validando el contrato antes de escribir.
-- [ ] Cada escritura lleva un identificador de operación: reintentar no duplica.
-- [ ] **Subir la foto desde el panel**: el maestro la guarda en la carpeta de
+      *(Y **contra lo que se leyó**: cada producto viaja con la huella de su fila
+      y guardar la exige. Sin eso, corregir una tilde en un formulario abierto
+      hace diez minutos devolvía el stock de hace diez minutos y resucitaba lo
+      que se vendió entre medias. Al escribir se **falla cerrado**, al revés que
+      al leer: lo que no valida no entra, y el error lo dice en palabras del
+      comerciante. Una coma dentro de una variante se rechaza aquí, que es el
+      único sitio donde se puede avisar antes de que la tienda la tumbe.)*
+- [x] Cada escritura lleva un identificador de operación: reintentar no duplica.
+      *(El número nace al ABRIR el formulario, no al pulsar Guardar, así que el
+      reintento es el mismo gesto. Y no basta con «no duplica»: con un número
+      nuevo tampoco duplicaría —el maestro rechaza el código repetido—, pero
+      el comerciante leería «ya hay un producto con ese código» sobre el que
+      acaba de crear. `admin.js` lo prueba perdiendo la respuesta DESPUÉS de
+      que el maestro guardó, que es el caso real del celular sin señal.)*
+- [x] **Subir la foto desde el panel**: el maestro la guarda en la carpeta de
       Drive con el nombre que le corresponde. Quita el error más común del
-      producto —el nombre de archivo que no coincide—.
-- [ ] Si la subida falla por tamaño o por tiempo, lo dice y **el camino viejo
-      sigue existiendo**: subirla a Drive a mano.
+      producto —el nombre de archivo que no coincide—. *(`<código>-<n>.<ext>`,
+      con el primer número libre en la celda Y en la carpeta, para no pisar una
+      subida a mano. La página la achica antes de mandarla —1600 px, JPEG—, y
+      toma la versión nueva de la fila al terminar: si no, el siguiente Guardar
+      diría «cambió mientras lo editabas» por la foto que el propio comerciante
+      acaba de subir.)*
+- [x] Si la subida falla por tamaño o por tiempo, lo dice y **el camino viejo
+      sigue existiendo**: subirla a Drive a mano. *(El mensaje dice **el nombre
+      exacto** que tiene que llevar el archivo. Y si Drive no deja escribir, la
+      celda no se toca: la hoja no puede decir que hay una foto que no existe.)*
 
 **D-3 · Pedidos**  · 5 pts
 - [ ] Lista con estado, fecha y total; abrir uno y ver qué se pidió.
