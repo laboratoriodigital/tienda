@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-21-3",
- "generado": "2026-09-21T21:18:35.512Z",
+ "generado": "2026-09-21T21:57:23.132Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -101,9 +101,12 @@
   "panel_usuario": "sebas",
   "cobro_modo": "Pasarela",
   "cobro_ambiente": "Pruebas",
+  "tienda_abierta": "Sí",
+  "tienda_cerrada_mensaje": "",
+  "pedido_minimo": "",
   "tope_pago": "12110000",
-  "cobro": "whatsapp",
-  "cobro_pruebas": ""
+  "cobro": "pasarela",
+  "cobro_pruebas": "Sí"
  },
  "fotos": {
   "tienda-virtual.png": [
