@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-21-1",
- "generado": "2026-09-21T19:09:49.740Z",
+ "generado": "2026-09-21T19:21:06.469Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -99,6 +99,8 @@
   "f_variantes": "Sí",
   "orden_catalogo": "Precio: de menor a mayor",
   "panel_usuario": "sebas",
+  "cobro_modo": "Pasarela",
+  "cobro_ambiente": "Pruebas",
   "tope_pago": "12110000",
   "cobro": "whatsapp",
   "cobro_pruebas": ""
