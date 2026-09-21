@@ -1530,3 +1530,38 @@ Del mismo tipo que la entrada 35, en el emulador: `LockService` era un objeto
 que decía que sí a todo. Con eso «toda escritura va bajo llave» era imposible
 de comprobar — una escritura con llave y una sin ella se veían igual. Ahora la
 llave sabe si está tomada, y cada escritura del emulador queda anotada con eso.
+
+
+---
+
+**40 · El riesgo que ya existía, y que un botón de pago vuelve caro.** El 21 de
+septiembre el dueño agregó al MVP cobrar en línea (M3.5) y, al mismo tiempo,
+nombró un riesgo que la tienda tiene **hoy**: dos compradores pueden pedir la
+última unidad a la vez. La hoja valida el stock al armar el pedido pero no lo
+aparta — el inventario solo baja cuando el comerciante marca Pagado —. Mientras
+el pago lo confirma una persona, eso se resuelve con un mensaje de disculpa y
+nadie pierde plata. **Con un botón de pago, los dos pagan**, y a uno hay que
+devolverle el dinero.
+
+Por eso la primera historia de M3.5 no es el proveedor sino **apartar la
+unidad** (E-1), y va antes. Un riesgo que hoy es barato no se deja para cuando
+sea caro solo porque hoy nadie lo haya pagado.
+
+Y la segunda lección vino de preguntarle al propio sistema qué puede hacer
+antes de elegir proveedor: el maestro es un Apps Script, y su `doPost` **no ve
+las cabeceras HTTP**. La mayoría de los avisos de pago van firmados en una
+cabecera. Un aviso que no se puede verificar no puede marcar nada como pagado,
+así que el aviso es solo un timbre y la verdad se le pregunta a la API del
+proveedor. Eso se volvió el criterio que decide el proveedor (decisión 12), por
+encima de la comisión. **Una restricción de la plataforma se lee antes de
+comparar precios**, o se elige el más barato de los que no sirven.
+
+Y de paso, por pedido del dueño: `instalar()` ya no imprime el código de la hoja
+al final. Eran doscientas líneas en cada reinstalación —que es lo que se hace
+para agregar una clave—, enterraban el resumen que había que leer y eran la
+forma segura de pegar un stub viejo. Una aserción de `montaje.js` **exigía**
+ese segundo camino; ahora exige que no exista. Y dos documentos decían que
+«mirar el menú no comprueba nada» sin la excepción que D-1 acababa de crear: una
+versión que agrega una opción al menú. Esa frase, leída al pie de la letra, es
+la que hizo que la opción *Clave del panel* no apareciera hasta regenerar el
+stub.

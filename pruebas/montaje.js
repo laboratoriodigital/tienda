@@ -1473,11 +1473,21 @@ const configurar = (g, clave, valor) => {
 {
   const maestro = fs.readFileSync('../maestro.gs', 'utf8');
 
+  /* Y SOLO DESDE generarStub, desde el 21 de septiembre. instalar() también
+     lo imprimía al final —doscientas líneas en cada reinstalación, que es lo
+     que se hace para agregar una clave— y enterraba el resumen que de verdad
+     había que leer; encima era la forma segura de pegar un stub viejo, el que
+     salía antes de publicar el maestro nuevo. Esta aserción EXIGÍA ese
+     segundo camino; ahora exige que no exista y que instalar mande al bueno. */
   ok('EL STUB SE IMPRIME SOLO desde el maestro, no desde el men\u00fa de la hoja',
      /function generarStub\(\)/.test(maestro) &&
-     /console\.log\(codigo\)/.test(maestro) &&
-     /console\.log\(generarStub\(\)\.codigo\)/.test(maestro),
-     'generarStub lo imprime, e instalar() lo imprime al final');
+     /console\.log\(codigo\)/.test(maestro),
+     'generarStub lo imprime');
+  const cuerpoInstalar = (maestro.match(/function instalar\(\) \{[\s\S]*?\n\}\n/) || [''])[0];
+  ok('  ...y SOLO desde ahí: instalar() ya no lo imprime, y dice cuál ejecutar',
+     !!cuerpoInstalar && !/generarStub\(\)\.codigo/.test(cuerpoInstalar) &&
+     /A1_generarStub\(\)/.test(cuerpoInstalar),
+     cuerpoInstalar ? 'instalar() tiene ' + cuerpoInstalar.split('\n').length + ' líneas' : 'no encontré instalar()');
 
   ok('  ...y generarStub NO est\u00e1 entre las opciones del men\u00fa',
      !/id: 'stub'/.test(maestro) && !/fn: generarStub/.test(maestro),
@@ -1529,9 +1539,14 @@ const configurar = (g, clave, valor) => {
        Orgánico, el rótulo pasó de la palabra escrita a mano a la variable que
        vale esa misma palabra: idéntico antes y después. Es el mismo error que
        con la versión del Diagnóstico, y costó una vuelta entera. */
-    ok('  ...y avisa de que mirar el men\u00fa no comprueba nada',
-       /se ve igual|no cambia|no comprueba nada/.test(t) && /Sprint 5/.test(t),
-       'las opciones nuevas son de otro sprint');
+    /* Con una excepción que antes no existía y ahora sí: una versión que
+       AGREGA una opción al menú (Clave del panel, D-1). Ahí mirar el menú es
+       justamente la comprobación, y el documento lo tiene que decir — un aviso
+       de «no mires el menú» sin la excepción hizo pensar que no hacía falta
+       regenerar el stub, y la opción nueva no aparecía. */
+    ok('  ...y avisa de que mirar el men\u00fa casi nunca comprueba nada, con su excepci\u00f3n',
+       /se ve igual|no cambia|comprueba nada/.test(t) && /agrega una/.test(t),
+       'salvo cuando la versión agrega una opción');
   }
 }
 

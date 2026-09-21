@@ -586,6 +586,55 @@ mano y porque todo lo que ya lee esa columna sigue funcionando sin tocarlo.
 
 ---
 
+## 12 · El proveedor de pagos, y el criterio que manda
+
+**Estado:** ABIERTA desde el 21 de septiembre de 2026. La abre la entrada de
+M3.5 al MVP. Bloquea E-3; no bloquea E-1.
+
+### Qué hace hoy
+
+No se cobra en línea. El pedido sale por WhatsApp, el comerciante confirma el
+pago a mano (transferencia, llave, efectivo) y marca el pedido como Pagado, que
+es lo que descuenta el inventario.
+
+### El límite real
+
+No es la comisión, aunque sea lo primero que se compara. Es **cómo se entera el
+maestro de que un pago se hizo**. Los proveedores avisan con un POST a una
+dirección nuestra y lo firman —muchos en una cabecera HTTP—. El maestro es un
+Apps Script: su `doPost` **no ve las cabeceras**, así que no puede comprobar esa
+firma, y contesta los POST con una redirección que algunos no siguen. Un aviso
+que no se puede verificar no puede marcar nada como pagado: sería la puerta para
+que cualquiera «pague» con un POST inventado.
+
+### La decisión
+
+Se elige el proveedor con este criterio por encima de los demás: **que su API
+permita consultar una transacción por su referencia**, desde el servidor. Con
+eso el aviso es solo un timbre y la confirmación se le pregunta al proveedor
+(E-4). Entre los que lo cumplan, se comparan comisión, costo fijo y días hasta
+el desembolso, con números de la tienda real y no de la documentación.
+Candidatos a evaluar: Wompi, ePayco, Mercado Pago, PayU.
+
+Y el pago es **en la página del proveedor** (redirección): los datos de la
+tarjeta nunca pasan por la tienda ni por el maestro.
+
+### Condición de disparo
+
+Antes de empezar E-3. E-1 —apartar la unidad— se construye sin esperar esta
+decisión, y va primero a propósito.
+
+### Contrapartida
+
+Consultar al proveedor cuesta ejecuciones de Apps Script, y el presupuesto de
+§6 del plan dice «ninguna mientras nadie mire». Por eso el disparador que
+pregunta por los pagos pendientes corre **solo mientras haya reservas
+pendientes**: con cero, no corre. Y queda descartado de entrada cualquier
+proveedor que solo confirme por aviso firmado en cabecera, aunque sea el más
+barato.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

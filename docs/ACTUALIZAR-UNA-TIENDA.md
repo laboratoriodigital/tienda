@@ -208,9 +208,10 @@ Configuración.
 
 > **El stub NO sale del menú de la hoja.** «Generar configuración» produce los
 > dos bloques del `index.html`, que es otra cosa. El stub solo lo imprime
-> `generarStub` en el editor del maestro —e `instalar()` al final del suyo—, y
-> por una razón: es el código que **dibuja** ese menú, así que no puede
-> depender de que el menú funcione.
+> `generarStub` en el editor del maestro —`instalar()` también lo imprimía al
+> final hasta el 21 de septiembre de 2026, y ya no—, y por una razón: es el
+> código que **dibuja** ese menú, así que no puede depender de que el menú
+> funcione.
 
 ### No mires el menú para comprobarlo
 
@@ -228,8 +229,10 @@ Lo que sí distingue el stub nuevo:
 | El botón **Guardar** no se activa | Al pegar | Lo que pegaste es idéntico a lo que ya había: **ya estaba actualizado**. No es un fallo |
 | `var NEGOCIO` no aparece en el registro de `generarStub` | En el editor del **maestro** | El maestro todavía tiene el código viejo. Vuelve a publicarlo |
 
-El menú con opciones nuevas —*Publicar ahora*, *Ver mi tienda*, *Ayuda*— es del
-**Sprint 5**. Todavía no existe.
+**La excepción: cuando la versión nueva agrega una opción al menú** —como
+*Clave del panel*, que llegó con D-1—. Ahí la opción aparece solo después de
+pegar el stub nuevo, y mirar el menú **sí** es la comprobación. Fuera de ese
+caso, el menú se ve igual antes y después, y no comprueba nada.
 
 **2. El nombre del comercio, donde el comprador lo lee.**
 El consentimiento de datos decía *"Autorizo a Orgánico a usar mis datos"* en

@@ -1034,14 +1034,20 @@ function instalar() {
     libro.getSheets().map(function (h) { return h.getName(); }).join(', '));
   console.log('Productos cargados: ' +
     Math.max(0, libro.getSheetByName(H_CATALOGO).getLastRow() - 1));
+  /* EL CÓDIGO DE LA HOJA YA NO SE IMPRIME AQUÍ. Salía entero, doscientas
+     líneas, cada vez que se instalaba —también al reinstalar para agregar una
+     clave nueva, que es lo más común—, y enterraba el resumen de arriba, que
+     es lo que de verdad hay que leer. Además era la forma segura de pegar un
+     stub viejo: el que salía antes de publicar el maestro nuevo. Tiene su
+     propia función y su propio momento (DESPLIEGUE, paso 12). */
   var url = urlLista();
+  console.log('');
   if (url) {
-    console.log('');
-    console.log('═══ PEGA ESTO EN LA HOJA (Extensiones > Apps Script) ═══');
-    console.log(generarStub().codigo);
+    console.log('El menú de la hoja: si cambió (opciones nuevas, otro nombre del comercio), ' +
+                'ejecuta A1_generarStub() y pega lo que imprima en la hoja.');
   } else {
     console.log('Siguiente paso: Implementar > Nueva implementación > Aplicación web.');
-    console.log('Después ejecuta generarStub() y pega lo que imprima en la hoja.');
+    console.log('Después ejecuta A1_generarStub() y pega lo que imprima en la hoja.');
   }
 }
 

@@ -14,7 +14,8 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 > `ROADMAP.md`.
 >
 > **El alcance quedó cerrado el 18 de septiembre de 2026: el MVP son los hitos
-> M0 a M3.** El tablero gráfico, el rastreo del pedido y la actualización
+> M0 a M3** — y el 21 de septiembre el dueño le sumó **M3.5 · Cobrar en línea**
+> (PSE o botón de pago). El tablero gráfico, el rastreo del pedido y la actualización
 > automática de la flota **salen del MVP** y son la entrega siguiente (1.1), con
 > su orden ya decidido en el `ROADMAP.md`. El producto se llama **tienda**, el
 > repositorio empieza en **0.1.0** y el MVP sale como **1.0.0**.
@@ -419,12 +420,17 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 5. Si cambia un contrato de datos, la versión anterior sigue funcionando.
 6. Si toca `maestro.gs`, `panel.gs` o `plantilla/`, sube `version`.
 
-**El MVP son cuatro hitos, y este es el orden:**
+**El MVP son cinco hitos, y este es el orden:**
 
 ```
-M0 → M1 → M2 → M3        ← la 1.0.0
-                 M4 → M5 → M6   ← la 1.1, ya en el ROADMAP
+M0 → M1 → M2 → M3 → M3.5        ← la 1.0.0
+                        M4 → M5 → M6   ← la 1.1, ya en el ROADMAP
 ```
+
+> **M3.5 · Cobrar en línea entró al MVP el 21 de septiembre de 2026**, por
+> decisión del dueño: un integrador de pagos con PSE o botón de pago. Se numera
+> 3.5 y no 4 para no renumerar la 1.1, que ya está escrita con M4 a M6 en el
+> `ROADMAP.md` y en varias decisiones.
 
 **M0 primero, y no es negociable**: hasta que `publicar/` sea producto y no
 fuente, todo lo demás se construye sobre arena — y los datos del comercio
@@ -743,14 +749,19 @@ del **panel** del comerciante. No son deuda: son M3.
       tres tallas por dos colores son seis existencias, y seis números dentro
       de una celda es donde nacen los errores. Agregar una pestaña está
       permitido por R1; tocar las columnas de `Catálogo`, no.)*
+- [ ] **Los topes, decididos por el dueño el 21 de septiembre**: hasta **3
+      grupos**, **20 opciones por grupo** y **100 combinaciones por producto**.
+      *(Los de C-1 —4 grupos y 24 opciones— bajan a 3 y 20 en esta misma
+      historia, en los tres sitios donde están escritos: el maestro, la página y
+      el horneado. Por encima de 100 combinaciones no se genera nada: se avisa
+      con el número, porque 3 grupos de 20 son 8.000 filas.)*
 - [ ] **Las filas las escribe el maestro, no el comerciante.** Al llenar
       `Variantes` en `Catálogo`, el maestro genera una fila por combinación con
       el stock vacío; el comerciante solo pone los números. *(Escribir
       «Talla: M ; Color: Rosa» a mano seis veces es la forma segura de que una
-      no case. Con un tope de combinaciones por producto —propuesta: 60— y, por
-      encima, se avisa en vez de generar: 4 grupos de 24 opciones son 331.776
-      filas.)* Si el comerciante cambia las opciones, las filas que ya no casan
-      **no se borran**: se marcan, porque llevan un stock que alguien contó.
+      no case.)* Si el comerciante cambia las opciones, las filas que ya no
+      casan **no se borran**: se marcan, porque llevan un stock que alguien
+      contó.
 - [ ] **La verdad del stock de un producto con variantes está en esa pestaña.**
       `Catálogo › Stock` pasa a ser **la suma**, escrita por el maestro y con la
       ayuda de la fila diciéndolo. *(Una sola mano escribe la suma, así que no
@@ -768,13 +779,25 @@ del **panel** del comerciante. No son deuda: son M3.
 - [ ] **La página**: en la ficha, una opción sin existencias sale marcada y no
       se puede elegir; «Últimas 3 unidades» habla de la combinación elegida, no
       del producto; la tarjeta dice «Agotado» solo cuando se acabaron **todas**.
-- [ ] **Las fotos por variante**: al elegir un color, la galería de la ficha
-      pasa a las fotos de ese color. Se toman de la primera fila que case con
-      lo que va elegido —las fotos suelen cambiar con el color y no con la
-      talla—, y si esa combinación no tiene fotos se quedan las del producto.
-      *(Por decidir al implementarlo, con `traer-fotos.mjs` delante: cómo se
-      nombra en Drive la foto de una variante. Propuesta:
-      `camiseta-basica--rosa-1.jpg`, con doble guion porque el id ya usa uno.)*
+- [ ] **Las fotos por opción, y EL NOMBRE ES EL DATO** (decidido el 21 de
+      septiembre: «se cargan igual al Drive que cualquier otro producto, y se
+      montan desde el panel»). Una foto del color rosa se llama
+      `camiseta-basica--color-rosa-1.jpg`: código, doble guion, grupo, opción y
+      número. Va a **la misma carpeta de Drive** que todas y el montaje la
+      procesa igual que cualquier otra — `traer-fotos.mjs` ya convierte todo lo
+      que hay en la carpeta, así que no cambia nada ahí. Y nadie escribe ese
+      nombre: en el panel, al subir la foto de un producto con variantes, se
+      elige **de qué opción es** («¿de qué color es esta foto?», o «de todas»)
+      y el maestro la nombra — la misma pieza de D-2c con un campo más.
+      *(Por qué así y no una columna: de qué opción es una foto se lee de su
+      nombre, así que no hay tabla que mantener ni dos datos que puedan dejar
+      de casar, y una foto subida a mano con ese nombre funciona igual. El
+      grupo va en el nombre para que una talla «M» y un color «M» no se
+      confundan. La doble raya separa porque el código ya usa una.)*
+- [ ] **Lo que ve el comprador**: al elegir Rosa, la galería de la ficha pasa a
+      las fotos `--color-rosa-`; si esa opción no tiene fotos propias, se quedan
+      las generales del producto. La tarjeta sigue enseñando la primera
+      general. El tope de fotos pasa a **6 generales y 4 por opción**.
 - [ ] **Contrato**: cada producto gana `skus: [{ eleccion, stock, imagenes }]`,
       al final y solo si tiene filas. Horneado en `catalogo.json` y en el
       respaldo, como las variantes.
@@ -968,6 +991,77 @@ del **panel** del comerciante. No son deuda: son M3.
 
 ---
 
+### M3.5 · Cobrar en línea   · entró al MVP el 21 de septiembre de 2026
+
+> **El riesgo que lo abre, y que ya existe hoy.** Dos compradores pueden pedir
+> la última unidad a la vez. La hoja valida el stock al armar el pedido
+> (`?a=validar`), pero **no lo aparta**: el inventario solo baja cuando el
+> comerciante marca el pedido como Pagado. Hoy eso se resuelve a mano —el
+> comerciante confirma uno y le escribe al otro que ya no hay—, y es incómodo
+> pero nadie pierde plata. **Con un botón de pago deja de resolverse a mano:**
+> los dos pagan, y a uno hay que devolverle el dinero. Por eso la primera
+> historia de este hito es apartar la unidad, y va **antes** que el proveedor.
+
+**E-1 · Apartar la unidad mientras se paga**  · 5 pts
+- [ ] Al empezar a pagar, el maestro **aparta** las unidades por un tiempo
+      corto (propuesta: 15 minutos) en una pestaña `Reservas`, bajo llave. Lo
+      disponible es el stock menos lo apartado que no ha vencido, y es lo que
+      usan la validación y el botón de pagar.
+- [ ] Al segundo comprador se le dice **antes de pagar**: «la última unidad la
+      está pagando otra persona; vuelve en unos minutos». Nunca después.
+- [ ] La reserva se vuelve venta cuando el pago se confirma, o vence sola.
+      Sin disparador que la limpie: lo vencido se ignora al leer.
+- [ ] Funciona por combinación cuando exista C-1b: se aparta la rosa M, no la
+      camiseta.
+- [ ] Batería con dos compradores a la vez sobre la última unidad: uno aparta
+      y el otro recibe el aviso; y si el primero no paga, a los quince minutos
+      el segundo puede.
+
+**E-2 · Elegir el proveedor**  · 2 pts · decisión 12, abierta
+- [ ] PSE y tarjeta, con **pago en la página del proveedor** (redirección): los
+      datos de la tarjeta nunca pasan por la tienda ni por el maestro.
+- [ ] Candidatos a evaluar con números en la mano —comisión, días hasta el
+      desembolso, costo fijo—: Wompi, ePayco, Mercado Pago, PayU. No se elige
+      por la documentación, se elige por el criterio de abajo.
+- [ ] **El criterio que decide, y que casi ningún comparativo mira**: que se
+      pueda **consultar una transacción por su referencia** desde el servidor.
+      Ver E-4: en Apps Script es la única forma segura de confirmar un pago.
+
+**E-3 · Cobrar**  · 5 pts
+- [ ] El botón lleva al pago con **la referencia del pedido y el total que
+      calculó el maestro**, nunca el de la página. La firma o el hash de
+      integridad los calcula el maestro con la llave del proveedor, que vive en
+      las propiedades del proyecto — como `pago_*`, no sale por ninguna puerta.
+- [ ] Al volver del pago, la tienda le pregunta al maestro cómo quedó, y lo dice.
+- [ ] Interruptor por tienda: sin proveedor configurado, el pedido sigue por
+      WhatsApp como hoy.
+
+**E-4 · Confirmar el pago sin creerle al aviso**  · 5 pts
+- [ ] **Lo que Apps Script no puede hacer, dicho desde el principio**: `doPost`
+      no ve las cabeceras HTTP, así que no puede verificar un aviso firmado en
+      la cabecera; y contesta los POST con una redirección que algunos
+      proveedores no siguen. Por eso el aviso del proveedor, si llega, es solo
+      un timbre: **la verdad se le pregunta a su API**, por la referencia.
+- [ ] Se pregunta en tres momentos: al llegar el aviso, al volver el comprador,
+      y con un disparador cada pocos minutos **solo mientras haya reservas
+      pendientes** —con cero pendientes no corre, por el presupuesto de
+      ejecuciones de §6—.
+- [ ] Pago aprobado y con el monto que calculó el maestro → el pedido pasa a
+      Pagado solo, con el mismo efecto sobre el inventario que marcarlo a mano
+      (`aplicarInventario`, llamado, no copiado). Idempotente por referencia:
+      confirmar dos veces no descuenta dos veces.
+- [ ] Un monto distinto del calculado **no** se da por pagado: queda para el
+      comerciante, con los dos números.
+
+**E-5 · Lo que sale mal**  · 3 pts
+- [ ] Pago aprobado con la reserva vencida y la unidad ya vendida: el pedido
+      queda **«Pagado sin existencias»**, y el comerciante recibe un aviso con
+      lo que tiene que devolver. Es raro con E-1, pero no imposible —PSE puede
+      tardar—, y tiene que tener nombre antes de que pase.
+- [ ] PSE pendiente: la reserva se sostiene mientras el proveedor diga
+      pendiente, con un tope, y lo que pasa al tope está escrito.
+- [ ] Rechazado o abandonado: la reserva se libera y el pedido lo dice.
+
 ### Lo que sigue después del MVP
 
 **M4 · El tablero · M5 · El rastreo del pedido · M6 · La flota que se actualiza
@@ -1012,6 +1106,8 @@ vivo», ese es el número que hay que mirar.
 | **Subir fotos desde el panel no cabe** en los límites de Apps Script | Fotos grandes que fallan o tardan | El camino viejo sigue existiendo; la historia lo exige explícitamente |
 | **Los minutos** | La cuarta tienda no cabe en el plan | B-2 baja el gasto cinco veces; B-1 lo mide en cada corrida |
 | **A-2 cambia sin querer lo que ve el comprador** | Una tienda se ve distinta tras un refactor «que no cambiaba nada» | Comparar el horneado nuevo contra el publicado de una tienda real, antes de fusionar |
+| **Dos compradores y la última unidad** | Hoy: dos pedidos por WhatsApp de la misma unidad, y el comerciante le escribe a uno que ya no hay. Con pago en línea: los dos pagan y a uno hay que devolverle la plata | E-1 aparta la unidad **antes** de que empiece el pago, y va antes que el proveedor. Hasta M3.5, se resuelve a mano como siempre |
+| **Confirmar un pago desde Apps Script** | Un aviso de pago falso marca un pedido como pagado; o uno verdadero no llega nunca | `doPost` no ve cabeceras, así que el aviso no se cree: se consulta al proveedor por la referencia (E-4). Ese es el criterio que decide el proveedor (E-2) |
 | **Dos líneas de producto** | Una corrección se arregla en `tienda` y no en `organico` | Son dos líneas a propósito: `organico` solo recibe correcciones, y este plan no las sincroniza. Si algo hay que llevar, se lleva a mano y se anota |
 
 ---
@@ -1025,7 +1121,7 @@ vivo», ese es el número que hay que mirar.
 | **Nombre** | El producto se llama **tienda**. Este repositorio es la semilla de su segunda versión |
 | **Versión** | Empieza en **0.1.0**; el MVP sale como **1.0.0**. `organico` sigue en 3.x, aparte |
 | **Datos de empresa** | **Bloquean**: sin ellos no se publica (§4.2) |
-| **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1 |
+| **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1. *(Ampliado el 21 de septiembre: entra **M3.5 · Cobrar en línea**.)* |
 | **Repositorios** | Semilla y tiendas privadas. La semilla se hará pública cuando el consumo llegue al umbral que el dueño está midiendo; las tiendas, nunca |
 | **Fusión** | El único pull request manual es el de la semilla |
 
@@ -1044,3 +1140,6 @@ Las cuatro primeras están también en `DECISIONES.md`, con su contrapartida.
 3. **Cuándo se hace pública la semilla.** No bloquea nada del MVP: con las
    tiendas privadas hace falta el secreto de lectura de todos modos, y solo lo
    necesita M6.
+4. **El proveedor de pagos** (E-2, decisión 12). Con un criterio que manda sobre
+   la comisión: que su API deje consultar una transacción por referencia.
+   Bloquea E-3, no E-1: apartar la unidad se construye antes de elegir.

@@ -372,12 +372,21 @@ En el **Registro de ejecución**, copiar el bloque completo bajo
 `═══ PEGA ESTO EN LA HOJA ═══` → hoja del comercio → Extensiones → Apps
 Script → pegar encima de todo → guardar.
 
-> **Mirar el menú no comprueba nada.** Sigue teniendo las mismas opciones antes
-> y después de pegar — eso se decidió en el **Sprint 5** y no cambia con cada
-> stub. Lo que sí comprueba: si el botón **Guardar no se activa** al pegar, es
+> **Mirar el menú casi nunca comprueba nada.** Sigue teniendo las mismas
+> opciones antes y después de pegar, **salvo cuando la versión nueva agrega una**
+> —como *Clave del panel*, que llegó con D-1—: ahí la opción aparece solo
+> después de pegar, y ese es justamente el aviso de que había que regenerarlo.
+> Lo que sí comprueba siempre: si el botón **Guardar no se activa** al pegar, es
 > que lo pegado era idéntico a lo que ya había — no es un fallo, ya estaba al
 > día. Y `var NEGOCIO = '...';` debajo de `var MAESTRO` y `var TOKEN`, en el
 > editor de la hoja, es la marca de que quedó el stub nuevo.
+
+**Cuándo hay que volver a hacer este paso, en una tienda que ya funciona:**
+cuando cambia el nombre del comercio, y cuando una versión del maestro agrega
+una opción al menú. **`A0_instalar()` ya no imprime el stub** (desde el 21 de
+septiembre de 2026): lo imprimía entero al final de cada reinstalación, enterraba
+el resumen y era la forma segura de pegar uno viejo. Ahora dice que se ejecute
+esta función, y esta es la única que lo imprime.
 
 **Renombrar ese proyecto con el nombre del comercio.** Es el nombre que Google
 le muestra al comerciante en la pantalla de permisos la primera vez que toca el
