@@ -534,6 +534,58 @@ Es más barato que lo contrario.
 
 ---
 
+## 11 · El stock baja a la variante
+
+**Estado:** DECIDIDA el 21 de septiembre de 2026, por el dueño del producto.
+**Reemplaza** lo que C-1 dejó decidido —«el stock es del producto»— y se hace
+en C-1b.
+
+### Qué hace hoy
+
+Un producto con variantes tiene **un solo número** de existencias. Una camiseta
+básica en tres colores y tres tallas son nueve cosas distintas en la bodega y un
+número en la hoja. Las dos líneas de un pedido —rosa M y verde S— compiten por
+ese número, y marcar el pedido como Pagado lo descuenta entero.
+
+### El límite real
+
+No es la cuenta, es lo que la tienda **promete**. Con el stock en el producto,
+vender la última rosa M deja la tienda ofreciendo rosas M que no existen —el
+comprador paga, y el comercio le escribe para decirle que no hay—. O al revés:
+cuando el número llega a cero, la camiseta entera sale agotada aunque queden
+ocho verdes. Las dos cosas son ventas perdidas, y la primera además es un
+cliente molesto.
+
+C-1 lo sabía y lo dejó escrito con su disparador: **el primer comercio que
+pierda una venta por una talla agotada**. El 21 de septiembre el dueño del
+producto lo activó con este mismo ejemplo.
+
+### La decisión
+
+La unidad de inventario pasa a ser **la combinación** (el SKU): producto +
+una opción de cada grupo. Vive en una pestaña nueva, `Inventario por variante`,
+cuyas filas **genera el maestro** a partir de la celda `Variantes` —el
+comerciante solo escribe los números—. `Catálogo › Stock` pasa a ser la suma,
+escrita por el maestro. Las fotos también pueden ir por combinación.
+
+Un producto sin filas en la pestaña nueva sigue exactamente como hoy.
+
+### Condición de disparo
+
+Cumplida. Se ejecuta como la historia C-1b, **después de D-2**.
+
+### Contrapartida
+
+Una pestaña más en la hoja, y una más que entender: el comerciante que vende
+labiales en tres tonos y no quiere contar cada tono ahora tiene una pestaña
+llena de filas que no le importan. Por eso la generación es por producto y la
+compatibilidad es total: quien no quiera contar por variante no llena nada, y
+su tienda funciona como antes. Y la suma en `Catálogo › Stock` es una segunda
+copia del dato —el patrón 2—, aceptada a sabiendas porque la escribe una sola
+mano y porque todo lo que ya lee esa columna sigue funcionando sin tocarlo.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

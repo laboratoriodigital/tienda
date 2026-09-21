@@ -107,10 +107,12 @@ sin variantes y reporta la celda — vender un labial sin tono deja un pedido qu
 el comerciante resuelve con un mensaje, y no venderlo es una venta perdida y
 callada. El precio es lo contrario y por eso ese sí tumba el producto.
 
-Y **el stock es del producto, no de la variante**: es una decisión consciente,
-con su disparador escrito para revisarla — el primer comercio que pierda una
-venta por una talla agotada. Dos líneas del mismo producto compiten por las
-mismas existencias.
+Y **hoy el stock es del producto, no de la variante**: dos líneas del mismo
+producto compiten por las mismas existencias. Era una decisión consciente con su
+disparador escrito —el primer comercio que pierda una venta por una talla
+agotada—, y **ese disparador se cumplió el 21 de septiembre**: el stock baja a
+la combinación con la historia C-1b (decisión 11). Hasta que C-1b se publique,
+lo que corre es lo de este párrafo.
 
 
 ### `Configuración`

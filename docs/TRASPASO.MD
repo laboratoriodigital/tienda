@@ -20,14 +20,14 @@ El repositorio arranca en **0.1.0** y el MVP sale como **1.0.0**. El MVP son
 **cuatro hitos, M0 a M3** — el tablero gráfico, el rastreo del pedido y la
 actualización automática de la flota quedaron **fuera**, y son la entrega 1.1.
 
-**Dónde va el trabajo (18 de septiembre de 2026):**
+**Dónde va el trabajo (21 de septiembre de 2026):**
 
 | Hito | Estado |
 |---|---|
 | **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
 | **M1** · Rendimiento y cuota | **Cerrado.** Las siete historias. De B-2 quedan abiertos sus dos criterios de panel, que son M3 y no deuda |
-| **M2** · La tienda para todo producto | **Empezado.** C-2 cerrado. C-1 (variantes) va por el contrato y el maestro; falta la página. Faltan C-3 y C-4 |
-| **M3** · El panel del comerciante | Sin empezar |
+| **M2** · La tienda para todo producto | C-1 (variantes), C-2 (SEO) y C-4 (orden del catálogo) **cerradas**. Faltan **C-3** y **C-1b** — inventario y fotos por variante, agregada el 21 de septiembre (decisión 11) |
+| **M3** · El panel del comerciante | D-1 (entrar) **cerrada por el lado del maestro**; su pantalla viaja con D-2. **D-2 en curso** |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
 
@@ -45,15 +45,16 @@ real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
 entero por delante. Los dos, holgadamente dentro del presupuesto de
 `presupuesto.json`.
 
-Por donde sigue una sesión nueva: **C-1c, la página de las variantes**. Todo lo
-que hay debajo ya funciona y está probado —la columna, la lectura, la validación
-contra la hoja, la columna `Variante` en `Pedidos` y el respaldo—, así que lo que
-falta es interfaz: el selector en la ficha, que obligue a elegir antes de agregar
-al carrito, que la elección viaje en el mensaje de WhatsApp, y que la página
-respete `f_variantes` (la clave está sembrada y todavía no la lee nadie).
+Por donde sigue una sesión nueva: **D-2, productos desde el panel**, que trae
+con ella la primera pantalla del panel —`admin.html`— y con ella la mitad que le
+falta a D-1: el formulario de entrada. El maestro ya sabe entrar (`?a=entrar`),
+decir quién soy (`?a=sesion`) y rechazar todo lo que no traiga un testigo bueno;
+cada puerta declara su guardia en `PUERTAS`.
 
-Después, **C-3** (envío gratis anunciado, horario, tienda cerrada, mínimo de
-pedido) y **C-4** (orden del catálogo), que son chicas y no dependen de nada.
+Después, por orden del dueño: el resto de M3 (D-3 a D-7), y **C-1b** —el stock y
+las fotos por combinación—, que está escrita en el plan con sus decisiones
+tomadas y las dos que quedan por tomar. **C-3** (envío gratis anunciado,
+horario, tienda cerrada, mínimo de pedido) sigue pendiente y no depende de nada.
 
 ---
 

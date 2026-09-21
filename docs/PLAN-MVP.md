@@ -721,6 +721,71 @@ del **panel** del comerciante. No son deuda: son M3.
       una talla agotada. *(Con su consecuencia resuelta: dos tonos del mismo
       labial son dos líneas que compiten por las mismas existencias. Con la
       clave puesta solo en el id, la segunda se perdía en silencio.)*
+      **→ Revisada el 21 de septiembre: el disparador se cumplió y el stock baja
+      a la variante. Es C-1b, justo debajo, y la decisión 11 de `DECISIONES.md`.**
+
+**C-1b · Inventario y fotos por variante (SKU)**  · 8 pts *(partir: hoja+maestro / página / fotos)*
+> Como comerciante de ropa, quiero que al vender una camiseta básica **rosa
+> talla M** se descuente esa y no todas las básicas, y que el comprador vea la
+> foto del color que está eligiendo.
+
+> **Por qué existe.** C-1 decidió que el stock era del producto, y dejó escrito
+> su disparador: el primer comercio que pierda una venta por una talla agotada.
+> El dueño del producto lo activó el 21 de septiembre con este ejemplo, que es
+> exactamente el caso: con el stock en el producto, vender la última rosa M deja
+> la tienda ofreciendo rosas M que no existen —o, al revés, marca agotada la
+> camiseta entera cuando solo se acabó un color—. **Pendiente: se hace después
+> de D-2**, por orden del dueño.
+
+- [ ] **Una pestaña nueva, `Inventario por variante`**: una fila por
+      combinación (`ID producto` · `Combinación` · `Stock` · `Imágenes` ·
+      `Código`). *(Pestaña y no más sintaxis dentro de la celda `Variantes`:
+      tres tallas por dos colores son seis existencias, y seis números dentro
+      de una celda es donde nacen los errores. Agregar una pestaña está
+      permitido por R1; tocar las columnas de `Catálogo`, no.)*
+- [ ] **Las filas las escribe el maestro, no el comerciante.** Al llenar
+      `Variantes` en `Catálogo`, el maestro genera una fila por combinación con
+      el stock vacío; el comerciante solo pone los números. *(Escribir
+      «Talla: M ; Color: Rosa» a mano seis veces es la forma segura de que una
+      no case. Con un tope de combinaciones por producto —propuesta: 60— y, por
+      encima, se avisa en vez de generar: 4 grupos de 24 opciones son 331.776
+      filas.)* Si el comerciante cambia las opciones, las filas que ya no casan
+      **no se borran**: se marcan, porque llevan un stock que alguien contó.
+- [ ] **La verdad del stock de un producto con variantes está en esa pestaña.**
+      `Catálogo › Stock` pasa a ser **la suma**, escrita por el maestro y con la
+      ayuda de la fila diciéndolo. *(Una sola mano escribe la suma, así que no
+      puede separarse de sus partes; y todo lo que hoy lee `Stock` —el tablero,
+      «pocas unidades», los agotados, el correo— sigue funcionando sin
+      tocarlo.)*
+- [ ] **El pedido se valida por combinación.** Dos líneas de la misma
+      combinación compiten por sus existencias; dos combinaciones distintas ya
+      no compiten entre sí. *(Es exactamente lo contrario de lo que hoy hace
+      `validarPedido` a propósito, y su aserción de hoy tiene que invertirse,
+      no borrarse.)*
+- [ ] **Pagado descuenta la combinación, y solo esa.** `aplicarInventario` casa
+      la línea del pedido por `id` + `Variante` —la columna ya existe desde C-1—
+      con su fila de la pestaña nueva. Anulado la devuelve a la misma fila.
+- [ ] **La página**: en la ficha, una opción sin existencias sale marcada y no
+      se puede elegir; «Últimas 3 unidades» habla de la combinación elegida, no
+      del producto; la tarjeta dice «Agotado» solo cuando se acabaron **todas**.
+- [ ] **Las fotos por variante**: al elegir un color, la galería de la ficha
+      pasa a las fotos de ese color. Se toman de la primera fila que case con
+      lo que va elegido —las fotos suelen cambiar con el color y no con la
+      talla—, y si esa combinación no tiene fotos se quedan las del producto.
+      *(Por decidir al implementarlo, con `traer-fotos.mjs` delante: cómo se
+      nombra en Drive la foto de una variante. Propuesta:
+      `camiseta-basica--rosa-1.jpg`, con doble guion porque el id ya usa uno.)*
+- [ ] **Contrato**: cada producto gana `skus: [{ eleccion, stock, imagenes }]`,
+      al final y solo si tiene filas. Horneado en `catalogo.json` y en el
+      respaldo, como las variantes.
+- [ ] **Compatibilidad**: un producto con `Variantes` y **sin** filas en la
+      pestaña nueva se comporta exactamente como hoy. Nadie tiene que migrar
+      nada el día que esto se publica.
+- [ ] **Fuera de esta historia, dicho para que no se cuele**: precio distinto
+      por variante. Si un comercio lo pide, es otra historia con su propia
+      decisión.
+- [ ] Con D-2: editar el stock de cada combinación **desde el panel**. Hasta
+      entonces, desde la hoja.
 
 **C-2 · SEO horneado**  · 5 pts · dep. A-2
 - [x] JSON-LD de organización y sitio en la portada; de producto con oferta,

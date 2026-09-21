@@ -11,9 +11,9 @@ código**: todos salen de la pestaña `Configuración` de su hoja.
 
 > **Estado: en construcción · `0.3.0`.** Esta es **la semilla de la segunda
 > versión** del producto, que se llama **tienda**. Nace de la semilla de la
-> línea anterior (`laboratoriodigital/organico`, 3.0.0). M0, M1 y M2 están cerrados
-> y M3 acaba de empezar; lo que todavía no se ha tocado queda dicho, historia por
-> historia, en `docs/PLAN-MVP.md`.
+> línea anterior (`laboratoriodigital/organico`, 3.0.0). M0 y M1 están
+> cerrados, a M2 le faltan C-3 y C-1b, y M3 va por D-2; lo que todavía no se ha
+> tocado queda dicho, historia por historia, en `docs/PLAN-MVP.md`.
 >
 > El MVP —que saldrá como **1.0.0**— son cuatro hitos: la semilla limpia y
 > determinista, el rendimiento, la tienda para todo producto, y el panel básico
