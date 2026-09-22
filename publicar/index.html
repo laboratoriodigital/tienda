@@ -97,7 +97,7 @@
     "@type": "Offer",
     "price": "29900",
     "priceCurrency": "COP",
-    "availability": "https://schema.org/InStock",
+    "availability": "https://schema.org/OutOfStock",
     "url": "https://tienda.laboratorio-digital.com/?p=ejemplo2",
     "seller": {
      "@id": "https://tienda.laboratorio-digital.com/#comercio"
@@ -716,6 +716,7 @@ let EXCEPCIONES_RETRACTO = [];
    Sprint 5. Si hay que rehacerlo, se corre el flujo montaje. */
 const CONFIG_SEMILLA = {
   "autoria_url": "https://laboratorio-digital.com",
+  "catalogo_columnas": "3",
   "cobro": "pasarela",
   "cobro_ambiente": "Producción",
   "cobro_modo": "Pasarela",
@@ -736,6 +737,7 @@ const CONFIG_SEMILLA = {
   "empresa_tel": "573008610480",
   "envio_gratis_desde": "",
   "f_autoria": "Sí",
+  "f_avisame": "Sí",
   "f_rastreo": "Sí",
   "f_variantes": "Sí",
   "favicon": "",
@@ -779,7 +781,7 @@ const PRODUCTOS = [
     descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." },
 
   { id:"ejemplo2", nombre:"Segundo producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",
-    precio:29900, stock:5,
+    precio:29900, stock:0,
     imagenes:[""],
     descripcion:"Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala." }
 ];

@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-21-6",
- "generado": "2026-09-22T03:55:53.954Z",
+ "generado": "2026-09-22T04:03:54.062Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -68,7 +68,7 @@
    "formato": "Unidad",
    "categoria": "Ejemplos",
    "precio": 29900,
-   "stock": 5,
+   "stock": 0,
    "descripcion": "Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.",
    "imagenes": [],
    "destacado": false,
@@ -131,6 +131,8 @@
   "tienda_cerrada_mensaje": "",
   "pedido_minimo": "",
   "f_rastreo": "Sí",
+  "f_avisame": "Sí",
+  "catalogo_columnas": "3",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""
