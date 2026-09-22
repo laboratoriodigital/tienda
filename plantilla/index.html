@@ -164,6 +164,15 @@ a{color:inherit}
 main.envoltura{padding-bottom:60px}
 @media(min-width:600px){.rejilla{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1000px){.rejilla{grid-template-columns:repeat(3,1fr)}}
+/* 4.4 · columnas configurables (catalogo_columnas). En el celular no cambia
+   nada; en pantalla ancha, 4 o 5. Con 5 la página se ensancha un poco para que
+   cada tarjeta siga teniendo una foto que se vea. */
+@media(min-width:1200px){html[data-columnas="4"] .rejilla{grid-template-columns:repeat(4,1fr)}}
+html[data-columnas="5"]{--max:1400px}
+@media(min-width:1000px){html[data-columnas="5"] .rejilla{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1300px){html[data-columnas="5"] .rejilla{grid-template-columns:repeat(5,1fr)}}
+.avisame{background:none;border:none;padding:8px 0 0;font:inherit;font-size:13px;font-weight:600;
+  text-decoration:underline;cursor:pointer;color:inherit;text-align:left}
 .tarjeta{background:var(--blanco);padding:16px;display:flex;flex-direction:column;text-align:left}
 .tarjeta-img{width:100%;aspect-ratio:1;background:#FAFAFA;position:relative;overflow:hidden}
 .tarjeta-img img{width:100%;height:100%;object-fit:cover}
@@ -606,7 +615,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwSDQEloo_tlSOCXrkZ
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-5";
+const SCRIPT_VERSION = "2026-09-21-6";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -692,6 +701,8 @@ let COBRO_PRUEBAS = false;
 /* M5 · el enlace «sigue tu pedido». Nace encendido: no guarda nada del
    comprador. La hoja lo apaga con f_rastreo = No. */
 let RASTREO = true;
+let COLUMNAS = 3;       // 4.4
+let AVISAME = true;     // 4.1
 
 /* C-3. Los cuatro los pone la hoja; vacíos, la tienda se comporta como antes.
    Una cifra que no se puede leer NO se vuelve 0 ni «sin mínimo» por su cuenta:
@@ -787,6 +798,15 @@ function aplicarConfiguracion(c){
   /* M3.5 · CÓMO SE CIERRA LA VENTA. El maestro ya decidió si la pasarela está
      lista: `cobro` dice lo que la tienda PUEDE hacer, no lo que pidió la
      hoja. Cualquier cosa que no sea «pasarela» es WhatsApp, como siempre. */
+  /* 4.4 · columnas del catálogo en pantalla ancha. */
+  const col = String(v("catalogo_columnas") || "").trim();
+  COLUMNAS = col === "4" || col === "5" ? Number(col) : 3;
+  try { document.documentElement.dataset.columnas = String(COLUMNAS); } catch(e){}
+  OPCIONES_PAGINA = COLUMNAS === 4 ? [24, 48, 96] : [25, 50, 100];
+  if(OPCIONES_PAGINA.indexOf(porPagina) === -1) porPagina = OPCIONES_PAGINA[0];
+  /* 4.1 · «Avísame cuando llegue», encendido salvo que la hoja diga No. */
+  AVISAME = !/^no$/i.test(String(v("f_avisame") || "").trim());
+
   /* M5 · el enlace de seguimiento, encendido salvo que la hoja diga No. */
   RASTREO = !/^no$/i.test(String(v("f_rastreo") || "").trim());
 
@@ -1331,7 +1351,9 @@ addEventListener("error", e => {
 // ── Estado ──
 let carrito = [];              // [{id, cantidad}]
 let categoriaActiva = "Todos";
-const OPCIONES_PAGINA = [25, 50, 100];
+/* 4.4 · con 4 columnas, 24/48/96: que la última fila no quede con un hueco.
+   Con 3 y 5, como siempre. */
+let OPCIONES_PAGINA = [25, 50, 100];
 let porPagina = OPCIONES_PAGINA[0];
 let pagina = 1;
 let cuponActivo = null;                     // cupón aprobado, con descuento aplicado
@@ -1554,8 +1576,30 @@ function pintarRejilla(){
           </button>
           <button class="btn btn-linea" onclick="abrirFicha('${p.id}')">Ver</button>
         </div>
+        ${botonAvisame(p)}
       </article>`;
   }).join("");
+}
+
+/* ── 4.1 · «Avísame cuando llegue» ─────────────────────────────────────────
+   No se pide ni se guarda nada del comprador: el botón abre WhatsApp con el
+   pedido de aviso —la conversación es del comerciante— y le cuenta a la hoja
+   que alguien más espera ese producto. Una vez por producto y por visita. */
+const avisosPedidos = new Set();
+function botonAvisame(p){
+  if(!AVISAME || !WHATSAPP || !p || p.stock !== 0) return "";
+  return `<button class="avisame" type="button" onclick="pedirAviso('${p.id}')">Avísame cuando llegue</button>`;
+}
+function pedirAviso(id){
+  const p = producto(id);
+  if(!p) return;
+  const texto = `Hola, avísame cuando vuelva a llegar *${p.nombre}*${p.formato ? " (" + p.formato + ")" : ""}. ¡Gracias!`;
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+  if(SCRIPT_URL && !avisosPedidos.has(id)){
+    avisosPedidos.add(id);
+    fetch(SCRIPT_URL + "?a=avisame&id=" + encodeURIComponent(id), { method:"GET", redirect:"follow", keepalive:true })
+      .catch(() => { /* contar es un servicio: si falla, el mensaje ya salió */ });
+  }
 }
 
 // ── Paginación ──
@@ -1723,6 +1767,7 @@ function pintarFicha(){
             ${p.stock === 0 ? "Sin existencias" : "Agregar al carrito"}
           </button>
         </div>
+        ${botonAvisame(p)}
         <button class="btn btn-linea ficha-compartir" onclick="compartirProducto()">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
           Compartir este producto

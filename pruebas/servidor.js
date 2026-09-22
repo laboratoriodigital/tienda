@@ -140,6 +140,7 @@ const servidor = http.createServer((req, res) => {
     });
     return responderJson(res, { ok: true });
   }
+  if (u.pathname === '/__correos') return responderJson(res, gas.correos || []);   // 2.3 · lo que «salió» por correo
   if (u.pathname === '/__demora') { demoraMs = Number(u.query.ms) || 0; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__celda') {          // escribir una celda como lo haría el dueño
     const h = gas.hojas.get(u.query.hoja);

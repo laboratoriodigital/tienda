@@ -626,3 +626,38 @@ cuenta **sí** ve.
 el secreto `MAESTRO_TOKEN`, **la pestaña `Tiendas` del panel** y el `tienda.json`
 local. Si se olvida el del panel, el panel marca esa tienda como caída y le vacía
 las métricas — y la tienda está perfecta.
+
+---
+
+## Dominio propio (0.11.0 · 4.5)
+
+La tienda de pruebas vive en **`tienda.laboratorio-digital.com`**. El dominio es
+el único costo en efectivo del producto, y alcanza para todas las tiendas como
+subdominios (`panaderia.laboratorio-digital.com`, …).
+
+**Lo que hace el código.** `montar/nombrar-worker.mjs` lee `sitio_url` del
+catálogo horneado y, si es un dominio propio (no `*.workers.dev`), escribe en
+`wrangler.jsonc` la ruta como *custom domain*. Al desplegar, Cloudflare crea el
+registro DNS y el certificado solo. La dirección de `workers.dev` sigue viva;
+la canónica —SEO, Bold, rastreo, sitemap— es la de la hoja.
+
+**Lo que hay que hacer una vez por tienda:**
+
+1. **La zona `laboratorio-digital.com` tiene que estar en la MISMA cuenta de
+   Cloudflare que el Worker** (Cloudflare › Add a site, y cambiar los servidores
+   de nombres en el registrador). Si el DNS está en otro proveedor, el custom
+   domain no se puede crear y el despliegue lo dice.
+2. **No crear a mano un registro DNS** para el subdominio: el custom domain lo
+   crea solo, y uno previo lo bloquea («already has externally managed DNS
+   records»). Si ya lo creaste, bórralo antes del primer despliegue.
+3. En el panel › Tienda › Avanzado › **Dirección de la tienda**:
+   `https://tienda.laboratorio-digital.com` (o en la hoja, `sitio_url`).
+4. Correr **montaje**: el paso «El nombre del Worker» escribe la ruta, y el
+   despliegue de Cloudflare la activa.
+5. Comprobar: `https://tienda.laboratorio-digital.com` abre la tienda,
+   `/admin.html` el panel, y el enlace de un pedido nuevo (rastreo) ya usa el
+   dominio.
+
+**Con dominio propio se habilita** la transformación de fotos de Cloudflare en
+el panel (Avanzado › Transformación de fotos), si la zona tiene *Image
+Transformations* activado.

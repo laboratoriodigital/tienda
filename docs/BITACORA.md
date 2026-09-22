@@ -1774,3 +1774,13 @@ siempre y `pagos.js` y `pagoweb.js` se colgaron. El emulador ahora da un UUID
 aleatorio de verdad, como Google. **Un doble de prueba que simplifica una
 propiedad que el código real sí promete termina mintiendo el día que alguien
 depende de ella.**
+
+**60 · Un control negativo que no se ponía rojo.** Al quitar el tope de cinco
+intentos por código de recuperación (2.3), `recuperar.js` seguía en verde. El
+tope sí existía; lo que pasaba es que el bloqueo general de la entrada —cinco
+fallos seguidos— saltaba al mismo tiempo y paraba al código bueno por su
+cuenta. Dos guardas que se tapan entre sí hacen que la prueba mida la que no
+es. Ahora la prueba limpia el bloqueo general antes de mirar el tope por
+código, y en rojo se pone roja. Es el mismo caso que la entrada 53, del otro
+lado: allá la guarda redundante quedó como defensa en profundidad; aquí se
+aisló para poder probarla.

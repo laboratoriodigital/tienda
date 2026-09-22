@@ -20,8 +20,9 @@ mañana se revisa sola y te avisa si quedó algo sin publicar.
 
 ## Tu panel: `https://<tu tienda>/admin.html`
 
-Entras con tu usuario y tu clave (menú de la hoja › **Clave del panel** te da
-una nueva; se ve una sola vez).
+Entras con tu usuario y tu clave. ¿La perdiste? **¿Olvidaste tu clave?** te
+manda un código al correo de la tienda (o menú de la hoja › **Clave del
+panel**). La primera entrada del día puede tardar unos segundos.
 
 Tiene **dos pantallas**:
 
@@ -31,6 +32,8 @@ lo dice antes de guardar). Cancelar un pedido pagado devuelve las unidades, y
 pide un segundo toque. Las cifras no se actualizan solas: **Actualizar**.
 Cada pedido le llega al comprador con un **enlace para ver en qué va**; si lo
 perdió, en el pedido está **Crear enlace de seguimiento** para mandarle otro.
+Lo agotado ofrece **«Avísame cuando llegue»**: te escriben por WhatsApp, y
+cuando vuelve a haber, Ventas te dice **Te están esperando**.
 
 **Si tu tienda cobra en línea** (Tienda › El cobro › Pasarela), el pedido te
 llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si

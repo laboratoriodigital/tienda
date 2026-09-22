@@ -3635,5 +3635,23 @@ const configurar = (g, clave, valor) => {
      'el mensaje que dice qué casilla marcar tiene que verse sin abrir el log');
 }
 
+
+// ═══ 4.5 · El dominio propio, desde sitio_url ═══
+{
+  const nw = require('../montar/nombrar-worker.mjs');
+  const w = fs.readFileSync('../wrangler.jsonc', 'utf8').replace(/\n  \/\/ DOMINIO PROPIO[^\n]*\n  "routes": \[[^\]]*\],\n/, '');
+  const con = nw.conDominio(w, 'https://tienda.laboratorio-digital.com/');
+  ok('UN DOMINIO PROPIO EN sitio_url se vuelve un custom domain del Worker',
+     /"routes": \[\{ "pattern": "tienda\.laboratorio-digital\.com", "custom_domain": true \}\]/.test(con), con.split('\n').find(l => /routes/.test(l)));
+  ok('  ...escribirlo dos veces es escribirlo una', nw.conDominio(con, 'tienda.laboratorio-digital.com') === con);
+  ok('  ...y volver a workers.dev lo quita, dejando el archivo como estaba', nw.conDominio(con, 'https://tienda.x.workers.dev') === w);
+  ok('  ...y sin dirección, o con una rara, no se inventa nada',
+     nw.conDominio(w, '') === w && nw.conDominio(w, 'no es una dirección') === w && nw.hostPropio('https://a.pages.dev') === '');
+  ok('  ...y el JSONC sigue siendo JSON sin los comentarios',
+     (() => { try { JSON.parse(con.replace(/^\s*\/\/.*$/gm, '')); return true; } catch (e) { return false; } })());
+  const src = fs.readFileSync('../montar/nombrar-worker.mjs', 'utf8');
+  ok('  ...y lo lee del catálogo horneado, como el nombre: una sola fuente', /cfg\.sitio_url/.test(src) && /conDominio\(texto0, sitio\)/.test(src));
+}
+
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);

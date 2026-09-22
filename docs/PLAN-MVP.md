@@ -1255,6 +1255,53 @@ el secreto en vez de su huella.
 estado (eso pediría su celular o su correo, y la hoja no los guarda); no
 permite buscar por número sin el secreto.
 
+### 0.11.0 · Cuatro del ROADMAP, pedidas por el dueño el 21 de septiembre de 2026
+
+> No son hitos del MVP: son historias del `ROADMAP.md` que el dueño adelantó,
+> más un arreglo de lo que más se nota lento. Se numeran como en el ROADMAP.
+
+**2.3 · Recuperar la clave sin el operador**  · 2 pts · ✅
+- [x] «¿Olvidaste tu clave?» en la entrada del panel manda un código de 8
+      cifras **al correo de la tienda** (`correo_resumen`, o `empresa_correo`),
+      con el usuario dentro. No se pregunta el usuario: no se puede averiguar
+      si existe.
+- [x] 15 minutos, cinco intentos por código, cada intento malo cuenta en el
+      bloqueo de la entrada, tres códigos por hora. Del código solo la huella.
+- [x] Con el código, una clave nueva (la misma que da el menú), una vez; las
+      sesiones abiertas se cierran. Queda en el Registro y en Errores.
+
+**4.1 · «Avísame cuando llegue»**  · 2 pts · ✅ (decisión 16)
+- [x] En lo agotado —tarjeta y ficha—, el botón abre WhatsApp con el pedido de
+      aviso, y la pestaña nueva **Avísame** cuenta cuántos esperan, sin nadie
+      dentro. Solo cuenta lo agotado; una vez por producto y visita.
+- [x] Cuando vuelve a haber: Ventas › **Te están esperando** y el correo del
+      día (que sale aunque no haya otra cosa). «Ya les avisé» borra la cuenta.
+- [x] `f_avisame` (Sí de fábrica).
+
+**4.4 · Columnas del catálogo**  · 1 pt · ✅
+- [x] `catalogo_columnas`: 3 (de fábrica), 4 o 5 en pantalla ancha; el celular
+      no cambia. Con 5 la página se ensancha a 1.400 px; con 4 la paginación va
+      de 24 en 24. Lo que no se entiende se lee como 3. La foto de la tarjeta
+      sigue pidiéndose a 600 px: con más columnas es más chica en pantalla, y
+      las medidas horneadas son 160/600/900.
+
+**4.5 · Dominio propio**  · 1 pt · ✅ (decisión 17)
+- [x] `nombrar-worker.mjs` escribe en `wrangler.jsonc` el *custom domain* que
+      sale de `sitio_url` —de fábrica, `tienda.laboratorio-digital.com`— y lo
+      quita si la hoja vuelve a `workers.dev`. Pasos en `DESPLIEGUE.md`.
+- [x] Con dominio propio, la transformación de fotos de Cloudflare se puede
+      elegir en el panel.
+
+**El indicador de carga al entrar**  · ½ pt · ✅ (pedido del dueño)
+- [x] El botón gira y dice «Entrando…»; a los cuatro segundos explica que la
+      tienda se está despertando; al volver con la sesión guardada se ve
+      «Abriendo tu panel…» y no una pantalla en blanco.
+
+**Lo prueban** `recuperar.js` (27) y `avisame.js` (24), más `montaje.js` (el
+dominio). Controles en rojo: sin el tope de códigos, sin el tope por código
+—que el bloqueo general tapaba, bitácora 60—, y contando lo que no está
+agotado.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

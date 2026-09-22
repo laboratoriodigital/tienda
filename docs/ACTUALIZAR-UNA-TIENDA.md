@@ -21,6 +21,23 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.11.0 (tienda): clave por correo, «avísame», columnas y dominio — `instalar()` una vez
+
+1. **El dominio primero** (si la tienda va a tenerlo): la zona en la misma
+   cuenta de Cloudflare y **sin** un registro DNS hecho a mano para el
+   subdominio (`DESPLIEGUE.md`, «Dominio propio»). Después, en el panel ›
+   Tienda › Avanzado › Dirección de la tienda: `https://tienda.laboratorio-digital.com`.
+2. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
+   El montaje escribe la ruta del dominio en `wrangler.jsonc` y Cloudflare la
+   activa al desplegar.
+3. **`A0_instalar()`**: crea la pestaña `Avísame` y agrega `f_avisame` (Sí) y
+   `catalogo_columnas` (3). Sin esto funciona igual con lo de fábrica, pero la
+   pestaña es la que guarda la cuenta.
+4. Comprobar: en el panel, «¿Olvidaste tu clave?» manda el código al correo de
+   la tienda; un producto con Stock 0 muestra «Avísame cuando llegue».
+
+---
+
 ## La 0.10.0 (tienda): el rastreo del pedido — `instalar()` una vez
 
 1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.

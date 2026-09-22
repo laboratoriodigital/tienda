@@ -753,6 +753,76 @@ comprador lo pierde, el comerciante crea uno nuevo y el viejo deja de servir.
 
 ---
 
+## 16 · «Avísame cuando llegue», por WhatsApp y sin guardar a nadie
+
+**Estado:** CERRADA el 21 de septiembre de 2026 (0.11.0).
+
+### Qué hacía
+
+Lo agotado decía «Agotado» y ya. La venta se perdía dos veces: ese día, y el
+día que volvía sin que nadie se enterara.
+
+### El límite real
+
+Avisar solos pide guardar el correo o el celular del comprador, y la tienda a
+propósito no guarda datos de compradores (ROADMAP, «Lo que NO se hace
+todavía»): cambia el perfil de riesgo y las obligaciones de la Ley 1581.
+
+### La decisión
+
+El botón abre WhatsApp con «avísame cuando vuelva a llegar X» —la conversación
+queda en el celular del comerciante, donde ya están sus clientes— y la hoja
+cuenta cuántos esperan cada producto, sin nadie dentro (pestaña `Avísame`).
+Cuando vuelve a haber, el panel y el correo del día lo dicen, y el comerciante
+les escribe y lo marca.
+
+### Condición de disparo
+
+Si un comercio con muchos «avísame» pierde ventas por no escribir a tiempo,
+revisar el aviso automático —con su política de datos—.
+
+### Contrapartida
+
+Avisar es trabajo del comerciante, a mano. El conteo se puede inflar pulsando
+muchas veces desde navegadores distintos: es una señal, no una lista.
+
+---
+
+## 17 · Dominio propio: un dominio nuestro, una tienda por subdominio
+
+**Estado:** CERRADA el 21 de septiembre de 2026 (0.11.0). Dominio:
+`laboratorio-digital.com`; la tienda de pruebas es `tienda.laboratorio-digital.com`.
+
+### Qué hacía
+
+Cada tienda vivía en `<nombre>.<cuenta>.workers.dev`.
+
+### El límite real
+
+`workers.dev` no se ve como una tienda, no admite las transformaciones de
+imagen de Cloudflare, y es la dirección que va en el SEO, en Bold y en los
+enlaces de rastreo: cambiarla después es romper enlaces.
+
+### La decisión
+
+Un dominio del producto y un subdominio por tienda, como *custom domain* del
+Worker. La dirección sale de `sitio_url` —la misma que ya usan el SEO, Bold y
+el rastreo—, y `montar/nombrar-worker.mjs` la escribe en `wrangler.jsonc`. Un
+comercio que traiga su propio dominio usa el mismo camino.
+
+### Condición de disparo
+
+La zona tiene que estar en la misma cuenta de Cloudflare. A las 100 tiendas
+hace falta otra cuenta (ROADMAP, «El techo»), y con ella otra zona o un
+subdominio delegado.
+
+### Contrapartida
+
+Un costo en efectivo al año (el dominio), y un paso de alta más: la zona en
+Cloudflare y `sitio_url` bien escrito.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

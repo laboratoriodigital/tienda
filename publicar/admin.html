@@ -55,6 +55,15 @@ textarea.campo{min-height:88px;resize:vertical}
 #entrar h2{font-size:1.25rem;margin-bottom:4px}
 #entrar p.sub{color:var(--tenue);font-size:.88rem}
 #entrar .btn{width:100%;margin-top:18px;padding:12px}
+/* 0.11.0 · el indicador de carga */
+.girando{display:none;width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;
+  animation:girar .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes girar{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.girando{animation-duration:2.4s}}
+.btn.ocupado .girando{display:inline-block}
+.cargando-entrar{display:flex;align-items:center;gap:4px;font-size:.88rem;color:var(--tenue);margin-top:12px}
+.cargando-entrar .girando{display:inline-block}
+.enlace{background:none;border:none;padding:0;color:inherit;text-decoration:underline;font-weight:600;cursor:pointer}
 
 /* ── Lista ── */
 .publicar{margin:16px 0}
@@ -139,6 +148,7 @@ details.seccion[open]>summary{margin-bottom:4px}
 .pie-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
 .estado-fila{font-size:.82rem;color:var(--tenue)}
 .seguimiento{border-top:1px solid var(--linea);margin-top:18px;padding-top:6px}
+.fila-avisame{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;border-top:1px solid var(--linea);padding:8px 0}
 #formTienda .pie-form{position:sticky;bottom:0;background:var(--blanco);padding:10px 0 4px;margin-bottom:0}
 
 /* ── Tablero (M4) ── */
@@ -185,11 +195,43 @@ details.seccion[open]>summary{margin-bottom:4px}
       <input class="campo" id="usuario" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
       <label for="clave">Clave</label>
       <input class="campo" id="clave" name="password" type="password" autocomplete="current-password" required>
-      <button class="btn" type="submit" id="botonEntrar">Entrar</button>
+      <button class="btn" type="submit" id="botonEntrar"><span class="girando" aria-hidden="true"></span><span class="texto-boton">Entrar</span></button>
     </form>
+    <!-- 0.11.0 · Lo que más se nota lento es este momento: el maestro de
+         Google «despierta» y puede tardar varios segundos. Se dice, para que
+         nadie pulse otra vez ni crea que se colgó. -->
+    <p class="cargando-entrar" id="esperaEntrar" role="status" hidden>
+      <span class="girando" aria-hidden="true"></span>
+      <span id="esperaTexto">Entrando a tu tienda…</span>
+    </p>
     <p class="aviso mal" id="avisoEntrar" role="alert" hidden></p>
-    <p class="ayuda" style="margin-top:16px">¿No tienes clave, o la perdiste? En tu hoja:
-      menú de la tienda › <b>Clave del panel</b>. Te da una nueva.</p>
+    <p class="ayuda" style="margin-top:16px"><button type="button" class="enlace" id="abrirRecuperar">¿Olvidaste tu clave?</button>
+      Te mandamos un código al correo de tu tienda. También puedes pedir una nueva en tu hoja:
+      menú de la tienda › <b>Clave del panel</b>.</p>
+
+    <!-- ═══ 2.3 · RECUPERAR LA CLAVE ═══ -->
+    <div id="recuperar" hidden>
+      <h3 class="titulo-bloque">Una clave nueva</h3>
+      <p class="ayuda" id="recuperarTexto">Te mandamos un código de 8 cifras al correo de la tienda, con tu usuario.
+        Con ese código creamos una clave nueva; la que tenías deja de servir.</p>
+      <button class="btn linea" type="button" id="pedirCodigo">Mandar el código</button>
+      <div id="cajaCodigo" hidden>
+        <label for="codigo">Código del correo</label>
+        <input class="campo" id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="12">
+        <button class="btn" type="button" id="usarCodigo">Crear la clave nueva</button>
+      </div>
+      <div id="claveNueva" hidden>
+        <p class="aviso bien"><b>Tu clave nueva:</b> <code id="claveNuevaTexto"></code><br>
+          Apúntala ahora: es la única vez que se ve. Ya la dejamos escrita arriba para entrar.</p>
+      </div>
+      <p class="aviso" id="avisoRecuperar" role="status" hidden></p>
+    </div>
+  </section>
+
+  <!-- Mientras se comprueba una sesión guardada: sin esto, la pantalla quedaba
+       en blanco unos segundos y parecía rota. -->
+  <section id="cargandoPanel" class="cargando-entrar" style="margin-top:14vh;justify-content:center" hidden>
+    <span class="girando" aria-hidden="true"></span><span>Abriendo tu panel…</span>
   </section>
 
   <!-- ═══ SIN HOJA ═══ -->
@@ -516,6 +558,7 @@ async function llamar(a, datos){
 
 /* ── Qué se ve ── */
 function mostrar(vista){
+  $("#cargandoPanel").hidden = vista !== "cargando";
   $("#entrar").hidden = vista !== "entrar";
   $("#sinHoja").hidden = vista !== "sinHoja";
   $("#panel").hidden = vista !== "panel";
@@ -535,6 +578,7 @@ async function entrar(ev){
   if (!u || !c) { aviso("#avisoEntrar", "mal", "Escribe tu usuario y tu clave."); return; }
   $("#botonEntrar").disabled = true;
   aviso("#avisoEntrar", "", "");
+  esperando(true);
   try {
     const r = await llamar("entrar", { u: u, c: c });
     if (!r.ok) { aviso("#avisoEntrar", "mal", r.error || "No se pudo entrar."); return; }
@@ -545,7 +589,59 @@ async function entrar(ev){
     aviso("#avisoEntrar", "mal", "No se pudo hablar con tu tienda. Revisa la conexión e inténtalo de nuevo.");
   } finally {
     $("#botonEntrar").disabled = false;
+    esperando(false);
   }
+}
+
+/* EL INDICADOR DE ENTRADA. El botón gira y dice «Entrando…»; si pasan cuatro
+   segundos, se explica por qué: Google tiene dormido el maestro de la tienda y
+   lo despierta la primera petición. Es lo más lento de todo el panel y lo
+   único que no se puede acelerar desde aquí; lo que sí se puede es no dejar a
+   nadie mirando un botón quieto. */
+let relojEspera = null;
+function esperando(si){
+  const b = $("#botonEntrar");
+  b.classList.toggle("ocupado", si);
+  b.querySelector(".texto-boton").textContent = si ? "Entrando…" : "Entrar";
+  clearTimeout(relojEspera);
+  $("#esperaEntrar").hidden = true;
+  if (si) relojEspera = setTimeout(() => {
+    $("#esperaTexto").textContent = "Tu tienda se está despertando: la primera entrada del día puede tardar unos segundos más. No hace falta pulsar otra vez.";
+    $("#esperaEntrar").hidden = false;
+  }, 4000);
+}
+
+/* ── 2.3 · recuperar la clave ── */
+async function pedirCodigo(){
+  const b = $("#pedirCodigo");
+  b.disabled = true; b.classList.add("ocupado");
+  try {
+    const r = await llamar("recuperar_pedir", {});
+    if (!r.ok) { aviso("#avisoRecuperar", "mal", r.error || "No se pudo mandar el código."); return; }
+    aviso("#avisoRecuperar", "bien", "Te mandamos el código a " + (r.correo || "el correo de la tienda") +
+          ". Vale " + (r.minutos || 15) + " minutos; revisa también el spam.");
+    $("#cajaCodigo").hidden = false;
+    $("#codigo").focus();
+  } catch (e) { aviso("#avisoRecuperar", "mal", "No se pudo hablar con tu tienda."); }
+  finally { b.disabled = false; b.classList.remove("ocupado"); }
+}
+async function usarCodigo(){
+  const b = $("#usarCodigo");
+  const codigo = $("#codigo").value.replace(/\D/g, "");
+  if (codigo.length !== 8) { aviso("#avisoRecuperar", "mal", "El código tiene 8 cifras."); return; }
+  b.disabled = true;
+  try {
+    const r = await llamar("recuperar_confirmar", { codigo: codigo });
+    if (!r.ok) { aviso("#avisoRecuperar", "mal", r.error || "Ese código no sirve."); return; }
+    $("#codigo").value = "";
+    $("#cajaCodigo").hidden = true;
+    $("#claveNuevaTexto").textContent = r.clave;
+    $("#claveNueva").hidden = false;
+    aviso("#avisoRecuperar", "", "");
+    $("#usuario").value = r.usuario || $("#usuario").value;
+    $("#clave").value = r.clave;
+  } catch (e) { aviso("#avisoRecuperar", "mal", "No se pudo hablar con tu tienda."); }
+  finally { b.disabled = false; }
 }
 
 function cerrarSesion(motivo){
@@ -1637,6 +1733,16 @@ function pintarTablero(){
     (d.errores ? `<p class="dato"><span class="alerta">Errores registrados: ${d.errores}</span> · míralos en la pestaña Errores de la hoja</p>` : "") +
     `</section>`);
 
+  // 4.1 · «Avísame cuando llegue»: quién espera qué (sin nadie dentro: cuántos)
+  const esperan = d.avisame || [];
+  if (esperan.length) partes.push(`<section class="grafica tarjeta" id="bloque-avisame"><h3>Te están esperando</h3>` +
+    `<p class="ayuda">Pidieron «avísame cuando llegue» por WhatsApp. Búscalos en tu WhatsApp con la palabra «avísame».</p>` +
+    esperan.map(a => `<div class="fila-avisame" data-id="${escapar(a.id)}"><p class="dato"><b>${escapar(a.nombre)}</b> · ` +
+      `${a.personas} ${a.personas === 1 ? "persona espera" : "personas esperan"} · ` +
+      `${a.hayStock ? `<span class="alerta">¡ya hay existencias! Escríbeles</span>` : "sigue agotado"}</p>` +
+      `${a.hayStock ? `<button class="btn linea chico" type="button" data-avisado="${escapar(a.id)}">Ya les avisé</button>` : ""}</div>`).join("") +
+    `</section>`);
+
   // Lo que más se vende
   partes.push(`<section class="grafica tarjeta" id="grafica-vendidos"><h3>Lo que más se vende</h3>` +
     `<p class="ayuda">Unidades vendidas en los últimos 30 días.</p>` +
@@ -1667,11 +1773,27 @@ function pintarTablero(){
   partes.push(`<p class="ayuda" style="margin:10px 0 40px">Son los mismos números de la pestaña Tablero de tu hoja.</p>`);
   /* Arriba lo que se mira de un vistazo —las cuatro cifras y lo que hay que
      atender hoy—; debajo de los pedidos, las gráficas. */
-  const arriba = partes.filter(x => /class="cifras"|id="bloque-atender"/.test(x));
+  const arriba = partes.filter(x => /class="cifras"|id="bloque-atender"|id="bloque-avisame"/.test(x));
   $("#tableroCifras").innerHTML = arriba.join("");
   $("#tableroGraficas").innerHTML = `<h2 class="titulo-bloque">Cómo va el mes</h2>` +
     partes.filter(x => arriba.indexOf(x) === -1).join("");
   pintarCobro(d.cobro);
+}
+
+/* 4.1 · el comerciante ya escribió: se borra la cuenta de ese producto. */
+let opAvisado = {};
+async function marcarAvisado(id, b){
+  if (!opAvisado[id]) opAvisado[id] = nuevaOperacion();
+  b.disabled = true;
+  try {
+    const r = await llamar("avisame_hecho", { op: opAvisado[id], id: id });
+    delete opAvisado[id];
+    if (!r.ok) { aviso("#avisoTablero", "mal", r.error || "No se pudo marcar."); return; }
+    datosTablero.avisame = (datosTablero.avisame || []).filter(a => a.id !== id);
+    pintarTablero();
+    aviso("#avisoTablero", "bien", "Listo: marcado como avisado.");
+  } catch (e) { if (e.message !== "sesion") aviso("#avisoTablero", "mal", "Se perdió la conexión. Pulsa otra vez."); }
+  finally { b.disabled = false; }
 }
 
 /* LA HOJA PIDE PASARELA Y LA TIENDA COBRA POR WHATSAPP: se dice arriba, en
@@ -1687,6 +1809,9 @@ function pintarCobro(c){
 
 /* ── Arranque ── */
 $("#formEntrar").addEventListener("submit", entrar);
+$("#abrirRecuperar").addEventListener("click", () => { $("#recuperar").hidden = false; aviso("#avisoRecuperar", "", ""); $("#pedirCodigo").focus(); });
+$("#pedirCodigo").addEventListener("click", pedirCodigo);
+$("#usarCodigo").addEventListener("click", usarCodigo);
 $("#salir").addEventListener("click", () => cerrarSesion(""));
 $("#lista").addEventListener("click", alPulsarLista);
 ["#buscar", "#filtroCategoria", "#verApagados"].forEach(s =>
@@ -1703,6 +1828,8 @@ $("#publicar").addEventListener("click", publicar);
 $("#crearEnlace").addEventListener("click", crearEnlace);
 $("#copiarEnlace").addEventListener("click", copiarEnlace);
 $("#actualizarTablero").addEventListener("click", cargarTablero);
+$("#tableroCifras").addEventListener("click", ev => { const b = ev.target.closest("button[data-avisado]");
+  if (b) marcarAvisado(b.dataset.avisado, b); });
 $("#chipsEstados").addEventListener("click", ev => { const b = ev.target.closest("button[data-estado]");
   if (!b) return; filtroEstado = b.dataset.estado; cargarPedidos(); });
 let tempBuscarPedido = null;
@@ -1743,6 +1870,7 @@ if (NEGOCIO) { $("#marca").textContent = NEGOCIO; document.title = NEGOCIO + " �
 (async function(){
   if (!SCRIPT_URL) { mostrar("sinHoja"); return; }
   if (!testigo()) { mostrar("entrar"); $("#usuario").focus(); return; }
+  mostrar("cargando");
   try {
     const r = await llamar("sesion");
     if (r.ok) await abrirPanel(r.usuario);

@@ -324,6 +324,14 @@ vendidos, Tablero, Validaciones) no se anota. **Editar el Registro a mano
 también queda escrito** en él: Apps Script no deja cerrar una pestaña a su dueño,
 así que va protegido con aviso y deja huella.
 
+### `Avísame` (0.11.0 · 4.1)
+
+Cuántos esperan cada producto agotado, **sin nadie dentro**: `ID`, `Producto`,
+`Personas esperando`, `Desde`, `Último pedido de aviso`. La escribe la puerta
+`avisame` (solo para lo agotado); la borra, por producto, «Ya les avisé» del
+panel (`avisame_hecho`). Quién pidió el aviso está en el WhatsApp del
+comerciante, no aquí.
+
 ### `Pagos` (M3.5)
 
 El libro de los cobros en línea: una fila por intento de pago, que se pone al
@@ -402,6 +410,7 @@ no pisar lo que el comerciante puso.
 | **El orden del catálogo** | `orden_catalogo` — en qué orden ve el catálogo quien entra. De fábrica, `Destacados primero` |
 | **Antes de pedir (C-3)** | `tienda_abierta` — `No` = se puede mirar, no pedir; arriba de la tienda sale `tienda_cerrada_mensaje`. `pedido_minimo` — en pesos, sobre los productos sin envío; vacío = sin mínimo. `horario` se pinta al pie y en el carrito, y `envio_gratis_desde` se anuncia: «te faltan $12.000 para el envío gratis». Cerrada o por debajo del mínimo, **el maestro no cobra** en línea; un pedido que ya salió por WhatsApp desde una página vieja sí se registra |
 | **El rastreo (M5)** | `f_rastreo` — `Sí` de fábrica (vacío también es Sí): cada pedido lleva en su mensaje de WhatsApp el enlace `pedido.html?n=…&s=…`. `No` = sin enlace, y la página de seguimiento dice que la tienda no lo tiene |
+| **Vender más (0.11.0)** | `f_avisame` — `Sí` de fábrica (vacío también): en lo agotado sale «Avísame cuando llegue». `catalogo_columnas` — `3` (de fábrica), `4` o `5` productos por fila en pantalla ancha; cualquier otra cosa se lee como 3. Con 4 la paginación va de 24 en 24 |
 | **Cómo se cierra la venta (M3.5)** | `cobro_modo` — `WhatsApp` (de fábrica, como siempre) o `Pasarela` (paga en línea con Bold). `cobro_ambiente` — `Pruebas` o `Producción`. **Las llaves de Bold no van aquí**: van en las propiedades del script (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`). Pedir Pasarela sin sus llaves, o sin `sitio_url`, deja la tienda en WhatsApp y el diagnóstico lo dice |
 | **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
@@ -615,6 +624,22 @@ deja de servir. `pedidos` trae además, por pedido, `seguimiento` (si tiene).
 
 **`registrar`** y **`pago_crear`** aceptan `seg`: el secreto que nació en el
 navegador del comprador (16 a 40 letras y números). Solo se guarda su huella.
+
+**`recuperar_pedir`** (2.3, pública, **solo POST**) — no pide nada. Manda un
+código de 8 cifras al correo de la tienda (`correo_resumen`, o `empresa_correo`)
+con el usuario del panel. Contesta `ok`, `correo` (tapado), `minutos`; o `ok:
+false`, `error` (sin panel, sin correo, o más de 3 códigos en la hora). Guarda
+solo la huella del código en `PANEL_RECUPERACION`.
+
+**`recuperar_confirmar`** (2.3, pública, **solo POST**) — pide `codigo`.
+Contesta `ok`, `usuario`, `clave` (la nueva, una vez); cualquier fallo, el
+mismo `error`. Cada intento malo cuenta en `PANEL_INTENTOS`; a los cinco, el
+código se quema. La clave nueva cierra las sesiones abiertas.
+
+**`avisame`** (4.1, pública) — pide `id`. Suma uno en `Avísame` si el producto
+está agotado; si no, `ok: false`. **`avisame_hecho`** (panel) — pide `op`, `id`;
+borra esa fila. **`tablero`** trae además, al final, `avisame` (`id`, `nombre`,
+`personas`, `desde`, `hayStock`).
 
 **`fotos_cdn`** en el panel es tipo `lista`: `opciones` trae `valor` (la
 plantilla que se escribe en la hoja), `rotulo` y `desactivada`. Hoy: Ninguna, y

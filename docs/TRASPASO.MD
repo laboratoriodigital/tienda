@@ -32,6 +32,7 @@ actualización automática de la flota (M6) sigue **fuera**, y es la entrega 1.1
 | **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) |
 | **M3 bis** · El panel alcanza para todo | **Hecho** el 21 de septiembre (0.9.0, decisión 14): dos pantallas, Ventas y Tienda; toda la configuración, zonas de envío y cupones desde el panel; lo que mueve la plata pide la clave otra vez; aviso rojo si la pasarela no está lista. La hoja sigue funcionando igual |
 | **M5** · El rastreo | **Hecho** el 21 de septiembre (0.10.0, decisión 15): el comprador sigue su pedido con `pedido.html?n=…&s=…`, que va en su mensaje de WhatsApp o en la pantalla del pago; la hoja guarda solo la huella del secreto; el panel crea enlaces nuevos |
+| **0.11.0** · del ROADMAP | **Hecho** el 21 de septiembre: recuperar la clave por correo (2.3), «Avísame cuando llegue» sin datos del comprador (4.1, decisión 16), columnas del catálogo (4.4), dominio propio `tienda.laboratorio-digital.com` (4.5, decisión 17) e indicador de carga al entrar al panel |
 | **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
 
 Los números de M1, que son los que deciden si cabe una tienda más:

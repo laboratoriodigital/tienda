@@ -264,7 +264,11 @@ function conPanel(g, usuario) {
        opaco y que nada se da por pagado sin preguntarle a Bold. */
     /* M5: seguimiento, pública por diseño —el comprador no tiene sesión— y
        protegida por el secreto de 80 bits del enlace. */
-    const PUBLICAS = ['version', 'catalogo', 'validar', 'registrar', 'entrar', 'pago_crear', 'pago_estado', 'seguimiento'];
+    /* 0.11.0: recuperar la clave (el que la perdió no tiene sesión; lo protege
+       el código del correo) y contar un «avísame» (el comprador no tiene sesión;
+       no escribe nada de nadie). */
+    const PUBLICAS = ['version', 'catalogo', 'validar', 'registrar', 'entrar', 'pago_crear', 'pago_estado', 'seguimiento',
+                      'recuperar_pedir', 'recuperar_confirmar', 'avisame'];
     const publicas = Object.keys(guardas).filter(k => guardas[k] === 'publica');
     ok('SOLO ESTAS PUERTAS son públicas, y están escritas una por una',
        publicas.sort().join(',') === PUBLICAS.sort().join(','),

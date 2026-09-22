@@ -52,6 +52,39 @@ export function apodo(negocio) {
     .slice(0, 40) || 'tienda';
 }
 
+/* ── 4.5 · EL DOMINIO PROPIO ─────────────────────────────────────────────────
+   Si `sitio_url` es un dominio propio (no *.workers.dev ni *.pages.dev), el
+   Worker lo sirve como «custom domain»: Cloudflare crea el registro DNS y el
+   certificado solo, al desplegar. La dirección de workers.dev sigue viva al
+   lado; la canónica —la del SEO, la de Bold, la del rastreo— es la de la hoja.
+
+   SALE DE LA HOJA Y DE NINGÚN OTRO SITIO, como el nombre: la dirección ya la
+   usan el SEO, Bold y el rastreo, y dos fuentes para lo mismo es el patrón 2.
+   Si la hoja vuelve a workers.dev, el bloque se quita.
+
+   Devuelve el texto nuevo de wrangler.jsonc, o el mismo si no hay que tocarlo.
+   Requisito que esto no puede cumplir por nadie: la zona del dominio tiene que
+   estar en la MISMA cuenta de Cloudflare (DESPLIEGUE.md, «Dominio propio»). */
+export function hostPropio(sitio) {
+  const t = String(sitio || '').trim();
+  const m = (/^https?:\/\//i.test(t) ? t : 'https://' + t).match(/^https?:\/\/([^\/?#:]+)/i);
+  const host = m ? m[1].toLowerCase() : '';
+  if (!host || !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) return '';
+  if (/\.(workers|pages)\.dev$/.test(host)) return '';
+  return host;
+}
+
+const BLOQUE_RUTAS = /\n  \/\/ DOMINIO PROPIO \(4\.5\)[^\n]*\n  "routes": \[[^\]]*\],\n/;
+
+export function conDominio(texto, sitio) {
+  const host = hostPropio(sitio);
+  const sin = String(texto).replace(BLOQUE_RUTAS, '');
+  if (!host) return sin;
+  const bloque = '\n  // DOMINIO PROPIO (4.5) — lo escribe montar/nombrar-worker.mjs desde sitio_url; no lo edites a mano.\n' +
+                 '  "routes": [{ "pattern": "' + host + '", "custom_domain": true }],\n';
+  return sin.replace(/(\n  "compatibility_date"[^\n]*\n)/, '$1' + bloque);
+}
+
 export function nombreEn(texto) {
   return (String(texto).match(/"name"\s*:\s*"([^"]+)"/) || [])[1] || '';
 }
@@ -77,9 +110,11 @@ export function revisarNombreDelWorker(negocio) {
 }
 
 async function principal() {
-  let negocio = '';
+  let negocio = '', sitio = '';
   try {
-    negocio = String(JSON.parse(await readFile(CATALOGO, 'utf8')).config?.negocio || '').trim();
+    const cfg = JSON.parse(await readFile(CATALOGO, 'utf8')).config || {};
+    negocio = String(cfg.negocio || '').trim();
+    sitio = String(cfg.sitio_url || '').trim();
   } catch {
     console.error('\nNo se pudo leer ' + CATALOGO + '. Este paso va DESPUÉS de\n' +
                   'hornear el catálogo, que es de donde sale el nombre del comercio.\n');
@@ -94,7 +129,18 @@ async function principal() {
   }
 
   const debido = apodo(negocio);
-  const actual = nombreEn(await readFile(WRANGLER, 'utf8'));
+  const texto0 = await readFile(WRANGLER, 'utf8');
+  const actual = nombreEn(texto0);
+
+  /* 4.5 · el dominio, antes que el nombre y en la misma escritura. */
+  const conRutas = conDominio(texto0, sitio);
+  if (!revisar && conRutas !== texto0) {
+    await writeFile(WRANGLER, conRutas);
+    const host = hostPropio(sitio);
+    console.log(host ? 'Dominio propio: el sitio se servirá también en https://' + host +
+                       ' (la zona tiene que estar en esta cuenta de Cloudflare).'
+                     : 'Sin dominio propio: se quitó el bloque de rutas de ' + WRANGLER + '.');
+  }
 
   if (revisar) {
     console.log(actual === debido

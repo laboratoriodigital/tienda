@@ -1122,7 +1122,11 @@ var CLAVES_DEL_PANEL = [
   { clave: 'f_autoria',            grupo: 'Avanzado',   tipo: 'sino',   rotulo: 'Mostrar la autoría al pie' },
   { clave: 'autoria_url',          grupo: 'Avanzado',   tipo: 'url',    rotulo: 'A dónde enlaza la autoría' },
   /* M5 */
-  { clave: 'f_rastreo',            grupo: 'La venta',   tipo: 'sino',   rotulo: 'Enlace para que el comprador siga su pedido' }
+  { clave: 'f_rastreo',            grupo: 'La venta',   tipo: 'sino',   rotulo: 'Enlace para que el comprador siga su pedido' },
+  /* 0.11.0 */
+  { clave: 'f_avisame',            grupo: 'La venta',   tipo: 'sino',   rotulo: '«Avísame cuando llegue» en lo agotado' },
+  { clave: 'catalogo_columnas',    grupo: 'La portada', tipo: 'opcion', rotulo: 'Productos por fila en computador',
+    opciones: ['3', '4', '5'] }
 ];
 
 /* EL ORDEN EN QUE SE ENSEÑAN LOS GRUPOS. La lista de arriba solo crece al
@@ -1633,7 +1637,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-5';
+var VERSION = '2026-09-21-6';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -1824,6 +1828,8 @@ function instalar() {
   /* C-1b. La pestaña existe siempre, y se llenan las filas de lo que ya tenga
      Variantes. Con el stock vacío: nada cambia hasta que alguien lo llene. */
   hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+  /* 0.11.0 · 4.1. Cuántos esperan cada producto agotado. Sin datos de nadie. */
+  hoja(H_AVISAME, ENCABEZADO_AVISAME);
   var sync = sincronizarVariantes();
   if (sync.nuevas) console.log('Inventario por variante: ' + sync.nuevas + ' combinación(es) nuevas, con el stock vacío para que lo llenes.');
 
@@ -2948,7 +2954,16 @@ var PUERTAS = {
   /* M5 · el rastreo. Pública y SOLO POR POST: el secreto viaja en el cuerpo,
      no en una dirección que queda en los registros de Google. */
   seguimiento:           { guarda: 'publica', soloPost: true, fn: atenderSeguimiento },
-  enlace_seguimiento:    { guarda: 'panel', soloPost: true, fn: atenderEnlaceSeguimiento }
+  enlace_seguimiento:    { guarda: 'panel', soloPost: true, fn: atenderEnlaceSeguimiento },
+  /* 0.11.0 · 2.3 · recuperar la clave sin el operador. Públicas y SOLO POR
+     POST: la primera manda un código al correo de la tienda, la segunda lo
+     cambia por una clave nueva. */
+  recuperar_pedir:       { guarda: 'publica', soloPost: true, fn: atenderRecuperarPedir },
+  recuperar_confirmar:   { guarda: 'publica', soloPost: true, fn: atenderRecuperarConfirmar },
+  /* 0.11.0 · 4.1 · «Avísame cuando llegue». Contar es público —el comprador
+     no tiene sesión—; dar por avisado es del comerciante. */
+  avisame:               { guarda: 'publica', fn: function (p) { return atenderAvisame(p); } },
+  avisame_hecho:         { guarda: 'panel', soloPost: true, fn: atenderAvisameHecho }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -3911,7 +3926,9 @@ function tableroParaElPanel() {
     porCiudad: m.porCiudad.map(function (x) { return { ciudad: x[0], pedidos: x[1] }; }),
     /* AL FINAL (R1). La pantalla de Ventas avisa arriba si la hoja pide
        Pasarela y la tienda sigue por WhatsApp, y por qué. */
-    cobro: estadoDelCobro()
+    cobro: estadoDelCobro(),
+    /* 0.11.0 · 4.1: cuántos esperan cada agotado, y si ya hay. */
+    avisame: m.avisame
   };
 }
 
@@ -4105,7 +4122,11 @@ function semillaDeConfiguracion() {
 
       /* AL FINAL (R1). M5: el comprador sigue su pedido con el enlace que va en
          su mensaje de WhatsApp. Encendido de fábrica: no guarda nada suyo. */
-      ['f_rastreo',        'Sí', 'Sí = cada pedido lleva un enlace para que el comprador vea en qué va (estado, fecha y qué pidió; nada de sus datos). No = sin enlace']
+      ['f_rastreo',        'Sí', 'Sí = cada pedido lleva un enlace para que el comprador vea en qué va (estado, fecha y qué pidió; nada de sus datos). No = sin enlace'],
+
+      /* AL FINAL (R1). 0.11.0: dos del ROADMAP (4.1 y 4.4). */
+      ['f_avisame',        'Sí', 'Sí = en lo agotado sale «Avísame cuando llegue»: el comprador te escribe por WhatsApp y la pestaña Avísame cuenta cuántos esperan cada producto. No se guarda ningún dato suyo. No = sin el botón'],
+      ['catalogo_columnas', '3', 'Cuántos productos por fila en una pantalla ancha (computador): 3, 4 o 5. En el celular siempre son 1 o 2']
   ];
 }
 
@@ -5104,6 +5125,7 @@ function calcularMetricas() {
     errores: errores, agotados: agotados, pocos: pocos,
     listaAgotados: listaAgotados, listaPocos: listaPocos,
     sinVender: sinVender, masVendidos: masVendidos, porCiudad: porCiudad,
+    avisame: listaDeAvisame(),
     cfg: leerConfiguracion(), url: libro.getUrl(), filas: 0
   };
 }
@@ -6003,7 +6025,8 @@ function enviarResumen(forzado) {
 
   var m = calcularMetricas();
   var hayAlgo = m.porConfirmar > 0 || m.errores > 0 || m.agotados > 0 ||
-                m.pocos > 0 || m.ayer.enviados > 0 || m.ayer.ventas > 0;
+                m.pocos > 0 || m.ayer.enviados > 0 || m.ayer.ventas > 0 ||
+                (m.avisame || []).some(function (a) { return a.hayStock; });
   if (!hayAlgo && !forzado && !esSi(c.correo_siempre)) return 'nada que contar';
 
   if (typeof MailApp !== 'undefined' && MailApp.getRemainingDailyQuota &&
@@ -6150,6 +6173,19 @@ function cuerpoResumen(negocio, m) {
     if (m.pocos)
       h.push('<p style="' + normal + '"><strong>Quedan pocas:</strong> ' +
              escaparHtml(m.listaPocos.join(', ')) + '</p>');
+    h.push('</div>');
+  }
+
+  // ── 5 bis. «Avísame cuando llegue» (4.1): lo que ya llegó y alguien espera ──
+  var yaLlego = (m.avisame || []).filter(function (a) { return a.hayStock; });
+  if (yaLlego.length) {
+    h.push('<div style="' + caja + '">');
+    h.push('<p style="' + titulo + '">Te están esperando</p>');
+    yaLlego.forEach(function (a) {
+      h.push('<p style="' + normal + '"><strong>' + escaparHtml(a.nombre) + '</strong> ya tiene existencias y ' +
+             varios(a.personas, 'persona pidió', 'personas pidieron') + ' que le avisaras.</p>');
+    });
+    h.push('<p style="' + chico + '">Búscalas en tu WhatsApp con la palabra «avísame». Cuando les escribas, márcalo en el panel (Ventas › Te están esperando).</p>');
     h.push('</div>');
   }
 
@@ -7560,6 +7596,203 @@ function revisionHoraria() {
    Anotar NUNCA tumba lo que se está anotando: si la pestaña no se puede
    escribir, el cambio del comerciante ya se hizo, y eso es lo que importa.
    ══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   0.11.0 · 2.3 · RECUPERAR LA CLAVE SIN EL OPERADOR
+   --------------------------------------------------------------------------
+   Hasta ahora la clave solo salía del menú de la hoja. Un comerciante que la
+   pierde y no sabe abrir su hoja quedaba esperando a quien le montó la tienda.
+
+   EL CAMINO: desde la pantalla de entrada, «¿Olvidaste tu clave?» manda un
+   código de 8 cifras AL CORREO DE LA TIENDA —correo_resumen, o empresa_correo
+   si no hay— con el usuario del panel dentro. Con el código, el maestro inventa
+   una clave nueva (la misma que daría el menú) y la muestra UNA vez. Cambiar
+   la clave cierra las sesiones abiertas, como siempre.
+
+   LO QUE NO SE PUEDE HACER con esto:
+   · Mandar el código a otra parte: el destino es el de la hoja, no uno que se
+     escriba en la página.
+   · Adivinarlo: 8 cifras, vale 15 minutos, cinco intentos por código, y cada
+     intento malo cuenta en el mismo contador que bloquea la entrada.
+   · Llenar el buzón del dueño ni gastar la cuota de correos: como mucho tres
+     códigos por hora.
+   · Saber si un usuario existe: no se pregunta el usuario.
+   Del código se guarda solo la huella.
+   ══════════════════════════════════════════════════════════════════════════ */
+var MINUTOS_CODIGO = 15, CODIGOS_POR_HORA = 3, INTENTOS_POR_CODIGO = 5;
+
+function correoDeLaTienda(cfg) {
+  var lista = listaDeCorreos(cfg.correo_resumen);
+  if (!lista.length) lista = listaDeCorreos(cfg.empresa_correo);
+  return lista[0] || '';
+}
+function tapado(correo) {
+  var m = String(correo).match(/^(.)(.*)(.)@(.+)$/);
+  return m ? m[1] + m[2].replace(/./g, '•') + m[3] + '@' + m[4] : '';
+}
+function huellaDeCodigo(codigo) {
+  return enHex(Utilities.computeHmacSha256Signature(String(codigo), firmaDelPanel()));
+}
+function leerRecuperacion() {
+  try { return JSON.parse(propiedades().getProperty('PANEL_RECUPERACION') || 'null'); } catch (e) { return null; }
+}
+
+function atenderRecuperarPedir() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var cfg = leerConfiguracion();
+    var usuario = String(cfg.panel_usuario || '').trim();
+    var correo = correoDeLaTienda(cfg);
+    if (!usuario || !claveDelPanelGuardada()) {
+      return { ok: false, error: 'Este panel todavía no tiene usuario y clave. Quien montó la tienda los pone desde el menú de la hoja.' };
+    }
+    if (!correo) {
+      return { ok: false, error: 'La tienda no tiene un correo donde mandar el código (correo_resumen o empresa_correo). ' +
+                                 'Pide la clave nueva desde el menú de la hoja: Clave del panel.' };
+    }
+    var ahora = Date.now();
+    var envios = [];
+    try { envios = JSON.parse(propiedades().getProperty('PANEL_RECUPERACION_ENVIOS') || '[]'); } catch (e) { envios = []; }
+    envios = envios.filter(function (t) { return ahora - Number(t) < 3600000; });
+    if (envios.length >= CODIGOS_POR_HORA) {
+      return { ok: false, error: 'Ya mandamos ' + CODIGOS_POR_HORA + ' códigos en la última hora. Revisa el correo ' +
+                                 tapado(correo) + ' (también el spam) o vuelve a intentar en un rato.' };
+    }
+    var cifras = '';
+    while (cifras.length < 8) cifras += String(parseInt(Utilities.getUuid().replace(/-/g, '').slice(0, 8), 16) % 100000000);
+    var codigo = cifras.slice(-8);
+    while (codigo.length < 8) codigo = '0' + codigo;
+    propiedades().setProperty('PANEL_RECUPERACION', JSON.stringify({
+      h: huellaDeCodigo(codigo), hasta: ahora + MINUTOS_CODIGO * 60000, intentos: 0 }));
+    envios.push(ahora);
+    propiedades().setProperty('PANEL_RECUPERACION_ENVIOS', JSON.stringify(envios));
+    var negocio = String(cfg.negocio || 'tu tienda');
+    MailApp.sendEmail({ to: correo, name: negocio,
+      subject: negocio + ' · código para una clave nueva del panel',
+      htmlBody: '<p>Alguien pidió una clave nueva para el panel de <strong>' + escaparHtml(negocio) + '</strong>.</p>' +
+                '<p style="font-size:22px;letter-spacing:3px"><strong>' + codigo + '</strong></p>' +
+                '<p>Vale ' + MINUTOS_CODIGO + ' minutos. Tu usuario del panel es <strong>' + escaparHtml(usuario) + '</strong>.</p>' +
+                '<p>Si no fuiste tú, no hagas nada: tu clave sigue siendo la misma mientras nadie use este código.</p>' });
+    anotarSeguridad('Panel: pidieron un código para recuperar la clave.', 'enviado a ' + tapado(correo));
+    return { ok: true, correo: tapado(correo), minutos: MINUTOS_CODIGO };
+  } finally { lock.releaseLock(); }
+}
+
+var CODIGO_MALO = 'Ese código no sirve o ya venció. Revisa el correo o pide otro.';
+function atenderRecuperarConfirmar(p) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var bloqueo = estadoDeIntentos();
+    if (bloqueo.hasta > Date.now()) {
+      return { ok: false, error: 'Demasiados intentos. Prueba de nuevo en ' +
+               Math.ceil((bloqueo.hasta - Date.now()) / 60000) + ' minuto(s).' };
+    }
+    var codigo = String(p.codigo || '').replace(/\D/g, '');
+    var r = leerRecuperacion();
+    var vale = r && Number(r.hasta) > Date.now() && codigo.length === 8 && huellaDeCodigo(codigo) === r.h;
+    if (!vale) {
+      anotarIntentoFallido('(recuperación)');
+      if (r) {
+        r.intentos = (Number(r.intentos) || 0) + 1;
+        if (r.intentos >= INTENTOS_POR_CODIGO || !(Number(r.hasta) > Date.now())) propiedades().deleteProperty('PANEL_RECUPERACION');
+        else propiedades().setProperty('PANEL_RECUPERACION', JSON.stringify(r));
+      }
+      return { ok: false, error: CODIGO_MALO };
+    }
+    propiedades().deleteProperty('PANEL_RECUPERACION');
+    var cfg = leerConfiguracion();
+    var usuario = String(cfg.panel_usuario || '').trim();
+    var nueva = claveInventada();
+    guardarClaveDelPanel(nueva);
+    limpiarIntentos();
+    anotarSeguridad('Panel: clave nueva por recuperación con código.', 'usuario: ' + usuario + '. Las sesiones abiertas se cerraron.');
+    anotarCambios('Panel', usuario, [{ que: 'Recuperó la clave del panel con un código del correo', donde: 'Panel',
+                                       antes: '', despues: 'clave nueva (no se escribe)' }]);
+    return { ok: true, usuario: usuario, clave: nueva };
+  } finally { lock.releaseLock(); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   0.11.0 · 4.1 · «AVÍSAME CUANDO LLEGUE»
+   --------------------------------------------------------------------------
+   Lo agotado pierde la venta dos veces: hoy, y el día que vuelve y nadie se
+   entera. La forma obvia —pedir el correo o el celular y avisar solos— es
+   justo lo que esta tienda no hace: guardar datos de los compradores cambia el
+   perfil de riesgo y las obligaciones de la Ley 1581 (ROADMAP, «Lo que NO se
+   hace todavía»). Decisión 16.
+
+   LA QUE SÍ: el botón abre WhatsApp con «avísame cuando llegue X» —la
+   conversación queda en el celular del comerciante, que es donde ya viven
+   todos sus clientes— y la hoja cuenta, SIN NADIE DENTRO, cuántos esperan cada
+   producto. Cuando el producto vuelve a tener existencias, el panel y el
+   correo del día lo dicen: «3 personas te están esperando; búscalas con
+   "avísame"». El comerciante escribe, y lo marca como avisado.
+   ══════════════════════════════════════════════════════════════════════════ */
+var H_AVISAME = 'Avísame';
+var ENCABEZADO_AVISAME = ['ID', 'Producto', 'Personas esperando', 'Desde', 'Último pedido de aviso'];
+
+function avisameEncendido(cfg) { return llano((cfg || leerConfiguracion()).f_avisame) !== 'no'; }
+
+function atenderAvisame(p) {
+  var cfg = leerConfiguracion();
+  if (!avisameEncendido(cfg)) return { ok: false, error: 'apagado' };
+  var id = String(p.id || '').trim();
+  var cat = leerCatalogo();
+  var prod = cat[id];
+  /* Solo lo agotado: un botón que cuenta cualquier cosa se llena de ruido. */
+  if (!prod || !(Number(prod.stock) === 0)) return { ok: false, error: 'Ese producto no está agotado.' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var h = hoja(H_AVISAME, ENCABEZADO_AVISAME);
+    var filasA = h.getLastRow() > 1 ? h.getRange(2, 1, h.getLastRow() - 1, 5).getValues() : [];
+    var i = -1;
+    filasA.forEach(function (f, k) { if (String(f[0]).trim() === id) i = k; });
+    var ahora = new Date();
+    if (i === -1) {
+      h.appendRow([id, celdaSegura(prod.nombre, 120), 1, ahora, ahora]);
+      return { ok: true, personas: 1 };
+    }
+    var n = (Number(filasA[i][2]) || 0) + 1;
+    h.getRange(i + 2, 3, 1, 3).setValues([[n, filasA[i][3] || ahora, ahora]]);
+    return { ok: true, personas: n };
+  } finally { lock.releaseLock(); }
+}
+
+function listaDeAvisame() {
+  var libro = elLibro();
+  var h = libro.getSheetByName(H_AVISAME);
+  if (!h || h.getLastRow() < 2) return [];
+  var cat = {};
+  try { cat = leerCatalogo(); } catch (e) { cat = {}; }
+  return h.getRange(2, 1, h.getLastRow() - 1, 5).getValues()
+    .filter(function (f) { return String(f[0]).trim() && (Number(f[2]) || 0) > 0; })
+    .map(function (f) {
+      var id = String(f[0]).trim(), prod = cat[id];
+      return { id: id, nombre: prod ? String(prod.nombre) : String(f[1] || id), personas: Number(f[2]) || 0,
+               desde: fechaIso(f[3]), hayStock: !!prod && Number(prod.stock) > 0 };
+    })
+    .sort(function (a, b) { return (b.hayStock - a.hayStock) || (b.personas - a.personas); });
+}
+
+function atenderAvisameHecho(p) {
+  return conOperacion(p, function () {
+    var id = String(p.id || '').trim();
+    var h = elLibro().getSheetByName(H_AVISAME);
+    if (!h || h.getLastRow() < 2) return { ok: false, error: 'No hay nadie esperando ese producto.' };
+    var filasA = h.getRange(2, 1, h.getLastRow() - 1, 5).getValues();
+    var i = -1;
+    filasA.forEach(function (f, k) { if (String(f[0]).trim() === id) i = k; });
+    if (i === -1) return { ok: false, error: 'No hay nadie esperando ese producto.' };
+    var n = Number(filasA[i][2]) || 0;
+    h.deleteRows(i + 2, 1);
+    return { ok: true, id: id,
+             _registro: [{ que: 'Avisó que llegó el producto', donde: 'Avísame · ' + id,
+                           antes: varios(n, 'persona esperando', 'personas esperando'), despues: 'avisadas' }] };
+  });
+}
+
 var H_REGISTRO = 'Registro';
 var ENCABEZADO_REGISTRO = ['Fecha', 'Desde', 'Quién', 'Qué se hizo', 'Dónde', 'Antes', 'Después'];
 /* Una hoja de cálculo no es una base de datos. Pasado esto, se deja de anotar

@@ -92,7 +92,7 @@ Hoy es un comercio, una clave. Un segundo usuario pide roles, y roles piden un
 registro de quién hizo qué — que el MVP ya deja puesto con el registro de
 cambios.
 
-**2.3 Recuperar la clave sin el operador**   [PENSADO]
+**2.3 Recuperar la clave sin el operador**   [HECHO · 0.11.0, 21-sep-2026] — «¿Olvidaste tu clave?» manda un código al correo de la tienda.
 En el MVP la clave se pone desde el menú de la hoja y se rehace por ahí. Un
 comercio que pierda la clave y no sepa abrir su hoja necesita otro camino.
 
@@ -148,7 +148,7 @@ minutos que decide cuál— está en `EVALUACION-stub-automatico.md`.
 
 ## Fase 4 · Vender más
 
-**4.1 «Avísame cuando llegue»**   [PENSADO]
+**4.1 «Avísame cuando llegue»**   [HECHO · 0.11.0, 21-sep-2026 — decisión 16: por WhatsApp, sin guardar datos del comprador]
 Lo agotado pierde la venta dos veces: hoy, y el día que vuelve y nadie se entera.
 
 **4.2 Reseñas o valoraciones**   [PENSADO]
@@ -159,11 +159,11 @@ escribir. No antes de tener diez comercios pidiéndolo.
 El MVP deja el stock en el producto, a propósito. **Disparador para revisarlo:**
 el primer comercio que pierda una venta por vender una talla agotada.
 
-**4.4 Columnas del catálogo configurables**   [PENSADO]
+**4.4 Columnas del catálogo configurables**   [HECHO · 0.11.0, 21-sep-2026 — `catalogo_columnas`: 3, 4 o 5]
 De tres a cinco en pantalla ancha. Arrastra el ancho de foto que se pide y la
 paginación; está analizado y no es una línea de CSS.
 
-**4.5 Dominio propio**   [PENSADO]
+**4.5 Dominio propio**   [HECHO · 0.11.0, 21-sep-2026 — decisión 17: `laboratorio-digital.com`, una tienda por subdominio]
 El único costo en efectivo del producto. Un dominio nuestro alcanza para todas
 como subdominios.
 

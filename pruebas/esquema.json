@@ -138,6 +138,13 @@
       "Stock",
       "Código",
       "Nota"
+    ],
+    "Avísame": [
+      "ID",
+      "Producto",
+      "Personas esperando",
+      "Desde",
+      "Último pedido de aviso"
     ]
   },
   "configuracion": [
@@ -191,7 +198,9 @@
     "tienda_abierta",
     "tienda_cerrada_mensaje",
     "pedido_minimo",
-    "f_rastreo"
+    "f_rastreo",
+    "f_avisame",
+    "catalogo_columnas"
   ],
   "nombresDePuertas": [
     "version",
@@ -225,7 +234,11 @@
     "guardar_envio",
     "guardar_cupon",
     "seguimiento",
-    "enlace_seguimiento"
+    "enlace_seguimiento",
+    "recuperar_pedir",
+    "recuperar_confirmar",
+    "avisame",
+    "avisame_hecho"
   ],
   "puertas": {
     "version": [
@@ -331,7 +344,8 @@
       "cuantosSinVender",
       "masVendidos",
       "porCiudad",
-      "cobro"
+      "cobro",
+      "avisame"
     ],
     "tablero.esteMes": [
       "ventas",
