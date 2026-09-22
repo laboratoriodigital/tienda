@@ -1,7 +1,7 @@
 {
  "esquema": 1,
- "version": "2026-09-21-6",
- "generado": "2026-09-22T04:03:54.062Z",
+ "version": "2026-09-21-7",
+ "generado": "2026-09-22T05:00:46.959Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -9,15 +9,15 @@
    "formato": "Unidad",
    "categoria": "Ejemplos",
    "precio": 10000,
-   "stock": 9,
+   "stock": 10,
    "descripcion": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
    "imagenes": [
     "tienda-virtual.png"
    ],
    "destacado": true,
    "referencia": "",
-   "precioAntes": 0,
-   "umbralBajo": 0,
+   "precioAntes": 15000,
+   "umbralBajo": 5,
    "variantes": [
     {
      "nombre": "Talla",
@@ -42,7 +42,7 @@
     },
     {
      "eleccion": "Talla: S · Color: verde",
-     "stock": 5
+     "stock": 6
     },
     {
      "eleccion": "Talla: M · Color: Rosa",
@@ -61,20 +61,6 @@
      "stock": 0
     }
    ]
-  },
-  {
-   "id": "ejemplo2",
-   "nombre": "Segundo producto de ejemplo — edítalo o bórralo",
-   "formato": "Unidad",
-   "categoria": "Ejemplos",
-   "precio": 29900,
-   "stock": 0,
-   "descripcion": "Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.",
-   "imagenes": [],
-   "destacado": false,
-   "referencia": "",
-   "precioAntes": 0,
-   "umbralBajo": 0
   }
  ],
  "envios": [
@@ -132,7 +118,7 @@
   "pedido_minimo": "",
   "f_rastreo": "Sí",
   "f_avisame": "Sí",
-  "catalogo_columnas": "3",
+  "catalogo_columnas": "4",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""

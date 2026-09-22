@@ -86,23 +86,6 @@
      "@id": "https://tienda.laboratorio-digital.com/#comercio"
     }
    }
-  },
-  {
-   "@type": "Product",
-   "sku": "ejemplo2",
-   "name": "Segundo producto de ejemplo — edítalo o bórralo",
-   "description": "Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.",
-   "category": "Ejemplos",
-   "offers": {
-    "@type": "Offer",
-    "price": "29900",
-    "priceCurrency": "COP",
-    "availability": "https://schema.org/OutOfStock",
-    "url": "https://tienda.laboratorio-digital.com/?p=ejemplo2",
-    "seller": {
-     "@id": "https://tienda.laboratorio-digital.com/#comercio"
-    }
-   }
   }
  ]
 }
@@ -117,9 +100,9 @@
    Paleta: la define cada tienda desde su Configuración.
    ============================================================ */
 :root{
-  --rojo:#808080;
-  --acento:#808080;
-  --verde:#808080;
+  --rojo:#666666;
+  --acento:#38761D;
+  --verde:#BF9000;
   --blanco:#FFFFFF;
   --negro:#000000;
   --linea:#E4E4E4;
@@ -707,7 +690,7 @@ let EMPRESA = {
    excepción — no se puede inventar QUÉ producto es perecedero por él. */
 let EXCEPCIONES_RETRACTO = [];
 
-/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-21-6 ═══
+/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-21-7 ═══
    Lo que la página pinta ANTES de que conteste nadie, y lo único que le
    queda si no contesta nadie. Sale de la hoja de ESTA tienda: lo repone
    `montar/sembrar-respaldo.mjs` desde el catalogo.json que hornea el mismo
@@ -716,7 +699,7 @@ let EXCEPCIONES_RETRACTO = [];
    Sprint 5. Si hay que rehacerlo, se corre el flujo montaje. */
 const CONFIG_SEMILLA = {
   "autoria_url": "https://laboratorio-digital.com",
-  "catalogo_columnas": "3",
+  "catalogo_columnas": "4",
   "cobro": "pasarela",
   "cobro_ambiente": "Producción",
   "cobro_modo": "Pasarela",
@@ -774,16 +757,11 @@ const ENVIOS = [
 
 const PRODUCTOS = [
   { id:"ejemplo1", nombre:"Producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",
-    precio:10000, stock:9,
+    precio:10000, stock:10,
     imagenes:["tienda-virtual.png"],
     variantes:[{ nombre:"Talla", opciones:["S", "M", "L"] }, { nombre:"Color", opciones:["Rosa", "verde"] }],
-    skus:[{ eleccion:"Talla: S · Color: Rosa", stock:1 }, { eleccion:"Talla: S · Color: verde", stock:5 }, { eleccion:"Talla: M · Color: Rosa", stock:3 }, { eleccion:"Talla: M · Color: verde", stock:0 }, { eleccion:"Talla: L · Color: Rosa", stock:0 }, { eleccion:"Talla: L · Color: verde", stock:0 }],
-    descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." },
-
-  { id:"ejemplo2", nombre:"Segundo producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",
-    precio:29900, stock:0,
-    imagenes:[""],
-    descripcion:"Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala." }
+    skus:[{ eleccion:"Talla: S · Color: Rosa", stock:1 }, { eleccion:"Talla: S · Color: verde", stock:6 }, { eleccion:"Talla: M · Color: Rosa", stock:3 }, { eleccion:"Talla: M · Color: verde", stock:0 }, { eleccion:"Talla: L · Color: Rosa", stock:0 }, { eleccion:"Talla: L · Color: verde", stock:0 }],
+    descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." }
 ];
 /* ═══ FIN DEL CATÁLOGO DE RESPALDO ═══ */
 
