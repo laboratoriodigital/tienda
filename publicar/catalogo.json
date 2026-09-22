@@ -1,7 +1,7 @@
 {
  "esquema": 1,
- "version": "2026-09-21-5",
- "generado": "2026-09-22T03:10:20.581Z",
+ "version": "2026-09-21-6",
+ "generado": "2026-09-22T03:55:53.954Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -9,7 +9,7 @@
    "formato": "Unidad",
    "categoria": "Ejemplos",
    "precio": 10000,
-   "stock": 10,
+   "stock": 9,
    "descripcion": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
    "imagenes": [
     "tienda-virtual.png"
@@ -50,7 +50,7 @@
     },
     {
      "eleccion": "Talla: M · Color: verde",
-     "stock": 1
+     "stock": 0
     },
     {
      "eleccion": "Talla: L · Color: Rosa",
@@ -103,7 +103,7 @@
   "empresa_ciudad": "Medellín",
   "empresa_tel": "573008610480",
   "legal_actualizado": "Fri Sep 18 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
-  "sitio_url": "tienda.laboratoriodigital-la.workers.dev",
+  "sitio_url": "https://tienda.laboratorio-digital.com",
   "sitio_titulo": "TU TIENDA VIRTUAL",
   "sitio_descripcion": "Tu tienda virtual siempre Online",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
@@ -120,7 +120,7 @@
   "horario": "",
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
-  "autoria_url": "https://laboratoriodigital.co",
+  "autoria_url": "https://laboratorio-digital.com",
   "retracto_excepciones": "",
   "f_variantes": "Sí",
   "orden_catalogo": "Precio: de menor a mayor",

@@ -27,13 +27,13 @@
 <meta property="og:locale" content="es_CO">
 <meta property="og:title" content="TU TIENDA VIRTUAL">
 <meta property="og:description" content="Tu tienda virtual siempre Online">
-<meta property="og:url" content="https://tienda.laboratoriodigital-la.workers.dev/">
-<meta property="og:image" content="https://tienda.laboratoriodigital-la.workers.dev/compartir.jpg">
+<meta property="og:url" content="https://tienda.laboratorio-digital.com/">
+<meta property="og:image" content="https://tienda.laboratorio-digital.com/compartir.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="TU TIENDA VIRTUAL">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="canonical" href="https://tienda.laboratoriodigital-la.workers.dev/">
+<link rel="canonical" href="https://tienda.laboratorio-digital.com/">
 <meta name="theme-color" content="#666666">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='40' r='23' fill='%23666666'/%3E%3Cpath d='M32 17V7' stroke='%23BF9000' stroke-width='5.5' stroke-linecap='round'/%3E%3Cpath d='M32 18c-5-6-13-5-16-2 3 4 9 6 14 4 5 3 11 2 15-3-3-3-10-4-13 1z' fill='%23BF9000'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='40' r='23' fill='%23666666'/%3E%3Cpath d='M32 17V7' stroke='%23BF9000' stroke-width='5.5' stroke-linecap='round'/%3E%3Cpath d='M32 18c-5-6-13-5-16-2 3 4 9 6 14 4 5 3 11 2 15-3-3-3-10-4-13 1z' fill='%23BF9000'/%3E%3C/svg%3E">
@@ -47,10 +47,10 @@
  "@graph": [
   {
    "@type": "Organization",
-   "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio",
+   "@id": "https://tienda.laboratorio-digital.com/#comercio",
    "name": "TIENDA",
-   "url": "https://tienda.laboratoriodigital-la.workers.dev/",
-   "logo": "https://tienda.laboratoriodigital-la.workers.dev/compartir.jpg",
+   "url": "https://tienda.laboratorio-digital.com/",
+   "logo": "https://tienda.laboratorio-digital.com/compartir.jpg",
    "telephone": "573008610480",
    "email": "laboratoriodigital.la@gmail.com",
    "address": {
@@ -62,11 +62,11 @@
   },
   {
    "@type": "WebSite",
-   "url": "https://tienda.laboratoriodigital-la.workers.dev/",
+   "url": "https://tienda.laboratorio-digital.com/",
    "name": "TU TIENDA VIRTUAL",
    "description": "Tu tienda virtual siempre Online",
    "publisher": {
-    "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
+    "@id": "https://tienda.laboratorio-digital.com/#comercio"
    }
   },
   {
@@ -75,15 +75,15 @@
    "name": "Producto de ejemplo — edítalo o bórralo",
    "description": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
    "category": "Ejemplos",
-   "image": "https://tienda.laboratoriodigital-la.workers.dev/fotos/tienda-virtual.png",
+   "image": "https://tienda.laboratorio-digital.com/fotos/tienda-virtual.png",
    "offers": {
     "@type": "Offer",
     "price": "10000",
     "priceCurrency": "COP",
     "availability": "https://schema.org/InStock",
-    "url": "https://tienda.laboratoriodigital-la.workers.dev/?p=ejemplo1",
+    "url": "https://tienda.laboratorio-digital.com/?p=ejemplo1",
     "seller": {
-     "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
+     "@id": "https://tienda.laboratorio-digital.com/#comercio"
     }
    }
   },
@@ -98,9 +98,9 @@
     "price": "29900",
     "priceCurrency": "COP",
     "availability": "https://schema.org/InStock",
-    "url": "https://tienda.laboratoriodigital-la.workers.dev/?p=ejemplo2",
+    "url": "https://tienda.laboratorio-digital.com/?p=ejemplo2",
     "seller": {
-     "@id": "https://tienda.laboratoriodigital-la.workers.dev/#comercio"
+     "@id": "https://tienda.laboratorio-digital.com/#comercio"
     }
    }
   }
@@ -707,7 +707,7 @@ let EMPRESA = {
    excepción — no se puede inventar QUÉ producto es perecedero por él. */
 let EXCEPCIONES_RETRACTO = [];
 
-/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-21-5 ═══
+/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-21-6 ═══
    Lo que la página pinta ANTES de que conteste nadie, y lo único que le
    queda si no contesta nadie. Sale de la hoja de ESTA tienda: lo repone
    `montar/sembrar-respaldo.mjs` desde el catalogo.json que hornea el mismo
@@ -715,7 +715,7 @@ let EXCEPCIONES_RETRACTO = [];
    No se edita a mano: la opción del menú que lo generaba se derogó en el
    Sprint 5. Si hay que rehacerlo, se corre el flujo montaje. */
 const CONFIG_SEMILLA = {
-  "autoria_url": "https://laboratoriodigital.co",
+  "autoria_url": "https://laboratorio-digital.com",
   "cobro": "pasarela",
   "cobro_ambiente": "Producción",
   "cobro_modo": "Pasarela",
@@ -759,7 +759,7 @@ const CONFIG_SEMILLA = {
   "retracto_excepciones": "",
   "sitio_descripcion": "Tu tienda virtual siempre Online",
   "sitio_titulo": "TU TIENDA VIRTUAL",
-  "sitio_url": "tienda.laboratoriodigital-la.workers.dev",
+  "sitio_url": "https://tienda.laboratorio-digital.com",
   "tienda_abierta": "Sí",
   "tienda_cerrada_mensaje": "",
   "tope_pago": "12110000",
@@ -772,10 +772,10 @@ const ENVIOS = [
 
 const PRODUCTOS = [
   { id:"ejemplo1", nombre:"Producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",
-    precio:10000, stock:10,
+    precio:10000, stock:9,
     imagenes:["tienda-virtual.png"],
     variantes:[{ nombre:"Talla", opciones:["S", "M", "L"] }, { nombre:"Color", opciones:["Rosa", "verde"] }],
-    skus:[{ eleccion:"Talla: S · Color: Rosa", stock:1 }, { eleccion:"Talla: S · Color: verde", stock:5 }, { eleccion:"Talla: M · Color: Rosa", stock:3 }, { eleccion:"Talla: M · Color: verde", stock:1 }, { eleccion:"Talla: L · Color: Rosa", stock:0 }, { eleccion:"Talla: L · Color: verde", stock:0 }],
+    skus:[{ eleccion:"Talla: S · Color: Rosa", stock:1 }, { eleccion:"Talla: S · Color: verde", stock:5 }, { eleccion:"Talla: M · Color: Rosa", stock:3 }, { eleccion:"Talla: M · Color: verde", stock:0 }, { eleccion:"Talla: L · Color: Rosa", stock:0 }, { eleccion:"Talla: L · Color: verde", stock:0 }],
     descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." },
 
   { id:"ejemplo2", nombre:"Segundo producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",

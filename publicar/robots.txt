@@ -4,4 +4,4 @@ Disallow: /admin.html
 Disallow: /tablero.html
 Disallow: /pedido.html
 
-Sitemap: https://tienda.laboratoriodigital-la.workers.dev/sitemap.xml
+Sitemap: https://tienda.laboratorio-digital.com/sitemap.xml

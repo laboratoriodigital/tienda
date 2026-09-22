@@ -10,6 +10,9 @@
   "name": "tienda",
   "compatibility_date": "2026-09-05",
 
+  // DOMINIO PROPIO (4.5) — lo escribe montar/nombrar-worker.mjs desde sitio_url; no lo edites a mano.
+  "routes": [{ "pattern": "tienda.laboratorio-digital.com", "custom_domain": true }],
+
   "assets": {
     "directory": "./publicar",
     // Una dirección que no existe devuelve 404.html. Sin esto, un enlace mal
