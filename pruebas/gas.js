@@ -231,13 +231,31 @@ function crear(rutaScript, opciones) {
     toast: (m, t) => toasts.push(t + ': ' + m)
   };
 
+  /* OTRO LIBRO, para probar lo que LEE de un archivo que no es esta hoja: una
+     copia de respaldo (restaurar.js). Solo lo que el maestro usa de ella:
+     abrirla por id, pedirle una pestaña y leerle el rango con datos. */
+  const librosExtra = new Map();
+  const otroLibro = (id, pestanas, nombre) => {
+    const suyas = new Map(Object.entries(pestanas || {}));
+    librosExtra.set(id, {
+      getName: () => nombre || ('Copia ' + id),
+      getSheetByName: n => {
+        if (!suyas.has(n)) return null;
+        const datos = suyas.get(n);
+        return { getName: () => n,
+                 getDataRange: () => ({ getValues: () => datos.map(f => f.slice()) }) };
+      }
+    });
+    return librosExtra.get(id);
+  };
+
   const entorno = {
     SpreadsheetApp: {
       getActiveSpreadsheet: () => libro,
       openById: (id) => {
         if (!id) throw new Error('openById sin id');
         idAbierto = id;
-        return libro;
+        return librosExtra.get(id) || libro;
       },
       BorderStyle: { SOLID: 'SOLID', SOLID_MEDIUM: 'SOLID_MEDIUM' },
       newDataValidation: () => {
@@ -257,6 +275,9 @@ function crear(rutaScript, opciones) {
         return ({
         createMenu: () => {
           const m = { addItem: (rotulo, fn) => { menu.push([rotulo, fn]); return m; },
+                      /* El menú del panel de tiendas tiene una raya: sin esto,
+                         onOpen() revienta y la prueba culpa al menú. */
+                      addSeparator: () => m,
                       addToUi: () => {} };
           return m;
         },
@@ -458,6 +479,7 @@ function crear(rutaScript, opciones) {
            get token() { return props.TOKEN || null; },
            responder: (patron, fn) => rutas.push([patron, fn]),
            enDrive: (carpeta, archivos) => carpetasDrive.set(carpeta, archivos),
+           otroLibro,
            sueltoEnDrive: (a) => sueltosDrive.set(a.id, a),
            carpetaNegada: (id) => carpetasNegadas.add(id),
            carpetaDeSoloLectura: (id) => carpetasDeSoloLectura.add(id),

@@ -165,6 +165,29 @@ const stub = (() => { const g = crear('./as.js'); g.api.instalar();
      rotulosStub.join(' · '));
 }
 
+/* ═══ 4b. Un stub de OTRA tienda no maneja esta hoja (0.18.0 · bitácora 76) ═══
+   Pasó de verdad: se generó el stub desde el maestro de la semilla y se pegó
+   en la hoja de la tienda nueva. El menú salió y funcionó —el token era
+   correcto, el del maestro equivocado— solo que administraba la tienda de la
+   semilla: su catálogo, sus pedidos. El token no puede ver esto; el ID de la
+   hoja donde el stub está pegado, sí. */
+{
+  const g = nuevo();
+  const conHoja = h => JSON.parse(g.api.doGet({ parameter: {
+    a: 'menu', t: g.api.tokenMenu(), h: h } })._texto);
+
+  ok('EL STUB DICE EN QUÉ HOJA ESTÁ PEGADO, en cada petición',
+     /&h=/.test(stub) && /libro\.getId\(\)/.test(stub));
+  const otra = conHoja('1a2b3c-la-hoja-de-otra-tienda');
+  ok('UN STUB DE OTRA TIENDA no administra esta: el maestro lo rechaza',
+     !otra.ok && /OTRA tienda/.test(String(otra.error)), String(otra.error).slice(0, 90));
+  ok('  ...y dice qué hacer: generar el stub desde el maestro de ESTA hoja',
+     /A1_generarStub/.test(String(otra.error)));
+  ok('  ...la hoja propia pasa', conHoja(g.hojaId).ok === true);
+  ok('  ...y un stub anterior, que todavía no manda la hoja, no se queda sin menú',
+     conHoja(undefined).ok === true);
+}
+
 // ═══ 5. En la hoja del cliente no queda nada que valga la pena leer ═══
 {
   const lineas = stub.split('\n').filter(l => l.trim() && !/^\s*(\/\/|\*|\/\*)/.test(l));
@@ -185,9 +208,13 @@ const stub = (() => { const g = crear('./as.js'); g.api.instalar();
      `function accionN()`. El «64 + una» daba lo mismo con siete opciones
      (57 + 2×7 = 71 = 64 + 7) y se rompió con la octava, sin que el stub
      engordara por otra razón. La cuenta, ahora, es la de verdad. */
+  /* 0.18.0 · 57 → 58. La línea número 58 es `'&h=' + …libro.getId()`: el stub
+     dice en qué hoja está pegado, que es lo único que distingue un stub de
+     otra tienda del de esta (bitácora 76). Una línea, y se sube el tope una:
+     el tope existe para ver el stub engordar, no para congelarlo. */
   const opciones = (stub.match(/id: '[a-z]+'/g) || []).length;
-  const tope = 57 + 2 * opciones;
-  ok('El stub sigue cabiendo en ' + tope + ' líneas de código (57 + dos por opción)',
+  const tope = 58 + 2 * opciones;
+  ok('El stub sigue cabiendo en ' + tope + ' líneas de código (58 + dos por opción)',
      lineas.length <= tope, lineas.length + ' líneas con ' + opciones + ' opciones');
   // "inventario" y "catálogo" aparecen como rótulos del menú: eso es una
   // etiqueta, no una regla. Lo que no puede aparecer es aritmética del negocio.

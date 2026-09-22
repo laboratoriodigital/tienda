@@ -2454,14 +2454,18 @@ const configurar = (g, clave, valor) => {
     .map(x => x.match(/function (\w+)\(/)[1]);
 
   ok('LAS DE EJECUCIÓN MANUAL llevan prefijo, así se agrupan en cualquier lista',
-     conPrefijo.length === 5, conPrefijo.join(', '));
+     conPrefijo.length === 7, conPrefijo.join(', '));
+  /* 0.18.0 · A5 y A6 son las de volver atrás: ver las copias de la hoja y
+     restaurar pestañas desde una (bitácora 77). Van al final, que es cuando se
+     necesitan: montar una tienda sigue siendo A0, A1, A2. */
   ok('  ...numeradas en el orden en que se necesitan, no en el alfabético',
      conPrefijo.join(',') === ['A0_instalar', 'A1_generarStub',
-       'A2_diagnosticoCompleto', 'A3_rotarToken', 'A4_respaldoAhora'].join(','),
+       'A2_diagnosticoCompleto', 'A3_rotarToken', 'A4_respaldoAhora',
+       'A5_respaldos', 'A6_restaurarDatos'].join(','),
      'montar una tienda es A0, A1, A2 de arriba abajo');
-  ok('  ...y las cinco existen de verdad, no solo el comentario',
+  ok('  ...y todas existen de verdad, no solo el comentario',
      conPrefijo.every(f => typeof g.api[f] === 'function'),
-     conPrefijo.filter(f => typeof g.api[f] !== 'function').join(', ') || 'las cinco');
+     conPrefijo.filter(f => typeof g.api[f] !== 'function').join(', ') || 'todas');
 
   /* Son envoltorios: los dos nombres funcionan, y por eso el runbook viejo y
      las hojas ya montadas siguen sirviendo. */

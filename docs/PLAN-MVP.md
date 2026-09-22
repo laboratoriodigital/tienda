@@ -1402,6 +1402,21 @@ agotado.
 - [x] Columna *Producto* al final; el aspecto de los paneles.
 - [x] Fuera `tienda-nueva.yml`, el alta con los campos viejos.
 
+### 0.18.0 · El stub de otra tienda, volver atrás y el portal
+
+**C-2 · El stub de la tienda equivocada**  · 1 pt · ✅ (bitácora 76)
+- [x] El stub manda el ID de su hoja; el maestro rechaza el de otra y dice qué hacer.
+
+**R-1 · Volver atrás**  · 2 pt · ✅ (bitácora 77)
+- [x] Datos: `A5_respaldos` y `A6_restaurarDatos` (pestañas sueltas, copia previa,
+      y Pedidos/Pagos/Registro fuera de la lista a propósito).
+- [x] Sitio y versión: flujo `restaurar` en cada tienda, sin secretos nuevos.
+- [x] Pedir una versión exacta permite bajar (`actualizar-semilla.mjs`).
+
+**3.7b · El portal de administración**  · 1 pt · ✅ (bitácora 78)
+- [x] Menú de la hoja › Abrir el portal: cada tienda con sus cifras y sus enlaces.
+- [x] Abrirlo no consulta a ninguna tienda.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

@@ -132,13 +132,15 @@ montaje. El camino documentado sigue siendo el manual hasta que corra una vez.*
 tiendas), el que pedía de entrada el repositorio, la URL, el token, la
 plantilla y si era privado, se borró: lo reemplazan `alta` y `conectar`.*
 
-**3.7 El panel de la flota**   [VERSIÓN 1 · 0.15.0: `tiendas/panel/index.html`, estático, lo escribe `estado`; falta servirlo detrás de Cloudflare Access y sumarle las cifras del Panel de tiendas · 0.17.0: la hoja *Panel de tiendas* se llena sola desde `conectar` (bitácora 75)]
+**3.7 El panel de la flota**   [VERSIÓN 1 · 0.15.0: `tiendas/panel/index.html`, estático, lo escribe `estado` · 0.17.0: la hoja *Panel de tiendas* se llena sola desde `conectar` (bitácora 75) · 0.18.0: **el portal**, menú de la hoja › Abrir el portal, con las cifras y los enlaces de cada tienda (bitácora 78). Falta servir esa misma pantalla en una dirección, detrás de Cloudflare Access]
 Hoy la flota se ve en `ESTADO.md` y las cifras en la hoja *Panel de tiendas*.
 El paso siguiente es una página detrás de Cloudflare Access que junte las dos,
 con los botones de actualizar y publicar. Y encima, **tareas de valor para los
 comercios**: el informe mensual, campañas de cupones y avisos de «volvió a
 llegar» para todas las tiendas a la vez — el marketing que un comercio solo no
 hace.
+
+**3.10 Volver atrás**   [HECHO · 0.18.0 — bitácora 77: los datos desde el maestro (A5/A6), el sitio y la versión desde el flujo `restaurar`. Falta: restaurar una tienda entera desde la flota, y que el montaje avise solo cuando una publicación deja la tienda peor que antes]
 
 **3.8 Migrar las tiendas 3.x a esta línea**   [NO · 22-sep-2026 — decisión 20]
 Se descartó: la línea 3.x no es una versión vieja de esta, es **otro producto**,

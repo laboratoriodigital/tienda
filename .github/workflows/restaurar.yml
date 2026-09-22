@@ -1,0 +1,118 @@
+# VOLVER ATRÁS — el sitio de esta tienda, o su versión.
+#
+# DÓNDE ESTÁ: en el repositorio de la tienda › pestaña Actions › «restaurar» ›
+# Run workflow. No hace falta ningún secreto nuevo.
+#
+# QUÉ VUELVE, Y QUÉ NO. Este flujo devuelve el CÓDIGO y la PÁGINA. Los datos de
+# la hoja —catálogo, configuración, envíos, cupones— se restauran desde el
+# editor del maestro con A5_respaldos() y A6_restaurarDatos(), porque son de
+# Google y no de GitHub (docs/DESPLIEGUE.md › Volver atrás).
+#
+#   el-sitio     trae `publicar/` de un commit anterior y lo publica como un
+#                commit NUEVO encima. No se reescribe la historia: restaurar
+#                también se puede deshacer. Cloudflare republica solo.
+#   la-version   le pide a `montaje` la versión anterior de la semilla: baja
+#                ese código, publica ese maestro, rehornea desde la hoja y
+#                corre las baterías. Si algo falla, no publica nada.
+#
+# LO QUE DECIDE ESTO NO VIVE AQUÍ: está en `montar/volver-atras.mjs`, con sus
+# aserciones en `pruebas/restaurar.js`. Un flujo es el peor sitio para esconder
+# una regla — no se puede correr en el equipo de nadie.
+name: restaurar
+
+on:
+  workflow_dispatch:
+    inputs:
+      que:
+        description: 'Qué volver atrás'
+        type: choice
+        default: el-sitio
+        options: [el-sitio, la-version]
+      hasta:
+        description: 'Opcional: el commit (el-sitio) o la etiqueta vX.Y.Z (la-version). Vacío = el anterior'
+        required: false
+        default: ''
+      confirmar:
+        description: 'Escribe RESTAURAR'
+        required: true
+        default: ''
+
+permissions:
+  contents: write
+  # Para pedirle a `montaje` que traiga una versión anterior.
+  actions: write
+
+concurrency:
+  group: publicar-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  volver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # La historia del sitio es lo que se restaura: sin ella no hay a
+          # dónde volver.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Las etiquetas son de la SEMILLA: la tienda no corta versiones. Con
+      # SEMILLA_TOKEN se leen aunque sea privada; sin él, se intenta igual y si
+      # no se puede, hay que escribir la versión a mano en el formulario.
+      - name: Las versiones publicadas de la semilla
+        id: etiquetas
+        if: inputs.que == 'la-version' && inputs.hasta == ''
+        env:
+          GH_TOKEN: ${{ secrets.SEMILLA_TOKEN || github.token }}
+        run: |
+          semilla=$(node -e "process.stdout.write(require('./semilla.json').repositorio||'')")
+          lista=$(gh api "repos/$semilla/tags" --jq '.[].name' 2>/dev/null | tr '\n' ' ' || true)
+          echo "lista=$lista" >> "$GITHUB_OUTPUT"
+
+      - name: Qué se restaura
+        id: decidir
+        env:
+          QUE: ${{ inputs.que }}
+          HASTA: ${{ inputs.hasta }}
+          CONFIRMAR: ${{ inputs.confirmar }}
+          ETIQUETAS: ${{ steps.etiquetas.outputs.lista }}
+        run: node montar/volver-atras.mjs
+
+      # ── EL SITIO: un commit nuevo con lo de antes ─────────────────────────
+      - name: Publicar el sitio de antes
+        if: inputs.que == 'el-sitio'
+        env:
+          COMMIT: ${{ steps.decidir.outputs.commit }}
+        run: |
+          if git diff --quiet -- publicar/; then
+            echo "### Ya estaba así" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "El sitio publicado es idéntico al de \`${COMMIT:0:7}\`: no hay nada que restaurar." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name  "restaurar"
+          git config user.email "noreply@github.com"
+          git add publicar/
+          git commit --quiet -m "restaurar: el sitio vuelve a ${COMMIT:0:7}" \
+                              -m "Lo pidió ${{ github.actor }} desde Actions › restaurar. La historia no se reescribe: esto también se puede deshacer."
+          git push --quiet origin HEAD:main
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Publicado en \`main\`. Cloudflare despliega solo." >> "$GITHUB_STEP_SUMMARY"
+
+      # ── LA VERSIÓN: se la pide a `montaje`, que es quien sabe hacerlo ─────
+      - name: Pedirle a montaje la versión anterior
+        if: inputs.que == 'la-version'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.decidir.outputs.version }}
+        run: |
+          gh workflow run montaje.yml -f semilla=true -f version="$VERSION" -f que=todo
+          {
+            echo ""
+            echo "**montaje** está trayendo \`$VERSION\`: [ver la corrida](${{ github.server_url }}/${{ github.repository }}/actions/workflows/montaje.yml)."
+          } >> "$GITHUB_STEP_SUMMARY"

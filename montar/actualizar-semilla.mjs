@@ -75,9 +75,18 @@ function trabajar(dir) {
     decir(`### La semilla no tiene la versión ${hasta || '(ninguna)'}\n\nSolo se traen versiones publicadas con **release**.`);
     throw new Error('sin esa versión');
   }
+  /* 0.18.0 · VOLVER ATRÁS ES PEDIR UNA VERSIÓN EXACTA. Sin versión pedida,
+     «la última» nunca es anterior a la de la tienda y esto es lo de siempre:
+     no hay nada que traer. Con una versión escrita —que es lo que hace el
+     flujo `restaurar`— sí se trae, aunque sea anterior: pedir una versión
+     exacta es decir A CUÁL, y negarse ahí dejaría una tienda rota sin más
+     salida que editarle los archivos a mano. */
   if (version(desde) && comparar(desde, hasta) >= 0) {
-    decir(`### La semilla\n\nEsta tienda ya está en la ${desde}, la última publicada es ${hasta}. Nada que traer.`);
-    return { cambia: false, desde, hasta };
+    if (!pedida || comparar(desde, hasta) === 0) {
+      decir(`### La semilla\n\nEsta tienda ya está en la ${desde}, la ${pedida ? 'pedida' : 'última publicada'} es ${hasta}. Nada que traer.`);
+      return { cambia: false, desde, hasta };
+    }
+    decir(`### Volver atrás\n\nEsta tienda está en la ${desde} y se pidió la ${hasta}, que es ANTERIOR. Se trae: una versión escrita a mano es decir a cuál.`);
   }
   const nuevaDir = join(trabajo, 'nueva');
   git(semilla, 'worktree', 'add', '--quiet', '--detach', nuevaDir, hasta);

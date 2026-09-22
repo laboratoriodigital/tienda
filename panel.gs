@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-var VERSION_PANEL = '2026-09-22-a';
+var VERSION_PANEL = '2026-09-22-b';
 
 var H_TIENDAS  = 'Tiendas';
 var H_METRICAS = 'Métricas';
@@ -216,6 +216,7 @@ var ANCHO_BARRA = 20;
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Panel')
+    .addItem('Abrir el portal',              'abrirPortal')
     .addItem('Actualizar todas las tiendas', 'actualizar')
     .addItem('Enviarme el resumen ahora',    'enviarResumenAhora')
     .addItem('Cobros de este mes',           'verCobros')
@@ -1184,6 +1185,145 @@ function filas(nombre) {
    hay una fila con ese repositorio se actualiza (servicio, token, dirección,
    producto), y si no, se agrega «En montaje». Lo que el operador escribió —
    contacto, plan, precio, notas— no se toca nunca. */
+// =============================================================================
+// EL PORTAL (0.18.0 · bitácora 78)
+// -----------------------------------------------------------------------------
+// «No veo por dónde se entra» — y era verdad. Las cifras estaban en tres
+// pestañas y las acciones en la pestaña Actions de otro repositorio; para
+// mirar una tienda había que saber en qué columna estaba cada cosa. El portal
+// es UNA pantalla: cada tienda con lo que importa y sus enlaces, y arriba las
+// cuatro acciones de la flota. Se abre desde el menú de esta hoja —Panel ›
+// Abrir el portal—, así que no hay nada que desplegar ni que proteger: quien
+// puede abrir esta hoja ya es quien puede ver esto.
+//
+// LOS DATOS SON LOS DE LAS PESTAÑAS, no una consulta nueva. Abrir el portal no
+// molesta a ninguna tienda: pinta lo que dejó la última corrida de
+// «Actualizar todas las tiendas» (patrón 2: un solo sitio lee de las tiendas).
+// El día que se sirva en una dirección —detrás de Cloudflare Access, con el
+// panel estático de `tiendas`— será esta misma función la que lo escriba.
+// =============================================================================
+
+function abrirPortal() {
+  var html = HtmlService.createHtmlOutput(
+      portalHtml(leerTiendas(), filas(H_METRICAS), { dueno: duenoDeLaFlota() }))
+    .setWidth(1040).setHeight(720);
+  try { SpreadsheetApp.getUi().showModalDialog(html, 'Portal de tiendas'); }
+  catch (e) { console.log('El portal se abre desde la hoja: menú Panel › Abrir el portal.'); }
+  return true;
+}
+
+/* De quién son los repositorios. Sale de las tiendas que ya están anotadas, no
+   de una constante: la flota de otro operador tiene otro dueño. */
+function duenoDeLaFlota() {
+  var t = leerTiendas().filter(function (x) { return x.repo.indexOf('/') > 0; })[0];
+  return t ? t.repo.split('/')[0] : 'laboratoriodigital';
+}
+
+function escaparPortal(t) {
+  return String(t === undefined || t === null ? '' : t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* La fila de Métricas de una tienda, por comercio: la primera columna de esa
+   pestaña es el comercio, que es la misma clave que usa Tiendas. */
+function metricaDe(metricas, comercio) {
+  var fila = (metricas || []).filter(function (f) {
+    return String(f[0] || '').trim() === comercio;
+  })[0];
+  if (!fila) return null;
+  var m = {};
+  COL_METRICAS.forEach(function (r, i) { m[r] = fila[i]; });
+  return m;
+}
+
+function portalHtml(tiendas, metricas, ctx) {
+  var dueno = (ctx && ctx.dueno) || 'laboratoriodigital';
+  var acciones = 'https://github.com/' + dueno + '/tiendas/actions/workflows/';
+  var vivas = (tiendas || []).filter(function (t) { return t.estado !== 'Cancelada'; });
+  var ingreso = vivas.filter(function (t) { return t.estado === 'Activa'; })
+                     .reduce(function (a, t) { return a + (t.precio || 0); }, 0);
+
+  var css = 'body{margin:0;background:' + FONDO + ';color:' + TINTA + ';' +
+    'font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}' +
+    '.c{max-width:980px;margin:0 auto;padding:18px 16px 40px}' +
+    'h1{font-size:19px;margin:0 0 2px;font-weight:650}' +
+    '.g{color:' + GRIS + ';font-size:12.5px;margin:0 0 16px}' +
+    '.b{display:inline-block;margin:0 6px 8px 0;padding:7px 12px;border:1px solid ' + LINEA + ';' +
+    'border-radius:8px;background:#FFF;color:' + TINTA + ';text-decoration:none;font-size:12.5px}' +
+    '.b:hover{border-color:' + TINTA + '}' +
+    '.t{background:#FFF;border:1px solid ' + LINEA + ';border-radius:10px;padding:14px 16px;margin:10px 0}' +
+    '.t h2{font-size:15px;margin:0;font-weight:600;display:inline-block}' +
+    '.e{font-size:11.5px;border-radius:999px;padding:2px 9px;margin-left:8px;vertical-align:2px}' +
+    '.n{display:flex;flex-wrap:wrap;gap:18px;margin:10px 0 8px}' +
+    '.n div{font-size:12.5px;color:' + GRIS + '}' +
+    '.n b{display:block;font-size:16px;color:' + TINTA + ';font-weight:600;' +
+    'font-variant-numeric:tabular-nums}' +
+    '.f{color:' + GRIS + ';font-size:12px;margin:2px 0 0}' +
+    '.r{color:' + ROJO + '}.a{color:' + AMBAR + '}.v{color:' + VERDE + '}';
+
+  var partes = ['<!DOCTYPE html><meta charset="utf-8"><style>' + css + '</style><div class="c">'];
+  partes.push('<h1>Portal de tiendas</h1>');
+  partes.push('<p class="g">' + vivas.length + ' tienda(s) · ' +
+              tiendas.filter(function (t) { return t.estado === 'Activa'; }).length + ' activas · ' +
+              'ingreso mensual ' + Math.round(ingreso).toLocaleString('es-CO') + ' · ' +
+              'las cifras son las de la última actualización de esta hoja.</p>');
+  partes.push('<p>' +
+    '<a class="b" href="' + acciones + 'alta.yml" target="_blank">Dar de alta una tienda</a>' +
+    '<a class="b" href="' + acciones + 'conectar.yml" target="_blank">Conectar una tienda con su hoja</a>' +
+    '<a class="b" href="' + acciones + 'flota.yml" target="_blank">Actualizar la flota</a>' +
+    '<a class="b" href="https://github.com/' + dueno + '/tiendas" target="_blank">El repositorio de la flota</a>' +
+    '</p>');
+
+  if (!vivas.length) {
+    partes.push('<div class="t"><h2>Todavía no hay tiendas</h2><p class="f">' +
+      'Cada tienda aparece sola aquí cuando se corre <b>conectar</b>, si este panel tiene ' +
+      'su clave (menú Panel › Clave para el alta).</p></div>');
+  }
+
+  vivas.forEach(function (t) {
+    var m = metricaDe(metricas, t.comercio) || {};
+    var color = t.estado === 'Activa' ? VERDE : (t.estado === 'Pausada' ? AMBAR : GRIS);
+    var sinTerminar = String(m['Sin terminar'] || '').trim();
+    var errores = Number(m['Errores'] || 0);
+    partes.push('<div class="t">');
+    partes.push('<h2>' + escaparPortal(t.comercio) + '</h2>' +
+      '<span class="e" style="background:' + FONDO + ';border:1px solid ' + LINEA + ';color:' + color + '">' +
+      escaparPortal(t.estado || '—') + '</span>' +
+      '<span class="e" style="color:' + GRIS + '">' + escaparPortal(t.producto || '—') + '</span>');
+    partes.push('<div class="n">' +
+      '<div>Ventas del mes<b>' + escaparPortal(m['Ventas del mes'] === undefined ? '—' : m['Ventas del mes']) + '</b></div>' +
+      '<div>Pedidos<b>' + escaparPortal(m['Pedidos del mes'] === undefined ? '—' : m['Pedidos del mes']) + '</b></div>' +
+      '<div>Por confirmar<b class="a">' + escaparPortal(m['Por confirmar'] === undefined ? '—' : m['Por confirmar']) + '</b></div>' +
+      '<div>Publicados<b>' + escaparPortal(m['Publicados'] === undefined ? '—' : m['Publicados']) + '</b></div>' +
+      '<div>Versión<b>' + escaparPortal(m['Versión'] || '—') + '</b></div>' +
+      '<div>Último respaldo<b>' + escaparPortal(m['Último respaldo'] || '—') + '</b></div>' +
+      '</div>');
+    if (sinTerminar) partes.push('<p class="f a">Sin terminar: ' + escaparPortal(sinTerminar) + '</p>');
+    if (errores) partes.push('<p class="f r">' + errores + ' error(es) anotados en su hoja.</p>');
+    var enlaces = [];
+    if (t.sitio) enlaces.push('<a class="b" href="' + escaparPortal(t.sitio) + '" target="_blank">Ver la tienda</a>');
+    if (t.sitio && t.producto !== 'Tienda Básica') {
+      enlaces.push('<a class="b" href="' + escaparPortal(t.sitio.replace(/\/+$/, '') + '/admin.html') +
+                   '" target="_blank">Su panel</a>');
+    }
+    if (t.repo) {
+      enlaces.push('<a class="b" href="https://github.com/' + escaparPortal(t.repo) + '" target="_blank">Repositorio</a>');
+      enlaces.push('<a class="b" href="https://github.com/' + escaparPortal(t.repo) +
+                   '/actions/workflows/montaje.yml" target="_blank">Publicar / actualizar</a>');
+      enlaces.push('<a class="b" href="https://github.com/' + escaparPortal(t.repo) +
+                   '/actions/workflows/restaurar.yml" target="_blank">Volver atrás</a>');
+    }
+    partes.push('<p style="margin:8px 0 0">' + enlaces.join('') + '</p>');
+    if (t.notas) partes.push('<p class="f">' + escaparPortal(t.notas) + '</p>');
+    partes.push('</div>');
+  });
+
+  partes.push('<p class="g">Los datos de cada tienda se restauran desde el editor de SU maestro ' +
+              '(A5_respaldos y A6_restaurarDatos); el sitio y la versión, con «Volver atrás».</p>');
+  partes.push('</div>');
+  return partes.join('');
+}
+
 function claveParaElAlta() {
   var p = PropertiesService.getScriptProperties();
   var clave = 'alta-' + Utilities.getUuid().replace(/-/g, '');

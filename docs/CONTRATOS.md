@@ -688,6 +688,20 @@ repositorio ya está, cambia solo sitio, servicio, token (columnas 10–12) y
 producto (16); si no, agrega la fila *En montaje*. Contesta `ok`, `fila`,
 `nueva`. La pestaña Tiendas suma al final la columna **Producto** (R1).
 
+**El stub dice en qué hoja está pegado** (0.18.0): `?a=menu` lleva, además de
+`f`, `t` y `s`, la clave **`h`** — el ID de la hoja donde corre el stub. El
+maestro rechaza una `h` que no sea su `HOJA_ID` («Este código es de OTRA
+tienda»). Un stub anterior no manda `h` y sigue atendido (bitácora 76).
+
+**Volver atrás** (0.18.0): en el maestro, `listarRespaldos()` y
+`restaurarDatos(copia, 'Pestaña1,Pestaña2')` —`copia` acepta el número que
+imprime `A5_respaldos()`, el nombre, el ID, o vacío/`ultimo`—. Solo se
+restauran `Catálogo`, `Configuración`, `Envíos`, `Cupones` e `Inventario por
+variante`; deja antes una copia y anota en el `Registro`. El flujo
+**`restaurar`** (cada tienda) pide `que` (`el-sitio` | `la-version`), `hasta`
+(opcional) y `confirmar` = `RESTAURAR`; lo que decide vive en
+`montar/volver-atras.mjs`.
+
 **`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
 `propios` (rutas; las que acaban en `/` son carpetas). Lo leen
 `montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las

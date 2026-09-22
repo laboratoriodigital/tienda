@@ -100,6 +100,8 @@ function A3_rotarToken() { return rotarToken(); }
 /** A4 · Guardar una copia de la hoja ahora, sin esperar al domingo. */
 function A4_respaldoAhora() { return respaldoSemanal(); }
 
+/* A5 y A6 · las copias que hay y cómo volver a una: ver «VOLVER ATRÁS». */
+
 /* El token NO se escribe: lo inventa instalar() la primera vez y lo guarda en
    las propiedades del proyecto. Un paso manual menos, y uno donde además era
    fácil equivocarse: bastaba un espacio de más al copiarlo para que el menú
@@ -1784,7 +1786,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.17.0';
+var VERSION_TIENDA = '0.18.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1858,7 +1860,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-5';
+var VERSION = '2026-09-22-6';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -3343,7 +3345,8 @@ var PLANTILLA_STUB = [
 "  var r;",
 "  try {",
 "    var url = MAESTRO + '?a=menu&f=' + encodeURIComponent(OPCIONES[i].id) +",
-"              '&t=' + encodeURIComponent(TOKEN) + '&s=' + encodeURIComponent(STUB);",
+"              '&t=' + encodeURIComponent(TOKEN) + '&s=' + encodeURIComponent(STUB) +",
+"              '&h=' + encodeURIComponent(libro.getId());",
 "    var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });",
 "    var cuerpo = res.getContentText().replace(/^\\s+/, '');",
 "    /* Google devuelve una PÁGINA WEB, no datos, cuando la implementación no",
@@ -3630,6 +3633,195 @@ function registrarRespaldo(dato) {
 function ultimoRespaldo() {
   try { return JSON.parse(
     PropertiesService.getScriptProperties().getProperty('RESPALDO') || '{}'); }
+  catch (e) { return {}; }
+}
+
+/* ============================================================================
+   VOLVER ATRÁS: LOS DATOS (0.18.0 · bitácora 77)
+   ----------------------------------------------------------------------------
+   Había copias y no había vuelta: ocho copias semanales en el Drive del
+   administrador, y para usarlas tocaba abrir la copia, mirar, y pegar celdas a
+   mano en la hoja viva. Eso a las once de la noche, con la tienda vendiendo,
+   es cuando se pisa lo que no era.
+
+   EL MODELO ENTERO CABE EN TRES FRASES, una por cosa que se puede perder:
+     · los datos  →  las copias de la hoja (esto).
+     · el código  →  las etiquetas vX.Y.Z de la semilla: `restaurar` › versión.
+     · el sitio   →  los commits de main: `restaurar` › sitio.
+   Ninguna inventa infraestructura nueva: los tres puntos de restauración ya
+   existían, lo que faltaba era la manera de volver a ellos sin manos.
+
+   LO QUE NO SE RESTAURA, Y POR QUÉ. Pedidos, Pagos, Datos de entrega, Avísame,
+   Registro, Errores: son lo que PASÓ, no lo que se configuró. Traer el Pedidos
+   del domingo un miércoles borra los pedidos del lunes y el martes —clientes
+   reales esperando— para arreglar un catálogo. Restaurar esas pestañas es peor
+   que el problema que vino a arreglar, así que aquí no se puede.
+
+   Y ANTES DE TOCAR NADA, UNA COPIA. La restauración es en sí misma una
+   operación destructiva: si se restaura la pestaña equivocada, lo que se acaba
+   de perder es el trabajo de esta semana. La copia de seguridad previa hace
+   que ese error tenga vuelta, y cuesta un segundo (makeCopy la resuelve Drive).
+   ============================================================================ */
+/* UNA FUNCIÓN Y NO UNA CONSTANTE: los nombres de las pestañas se declaran más
+   abajo en el archivo, y un `var` de aquí arriba se quedaría con la mitad en
+   `undefined` —la lista decía «Catálogo, Configuración, Envíos, Cupones, » y
+   la pestaña que faltaba era justo la de variantes—. Esto se evalúa cuando se
+   llama, que es cuando todo existe. */
+function pestanasRestaurables() {
+  return [H_CATALOGO, H_CONFIG, H_ENVIOS, H_CUPONES, H_INVENTARIO_VARIANTE];
+}
+
+/** A5 · Las copias que hay, la más nueva primero. Lee lo que imprime. */
+function A5_respaldos() {
+  var l = listarRespaldos();
+  if (!l.length) {
+    console.log('No hay ninguna copia todavía. Ejecuta A4_respaldoAhora().');
+    return l;
+  }
+  console.log('Copias de esta hoja (la más nueva primero):\n');
+  l.forEach(function (x, i) {
+    console.log((i + 1) + '. ' + x.nombre + '   ' + x.cuando.toISOString().slice(0, 10) + '   ' + x.id);
+  });
+  console.log('\nPara volver a una: A6_restaurarDatos(\'ultimo\', \'' +
+              pestanasRestaurables().slice(0, 2).join(',') + '\')');
+  console.log('Se puede restaurar: ' + pestanasRestaurables().join(', ') + '.');
+  return l;
+}
+
+/** A6 · Volver una o varias pestañas a como estaban en una copia. */
+function A6_restaurarDatos(copia, pestanas) { return restaurarDatos(copia, pestanas); }
+
+/* Las copias de ESTA hoja que hay en la carpeta de respaldos. El prefijo es el
+   mismo que pone respaldarHoja(): las de otras tiendas llevan otro. */
+function listarRespaldos() {
+  var c = leerConfiguracion();
+  var id = idDeCarpeta(c.respaldo_carpeta);
+  if (!id) throw new Error(
+    'Falta respaldo_carpeta en la pestaña Configuración: sin carpeta de ' +
+    'respaldos no hay copias que restaurar.');
+  var destino;
+  try { destino = DriveApp.getFolderById(id); }
+  catch (e) { throw new Error('No pude abrir la carpeta de respaldos (' + id + ').'); }
+
+  var prefijo = 'Copia_de_' + elLibro().getName().replace(/[\/\\]/g, '-') + '_';
+  var lista = [];
+  var it = destino.getFiles();
+  while (it.hasNext()) {
+    var f = it.next();
+    if (f.getName().indexOf(prefijo) !== 0) continue;
+    lista.push({ nombre: f.getName(), id: f.getId(), cuando: f.getDateCreated() });
+  }
+  lista.sort(function (a, b) { return b.cuando.getTime() - a.cuando.getTime(); });
+  return lista;
+}
+
+/* Qué copia es «esa». Acepta el número de A5_respaldos, el nombre, el ID, o
+   nada / «ultimo» para la más reciente: quien restaura a las once de la noche
+   no debería tener que acertar con un ID de 44 caracteres. */
+function laCopia(copia, lista) {
+  var t = String(copia === undefined || copia === null ? '' : copia).trim();
+  if (!lista.length) throw new Error(
+    'No hay ninguna copia de esta hoja en la carpeta de respaldos.');
+  if (!t || /^(ultim|últim)/i.test(t)) return lista[0];
+  if (/^[0-9]+$/.test(t)) {
+    var n = parseInt(t, 10);
+    if (n >= 1 && n <= lista.length) return lista[n - 1];
+    throw new Error('Solo hay ' + lista.length + ' copias: pide entre 1 y ' + lista.length + '.');
+  }
+  var uno = lista.filter(function (x) { return x.id === t || x.nombre === t; })[0];
+  if (!uno) throw new Error(
+    'No encuentro esa copia entre las de esta hoja. Ejecuta A5_respaldos() para verlas.');
+  return uno;
+}
+
+/* Qué pestañas. Se piden por su nombre, separadas por comas: una lista vacía
+   NO significa «todas» —restaurar todo por un dedo resbalado es justo lo que
+   esto tiene que hacer imposible—. */
+function lasPestanas(pestanas) {
+  var pedidas = String(pestanas || '').split(',').map(function (x) { return x.trim(); })
+                  .filter(function (x) { return x; });
+  if (!pedidas.length) throw new Error(
+    'Dime qué pestañas restaurar, separadas por comas. Se puede: ' +
+    pestanasRestaurables().join(', ') + '.');
+  var fuera = pedidas.filter(function (x) { return pestanasRestaurables().indexOf(x) === -1; });
+  if (fuera.length) throw new Error(
+    'No se puede restaurar ' + fuera.join(', ') + '. Solo: ' + pestanasRestaurables().join(', ') +
+    '. Pedidos, Pagos, Datos de entrega, Avísame y el Registro son lo que pasó, ' +
+    'no lo que se configuró: traerlos de una copia borra las ventas de esta semana.');
+  return pedidas;
+}
+
+function restaurarDatos(copia, pestanas) {
+  var pedidas = lasPestanas(pestanas);
+  var elegida = laCopia(copia, listarRespaldos());
+
+  var origen;
+  try { origen = SpreadsheetApp.openById(elegida.id); }
+  catch (e) { throw new Error('No pude abrir la copia ' + elegida.nombre + ': ' + e.message); }
+
+  /* ¿ES UNA COPIA DE ESTA TIENDA? El prefijo del nombre ya lo dice, pero el
+     nombre se puede cambiar a mano. El comercio de su Configuración no. */
+  var mio = String(leerConfiguracion().negocio || '').trim();
+  var suyo = '';
+  try {
+    var hc = origen.getSheetByName(H_CONFIG);
+    if (hc) {
+      hc.getDataRange().getValues().forEach(function (f) {
+        if (String(f[0]).trim() === 'negocio') suyo = String(f[1] || '').trim();
+      });
+    }
+  } catch (e) { }
+  if (mio && suyo && mio !== suyo) throw new Error(
+    'Esa copia es de «' + suyo + '» y esta hoja es de «' + mio + '». No restauro ' +
+    'datos de otra tienda.');
+
+  /* Una copia ANTES: restaurar también se puede hacer mal. */
+  var seguridad = respaldarHoja();
+
+  var libro = elLibro();
+  var hechas = [], anotaciones = [];
+  pedidas.forEach(function (nombre) {
+    var de = origen.getSheetByName(nombre);
+    if (!de) throw new Error('La copia ' + elegida.nombre + ' no tiene la pestaña ' + nombre + '.');
+    var a = libro.getSheetByName(nombre);
+    if (!a) throw new Error('Esta hoja no tiene la pestaña ' + nombre + '.');
+    var datos = de.getDataRange().getValues();
+    var ancho = 0;
+    datos.forEach(function (f) { ancho = Math.max(ancho, f.length); });
+    if (!datos.length || !ancho) throw new Error('La pestaña ' + nombre + ' de la copia está vacía.');
+    var filasAntes = a.getLastRow();
+    /* SOLO EL CONTENIDO, no clear(): el formato, los anchos y las validaciones
+       de la pestaña viva son de la versión de hoy, no de la copia. Lo que se
+       restaura son los DATOS. */
+    if (filasAntes) a.getRange(1, 1, filasAntes, Math.max(1, a.getLastColumn())).clearContent();
+    a.getRange(1, 1, datos.length, ancho).setValues(datos.map(function (f) {
+      var g = f.slice(0, ancho);
+      while (g.length < ancho) g.push('');
+      return g;
+    }));
+    hechas.push({ pestana: nombre, filas: datos.length - 1, antes: Math.max(0, filasAntes - 1) });
+    anotaciones.push({ que: 'Restaurado desde una copia', donde: nombre,
+                       antes: Math.max(0, filasAntes - 1) + ' filas',
+                       despues: (datos.length - 1) + ' filas (' + elegida.nombre + ')' });
+  });
+
+  var dato = { fecha: new Date().toISOString(), desde: elegida.nombre,
+               pestanas: hechas.map(function (x) { return x.pestana; }),
+               seguridad: seguridad.nombre };
+  try { PropertiesService.getScriptProperties().setProperty('RESTAURACION', JSON.stringify(dato)); } catch (e) { }
+  try { anotarCambios('restaurar', 'A6_restaurarDatos', anotaciones); } catch (e) { }
+  try { cacheFuera(); } catch (e) { }
+
+  console.log('Restaurado desde ' + elegida.nombre + ': ' +
+              hechas.map(function (x) { return x.pestana + ' (' + x.filas + ' filas)'; }).join(', ') +
+              '.\nAntes de tocar nada se guardó ' + seguridad.nombre + '.' +
+              '\nAhora publica la tienda para que el sitio muestre lo restaurado.');
+  return { ok: true, desde: elegida.nombre, seguridad: seguridad.nombre, pestanas: hechas };
+}
+
+function ultimaRestauracion() {
+  try { return JSON.parse(
+    PropertiesService.getScriptProperties().getProperty('RESTAURACION') || '{}'); }
   catch (e) { return {}; }
 }
 
@@ -4237,6 +4429,20 @@ function atenderMenu(p) {
     return { ok: false, error:
       'Este stub no corresponde a esta tienda. Vuelve a generarlo: ejecuta ' +
       'generarStub() en el maestro y pega el código que imprime.' };
+  }
+  /* 0.18.0 · ¿ES ESTA HOJA? El stub manda el ID de la hoja donde está pegado.
+     Un stub generado desde el maestro de OTRA tienda lleva su URL y su token,
+     así que el menú aparece y funciona… sobre la hoja de esa otra tienda: se
+     publicaría su catálogo y se verían sus pedidos. Pasó (bitácora 76). El
+     token no alcanza para verlo, porque es el token correcto — del maestro
+     equivocado. El ID de la hoja sí. Un stub anterior a la 0.18.0 no manda
+     `h`: eso no se rechaza, para no dejar tiendas sin menú al actualizar. */
+  var suHoja = String(p.h || '');
+  if (suHoja && HOJA_ID && suHoja !== String(HOJA_ID)) {
+    return { ok: false, error:
+      'Este código es de OTRA tienda: apunta a un maestro que administra otra ' +
+      'hoja. Genera el stub desde el maestro de ESTA hoja (A1_generarStub) y ' +
+      'pega lo que imprime.' };
   }
   if (!p.f) return { ok: true, menu: menuDeLaHoja() };
   try {

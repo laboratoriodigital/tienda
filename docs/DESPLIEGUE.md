@@ -652,6 +652,29 @@ cuenta **sí** ve.
 > tienda y ninguna otra —una ventana de incógnito ayuda—. Si dice que no
 > tienes acceso, el secreto apunta al maestro de otra.
 
+## Volver atrás (0.18.0)
+
+Tres cosas se pueden perder, y cada una tiene su punto de restauración y su
+puerta. Ninguna inventa infraestructura: git ya guarda el sitio y las
+versiones, y Drive ya guarda las copias de la hoja.
+
+| Se perdió | Dónde está el respaldo | Cómo se vuelve |
+|---|---|---|
+| **Los datos** (catálogo, configuración, envíos, cupones) | las copias semanales en la carpeta de respaldos del administrador (`respaldo_carpeta`, ocho copias) | en el editor del maestro: `A5_respaldos()` las lista y `A6_restaurarDatos('ultimo', 'Catálogo')` devuelve las pestañas que se le digan |
+| **El sitio** (lo que se ve publicado) | cada commit de `main` que tocó `publicar/` | Actions › **restaurar** › `el-sitio` (vacío = el anterior). Publica un commit NUEVO encima; Cloudflare republica solo |
+| **La versión** (el código y el maestro) | las etiquetas `vX.Y.Z` de la semilla | Actions › **restaurar** › `la-version` (vacío = la anterior a la de esta tienda). Se lo pide a `montaje`, que publica el maestro, rehornea y corre las baterías |
+
+Las tres reglas que lo hacen seguro: **restaurar no borra** —el sitio vuelve en
+un commit encima, nunca con `push --force`, así que restaurar también se
+deshace—; **no se restaura lo que pasó** —Pedidos, Pagos, Datos de entrega,
+Avísame y el Registro no están en la lista, porque traer la copia del domingo
+un miércoles borraría las ventas del lunes—; y **antes de tocar nada se guarda
+una copia**, que es lo que hace que restaurar mal también tenga vuelta.
+
+El flujo `restaurar` viaja dentro de la semilla: cada tienda lo tiene en su
+pestaña Actions y no pide ningún secreto nuevo. Después de restaurar datos hay
+que **publicar** la tienda para que el sitio muestre lo restaurado.
+
 ## Y uno que solo aparece al rotar el token
 
 `A3_rotarToken()` cambia el token de montaje. Hay que llevarlo a **TRES** sitios:

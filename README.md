@@ -9,7 +9,7 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.17.0`.** Esta es **la semilla de la Tienda
+> **Estado: en construcción · `0.18.0`.** Esta es **la semilla de la Tienda
 > Panel** —el producto con panel web—. La **Tienda Básica** (solo la hoja, más
 > rápida) es otra línea, con su semilla en `laboratoriodigital/organico`
 > (decisión 20). Desde la 0.14.0 una tienda de esta línea se actualiza sola

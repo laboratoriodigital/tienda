@@ -6,6 +6,7 @@
   "propios": [
     "maestro.gs", "panel.gs", "plantilla/", "montar/", "pruebas/", "docs/",
     ".github/workflows/montaje.yml", ".github/workflows/fotos.yml", ".github/workflows/pruebas.yml",
+    ".github/workflows/restaurar.yml",
     "package.json", "package-lock.json", "CONTRIBUIR.md", "semilla.json",
     "preparar-fotos.mjs", "presupuesto.json", "terminos-prohibidos.json", ".gitattributes", ".gitignore"
   ]

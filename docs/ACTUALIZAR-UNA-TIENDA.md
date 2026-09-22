@@ -21,6 +21,21 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.18.0 (tienda): volver atrás, el portal — y REPEGAR EL STUB
+
+1. Actualizar como siempre (Panel › *Versión de tu tienda*, el menú, o `release`
+   → `montaje` con el maestro). Llega también el flujo `restaurar`.
+2. **Repegar el stub** en la hoja: el de antes no dice en qué hoja está pegado,
+   que es lo que impide que el stub de una tienda administre otra (bitácora 76).
+   En el maestro: `A1_generarStub` › copiar › Extensiones › Apps Script de la
+   hoja › pegar encima › guardar.
+3. En la hoja de administración (*Panel de tiendas*), pega el `panel.gs` nuevo:
+   suma el menú **Panel › Abrir el portal**.
+4. Nada más. Para volver atrás: `A5_respaldos()` y `A6_restaurarDatos()` en el
+   maestro (los datos), y Actions › `restaurar` (el sitio o la versión).
+
+---
+
 ## La 0.17.0 (tienda): HOJA_ID en las propiedades — una vez, a mano
 
 1. Actualizar como siempre (Panel › *Versión de tu tienda*, el menú, o `release`

@@ -1954,3 +1954,44 @@ final (R1). Y la hoja tomó el mismo lenguaje que los dos paneles: tinta, un
 verde, un rojo, un ámbar, sin cuadrícula. Del flujo `alta` se fue
 `tienda-nueva.yml`, el formulario viejo con los campos que ya no se usan.
 **Lo prueban** `paneltiendas.js` (8) y 75 aserciones de la flota.
+
+**76 · El stub de la tienda equivocada.** El dueño contó que el menú de la hoja
+nueva solo le funcionó cuando pegó el stub «desde tienda» y no desde el
+repositorio clonado. Funcionaba, sí, y era el peor de los dos resultados: un
+stub generado por el maestro de OTRA tienda lleva la URL y el token de esa
+otra, así que el menú aparece, contesta y administra —publica el catálogo, lee
+los pedidos— de la tienda de al lado. El token no puede cazar esto: es el token
+correcto del maestro equivocado. Lo que sí distingue una hoja de otra es su
+ID, y el stub está pegado DENTRO de la hoja, así que ahora lo manda en cada
+petición y el maestro rechaza lo que no es suyo, diciendo qué hacer. Un stub
+anterior no manda nada y sigue funcionando: no se dejan tiendas sin menú por
+una comprobación nueva. **Lo prueban** 5 aserciones de `menu.js`.
+
+**77 · Volver atrás, que no existía.** Había copias semanales de la hoja, había
+etiquetas de cada versión y había un commit por publicación: tres puntos de
+restauración completos, y ninguna manera de volver a ellos que no fuera pegar
+celdas a mano o editar archivos en GitHub. El modelo, entero, son esas tres
+cosas con una puerta cada una: los datos, desde el editor del maestro
+(`A5_respaldos` los lista, `A6_restaurarDatos` devuelve pestañas sueltas); el
+sitio y la versión, desde el flujo `restaurar` de cada tienda. Tres decisiones
+lo sostienen. Restaurar **no borra**: el sitio vuelve en un commit NUEVO
+encima, nunca con un `push --force`, así que restaurar también se puede
+deshacer. Restaurar **no puede traer lo que pasó**: Pedidos, Pagos, Datos de
+entrega y el Registro no están en la lista, porque traer el domingo un
+miércoles borra las ventas del lunes para arreglar un catálogo. Y antes de
+tocar nada se guarda una copia, porque restaurar mal también es perder. La
+única pieza nueva fue una línea en `actualizar-semilla.mjs`: pedir una versión
+exacta ahora permite bajar, porque negarse ahí dejaba una tienda rota sin más
+salida que editarle los archivos. **Lo prueba** `restaurar.js` (21).
+
+**78 · «Aún no veo por dónde acceder».** El panel de tiendas eran tres pestañas
+y las acciones vivían en la pestaña Actions de otro repositorio: para mirar una
+tienda había que saber en qué columna estaba cada cosa, y para actuar, en qué
+flujo. El portal es una pantalla —menú de la hoja › **Abrir el portal**— con
+cada tienda, sus cifras y sus enlaces: ver la tienda, su panel, su repositorio,
+publicar, volver atrás; y arriba, alta, conectar y actualizar la flota. Se
+abre desde la hoja a propósito: no hay nada que desplegar ni que proteger,
+porque quien puede abrir la hoja ya es quien puede ver esto. Y abrirlo no
+consulta a ninguna tienda: pinta lo de la última actualización, que es lo que
+evita que mirar cueste ejecuciones de Apps Script. **Lo prueban** 7 aserciones
+de `paneltiendas.js`.

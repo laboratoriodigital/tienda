@@ -46,6 +46,43 @@ ok('  ...y lo que escribió el operador no se toca', f2[2] === 'Doña Rosa' && f
 ok('  ...y queda en la bitácora del panel', /conectar registró Café La Esquina/.test(JSON.stringify(g.filas('Bitácora'))));
 ok('LA COLUMNA NUEVA va al final (R1)', g.api.COL_TIENDAS[g.api.COL_TIENDAS.length - 1] === 'Producto' && g.api.COL_TIENDAS[14] === 'Notas');
 
+/* ═══ EL PORTAL (0.18.0 · bitácora 78) ═══
+   «No veo por dónde se entra»: ahora se entra por el menú de esta hoja, y lo
+   que se ve es una pantalla con cada tienda y sus enlaces. Lo que se vigila
+   aquí es que el portal NO consulte a las tiendas al abrirse —pinta lo de la
+   última actualización— y que escape lo que escribió el operador. */
+console.log = () => {};
+g.api.onOpen();
+console.log = decir;
+ok('EL PORTAL se abre desde el menú de la hoja',
+   g.menu.some(x => x[0] === 'Abrir el portal' && x[1] === 'abrirPortal'),
+   JSON.stringify(g.menu.map(x => x[0])));
+
+const peticionesAntes = g.peticiones.length;
+const tiendasPortal = [
+  { comercio: 'Café La Esquina', estado: 'Activa', producto: 'Tienda Panel', precio: 60000,
+    sitio: 'https://cafe.ejemplo/', repo: 'lab/cafe', notas: 'Paga el 5', token: 'tk', servicio: 'x' },
+  { comercio: 'Cinnamon <b>', estado: 'Pausada', producto: 'Tienda Básica', precio: 0,
+    sitio: '', repo: 'lab/cinnamon', notas: '' },
+  { comercio: 'La que se fue', estado: 'Cancelada', producto: '', precio: 99, sitio: '', repo: '', notas: '' }
+];
+const metricasPortal = [['Café La Esquina', 'En línea', '0.18.0']];
+const html = g.api.portalHtml(tiendasPortal, metricasPortal, { dueno: 'lab' });
+
+ok('  ...con cada tienda viva, y sin las canceladas',
+   /Café La Esquina/.test(html) && /Cinnamon/.test(html) && !/La que se fue/.test(html));
+ok('  ...y lleva a las acciones de la flota y a las de cada tienda',
+   /workflows\/alta\.yml/.test(html) && /workflows\/conectar\.yml/.test(html) &&
+   /lab\/cafe\/actions\/workflows\/montaje\.yml/.test(html) &&
+   /lab\/cafe\/actions\/workflows\/restaurar\.yml/.test(html));
+ok('  ...el panel solo de la Tienda Panel: la Básica no tiene admin.html',
+   /cafe\.ejemplo\/admin\.html/.test(html) && !/cinnamon.*admin\.html/i.test(html));
+ok('  ...escapa lo que escribió el operador', /Cinnamon &lt;b&gt;/.test(html) && !/Cinnamon <b>/.test(html));
+ok('  ...y ABRIRLO NO CONSULTA a ninguna tienda: pinta lo de la última actualización',
+   g.peticiones.length === peticionesAntes);
+ok('  ...y dice dónde se restauran los datos, que no es aquí',
+   /A6_restaurarDatos/.test(html));
+
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
 process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);
