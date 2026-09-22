@@ -1,14 +1,14 @@
 {
  "esquema": 1,
  "version": "2026-09-21-4",
- "generado": "2026-09-21T23:26:52.443Z",
+ "generado": "2026-09-22T01:47:43.283Z",
  "productos": [
   {
    "id": "ejemplo1",
    "nombre": "Producto de ejemplo — edítalo o bórralo",
    "formato": "Unidad",
    "categoria": "Ejemplos",
-   "precio": 19900,
+   "precio": 10000,
    "stock": 10,
    "descripcion": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
    "imagenes": [
@@ -34,6 +34,32 @@
       "verde"
      ]
     }
+   ],
+   "skus": [
+    {
+     "eleccion": "Talla: S · Color: Rosa",
+     "stock": 1
+    },
+    {
+     "eleccion": "Talla: S · Color: verde",
+     "stock": 5
+    },
+    {
+     "eleccion": "Talla: M · Color: Rosa",
+     "stock": 3
+    },
+    {
+     "eleccion": "Talla: M · Color: verde",
+     "stock": 1
+    },
+    {
+     "eleccion": "Talla: L · Color: Rosa",
+     "stock": 0
+    },
+    {
+     "eleccion": "Talla: L · Color: verde",
+     "stock": 0
+    }
    ]
   },
   {
@@ -53,9 +79,9 @@
  ],
  "envios": [
   {
-   "id": "ejemplo",
-   "nombre": "Recoger sin costo — ejemplo, edítalo o bórralo",
-   "valor": 0
+   "id": "nacional",
+   "nombre": "Envíos Nacionales (Ciudades Principales))",
+   "valor": 16900
   }
  ],
  "config": {
@@ -94,7 +120,7 @@
   "horario": "",
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
-  "autoria_url": "laboratoriodigital.co",
+  "autoria_url": "https://laboratoriodigital.co",
   "retracto_excepciones": "",
   "f_variantes": "Sí",
   "orden_catalogo": "Precio: de menor a mayor",
