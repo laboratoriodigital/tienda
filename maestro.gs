@@ -1669,42 +1669,51 @@ function cabecerasGitHub(tk) {
 
 /* Dispara el flujo `fotos`. Devuelve { ok, codigo, porQue }. */
 function dispararPublicacion() {
+  var d = dispararFlujo('fotos.yml', null, 'Publicar ahora');
+  if (d.ok) { try { propiedades().setProperty('PEDIDA_PUBLICACION', new Date().toISOString()); } catch (e) { } }
+  return d;
+}
+
+/* UN SOLO DISPARO A GITHUB para todo lo que el comercio pide desde la hoja o el
+   panel: publicar (`fotos`) y, desde la 0.14.0, actualizar la tienda
+   (`montaje` con la semilla). El mismo permiso —GITHUB_TOKEN, Actions: Read
+   and write sobre el repositorio de la tienda— sirve para los dos. */
+function dispararFlujo(archivo, entradas, quien) {
   var g = repositorioYPermiso();
   if (!g.repoOk) return { ok: false, falta: 'repositorio', repo: g.repo };
   if (!g.tk) return { ok: false, falta: 'permiso', repo: g.repo };
   var res;
+  var cuerpo = { ref: 'main' };
+  if (entradas) cuerpo.inputs = entradas;
   try {
     res = UrlFetchApp.fetch(
-      'https://api.github.com/repos/' + g.repo + '/actions/workflows/fotos.yml/dispatches',
+      'https://api.github.com/repos/' + g.repo + '/actions/workflows/' + archivo + '/dispatches',
       { method: 'post', contentType: 'application/json', headers: cabecerasGitHub(g.tk),
-        payload: JSON.stringify({ ref: 'main' }), muteHttpExceptions: true });
+        payload: JSON.stringify(cuerpo), muteHttpExceptions: true });
   } catch (e) {
-    anotarError('Publicar ahora no pudo hablar con GitHub', e.message);
+    anotarError(quien + ' no pudo hablar con GitHub', e.message);
     return { ok: false, porQue: 'No pude hablar con GitHub: ' + e.message };
   }
   var codigo = res.getResponseCode();
-  if (codigo === 204) {
-    try { propiedades().setProperty('PEDIDA_PUBLICACION', new Date().toISOString()); } catch (e) { }
-    return { ok: true, codigo: 204 };
-  }
+  if (codigo === 204) return { ok: true, codigo: 204 };
   var porQue =
     codigo === 401 ? 'El permiso no sirve o se venció. Hay que hacer uno nuevo.' :
     codigo === 403 ? 'El permiso existe pero no alcanza. Le falta Actions: Read and write.' :
     codigo === 404 ? 'No encuentro el repositorio ' + g.repo + ', o el permiso no lo incluye.' :
     codigo === 422 ? 'GitHub aceptó la petición pero no encontró la rama main.' :
                      'GitHub contestó ' + codigo + '.';
-  anotarError('Publicar ahora falló con ' + codigo, String(res.getContentText()).slice(0, 200));
+  anotarError(quien + ' falló con ' + codigo, String(res.getContentText()).slice(0, 200));
   return { ok: false, codigo: codigo, porQue: porQue };
 }
 
 /* La última corrida del flujo, tal como la ve GitHub. Sin repositorio o sin
    permiso no hay nada que preguntar, y se dice. */
-function ultimaCorrida() {
+function ultimaCorrida(archivo) {
   var g = repositorioYPermiso();
   if (!g.repoOk || !g.tk) return null;
   try {
     var res = UrlFetchApp.fetch('https://api.github.com/repos/' + g.repo +
-      '/actions/workflows/fotos.yml/runs?per_page=1&event=workflow_dispatch',
+      '/actions/workflows/' + (archivo || 'fotos.yml') + '/runs?per_page=1&event=workflow_dispatch',
       { headers: cabecerasGitHub(g.tk), muteHttpExceptions: true });
     if (res.getResponseCode() !== 200) return { error: 'GitHub contestó ' + res.getResponseCode() };
     var r = (JSON.parse(res.getContentText()).workflow_runs || [])[0];
@@ -1750,7 +1759,78 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-22-1';
+/* ══════════════════════════════════════════════════════════════════════════
+   0.14.0 · LA TIENDA SE ACTUALIZA SOLA, CUANDO EL DUEÑO LO PIDE
+   --------------------------------------------------------------------------
+   «Actualizar la tienda» (panel y menú de la hoja) dispara el flujo `montaje`
+   de ESTA tienda con `semilla: true`: trae la última versión publicada de su
+   semilla, publica el maestro, rehornea desde la hoja, corre TODAS las
+   baterías y solo entonces publica en main. Si algo falla después de publicar
+   el maestro, lo vuelve atrás solo. Lo mismo que hace la flota desde el
+   repositorio de servicio, pedido desde aquí.
+
+   Qué versión es esta tienda: VERSION_TIENDA, que una batería obliga a ser la
+   del package.json. Cuál es la última: las etiquetas de la semilla en GitHub,
+   con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
+   se dice «no lo sé», no «estás al día».
+   ══════════════════════════════════════════════════════════════════════════ */
+var VERSION_TIENDA = '0.14.0';
+var SEMILLA_REPO = 'laboratoriodigital/tienda';
+
+function versionMayor(a, b) {
+  var x = String(a || '').replace(/^v/, '').split('.').map(Number);
+  var y = String(b || '').replace(/^v/, '').split('.').map(Number);
+  if (x.length !== 3 || y.length !== 3 || x.concat(y).some(isNaN)) return null;
+  for (var i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  return false;
+}
+
+function ultimaDeLaSemilla() {
+  var g = repositorioYPermiso();
+  if (!g.tk) return { error: 'sin permiso' };
+  if (g.repo === SEMILLA_REPO) return { esSemilla: true };
+  try {
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + SEMILLA_REPO + '/tags?per_page=100',
+      { headers: cabecerasGitHub(g.tk), muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return { error: 'GitHub contestó ' + res.getResponseCode() };
+    var mejor = '';
+    (JSON.parse(res.getContentText()) || []).forEach(function (t) {
+      var n = String(t && t.name || '');
+      if (!/^v\d+\.\d+\.\d+$/.test(n)) return;
+      if (!mejor || versionMayor(n, mejor)) mejor = n;
+    });
+    return { ultima: mejor.replace(/^v/, '') };
+  } catch (e) { return { error: e.message }; }
+}
+
+function atenderActualizacion() {
+  var g = repositorioYPermiso();
+  var u = ultimaDeLaSemilla();
+  return { ok: true, version: VERSION_TIENDA, semilla: SEMILLA_REPO,
+           ultima: u.ultima || '', esSemilla: !!u.esSemilla,
+           hayNueva: u.ultima ? versionMayor(u.ultima, VERSION_TIENDA) : null,
+           porQue: u.error || '',
+           corrida: ultimaCorrida('montaje.yml'),
+           puede: g.repoOk && !!g.tk, falta: !g.repoOk ? 'repositorio' : !g.tk ? 'permiso' : '' };
+}
+
+function dispararActualizacion() {
+  return dispararFlujo('montaje.yml', { semilla: 'true', que: 'todo' }, 'Actualizar la tienda');
+}
+
+function atenderActualizar(p) {
+  return conOperacion(p, function () {
+    var d = dispararActualizacion();
+    if (d.ok) return { ok: true, pedida: new Date().toISOString(),
+                       _registro: [{ que: 'Pidió actualizar la tienda a la última versión', donde: 'Tienda',
+                                     antes: VERSION_TIENDA, despues: '' }] };
+    if (d.falta === 'repositorio') return { ok: false, error: 'Todavía no está dicho dónde vive la tienda (Configuración › repositorio).' };
+    if (d.falta === 'permiso') return { ok: false, error: 'Falta el permiso (GITHUB_TOKEN). Eso lo pone una vez quien montó la tienda.' };
+    return { ok: false, error: 'No se pudo pedir la actualización. ' + d.porQue };
+  });
+}
+
+var VERSION = '2026-09-22-2';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -3078,7 +3158,11 @@ var PUERTAS = {
   avisame:               { guarda: 'publica', fn: function (p) { return atenderAvisame(p); } },
   avisame_hecho:         { guarda: 'panel', soloPost: true, fn: atenderAvisameHecho },
   /* 0.13.0 · 2.2 · el colaborador: lo da y lo quita solo el dueño. */
-  colaborador:           { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderColaborador }
+  colaborador:           { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderColaborador },
+  /* 0.14.0 · actualizar la tienda a la última versión de su semilla. Solo el
+     dueño: publica el maestro y cambia el código de la tienda. */
+  actualizacion:         { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderActualizacion },
+  actualizar:            { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderActualizar }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -6535,6 +6619,8 @@ var ACCIONES_MENU = {
   clave:         { rotulo: 'Clave del panel',                        fn: claveDelPanel },
   diagnostico:   { rotulo: 'Diagnóstico',                           fn: diagnostico },
   ayuda:         { rotulo: 'Ayuda',                                 fn: ayuda },
+  /* 0.14.0 · al final (R1 del menú: lo que ya estaba no cambia de lugar). */
+  version:       { rotulo: 'Actualizar a la última versión', fn: actualizarLaTiendaDesdeElMenu },
   /* FUERA DEL MENÚ, PERO VIVAS. `generarConfiguracion` la sigue usando la
      puerta ?a=bloques, que es como el montaje escribe el index.html. Se
      quitaron del menú porque existían cuando montar la tienda era copiar y
@@ -6550,7 +6636,7 @@ var ACCIONES_MENU = {
    dentro del sitio, un cambio de precio espera un despliegue: el flujo de cada
    cuatro horas es el techo y este botón es el suelo. Es lo primero que un
    comerciante quiere después de tocar un precio. */
-var ORDEN_MENU = ['publicar', 'ver', 'actualizar', 'resumen', 'clave', 'diagnostico', 'ayuda'];
+var ORDEN_MENU = ['publicar', 'ver', 'actualizar', 'resumen', 'clave', 'diagnostico', 'ayuda', 'version'];
 /* generarStub NO está en el menú de la hoja: se ejecuta desde el maestro, que
    es donde estás cuando montas la tienda. Ponerlo en la hoja sería ofrecerle al
    cliente que se regenere a sí mismo. */
@@ -6796,6 +6882,23 @@ function haceCuanto(t) {
   if (min < 60)    return cuando + ' (hace ' + min + ' minutos)';
   if (min < 60 * 24) return cuando + ' (hace ' + Math.round(min / 60) + ' horas)';
   return cuando + ' (hace ' + Math.round(min / (60 * 24)) + ' días)';
+}
+
+function actualizarLaTiendaDesdeElMenu() {
+  var a = atenderActualizacion();
+  if (a.esSemilla) return { tipo: 'aviso', texto: 'Esta es la semilla: ya es la última versión.' };
+  if (a.hayNueva === false) return { tipo: 'aviso', texto:
+    'Tu tienda ya está en la última versión (' + a.version + ').' };
+  var d = dispararActualizacion();
+  if (!d.ok) return { tipo: 'aviso', texto: 'No se pudo pedir la actualización.\n\n' +
+    (d.falta === 'repositorio' ? 'Falta la fila «repositorio» en Configuración.' :
+     d.falta === 'permiso' ? 'Falta el permiso GITHUB_TOKEN (lo pone quien montó la tienda).' : d.porQue) };
+  anotarCambios('Menú', '', [{ que: 'Pidió actualizar la tienda a la última versión', donde: 'Tienda', antes: a.version, despues: a.ultima || '' }]);
+  return { tipo: 'aviso', texto:
+    'ACTUALIZANDO TU TIENDA' + (a.ultima ? ' A LA ' + a.ultima : '') + '\n\n' +
+    'Tarda entre 10 y 20 minutos. Tu tienda sigue vendiendo mientras tanto.\n\n' +
+    'Se trae la versión nueva, se prueban TODAS las baterías y solo entonces se ' +
+    'publica. Si algo falla, tu tienda queda como estaba.' };
 }
 
 function publicarAhora() {

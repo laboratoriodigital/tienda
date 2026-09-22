@@ -901,6 +901,77 @@ vive solo en `tiendas`, de grano fino y con vencimiento.
 
 ---
 
+## 20 · Dos productos, dos líneas que no se mezclan
+
+**Estado:** CERRADA el 22 de septiembre de 2026 (0.14.0). Reemplaza el
+«migrar las tiendas 3.x» de la decisión 19.
+
+### Qué hacía
+
+Se trataba la línea 3.x (`organico`) como una versión vieja de esta, y a
+Orgánico y Cinnamon Beauty como tiendas por migrar.
+
+### El límite real
+
+Su hoja es otra (Pagos, variantes, inventario con otras columnas): migrarlas
+era trabajo sin cliente que lo pidiera. Y las dos cosas se venden distinto.
+
+### La decisión
+
+Dos productos. **Tienda Básica** (`laboratoriodigital/organico`): solo la hoja
+de cálculo, sin panel web; las mismas funciones de venta, más rápida;
+gráficas en la hoja, y extras de pago posibles. **Tienda Panel**
+(`laboratoriodigital/tienda`, esta): el panel web, más fácil de manejar y más
+cara, y más lenta en cada gestión porque todo pasa por Apps Script. Cada una
+se actualiza desde su semilla; `tienda` todavía no tiene hijas.
+
+### Condición de disparo
+
+Si un comercio de la Básica pide el panel, se le da de alta una Panel y se
+pasa su catálogo a mano (es una hoja nueva, no una migración).
+
+### Contrapartida
+
+Dos semillas que mantener, y los arreglos comunes hay que llevarlos a las dos.
+
+---
+
+## 21 · La tienda se actualiza sola, desde su propio montaje
+
+**Estado:** CERRADA el 22 de septiembre de 2026 (0.14.0). Completa la 19.
+
+### Qué hacía
+
+La flota abría un pull request en cada tienda y una persona lo fusionaba y
+corría el montaje.
+
+### El límite real
+
+Se pidió todo automático, y que el dueño pueda pedir la actualización desde su
+panel o su menú. La flota no tiene los secretos de ninguna tienda (no puede
+rehornear), y el `GITHUB_TOKEN` de Actions no puede escribir flujos.
+
+### La decisión
+
+La actualización vive en la tienda: su `montaje` con `semilla: true` trae la
+última versión publicada (tres versiones, como la 19), publica el maestro si
+cambió, rehornea, corre TODAS las baterías y publica todo junto en main; si
+algo falla después de publicar el maestro, lo vuelve a publicar como estaba.
+Panel, menú y flota solo lo disparan. Para traer los flujos, la tienda lleva
+el secreto `SEMILLA_TOKEN`; sin él se trae todo lo demás y lo dice.
+
+### Condición de disparo
+
+Si una actualización necesita tocar la hoja (`A0_instalar`), el montaje no
+puede: queda escrito en ACTUALIZAR-UNA-TIENDA y el panel debería avisarlo.
+
+### Contrapartida
+
+Un token con permiso de escribir flujos en cada tienda Panel, y corridas de
+montaje más largas (todas las baterías).
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

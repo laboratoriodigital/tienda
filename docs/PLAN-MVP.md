@@ -1348,6 +1348,24 @@ agotado.
       tienda, en ensayo de fábrica, comparando contra tres versiones
       (decisión 19, bitácora 66).
 
+### 0.14.0 · Dos productos, la tienda que se actualiza sola, y el alta
+
+**P-2 · Dos productos**  · ✅ (decisión 20)
+- [x] Tienda Básica (`organico`) y Tienda Panel (`tienda`): líneas separadas en
+      `flota.json`, cada una con su semilla y su modo.
+
+**S3 v2 · Actualizar sin manos**  · 3 pts · ✅ (decisión 21, bitácora 68)
+- [x] `semilla.json` + `montar/semilla.mjs` + `montar/actualizar-semilla.mjs`.
+- [x] `montaje` con `semilla: true`: trae, publica el maestro, rehornea, corre
+      todas las baterías y publica en main; vuelve atrás el maestro si falla.
+- [x] Panel › Tienda › *Versión de tu tienda* y menú › *Actualizar a la última
+      versión* (solo el dueño).
+- [x] La flota dispara el montaje por anillos y espera; la Básica, por pull
+      request que se fusiona solo tras sus pruebas (salvo `publicar/index.html`).
+
+**3.3 · El alta**  · 2 pts · ✅ diseñado y probado sin red (bitácora 69)
+- [x] `tiendas` › alta › `crear` y `conectar`; falta su primera corrida real.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

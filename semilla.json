@@ -1,0 +1,12 @@
+{
+  "_leeme": "Qué es de la semilla. Lo leen montar/actualizar-semilla.mjs (la tienda se actualiza sola) y la flota. Una tienda NO edita este archivo: le llega con cada versión.",
+  "producto": "Tienda Panel",
+  "linea": "tienda",
+  "repositorio": "laboratoriodigital/tienda",
+  "propios": [
+    "maestro.gs", "panel.gs", "plantilla/", "montar/", "pruebas/", "docs/", "servicio/",
+    ".github/workflows/montaje.yml", ".github/workflows/fotos.yml", ".github/workflows/pruebas.yml",
+    "package.json", "package-lock.json", "CONTRIBUIR.md", "semilla.json",
+    "preparar-fotos.mjs", "presupuesto.json", "terminos-prohibidos.json", ".gitattributes", ".gitignore"
+  ]
+}

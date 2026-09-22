@@ -314,6 +314,8 @@ todos como vienen salvo dos:
 | `maestro` | **marcarlo** | Publica `maestro.gs` desde aquí. Pide los tres secretos de la sección anterior |
 | `confirmar` | escribir `PUBLICAR` | Solo hace falta si marcaste `maestro`: es la confirmación de que sí |
 | `aprobacion` | `automatica` — sin marcar lo contrario | El flujo publica directo en `main` cuando todo sale verde. `con-pull-request` deja un pull request abierto para mirarlo antes |
+| `semilla` | sin marcar | **Actualizar la tienda** (0.14.0): trae la última versión publicada de su semilla, publica el maestro si cambió, corre TODAS las baterías y publica en `main`, o vuelve atrás solo. Es lo que disparan el panel, el menú y la flota. Con `version` se pide una en particular. Para traer también los flujos hace falta el secreto `SEMILLA_TOKEN` |
+| `version` | vacío | Solo con `semilla`: qué versión traer (vacío = la última) |
 | `sin_guardia` | sin marcar | Se salta el guardia del presupuesto de tiempo (`presupuesto.json`). Para una corrida que se sabe que va a tardar de más — un catálogo enorme la primera vez, por ejemplo — y no se quiere que falle por eso |
 
 Hace, en este orden:
@@ -468,7 +470,7 @@ sale de `pago_texto`, o se arma con `pago_llave`, `pago_titular` y
 - Enseñarle las tres cosas del día a día: cambiar un precio → **Publicar
   ahora**; pedido nuevo → **Pagado**; algo raro → **Diagnóstico**.
 
-El menú de su hoja tiene siete opciones, y conviene nombrárselas todas una vez:
+El menú de su hoja tiene ocho opciones, y conviene nombrárselas todas una vez:
 
 | | |
 |---|---|
@@ -479,6 +481,7 @@ El menú de su hoja tiene siete opciones, y conviene nombrárselas todas una vez
 | **Clave del panel** | inventa la clave del panel y la enseña **una sola vez**. Cierra las sesiones abiertas |
 | **Diagnóstico** | revisa todo y dice qué está mal y dónde |
 | **Ayuda** | las preguntas de siempre, contestadas |
+| **Actualizar a la última versión** | dispara `montaje` con la semilla: trae la versión nueva, prueba todo, publica o vuelve atrás (0.14.0; repegar el stub para verla) |
 
 > **Si explicar esto toma más de 30 minutos, el hallazgo es de diseño, no del
 > comerciante. Anótalo.**

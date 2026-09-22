@@ -499,6 +499,20 @@ details.seccion[open]>summary{margin-bottom:4px}
         <p class="aviso" id="avisoColaborador" role="status" hidden></p>
       </details>
 
+      <!-- 0.14.0 · La versión de la tienda y el botón para actualizarla. Solo
+           el dueño: publica el maestro y cambia el código. -->
+      <details class="seccion tarjeta" id="seccionVersion" hidden>
+        <summary>Versión de tu tienda</summary>
+        <p class="dato" id="estadoVersion">Revisando…</p>
+        <p class="ayuda">Actualizar trae la última versión de la tienda, prueba TODO y solo entonces
+          publica. Tarda entre 10 y 20 minutos y tu tienda sigue vendiendo mientras tanto. Si algo falla,
+          queda como estaba.</p>
+        <div class="pie-form">
+          <button class="btn" type="button" id="actualizarTienda" hidden>Actualizar ahora</button>
+        </div>
+        <p class="aviso" id="avisoVersion" role="status" hidden></p>
+      </details>
+
       <details class="seccion tarjeta" id="seccionEnvios">
         <summary>Zonas de envío</summary>
         <p class="ayuda">Lo que el comprador elige al pedir. El código no se cambia después de creado: viaja en los pedidos.</p>
@@ -688,6 +702,7 @@ function cerrarSesion(motivo){
   $("#lista").innerHTML = ""; $("#tableroCifras").innerHTML = ""; $("#tableroGraficas").innerHTML = "";
   $("#camposTienda").innerHTML = ""; $("#listaEnvios").innerHTML = ""; $("#listaCupones").innerHTML = "";
   $("#seccionColaborador").hidden = true; $("#claveColaborador").hidden = true; $("#c-usuario").value = "";
+  $("#seccionVersion").hidden = true;
   $("#consultadoTablero").textContent = ""; $("#avisoCobro").hidden = true;
   mostrar("entrar");
   aviso("#avisoEntrar", motivo ? "info" : "", motivo || "");
@@ -1444,6 +1459,7 @@ async function cargarTienda(){
     pintarCupones();
     pintarCobro(estadoCobro);
     pintarColaborador(r.colaborador);
+    if (r.colaborador) cargarVersion();
   } catch (e) { if (e.message !== "sesion") aviso("#avisoTienda", "mal", "No se pudo hablar con tu tienda."); }
 }
 
@@ -1494,6 +1510,45 @@ async function cambiarColaborador(accion){
   } finally { botones.forEach(b => { b.disabled = false; }); }
 }
 $("#darColaborador").addEventListener("click", () => cambiarColaborador("crear"));
+
+/* ── 0.14.0 · La versión de la tienda ─────────────────────────────────────── */
+let opActualizar = null;
+async function cargarVersion(){
+  const sec = $("#seccionVersion");
+  sec.hidden = false;
+  try {
+    const r = await llamar("actualizacion");
+    if (!r.ok) { sec.hidden = true; return; }
+    const c = r.corrida || {};
+    const corriendo = c.estado && c.estado !== "completed";
+    let t = "Tu tienda está en la versión " + r.version + ". ";
+    if (r.esSemilla) t += "Esta es la semilla: es la última.";
+    else if (corriendo) t += "Se está actualizando ahora mismo.";
+    else if (r.hayNueva === true) t += "Hay una versión nueva: la " + r.ultima + ".";
+    else if (r.hayNueva === false) t += "Es la última.";
+    else t += "No pude saber si hay una más nueva" + (r.porQue ? " (" + r.porQue + ")" : "") + ".";
+    if (c.estado === "completed" && c.resultado && c.resultado !== "success") t += " La última actualización no terminó bien; la tienda quedó como estaba.";
+    $("#estadoVersion").textContent = t;
+    const b = $("#actualizarTienda");
+    b.hidden = !r.puede || r.esSemilla || corriendo || r.hayNueva === false;
+    b.textContent = r.hayNueva ? "Actualizar a la " + r.ultima : "Buscar y actualizar";
+  } catch (e) { if (e.message !== "sesion") $("#estadoVersion").textContent = "No pude revisar la versión."; }
+}
+async function actualizarTienda(){
+  const b = $("#actualizarTienda");
+  b.disabled = true;
+  if (!opActualizar) opActualizar = nuevaOperacion();
+  try {
+    const r = await llamar("actualizar", { op: opActualizar });
+    opActualizar = null;
+    if (!r.ok) { aviso("#avisoVersion", "mal", r.error || "No se pudo."); return; }
+    b.hidden = true;
+    aviso("#avisoVersion", "bien", "Listo: tu tienda se está actualizando. Tarda entre 10 y 20 minutos; puedes seguir trabajando.");
+  } catch (e) {
+    if (e.message !== "sesion") aviso("#avisoVersion", "mal", "Se perdió la conexión. Pulsa otra vez; no se va a repetir.");
+  } finally { b.disabled = false; }
+}
+$("#actualizarTienda").addEventListener("click", actualizarTienda);
 $("#quitarColaborador").addEventListener("click", () => cambiarColaborador("quitar"));
 
 function campoDe(c){

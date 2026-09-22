@@ -36,6 +36,7 @@ actualización automática de la flota (M6) sigue **fuera**, y es la entrega 1.1
 | **0.12.0** · la prueba real | **Hecho** el 21 de septiembre: el rastreo de un pago en línea llega aunque Bold devuelva a otra pestaña o navegador; filtros de pedidos al instante; ajustes sin parpadeo; mensajes de espera; el Registro dice quién aprobó el pago |
 | **0.12.1** · publicar dos veces | **Hecho** el 22 de septiembre: un «Publicar» que llega después de otro que ya publicó lo mismo sale en verde con «Ya estaba publicado» (bitácora 63) |
 | **0.13.0** · colaborador, vista previa, flota | **Hecho** el 22 de septiembre: un colaborador con menos permisos (decisión 18); «Vista previa» junto a Publicar; la flota v1 en `tiendas` con Orgánico y Cinnamon conectadas (decisión 19) |
+| **0.14.0** · dos productos, actualización sola, alta | **Hecho** el 22 de septiembre: Básica y Panel separadas (decisión 20); la tienda se actualiza sola desde su montaje, pedida desde el panel, el menú o la flota, con vuelta atrás (decisión 21); el alta en `tiendas` |
 | **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
 
 Los números de M1, que son los que deciden si cabe una tienda más:

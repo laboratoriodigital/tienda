@@ -28,6 +28,7 @@ CORTA="e2e.js movil.js enlace.js fotos.js exif.js config.js hoja.js montaje.js \
        respaldo.js seo.js plantilla.js varpag.js pagoweb.js comprador.js combinaciones.js rastreo.js avisame.js vistaprevia.js"
 
 decidir() {
+  [ "$GUARDIA" = "todas" ] && { echo todas; return; }
   [ "$GUARDIA" = "corta" ] && { echo corta; return; }
   [ -n "$GITHUB_REPOSITORY" ] && [ -n "$GH_TOKEN" ] || { echo "todas: no corre en un flujo de GitHub" >&2; echo todas; return; }
   # El último commit que tocó CÓDIGO: todo menos lo que escriben los propios

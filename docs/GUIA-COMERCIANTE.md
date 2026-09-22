@@ -69,6 +69,7 @@ pasarela. Lo suyo queda a su nombre en el Registro; puedes quitarle el acceso.
 | **Clave del panel** | Te da una clave nueva para entrar a tu panel. Se ve **una sola vez** |
 | **Diagnóstico** | Revisa todo y dice qué está mal y **dónde** |
 | **Ayuda** | Las preguntas de siempre, contestadas |
+| **Actualizar a la última versión** | Trae la versión nueva de tu tienda, la prueba y la publica (10 a 20 min) |
 
 Si el menú no se ve, recarga la página de la hoja.
 

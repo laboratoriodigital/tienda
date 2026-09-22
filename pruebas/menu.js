@@ -181,9 +181,13 @@ const stub = (() => { const g = crear('./as.js'); g.api.instalar();
      fijo convertía cada opción nueva en un rojo que no significaba nada, y un
      rojo que no significa nada enseña a subir el número sin mirar. Lo que este
      tope tiene que ver es el stub engordando por CUALQUIER OTRA RAZÓN. */
+  /* 0.14.0 · UNA OPCIÓN CUESTA DOS LÍNEAS, NO UNA: su fila en OPCIONES y su
+     `function accionN()`. El «64 + una» daba lo mismo con siete opciones
+     (57 + 2×7 = 71 = 64 + 7) y se rompió con la octava, sin que el stub
+     engordara por otra razón. La cuenta, ahora, es la de verdad. */
   const opciones = (stub.match(/id: '[a-z]+'/g) || []).length;
-  const tope = 64 + opciones;
-  ok('El stub sigue cabiendo en ' + tope + ' líneas de código (64 + una por opción)',
+  const tope = 57 + 2 * opciones;
+  ok('El stub sigue cabiendo en ' + tope + ' líneas de código (57 + dos por opción)',
      lineas.length <= tope, lineas.length + ' líneas con ' + opciones + ' opciones');
   // "inventario" y "catálogo" aparecen como rótulos del menú: eso es una
   // etiqueta, no una regla. Lo que no puede aparecer es aritmética del negocio.

@@ -2064,7 +2064,7 @@ const configurar = (g, clave, valor) => {
      /Solo el repositorio/.test(m),
      'las propiedades del script no están cifradas');
   ok('  ...y dispara el flujo que ya sabe fusionar solo',
-     /workflows\/fotos\.yml\/dispatches/.test(m),
+     /workflows\/fotos\.yml\/dispatches/.test(m) || /dispararFlujo\('fotos\.yml'/.test(m),
      'ese flujo corre las baterías y solo fusiona fotos y catálogo');
   ok('  ...y traduce el error de GitHub en vez de repetirlo',
      /codigo === 401/.test(m) && /codigo === 403/.test(m) && /codigo === 404/.test(m),

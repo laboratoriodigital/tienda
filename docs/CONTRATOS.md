@@ -659,6 +659,21 @@ al colaborador solo las claves de `CLAVES_DEL_COLABORADOR`; `guardar_configuraci
 rechaza las demás con `errores[clave]`, sin pedir clave ni contar intentos. En
 el Registro, lo suyo va como `usuario (colaborador)`.
 
+**`actualizacion`** (0.14.0, panel, **solo POST**, **solo el dueño**) — contesta
+`version` (`VERSION_TIENDA`, igual al `package.json`), `semilla`, `ultima`
+(la mayor etiqueta `vX.Y.Z` de la semilla, sin la `v`), `hayNueva`
+(`true`/`false`, o `null` si no se pudo saber, con `porQue`), `esSemilla`,
+`corrida` (la última de `montaje.yml` por despacho), `puede`, `falta`.
+**`actualizar`** (panel, solo POST, solo el dueño) — pide `op`; dispara
+`montaje.yml` en `main` con `inputs: { semilla: 'true', que: 'todo' }`. El menú
+de la hoja suma, al final, `version` → *Actualizar a la última versión*.
+
+**`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
+`propios` (rutas; las que acaban en `/` son carpetas). Lo leen
+`montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las
+entradas `semilla` (booleana) y `version`; con la semilla, las salidas del paso
+son `cambio`, `maestro`, `desde`, `hasta`.
+
 **La vista previa** (0.13.0 · 2.5): `index.html?vista` pide el catálogo a la
 puerta pública `catalogo` en vez de a `catalogo.json`, pone `noindex`, no deja
 pedir (`TIENDA_CERRADA` = el aviso de la vista), no cuenta «avísame» ni

@@ -1852,3 +1852,31 @@ grande: Orgánico y Cinnamon son de la línea 3.x, con otra hoja; se conectan a
 la flota con **su** semilla, y pasarlas a esta línea es una migración aparte.
 Vive en `laboratoriodigital/tiendas` (`flota.json`, `flota/`, flujo `flota`,
 35 pruebas sin red, una de punta a punta con repositorios de juguete).
+
+**67 · Dos productos, no una migración.** El dueño cambió el mapa: Orgánico y
+Cinnamon no son tiendas viejas por traer a esta línea, son **la Tienda
+Básica** —solo la hoja, más rápida—, y esta es **la Tienda Panel** —más fácil,
+más cara, más lenta—. Lo que ayer era la tarea 3.6 del roadmap hoy es un «no».
+Aprendizaje: la diferencia de esquema entre las dos hojas (bitácora 66) era
+la señal de que eran dos productos, no dos versiones.
+
+**68 · La tienda se actualiza sola, y dos cosas que no dejaba GitHub.** Todo
+automático pedía que alguien hiciera lo que hacía una persona: rehornear con
+los secretos de la tienda y fusionar. La flota no tiene esos secretos, así que
+la actualización se mudó al `montaje` de la propia tienda, que ya sabía
+publicar el maestro, hornear y probar. Dos muros: el `GITHUB_TOKEN` no puede
+escribir `.github/workflows` —se resolvió con `SEMILLA_TOKEN`, y sin él se trae
+lo demás y se dice—, y un maestro publicado antes de que fallen las baterías
+deja la tienda viva con un maestro que su index no espera —se resolvió
+volviendo a publicar el de antes, el del commit con el que arrancó la
+corrida—. Dos detalles que cazaron las pruebas: el contenido de una sección
+`<details>` cerrada no tiene `innerText` (hay que leer `textContent`), y el
+tope de líneas del stub contaba una por opción cuando cada una cuesta dos.
+**Lo prueba** `actualizar.js` (36), con repositorios de juguete de punta a punta.
+
+**69 · El alta, desde el repositorio de servicio.** `tiendas` › alta › crear
+hace lo que GitHub deja hacer desde ahí y deja escrito, con los datos de esa
+tienda, lo que no: la cuenta de Google, la hoja y el maestro (cada tienda en
+su cuenta, a propósito) y el diálogo de Cloudflare. `conectar` pone los
+secretos y dispara el primer montaje. Como el flujo aparcado de antes, no se
+documenta como el camino normal hasta que corra una vez de punta a punta.

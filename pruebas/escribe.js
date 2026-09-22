@@ -35,6 +35,7 @@ const MONTAR = path.join(RAIZ, 'montar');
 const T = [];
 const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 
+const ESCRIBE_SEMILLA = 'semilla.json › propios';
 const ARCHIVOS = fs.readdirSync(MONTAR).filter(f => f.endsWith('.mjs')).sort();
 
 /* ── El resolutor ─────────────────────────────────────────────────────── */
@@ -204,9 +205,18 @@ ARCHIVOS.forEach(nombre => {
     ...src.matchAll(/\.toFile\(\s*([^,()]+(?:\([^)]*\))?)\s*\)/g)
   ].map(m => m[1].trim());
 
+  /* 0.14.0 · LO QUE ES DE LA SEMILLA. semilla.mjs y actualizar-semilla.mjs
+     escriben, por definición, los archivos que semilla.json declara propios:
+     la lista vive allí y no aquí (patrón 2). Se declara así, literal, y a
+     cambio se exige que la escritura pase por esPropio(). */
+  const deLaSemilla = escribeResuelto.includes(ESCRIBE_SEMILLA);
+  if (deLaSemilla && llamadasEscritura.length) {
+    ok('  ...y solo escribe lo que esPropio() deja pasar', /if \(!esPropio\(ruta, propios\)\) continue;/.test(src));
+  }
   const sinCubrir = [];
   llamadasEscritura.forEach(expr => {
     resolver(expr, ctx).forEach(r => {
+      if (deLaSemilla && r.dinamico) return;
       if (!cubierta(r, escribeResuelto)) sinCubrir.push(expr + ' -> ' + r.valor + (r.dinamico ? '…' : ''));
     });
   });

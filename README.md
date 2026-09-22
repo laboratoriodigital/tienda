@@ -9,8 +9,11 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.13.0`.** Esta es **la semilla de la segunda
-> versión** del producto, que se llama **tienda**. Nace de la semilla de la
+> **Estado: en construcción · `0.14.0`.** Esta es **la semilla de la Tienda
+> Panel** —el producto con panel web—. La **Tienda Básica** (solo la hoja, más
+> rápida) es otra línea, con su semilla en `laboratoriodigital/organico`
+> (decisión 20). Desde la 0.14.0 una tienda de esta línea se actualiza sola
+> (panel, menú de la hoja o la flota en `laboratoriodigital/tiendas`). Nace de la semilla de la
 > línea anterior (`laboratoriodigital/organico`, 3.0.0). Los hitos del MVP
 > —M0 a M3, M3.5 (cobrar en línea con Bold, o seguir por WhatsApp) y M4 (el
 > tablero en el panel) y M5 (el comprador sigue su pedido con un enlace)— están

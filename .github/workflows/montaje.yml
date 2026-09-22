@@ -6,7 +6,9 @@
 # index, la tienda queda avisando que la versión de la hoja no es la que espera.
 # Aquí el orden está fijo y no depende de que nadie se acuerde.
 #
-#   1. maestro.gs   →  opcional, y hay que escribir PUBLICAR
+#   0. la semilla   →  opcional (`semilla`): la versión nueva del código
+#   1. maestro.gs   →  opcional, y hay que escribir PUBLICAR (solo con la
+#                      semilla, si trae un maestro nuevo, se publica sin más)
 #   2. index.html   →  el <head> y las 5 constantes, desde la hoja
 #   3. fotos        →  las nuevas del Drive del comercio, ya convertidas
 #   4. todas las baterías, SOBRE LOS ARCHIVOS YA MODIFICADOS
@@ -81,6 +83,16 @@ on:
         description: 'Saltarse el guardia del presupuesto de tiempo (corrida excepcional)'
         type: boolean
         default: false
+      # 0.14.0 · ACTUALIZAR LA TIENDA. Lo piden el panel, el menú de la hoja o
+      # la flota. Al final (R1): lo que ya se disparaba no cambia.
+      semilla:
+        description: 'Actualizar la tienda a la última versión de su semilla (código y maestro)'
+        type: boolean
+        default: false
+      version:
+        description: 'Con semilla: qué versión traer (vacío = la última publicada)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -96,11 +108,16 @@ concurrency:
 jobs:
   montar:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Con la semilla corren TODAS las baterías: más tiempo, a propósito.
+    timeout-minutes: ${{ inputs.semilla && 50 || 30 }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
+          # 0.14.0 · Con SEMILLA_TOKEN el empujón final puede llevar flujos
+          # (.github/workflows), que el GITHUB_TOKEN no puede escribir nunca.
+          # Sin él, todo sigue igual y la semilla deja los flujos pendientes.
+          token: ${{ secrets.SEMILLA_TOKEN || github.token }}
 
       - uses: actions/setup-node@v7
         with:
@@ -147,6 +164,19 @@ jobs:
           else
             echo "sigue=si" >> "$GITHUB_OUTPUT"
           fi
+
+      # ── 0. LA VERSIÓN NUEVA DE LA SEMILLA, si se pidió (0.14.0) ──
+      # Va ANTES de las dependencias —la versión nueva puede traer otras— y
+      # antes del maestro: si trae uno nuevo, el paso 1 lo publica sin pedir
+      # PUBLICAR, porque quien pidió actualizar ya lo pidió. No hace commit:
+      # todo sale junto al final, después de TODAS las baterías, o no sale.
+      - name: La versión nueva de la semilla
+        id: semilla
+        if: steps.hay.outputs.sigue == 'si' && inputs.semilla
+        env:
+          SEMILLA_TOKEN: ${{ secrets.SEMILLA_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: node montar/actualizar-semilla.mjs
 
       - name: Dependencias
         if: steps.hay.outputs.sigue == 'si'
@@ -210,10 +240,12 @@ jobs:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
           HOJA_ID: ${{ secrets.HOJA_ID }}
         run: |
-          if [ "${{ inputs.maestro }}" != "true" ]; then
+          # La semilla trajo un maestro nuevo: publicarlo es parte de lo pedido.
+          if [ "${{ steps.semilla.outputs.maestro }}" = "si" ]; then
+            echo "La versión nueva de la semilla trae un maestro nuevo: se publica." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ inputs.maestro }}" != "true" ]; then
             echo "publica=no" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if [ "${{ inputs.confirmar }}" != "PUBLICAR" ]; then
+          elif [ "${{ inputs.confirmar }}" != "PUBLICAR" ]; then
             echo "Marcaste publicar el maestro pero no escribiste PUBLICAR." >&2
             echo "Publicar el backend deja código nuevo atendiendo pedidos: se" >&2
             echo "confirma a propósito. No toqué nada." >&2
@@ -272,6 +304,7 @@ jobs:
       # existe sin estrenar URL, y al terminar pregunta ?a=bloques para
       # comprobar que el maestro publicado ABRE SU HOJA.
       - name: Publicar maestro.gs
+        id: publicado
         if: steps.quiere.outputs.publica == 'si'
         env:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
@@ -451,6 +484,11 @@ jobs:
           # wrangler.jsonc entra desde la historia A-3: el nombre del Worker lo
           # pone ahora el flujo, y si no se publicara no serviría de nada.
           PUBLICA="publicar/ wrangler.jsonc"
+          # 0.14.0 · Con la semilla, también lo que es de la semilla — la lista
+          # la dice semilla.json, no este archivo (patrón 2).
+          if [ "${{ steps.semilla.outputs.cambio }}" = "si" ]; then
+            PUBLICA="$PUBLICA $(node -p "require('./semilla.json').propios.join(' ')")"
+          fi
           git add -A -- $PUBLICA
           if git diff --cached --quiet -- $PUBLICA; then
             # UN "NO" TIENE QUE MOSTRAR SU TRABAJO. La primera vez que este paso
@@ -496,6 +534,9 @@ jobs:
               partes="${partes:+$partes · }el nombre del Worker"
             fi
             [ -z "$partes" ] && partes="archivos de publicar/"
+            if [ "${{ steps.semilla.outputs.cambio }}" = "si" ]; then
+              partes="la tienda pasa a la ${{ steps.semilla.outputs.hasta }} · $partes"
+            fi
             echo "resumen=$partes" >> "$GITHUB_OUTPUT"
 
             # Y el detalle entero, para que el cuerpo del pull request lo lleve
@@ -550,6 +591,9 @@ jobs:
         if: steps.cambios.outputs.hay == 'si'
         env:
           GH_TOKEN: ${{ github.token }}
+          # Código nuevo de la semilla: TODAS, sin atajos. La guardia corta
+          # solo vale para código que ya pasó la suite en este repositorio.
+          GUARDIA: ${{ steps.semilla.outputs.cambio == 'si' && 'todas' || '' }}
         run: |
           set -o pipefail
           cd pruebas
@@ -597,7 +641,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RESUMEN: ${{ steps.cambios.outputs.resumen }}
           DETALLE: ${{ steps.cambios.outputs.detalle }}
-          AUTO: ${{ inputs.aprobacion != 'con-pull-request' }}
+          AUTO: ${{ inputs.aprobacion != 'con-pull-request' || steps.semilla.outputs.cambio == 'si' }}
         run: |
           git config user.name  "montaje"
           git config user.email "noreply@github.com"
@@ -654,6 +698,29 @@ jobs:
             echo "Y si \`main\` está protegida y quieres que siga estándolo,"
             echo "dispara este flujo con **Cómo publicar lo que salga →"
             echo "con-pull-request**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 7. 0.14.0 · VOLVER ATRÁS SOLO ──
+      # La semilla trajo un maestro nuevo, se publicó, y después algo falló —una
+      # batería, el empujón—. En main no quedó nada nuevo, pero Google ya sirve
+      # el maestro nuevo con el index viejo. Se vuelve a publicar el maestro de
+      # antes, el del commit con el que arrancó esta corrida. Y se dice.
+      - name: Volver atrás el maestro
+        if: failure() && steps.publicado.outcome == 'success' && steps.semilla.outputs.maestro == 'si'
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          HOJA_ID: ${{ secrets.HOJA_ID }}
+          MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
+          MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
+        run: |
+          git show "${{ github.sha }}:maestro.gs" > maestro.gs
+          node montar/publicar-maestro.mjs 2>&1 | tail -5
+          {
+            echo "### Se volvió atrás"
+            echo ""
+            echo "La actualización no terminó bien, así que se volvió a publicar el"
+            echo "maestro de antes. **La tienda sigue como estaba.** El detalle de lo"
+            echo "que falló está arriba."
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Lo que se horneó no se tira aunque el pull request falle. Ya pasó una

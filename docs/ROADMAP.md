@@ -66,26 +66,15 @@ de abrir la página, y un intento fallido no dice si el número existe.
 *Aguanta esperar porque el comerciante sigue contestando a mano, que es trabajo
 suyo y no una venta rota.*
 
-**S3 · La flota que se actualiza sola**   [1.1 · VERSIÓN 1 HECHA el 22-sep-2026, en `laboratoriodigital/tiendas` — decisión 19]
-*Hecho: `flota.json` (líneas, anillos, lo que es de cada semilla), el flujo
-`flota` con `estado` (ESTADO.md) y `actualizar` (un pull request por tienda,
-en ensayo de fábrica), y la comparación contra tres versiones. Conectadas:
-Laboratorio Digital (línea `tienda`), Orgánico y Cinnamon Beauty (línea
-`organico`). Falta, en este orden: volver atrás solo, disparar el montaje
-desde la flota, el panel web de la flota, y migrar las tiendas 3.x a esta
-línea (su hoja cambia).*
-Que una tienda ya montada reciba una versión nueva sin manos. La secuencia,
-decidida: **sobrescribir** lo de la semilla —nunca fusionar—, **rehornear** desde
-su hoja, correr **todas** las baterías, y solo entonces empujar; publicar el
-maestro **verificando contra la tienda viva** —qué versión contesta y si abre su
-hoja, no el código de respuesta— y **volver atrás solo** si esa comprobación
-falla; y repartir **por anillos**, con la tienda de pruebas primero.
-Necesita, además, un secreto de organización de solo lectura sobre la semilla
-mientras sea privada, y un manifiesto por versión con las huellas de cada
-archivo.
-*Aguanta esperar porque en esta línea todavía no hay tiendas: una nueva se clona
-y nace al día. El día que haya cinco, la cuenta se da la vuelta — y el MVP ya
-deja hecha la mitad, con el horneado determinista y `publicar/` como producto.*
+**S3 · La flota que se actualiza sola**   [HECHA · v1 el 22-sep-2026, v2 automática en la 0.14.0 — decisiones 19 y 21]
+*Una **Tienda Panel** se actualiza sola: su `montaje` con `semilla: true` trae la
+última versión publicada, publica el maestro, rehornea, corre TODAS las
+baterías y publica en main —o vuelve atrás el maestro si algo falla—. Lo
+dispara el dueño (panel o menú de la hoja) o la flota (`tiendas` › flota ›
+actualizar), que va por anillos y se detiene si una falla. Una **Tienda
+Básica** (línea `organico`) se actualiza por pull request, que la flota
+fusiona sola tras las pruebas de la tienda, salvo si trae `publicar/index.html`.
+Falta: que la Básica aprenda a actualizarse sola, y el panel web de la flota.*
 
 
 ## Fase 2 · El panel crece   ·  después del MVP
@@ -133,14 +122,19 @@ deja de recibir actualizaciones **solo en ese archivo** y lo dice en cada
 corrida, con su edad. **No se construye hasta que exista el primer caso real**:
 maquinaria sin uso es superficie de fallo.
 
-**3.3 Alta de una tienda desde un formulario**   [APARCADO · escrito, sin usar]
+**3.3 Alta de una tienda desde un formulario**   [DISEÑADO · 0.14.0: `alta` en `laboratoriodigital/tiendas`, pendiente de su primera corrida · reemplaza al APARCADO]
+*El flujo `alta` de `tiendas` crea el repositorio desde la semilla de su línea,
+le pone su nombre, los permisos y las fusiones automáticas, `SEMILLA_TOKEN`, y
+su fila en `flota.json`; deja escrita la lista de Google y Cloudflare con los
+datos de esa tienda, y `conectar` pone los secretos y dispara el primer
+montaje. El camino documentado sigue siendo el manual hasta que corra una vez.*
 Crear el repositorio, ponerle su nombre, habilitar lo que hay que habilitar y
 cargar sus secretos. El flujo existe en este repositorio —`servicio/tienda-nueva.yml`—
 y está APARCADO a propósito: nunca se ha corrido de punta a punta, así que el
 camino documentado en `DESPLIEGUE.md` es el manual, que sí se ha corrido. Se
 retoma cuando montar una tienda a mano cueste más que mantener el flujo.
 
-**3.5 El panel de la flota**   [PENSADO · pedido el 22-sep-2026]
+**3.7 El panel de la flota**   [PENSADO · pedido el 22-sep-2026]
 Hoy la flota se ve en `ESTADO.md` y las cifras en la hoja *Panel de tiendas*.
 El paso siguiente es una página detrás de Cloudflare Access que junte las dos,
 con los botones de actualizar y publicar. Y encima, **tareas de valor para los
@@ -148,11 +142,21 @@ comercios**: el informe mensual, campañas de cupones y avisos de «volvió a
 llegar» para todas las tiendas a la vez — el marketing que un comercio solo no
 hace.
 
-**3.6 Migrar las tiendas 3.x a esta línea**   [PENSADO]
-Orgánico y Cinnamon Beauty tienen la hoja de la primera línea: Pagos con otras
-columnas, variantes en su propia pestaña. Pasarlas es un script que lleva la
-hoja a las columnas de la 0.x, ensayado sobre una copia, y después la flota
-las toma como a cualquiera.
+**3.8 Migrar las tiendas 3.x a esta línea**   [NO · 22-sep-2026 — decisión 20]
+Se descartó: la línea 3.x no es una versión vieja de esta, es **otro producto**,
+la **Tienda Básica** (solo la hoja, sin panel, más rápida). Orgánico y
+Cinnamon siguen en su línea y se actualizan desde Orgánico.
+
+**3.9 La Tienda Básica aprende a actualizarse sola**   [SIGUIENTE]
+Llevar a la semilla `organico` lo que la 0.14.0 le dio a la Panel —`semilla.json`,
+`montar/semilla.mjs`, `montar/actualizar-semilla.mjs`, la entrada `semilla`
+de su montaje, la opción del menú y la vuelta atrás—. Con eso la flota deja
+de abrir pull requests en la Básica y todo queda en un solo modo.
+
+**3.10 Las gráficas de la Básica, como extra**   [PENSADO]
+La Básica tiene sus números en la pestaña Tablero de la hoja. Las gráficas
+del panel (M4) pueden llegarle como una página aparte, detrás del mismo token
+del menú: un extra que se puede cobrar o regalar.
 
 **3.4 Sembrar los secretos desde el diagnóstico**   [MEDIDO]
 La mitad del tiempo de montaje se va copiando secretos de una pantalla a otra, y
