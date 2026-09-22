@@ -171,6 +171,104 @@ details.seccion[open]>summary{margin-bottom:4px}
 .grafica table.lineas th.n{text-align:right}
 .lista-corta{font-size:.88rem;margin:4px 0 0 18px}
 .alerta{color:var(--rojo);font-weight:600}
+
+/* ════════════════════════════════════════════════════════════════════════
+   0.15.0 · EL ASPECTO: MÍNIMO, SOBRIO, PROFESIONAL
+   ------------------------------------------------------------------------
+   Pedido del dueño. Va AL FINAL y solo retoca: los mismos selectores de
+   arriba, con otra tinta, más aire, bordes más suaves y un foco visible. No
+   cambia ni un id ni una clase —las baterías leen la página por ellos—, y no
+   trae fuentes de fuera: la política de seguridad no las deja, y en un
+   celular del mostrador la fuente del sistema es la que se lee mejor.
+   ════════════════════════════════════════════════════════════════════════ */
+:root{
+  --negro:#18181B;--tenue:#71717A;--linea:#E7E7EA;--fondo:#FAFAFA;--blanco:#fff;
+  --rojo:#B42318;--verde:#067647;--ambar:#93370D;--radio:10px;
+  --sombra:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --anillo:0 0 0 3px rgba(24,24,27,.10);
+}
+body{font:400 15px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+     letter-spacing:-.005em;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cv11" 1}
+.envoltura{max-width:920px;padding:0 20px}
+h2,h3,.titulo-bloque{letter-spacing:-.015em}
+
+.barra{background:rgba(255,255,255,.86);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px)}
+.barra .envoltura{height:60px}
+.barra h1{font-size:.98rem;font-weight:650;letter-spacing:-.01em}
+.barra h1 small{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tenue);
+  border:1px solid var(--linea);border-radius:99px;padding:2px 8px;margin-left:10px;vertical-align:2px}
+
+.btn{height:40px;padding:0 16px;border-radius:8px;font-weight:550;font-size:.88rem;letter-spacing:-.005em;
+     display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;
+     transition:background .15s,border-color .15s,box-shadow .15s,color .15s}
+.btn:hover:not(:disabled){background:#27272A;border-color:#27272A}
+.btn.linea{border-color:var(--linea);box-shadow:var(--sombra)}
+.btn.linea:hover:not(:disabled){background:#F4F4F5;border-color:#D4D4D8;color:var(--negro)}
+.btn.peligro{border-color:#FDA29B}
+.btn.peligro:hover:not(:disabled){background:#FEF3F2;color:var(--rojo);border-color:var(--rojo)}
+.btn.peligro.firme:hover:not(:disabled){background:#912018;color:#fff}
+.btn.chico{height:32px;padding:0 12px;font-size:.8rem}
+.btn:focus-visible,.campo:focus-visible,.enlace:focus-visible,summary:focus-visible,.chips button:focus-visible,.pestanas button:focus-visible{
+  outline:none;box-shadow:var(--anillo)}
+
+.tarjeta{border-color:var(--linea);border-radius:14px;padding:24px;box-shadow:var(--sombra)}
+label{font-size:.8rem;font-weight:550;color:#3F3F46;margin:16px 0 6px}
+.campo{border-color:#E4E4E7;border-radius:8px;padding:10px 12px;transition:border-color .15s,box-shadow .15s}
+.campo:hover{border-color:#D4D4D8}
+.campo:focus{border-color:#A1A1AA;box-shadow:var(--anillo)}
+.ayuda{font-size:.78rem;line-height:1.5}
+.aviso{border-radius:8px;border:1px solid transparent;font-size:.86rem}
+.aviso.mal{background:#FEF3F2;border-color:#FECDCA}
+.aviso.bien{background:#ECFDF3;border-color:#ABEFC6}
+.aviso.info{background:#FFFAEB;border-color:#FEDF89}
+
+#entrar{max-width:400px;margin:14vh auto 0}
+#entrar h2{font-size:1.35rem;font-weight:650}
+#entrar .btn{height:44px}
+
+.fila{border-radius:12px;padding:14px 16px;box-shadow:var(--sombra);transition:border-color .15s}
+.fila:hover{border-color:#D4D4D8}
+.fila h3{font-weight:600}
+.etiqueta{font-weight:550;border-radius:6px}
+
+.pestanas{gap:2px}
+.pestanas button{font-weight:550;padding:12px 14px}
+.pestanas button:hover{color:var(--negro)}
+
+.barra-publicar{border-radius:12px;padding:14px 16px;box-shadow:var(--sombra)}
+.barra-publicar.pendiente{border-color:#FEDF89;background:#FFFCF5}
+.barra-publicar.corriendo{border-color:#B2CCFF;background:#F5F8FF}
+.barra-publicar.mal{border-color:#FECDCA;background:#FFFBFA}
+.barra-publicar.bien{border-color:#ABEFC6;background:#F6FEF9}
+
+.chips button{border-color:var(--linea);padding:6px 12px;font-weight:500;transition:background .15s}
+.chips button:hover{background:#F4F4F5}
+.estado{font-weight:600;border-radius:6px;letter-spacing:.01em}
+.estado.nuevo{background:#FEF0C7;color:#93370D}.estado.pendiente_pago{background:#FFEAD5;color:#9C2A10}
+.estado.pagado{background:#DCFAE6;color:#067647}.estado.despachado{background:#D1E9FF;color:#175CD3}
+.estado.entregado{background:#F2F4F7;color:#344054}.estado.cancelado{background:#FEE4E2;color:#B42318}
+
+.titulo-bloque{font-size:1.1rem;font-weight:650;margin:28px 0 8px}
+details.seccion>summary{font-weight:600;padding:12px 0}
+details.seccion>summary::marker{color:#A1A1AA}
+.tarjeta.seccion{border-radius:14px;padding:8px 24px 16px}
+.fila-ajuste{border-radius:10px}
+
+.cifras{gap:12px}
+.cifra{border-radius:12px;padding:16px;box-shadow:var(--sombra)}
+.cifra .rotulo{font-size:.74rem;font-weight:550;text-transform:uppercase;letter-spacing:.06em}
+.cifra .valor{font-size:1.6rem;font-weight:650;letter-spacing:-.02em}
+.grafica h3{font-weight:600}
+.herramientas .check{margin:0;font-weight:400;color:var(--tenue)}
+.herramientas .check input{accent-color:var(--negro)}
+input[type=checkbox]{accent-color:var(--negro)}
+/* Con más aire en la tarjeta, las cifras de una tabla de gráfica ya no caben
+   en una línea en un celular: se parten, no empujan la página de lado. */
+.grafica table.lineas td.n{white-space:normal}
+.barra h1{min-width:0;flex:1 1 auto}
+.quien{flex-shrink:0;min-width:0}
+.quien #usuarioActual{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}
+@media (max-width:520px){ .envoltura{padding:0 16px} .tarjeta{padding:18px} .barra h1 small{display:none} }
 </style>
 </head>
 <body>

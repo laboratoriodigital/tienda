@@ -1880,3 +1880,29 @@ tienda, lo que no: la cuenta de Google, la hoja y el maestro (cada tienda en
 su cuenta, a propósito) y el diálogo de Cloudflare. `conectar` pone los
 secretos y dispara el primer montaje. Como el flujo aparcado de antes, no se
 documenta como el camino normal hasta que corra una vez de punta a punta.
+
+**70 · El primer alta: «gh: Not Found (HTTP 404)», y un formulario que pedía
+lo que todavía no existe.** El alta creaba la tienda con la API de plantillas
+(`/generate`), que exige la semilla marcada como *Template repository* y un
+token que la vea; falló con un 404 que no nombraba ninguna de las dos. Y el
+formulario pedía de entrada la URL del maestro y su token, que no existen
+hasta que la tienda tiene hoja. Ahora son dos flujos de tres campos: `alta`
+(nombre, comercio, producto) CLONA la última etiqueta de la semilla —ya no
+hace falta la marca de plantilla, y la tienda nace en una versión con nombre,
+la base de sus actualizaciones—, la limpia de lo que es de otra tienda
+(catálogo, fotos, fichas, imagen, dominio, `release`, `tienda.json`), y antes
+de tocar nada pregunta si el token ve la semilla y lo dice en palabras.
+`conectar` (nombre, URL, token) le pregunta al maestro por su hoja y su
+proyecto, le escribe a la hoja el comercio, la dirección y el repositorio sin
+pisar lo escrito, pone los secretos y dispara el primer montaje. Cloudflare
+pasó al final de la lista: conectado antes, publicaría lo que no es la tienda.
+**Lo prueban** 69 aserciones de `flota/pruebas.mjs`; control en rojo quitando
+la limpieza del dominio.
+
+**71 · El aspecto.** El dueño pidió el panel más sobrio. Se hizo con un
+bloque de CSS al final que solo retoca —tinta casi negra, un gris, bordes más
+suaves, más aire, foco visible, cifras tabulares—, sin tocar un id ni una
+clase, porque las baterías leen la página por ellos, y sin fuentes de fuera
+(la política de seguridad no las deja). El panel de la flota nació con el
+mismo lenguaje: una página estática que escribe el flujo `estado`, sin
+JavaScript, sin pedir nada al abrirse, para servir detrás de Cloudflare Access.

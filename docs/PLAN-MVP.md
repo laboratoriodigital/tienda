@@ -1366,6 +1366,19 @@ agotado.
 **3.3 · El alta**  · 2 pts · ✅ diseñado y probado sin red (bitácora 69)
 - [x] `tiendas` › alta › `crear` y `conectar`; falta su primera corrida real.
 
+### 0.15.0 · El alta que pide lo mínimo, y un aspecto más sobrio
+
+**3.3 · El alta, segunda versión**  · 2 pts · ✅ (bitácora 70)
+- [x] `alta`: tres campos; clona la última etiqueta de la semilla y la limpia
+      de lo que es de otra tienda; comprueba el token antes y lo dice.
+- [x] `conectar`: tres campos; saca la hoja y el proyecto del maestro, siembra
+      comercio, dirección y repositorio, pone los secretos y monta.
+- [x] El maestro acepta `repositorio` al sembrar.
+
+**D-12 · El aspecto**  · 1 pt · ✅ (bitácora 71)
+- [x] El panel del comercio: tinta, aire, bordes suaves, foco visible.
+- [x] El panel de la flota (`tiendas/panel/index.html`), con el mismo lenguaje.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

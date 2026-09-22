@@ -122,7 +122,7 @@ deja de recibir actualizaciones **solo en ese archivo** y lo dice en cada
 corrida, con su edad. **No se construye hasta que exista el primer caso real**:
 maquinaria sin uso es superficie de fallo.
 
-**3.3 Alta de una tienda desde un formulario**   [DISEÑADO · 0.14.0: `alta` en `laboratoriodigital/tiendas`, pendiente de su primera corrida · reemplaza al APARCADO]
+**3.3 Alta de una tienda desde un formulario**   [DISEÑADO · 0.15.0: `alta` + `conectar` en `laboratoriodigital/tiendas`, tres campos cada uno; la primera corrida falló en el 404 de la plantilla y se rehízo clonando la etiqueta — reemplaza al APARCADO]
 *El flujo `alta` de `tiendas` crea el repositorio desde la semilla de su línea,
 le pone su nombre, los permisos y las fusiones automáticas, `SEMILLA_TOKEN`, y
 su fila en `flota.json`; deja escrita la lista de Google y Cloudflare con los
@@ -134,7 +134,7 @@ y está APARCADO a propósito: nunca se ha corrido de punta a punta, así que el
 camino documentado en `DESPLIEGUE.md` es el manual, que sí se ha corrido. Se
 retoma cuando montar una tienda a mano cueste más que mantener el flujo.
 
-**3.7 El panel de la flota**   [PENSADO · pedido el 22-sep-2026]
+**3.7 El panel de la flota**   [VERSIÓN 1 · 0.15.0: `tiendas/panel/index.html`, estático, lo escribe `estado`; falta servirlo detrás de Cloudflare Access y sumarle las cifras del Panel de tiendas]
 Hoy la flota se ve en `ESTADO.md` y las cifras en la hoja *Panel de tiendas*.
 El paso siguiente es una página detrás de Cloudflare Access que junte las dos,
 con los botones de actualizar y publicar. Y encima, **tareas de valor para los

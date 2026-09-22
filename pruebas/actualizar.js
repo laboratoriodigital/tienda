@@ -48,7 +48,7 @@ function tienda() {
 }
 function red(t, o) {
   o = o || {};
-  t.g.responder('/tags', () => o.tagsCaidos ? { codigo: 404, cuerpo: 'no' } : { cuerpo: (o.tags || ['v0.13.0', 'v0.15.0', 'v0.9.9', 'raro']).map(n => ({ name: n })) });
+  t.g.responder('/tags', () => o.tagsCaidos ? { codigo: 404, cuerpo: 'no' } : { cuerpo: (o.tags || ['v0.13.0', 'v99.1.0', 'v0.9.9', 'raro']).map(n => ({ name: n })) });
   t.g.responder('/dispatches', (url, op) => { t.disparos.push({ url, cuerpo: JSON.parse(op.payload || '{}') }); return { codigo: 204, cuerpo: '' }; });
   t.g.responder('/runs?', () => ({ cuerpo: { workflow_runs: [] } }));
 }
@@ -69,7 +69,7 @@ function red(t, o) {
     const t = tienda(); red(t);
     const a = post(t.g, { a: 'actualizacion', k: t.k });
     ok('EL PANEL SABE la versión de la tienda y la última de la semilla (la mayor, no la última de la lista)',
-       a.ok && a.version === paquete.version && a.ultima === '0.15.0' && a.hayNueva === true, JSON.stringify(a).slice(0, 120));
+       a.ok && a.version === paquete.version && a.ultima === '99.1.0' && a.hayNueva === true, JSON.stringify(a).slice(0, 120));
     const r = post(t.g, { a: 'actualizar', k: t.k, op: op() });
     const d = t.disparos[0] || {};
     ok('ACTUALIZAR dispara montaje con la semilla, en main', r.ok && /\/workflows\/montaje\.yml\/dispatches$/.test(d.url || '') &&
@@ -94,7 +94,7 @@ function red(t, o) {
   {
     const t = tienda(); red(t);
     const m = t.g.api.actualizarLaTiendaDesdeElMenu();
-    ok('  ...y con una versión nueva, la pide y explica qué pasa', /ACTUALIZANDO TU TIENDA A LA 0\.15\.0/.test(m.texto) &&
+    ok('  ...y con una versión nueva, la pide y explica qué pasa', /ACTUALIZANDO TU TIENDA A LA 99\.1\.0/.test(m.texto) &&
        t.disparos.some(d => /montaje\.yml/.test(d.url)), m.texto.split('\n')[0]);
     ok('  ...y la opción está al final del menú (lo que había no cambia de lugar)',
        /var ORDEN_MENU = \[[^\]]*'ayuda', 'version'\]/.test(maestro));

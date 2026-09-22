@@ -668,6 +668,9 @@ el Registro, lo suyo va como `usuario (colaborador)`.
 `montaje.yml` en `main` con `inputs: { semilla: 'true', que: 'todo' }`. El menú
 de la hoja suma, al final, `version` → *Actualizar a la última versión*.
 
+**`sembrar`** (montaje) acepta además, al final, `repositorio` (0.15.0): lo
+escribe `conectar` desde el repositorio de servicio.
+
 **`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
 `propios` (rutas; las que acaban en `/` son carpetas). Lo leen
 `montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las

@@ -21,14 +21,22 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.15.0 (tienda): el aspecto del panel — nada a mano
+
+1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`
+   (o, desde ahora, Panel › Tienda › *Versión de tu tienda* › Actualizar).
+2. Nada en la hoja. El panel se ve más sobrio; no cambió ningún botón de lugar.
+
+---
+
 ## La 0.14.0 (tienda): la tienda se actualiza sola — el stub, una vez
 
 1. `git push` → `release` (deja la etiqueta **v0.14.0**: desde ahora las tiendas
    se actualizan a etiquetas) → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
 2. **El stub, una vez**: en el maestro `A1_generarStub()` y pegarlo en la hoja,
    para que el menú muestre *Actualizar a la última versión*.
-3. **La semilla, marcada como plantilla**: Settings › *Template repository*, para
-   que el alta de `tiendas` pueda crear tiendas desde ella.
+3. ~~La semilla, marcada como plantilla~~ — desde la 0.15.0 el alta clona la
+   etiqueta y no lo necesita (bitácora 70).
 4. **Opcional, `SEMILLA_TOKEN`** en cada tienda Panel (de grano fino: la semilla
    en lectura; la tienda con *Contents* y *Workflows* en escritura). Sin él la
    tienda se actualiza igual, pero sin traer los flujos.

@@ -1774,7 +1774,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.14.0';
+var VERSION_TIENDA = '0.15.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1830,7 +1830,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-2';
+var VERSION = '2026-09-22-3';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -3804,7 +3804,12 @@ function atenderBloques(p) {
    ========================================================================== */
 var SEMBRABLES = ['negocio', 'whatsapp', 'sitio_url', 'fotos_origen',
                   'fotos_drive', 'respaldo_carpeta', 'correo_resumen',
-                  'fotos_webp'];
+                  'fotos_webp',
+                  /* 0.15.0 · al final: el alta (`conectar`, en el repositorio
+                     de servicio) ya sabe de qué repositorio es la tienda.
+                     Sin esto, Publicar y Actualizar desde el panel esperaban a
+                     que alguien lo escribiera a mano. */
+                  'repositorio'];
 
 function escribirConfiguracion(cambios) {
   var h = elLibro().getSheetByName(H_CONFIG);
@@ -3853,7 +3858,7 @@ function atenderSembrar(p) {
     if (Object.keys(cambios).length) escritos = escribirConfiguracion(cambios);
 
     var faltan = SEMBRABLES.filter(function (k) {
-      if (k === 'fotos_webp' || k === 'correo_resumen') return false;
+      if (k === 'fotos_webp' || k === 'correo_resumen' || k === 'repositorio') return false;
       var v = String(c[k] === undefined ? '' : c[k]).trim();
       if (cambios[k]) return false;
       return !v || v === String(valorDeFabrica(k)).trim();
