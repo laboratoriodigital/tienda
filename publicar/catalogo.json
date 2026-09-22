@@ -1,7 +1,7 @@
 {
  "esquema": 1,
- "version": "2026-09-21-4",
- "generado": "2026-09-22T01:47:43.283Z",
+ "version": "2026-09-21-5",
+ "generado": "2026-09-22T03:09:01.116Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -81,7 +81,7 @@
   {
    "id": "nacional",
    "nombre": "Envíos Nacionales (Ciudades Principales))",
-   "valor": 16900
+   "valor": 0
   }
  ],
  "config": {
@@ -130,6 +130,7 @@
   "tienda_abierta": "Sí",
   "tienda_cerrada_mensaje": "",
   "pedido_minimo": "",
+  "f_rastreo": "Sí",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""
