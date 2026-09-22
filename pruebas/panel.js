@@ -613,7 +613,7 @@ function panel(tiendas, respuestas) {
   ok('  ...el plan también', (t.getRange(2, 6).getDataValidation() || {})._lista.length === 4);
   ok('El encabezado va pintado, no en blanco',
      t.getRange(1, 1)._nada === undefined &&
-     (t._formato.get('1,1') || {}).fondo === '#14472B',
+     (t._formato.get('1,1') || {}).fondo === '#18181B',
      String((t._formato.get('1,1') || {}).fondo));
   ok('  ...y congelado, para que no se pierda al bajar',
      t._filasFijas === 1 && t._columnasFijas === 2);

@@ -1929,3 +1929,28 @@ lo elegido de verdad pasa: una zona sin *Transformations* activado deja la
 tienda viéndose igual, sin el ahorro, y nadie se entera. Montaje y Publicar
 ahora lo preguntan con una foto del catálogo y lo dicen, sin tumbar nada.
 **Lo prueba** `fotoscdn.js` (8).
+
+**74 · «Falta HOJA_ID» en `conectar`, con el diagnóstico diciendo que sí.** El
+primer `conectar` de verdad paró ahí, y el dueño tenía razón en extrañarse: el
+diagnóstico abría la hoja. Los dos tenían razón. El editor y
+`diagnosticoCompleto` corren el código de la cabeza; la aplicación web corre la
+**versión implementada**, y esa era de antes de pegar `HOJA_ID`. El orden de
+DESPLIEGUE lo invitaba: implementar (paso 5) antes de instalar (paso 7). Desde
+la 0.17.0 `A0_instalar` guarda `HOJA_ID` también en las propiedades del script
+—que son de todas las versiones— y el maestro las lee si la constante llega
+vacía; el mensaje dice las dos salidas, y `conectar` también. La tienda que ya
+existe necesita una sola vez *Implementar › Gestionar implementaciones › lápiz
+› Nueva versión*. **Lo prueba** `hojaid.js` (5).
+
+**75 · La hoja de administración de tiendas se llena sola.** La hoja «Panel de
+tiendas» era el registro del negocio, pero cada tienda había que pegarla a mano
+con su servicio y su token: lo mismo que `conectar` ya sabía. Ahora la hoja
+tiene una puerta de escritura (`doPost` · `registrar_tienda`) con su propia
+clave (menú › *Clave para el alta*, guardada en sus propiedades) y `conectar`
+le deja la fila si tiendas tiene `PANEL_URL` y `PANEL_CLAVE`. Una tienda que ya
+estaba solo actualiza servicio, token, sitio y producto: contacto, plan,
+precio y notas son del operador y no se tocan. La columna *Producto* va al
+final (R1). Y la hoja tomó el mismo lenguaje que los dos paneles: tinta, un
+verde, un rojo, un ámbar, sin cuadrícula. Del flujo `alta` se fue
+`tienda-nueva.yml`, el formulario viejo con los campos que ya no se usan.
+**Lo prueban** `paneltiendas.js` (8) y 75 aserciones de la flota.

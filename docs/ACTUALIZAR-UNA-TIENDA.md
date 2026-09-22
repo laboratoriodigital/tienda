@@ -21,6 +21,20 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.17.0 (tienda): HOJA_ID en las propiedades — una vez, a mano
+
+1. Actualizar como siempre (Panel › *Versión de tu tienda*, el menú, o `release`
+   → `montaje` con el maestro).
+2. **Una sola vez**, si el maestro se implementó antes de pegar `HOJA_ID`: en el
+   editor, `A0_instalar`, y *Implementar › Gestionar implementaciones › lápiz ›
+   Versión: Nueva versión › Implementar* (la URL no cambia).
+3. La hoja **Panel de tiendas** (la de administración, no la de la tienda):
+   pega el `panel.gs` nuevo, ejecuta `instalar` (suma la columna *Producto*),
+   menú › *Clave para el alta*, e impleméntala como aplicación web. La URL y la
+   clave van como `PANEL_URL` y `PANEL_CLAVE` en `tiendas`.
+
+---
+
 ## La 0.16.0 (tienda): el permiso se siembra, las fotos se comprueban — nada a mano
 
 1. Actualizar como siempre (Panel › *Versión de tu tienda*, el menú, o `release`

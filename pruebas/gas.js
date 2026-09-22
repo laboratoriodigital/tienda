@@ -32,7 +32,9 @@ function crear(rutaScript, opciones) {
   let menu = [];
   let hayInterfaz = true;
   let idAbierto = null;
-  let props = {};
+  /* Propiedades con las que nace el proyecto (0.17.0): las que ya estaban
+     guardadas antes de que se evalúe el código, como pasa en Apps Script. */
+  let props = Object.assign({}, (opciones && opciones.props) || {});
   let urlServicio = opciones.url === undefined ? 'https://script.google.com/macros/s/EMULADO/exec' : opciones.url;
 
   const celda = v => (v === undefined || v === null ? '' : v);

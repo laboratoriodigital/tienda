@@ -4,7 +4,7 @@
   "linea": "tienda",
   "repositorio": "laboratoriodigital/tienda",
   "propios": [
-    "maestro.gs", "panel.gs", "plantilla/", "montar/", "pruebas/", "docs/", "servicio/",
+    "maestro.gs", "panel.gs", "plantilla/", "montar/", "pruebas/", "docs/",
     ".github/workflows/montaje.yml", ".github/workflows/fotos.yml", ".github/workflows/pruebas.yml",
     "package.json", "package-lock.json", "CONTRIBUIR.md", "semilla.json",
     "preparar-fotos.mjs", "presupuesto.json", "terminos-prohibidos.json", ".gitattributes", ".gitignore"

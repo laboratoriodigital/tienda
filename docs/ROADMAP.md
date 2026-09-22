@@ -128,13 +128,11 @@ le pone su nombre, los permisos y las fusiones automáticas, `SEMILLA_TOKEN`, y
 su fila en `flota.json`; deja escrita la lista de Google y Cloudflare con los
 datos de esa tienda, y `conectar` pone los secretos y dispara el primer
 montaje. El camino documentado sigue siendo el manual hasta que corra una vez.*
-Crear el repositorio, ponerle su nombre, habilitar lo que hay que habilitar y
-cargar sus secretos. El flujo existe en este repositorio —`servicio/tienda-nueva.yml`—
-y está APARCADO a propósito: nunca se ha corrido de punta a punta, así que el
-camino documentado en `DESPLIEGUE.md` es el manual, que sí se ha corrido. Se
-retoma cuando montar una tienda a mano cueste más que mantener el flujo.
+*0.17.0: el flujo viejo (`servicio/tienda-nueva.yml` aquí y su copia en
+tiendas), el que pedía de entrada el repositorio, la URL, el token, la
+plantilla y si era privado, se borró: lo reemplazan `alta` y `conectar`.*
 
-**3.7 El panel de la flota**   [VERSIÓN 1 · 0.15.0: `tiendas/panel/index.html`, estático, lo escribe `estado`; falta servirlo detrás de Cloudflare Access y sumarle las cifras del Panel de tiendas]
+**3.7 El panel de la flota**   [VERSIÓN 1 · 0.15.0: `tiendas/panel/index.html`, estático, lo escribe `estado`; falta servirlo detrás de Cloudflare Access y sumarle las cifras del Panel de tiendas · 0.17.0: la hoja *Panel de tiendas* se llena sola desde `conectar` (bitácora 75)]
 Hoy la flota se ve en `ESTADO.md` y las cifras en la hoja *Panel de tiendas*.
 El paso siguiente es una página detrás de Cloudflare Access que junte las dos,
 con los botones de actualizar y publicar. Y encima, **tareas de valor para los

@@ -56,6 +56,14 @@
 // El ID de la hoja de cálculo del cliente. Va en la URL de la hoja, entre
 // /d/ y /edit.  https://docs.google.com/spreadsheets/d/AQUÍ_VA/edit
 var HOJA_ID = '';
+/* 0.17.0 · SI LA CONSTANTE LLEGA VACÍA, LA QUE GUARDÓ A0_instalar. La
+   aplicación web corre la VERSIÓN IMPLEMENTADA, no lo que hay en el editor: si
+   el ID se pegó después de implementar, el editor lo tiene y el diagnóstico
+   sale bien, pero la tienda —y `conectar`— contestan «Falta HOJA_ID» (bitácora
+   74). Las propiedades del script son de TODAS las versiones: A0_instalar,
+   que se corre con el ID puesto, lo deja allí, y desde entonces pegar el ID no
+   obliga a volver a implementar. */
+if (!HOJA_ID) { try { HOJA_ID = String(PropertiesService.getScriptProperties().getProperty('HOJA_ID') || ''); } catch (e) { } }
 
 /* ══════════════════════════════════════════════════════════════════════════
    LAS QUE SE EJECUTAN A MANO, JUNTAS Y EN ORDEN
@@ -1776,7 +1784,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.16.0';
+var VERSION_TIENDA = '0.17.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1850,7 +1858,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-4';
+var VERSION = '2026-09-22-5';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -1858,7 +1866,9 @@ function elLibro() {
   if (!HOJA_ID) {
     throw new Error(
       'Falta HOJA_ID. Ábrela en Google Sheets, copia lo que va entre /d/ y ' +
-      '/edit en la URL, y pégalo arriba en la constante HOJA_ID.');
+      '/edit en la URL, pégalo arriba en la constante HOJA_ID y ejecuta A0_instalar. ' +
+      'Si ya estaba pegado: la versión IMPLEMENTADA es anterior; Implementar › ' +
+      'Gestionar implementaciones › lápiz › Versión: Nueva versión.');
   }
   return SpreadsheetApp.openById(HOJA_ID);
 }
@@ -1968,6 +1978,8 @@ function instalar() {
       'Script y pega el código ALLÍ. Ese proyecto sí queda unido a la hoja.');
   }
   console.log('Instalando en la hoja: ' + libro.getName());
+  /* 0.17.0 · el ID queda también en las propiedades (ver arriba, HOJA_ID). */
+  try { propiedades().setProperty('HOJA_ID', String(HOJA_ID)); } catch (e) { }
   var cat = hoja(H_CATALOGO, ENCABEZADO_CATALOGO);
   asegurarColumnas(H_CATALOGO, ENCABEZADO_CATALOGO);   // hojas viejas: agrega lo que falte
   if (cat.getLastRow() < 2) {

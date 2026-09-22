@@ -676,6 +676,18 @@ montaje), `tk` (un token de GitHub: `github_pat_…` o `ghp_…`) y opcional
 `forzar: 'si'`. Lo guarda como `GITHUB_TOKEN` en las propiedades del script si
 no había uno (o si se fuerza). Contesta `ok`, `puesto`, `yaEstaba`; nunca el token.
 
+**`HOJA_ID` en las propiedades** (0.17.0): `A0_instalar` la guarda; si la
+constante llega vacía (versión implementada de antes), el maestro la lee de ahí.
+La constante, si está, manda.
+
+**El Panel de tiendas escribe** (0.17.0, `panel.gs` › `doPost`, **solo POST**) —
+`{ a: 'registrar_tienda', clave, comercio, repo, sitio, producto, servicio,
+token }`. `clave` = `CLAVE_ALTA` de las propiedades de esa hoja (menú › *Clave
+para el alta*). Valida `repo` (`dueño/nombre`) y `servicio` (`/exec`). Si el
+repositorio ya está, cambia solo sitio, servicio, token (columnas 10–12) y
+producto (16); si no, agrega la fila *En montaje*. Contesta `ok`, `fila`,
+`nueva`. La pestaña Tiendas suma al final la columna **Producto** (R1).
+
 **`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
 `propios` (rutas; las que acaban en `/` son carpetas). Lo leen
 `montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las

@@ -1390,6 +1390,18 @@ agotado.
 - [x] Las dos maneras, la de siempre de fábrica; el panel dice qué da cada una.
 - [x] Montaje y Publicar comprueban que Cloudflare de verdad transforma.
 
+### 0.17.0 · HOJA_ID en la versión implementada, y la hoja de administración
+
+**C-1 · «Falta HOJA_ID» al conectar**  · 1 pt · ✅ (bitácora 74)
+- [x] `A0_instalar` guarda `HOJA_ID` en las propiedades; el maestro las lee si
+      la constante llega vacía. El mensaje y `conectar` dicen cómo salir.
+
+**3.7b · La hoja de administración de tiendas**  · 1 pt · ✅ (bitácora 75)
+- [x] Puerta `registrar_tienda` con clave propia; `conectar` registra la tienda
+      (`PANEL_URL` + `PANEL_CLAVE`) sin tocar lo del operador.
+- [x] Columna *Producto* al final; el aspecto de los paneles.
+- [x] Fuera `tienda-nueva.yml`, el alta con los campos viejos.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

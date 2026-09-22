@@ -9,7 +9,7 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.16.0`.** Esta es **la semilla de la Tienda
+> **Estado: en construcción · `0.17.0`.** Esta es **la semilla de la Tienda
 > Panel** —el producto con panel web—. La **Tienda Básica** (solo la hoja, más
 > rápida) es otra línea, con su semilla en `laboratoriodigital/organico`
 > (decisión 20). Desde la 0.14.0 una tienda de esta línea se actualiza sola
@@ -38,7 +38,6 @@ código**: todos salen de la pestaña `Configuración` de su hoja.
 | `.github/workflows/` | Los mismos pasos, corriendo desde GitHub Actions |
 | `pruebas/` | Baterías sobre el código real, no sobre una copia. `./pruebas/todas.sh` |
 | `docs/` | `PLAN-MVP.md`: qué se construye ahora. `ROADMAP.md`: qué viene después. **`CONTRATOS.md`: el contrato de datos, normativo.** `TRASPASO.MD`: el contexto completo. `ARQUITECTURA.md`, `DECISIONES.md`, `BITACORA.md`, `DESPLIEGUE.md` y la guía del comerciante |
-| `servicio/` | El alta de una tienda. **No corre aquí** |
 | `originales/` | Fotos pesadas. **No se versiona**: viven en el Drive del comercio |
 
 ## Cómo se pone a andar una tienda

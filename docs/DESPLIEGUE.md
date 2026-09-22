@@ -16,7 +16,7 @@ hasta que el comercio está vendiendo, en orden, y con quién hace cada cosa.
 
 ---
 
-## El camino corto (0.16.0): `alta` y `conectar`
+## El camino corto (0.17.0): `alta` y `conectar`
 
 Desde `laboratoriodigital/tiendas` › Actions, dos flujos de tres campos cada uno
 hacen los pasos **1, 10 (menos `CLASPRC`), 11** y el permiso de GitHub del
@@ -29,6 +29,16 @@ maestro. Lo que queda es lo de Google, que vive en la cuenta de cada tienda.
 | **conectar** | [Actions › conectar](https://github.com/laboratoriodigital/tiendas/actions/workflows/conectar.yml) › *Run workflow*: nombre corto, Servicio, Token | Le pregunta al maestro su hoja y su proyecto; pone `MAESTRO_URL`, `MAESTRO_TOKEN`, `HOJA_ID` y `SCRIPT_ID`; escribe en la hoja el comercio, la dirección y el repositorio; le pone al maestro su `GITHUB_TOKEN` (con `DISPARO_TOKEN`); dispara el primer montaje |
 | Cloudflare | tú, **cuando ese montaje termine** | Paso **2**: Import a repository. Al final a propósito: antes publicaría lo que todavía no es esta tienda |
 | **a mano, solo** | tú | `CLASPRC` (paso 10): la credencial de Google de la tienda. Nadie más puede crearla |
+
+> **Implementa DESPUÉS de pegar `HOJA_ID` y correr `A0_instalar`** (bitácora 74).
+> La aplicación web corre la versión implementada, no lo que ves en el editor:
+> si pegas algo después, *Implementar › Gestionar implementaciones › lápiz ›
+> Versión: Nueva versión*. Desde la 0.17.0 `A0_instalar` guarda `HOJA_ID` en las
+> propiedades y basta con ejecutarlo; si `conectar` dice «Falta HOJA_ID», es esto.
+>
+> **La hoja de administración** (*Panel de tiendas*) se entera sola si
+> `tiendas` tiene `PANEL_URL` (su aplicación web) y `PANEL_CLAVE` (su menú ›
+> *Clave para el alta*): `conectar` le deja la fila.
 
 Los pasos numerados de abajo siguen siendo el procedimiento completo y el de
 referencia: son los que el camino corto hace por ti. El camino corto todavía
@@ -82,9 +92,8 @@ Desde la plantilla. Nombre `organico-<comercio>`. **Pública**: Actions es
 gratis e ilimitado en repositorios públicos; en privados son 2.000 minutos al
 mes para toda la cuenta, repartidos entre todas las tiendas.
 
-> Hay un flujo que hace este paso solo, `servicio/tienda-nueva.yml`, y está
-> aparcado a propósito — ver `ROADMAP.md`, 3.3. Con pocas tiendas, hacerlo a
-> mano cuesta menos que mantenerlo.
+> Este paso lo hace solo el flujo `alta` de `laboratoriodigital/tiendas` (el
+> camino corto, arriba). El de antes, `tienda-nueva.yml`, se fue en la 0.17.0.
 
 Y **la casilla que se olvida siempre**: Settings → Actions → General →
 Workflow permissions → *Read and write permissions*. Sin ella `montaje` y

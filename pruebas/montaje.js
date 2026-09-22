@@ -1326,57 +1326,17 @@ const configurar = (g, clave, valor) => {
    la primera. En el equipo eso lo detecta `npm run tienda`; desde el navegador
    no hay quien avise. Por eso lo hace el flujo. */
 {
-  /* Vive en servicio/ y NO en .github/workflows/: este repositorio es la
-     plantilla, y pedirle el nombre de un repositorio nuevo desde dentro del que
-     ya es el nuevo no tiene sentido. Corre desde el repositorio de servicio,
-     que es donde está el único token capaz de crear repositorios. Se queda
-     versionado aquí porque aquí están estas aserciones. */
-  const alta = fs.readFileSync('../servicio/tienda-nueva.yml', 'utf8');
-
-  ok('EL ALTA NO ES UN FLUJO DE LA PLANTILLA',
+  /* 0.17.0 · EL ALTA VIEJA SE FUE. `servicio/tienda-nueva.yml` pedía de
+     entrada el repositorio, la URL del maestro, su token, la plantilla y si era
+     privado: cosas que no existen cuando la tienda todavía no existe. Lo
+     reemplazan `alta` y `conectar` en laboratoriodigital/tiendas, tres campos
+     cada uno, con sus aserciones allá (flota/pruebas.mjs). Aquí se comprueba
+     que no vuelva: ni como flujo de la semilla (cada tienda lo heredaría) ni
+     como copia que se separe de la de tiendas. */
+  ok('EL ALTA VIEJA NO EXISTE: ni en la semilla ni como copia para tiendas',
      !fs.existsSync('../.github/workflows/tienda-nueva.yml') &&
-     fs.existsSync('../servicio/tienda-nueva.yml'),
-     'cada tienda heredaría un flujo que no va a usar nunca');
-  ok('  ...y dice dónde sí corre, para que las dos copias no se separen',
-     /laboratoriodigital\/tiendas/.test(alta) && /NO CORRE AQUÍ/.test(alta) &&
-     /laboratoriodigital\/tiendas/.test(fs.readFileSync('../servicio/README.md', 'utf8')));
-  ok('  ...y toma la plantilla de una entrada, no de sí mismo',
-     /inputs\.plantilla/.test(alta) && /plantilla:/.test(alta),
-     'corre desde otro repositorio: no puede generarse a partir de él');
-
-  ok('EL ALTA le pone a la tienda su propio nombre en wrangler.jsonc',
-     /"name":\\s\*"\[\^"\]\*"/.test(alta) && /wrangler\.jsonc/.test(alta),
-     'dos tiendas con el mismo name son el mismo Worker');
-  ok('  ...y se planta si no encuentra esa clave, en vez de seguir',
-     /No encontré la clave name/.test(alta));
-  ok('  ...y no toca un repositorio que ya existe',
-     /gh repo view/.test(alta) && /No toco nada/.test(alta));
-  ok('  ...ni acepta un nombre con caracteres que GitHub no admite',
-     /\^\[A-Za-z0-9\._-\]\+\$/.test(alta));
-
-  ok('DEJA PUESTOS los dos secretos de la tienda',
-     /gh secret set MAESTRO_URL/.test(alta) && /gh secret set MAESTRO_TOKEN/.test(alta));
-  ok('  ...comprobando la URL antes: la /dev solo sirve para el dueño',
-     /macros\/s\/\*\/exec/.test(alta) && /tk-\*/.test(alta));
-
-  /* El GITHUB_TOKEN de un flujo no puede crear repositorios ni escribir
-     secretos en otros. No hay forma de evitar un token con esos permisos, y lo
-     que sí se puede es no dejarlo sin explicar. */
-  ok('EXIGE SU PROPIO TOKEN y dice por qué el del flujo no sirve',
-     /ALTA_TOKEN/.test(alta) && /no puede crear repositorios/.test(alta) &&
-     /Administration/.test(alta) && /vencimiento/.test(alta));
-  ok('  ...y si no está, lo dice en el resumen en vez de fallar sin más',
-     /Falta el secreto/.test(alta));
-
-  /* La casilla que, sin marcar, deja que montaje corra entero, funcione, y
-     falle en la última línea al abrir el pull request. Era el paso manual más
-     fácil de olvidar del runbook. */
-  ok('DEJA A ACTIONS abrir pull requests, sin que nadie marque la casilla',
-     /actions\/permissions\/workflow/.test(alta) &&
-     /can_approve_pull_request_reviews=true/.test(alta));
-  ok('  ...y deja el squash puesto, que es como fusiona el flujo de fotos',
-     /allow_squash_merge=true/.test(alta) && /delete_branch_on_merge=true/.test(alta),
-     'fotos fusiona con --squash --delete-branch cada cuatro horas');
+     !fs.existsSync('../servicio/tienda-nueva.yml'),
+     'el alta vive en laboratoriodigital/tiendas: alta + conectar');
 
   /* CUANDO NO SE PUEDE PUBLICAR, HAY QUE DECIR POR QUÉ. GitHub contesta con un
      error de permisos en una anotación al pie, y para verla hay que saber que
@@ -1394,44 +1354,13 @@ const configurar = (g, clave, valor) => {
        'ya se perdió un catálogo con el runner una vez');
   }
 
-  ok('DICE QUÉ FALTA, que es lo que no puede hacer',
-     /Connect to Git/.test(alta) && /cuenta de Google/.test(alta),
-     'Cloudflare y Google son del navegador');
-
-  /* UN FORMULARIO ACEPTA LO QUE SEA QUE SE PEGUE. La primera corrida de verdad
-     falló con "unsupported protocol scheme" porque en `plantilla` fue la URL
-     del navegador y la API pide dueño/repositorio pelado. Pedirle rigor a quien
-     llena el formulario es la solución que no funciona: la barra de direcciones
-     está ahí al lado. */
-  ok('NORMALIZA lo que venga del formulario antes de tocar la API',
-     /Leer el formulario/.test(alta) && /limpiar\(\)/.test(alta) &&
-     /s#\^\[a-zA-Z\]\*:\/\/##/.test(alta) && /s#\\.git\$##/.test(alta),
-     'una URL pegada en plantilla tumbaba el alta entera');
-  ok('  ...y se planta con lo que no se puede normalizar, diciendo qué recibió',
-     /dueño\/repositorio, no como URL/.test(alta) && /recibido:/.test(alta));
-  ok('  ...y usa el valor limpio, no el crudo, en TODAS partes',
-     !/inputs\.plantilla \}\}\/generate/.test(alta) &&
-     (alta.match(/steps\.datos\.outputs\./g) || []).length >= 4,
-     'normalizar y después usar el original es peor que no normalizar');
-
-  /* APARCADO, y eso también se comprueba. Un flujo escrito, probado y fuera del
-     camino es útil; un flujo escrito, probado y que el mapa de despliegue
-     manda a usar sin que nadie lo haya corrido contra una tienda de verdad,
-     no. Desde la 3.0.0 el mapa es un solo documento, DESPLIEGUE.md — los
-     cuatro que existían antes se consolidaron ahí y se borraron. */
+  /* El mapa de despliegue manda al camino corto (alta + conectar), no al
+     flujo viejo. */
   {
     const mapa = fs.readFileSync('../docs/DESPLIEGUE.md', 'utf8');
-    const roadmap = fs.readFileSync('../docs/ROADMAP.md', 'utf8');
-    /* Solo el tramo del repositorio (paso 1), no el documento entero: más
-       abajo el mapa vuelve a decir «tienda nueva» hablando de clonar la
-       plantilla, que no tiene nada que ver con el flujo aparcado, y una
-       regla sin acotar lo confundía con una instrucción a usarlo. */
-    const paso1 = mapa.slice(0, mapa.indexOf('## 2 ·'));
-    ok('EL ALTA ESTÁ APARCADA, y el roadmap dice por qué',
-       /APARCADO/.test(roadmap) && /tienda-nueva\.yml/.test(roadmap));
-    ok('  ...y el mapa de despliegue no manda a usarla como camino normal',
-       /aparcado a propósito/.test(paso1),
-       'el camino documentado es el que se ha corrido de verdad');
+    ok('  ...y el mapa de despliegue manda a alta y conectar',
+       /El camino corto/.test(mapa) && /actions\/workflows\/conectar\.yml/.test(mapa) &&
+       !/servicio\/tienda-nueva\.yml/.test(mapa));
   }
 
   /* Aquí SÍ tiene que coincidir: el flujo que el mapa manda a disparar en cada

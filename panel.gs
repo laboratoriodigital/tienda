@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-var VERSION_PANEL = '2026-09-10-d';
+var VERSION_PANEL = '2026-09-22-a';
 
 var H_TIENDAS  = 'Tiendas';
 var H_METRICAS = 'Métricas';
@@ -42,7 +42,10 @@ var H_DESPLIEGUES = 'Despliegues';
 var COL_TIENDAS = ['Estado', 'Comercio', 'Contacto', 'Celular', 'Correo',
                    'Plan', 'Precio mensual', 'Día de cobro', 'Alta',
                    'Sitio', 'Servicio (URL /exec)', 'Token',
-                   'Cuenta Google', 'Repositorio', 'Notas'];
+                   'Cuenta Google', 'Repositorio', 'Notas',
+                   /* 0.17.0 · al final (R1): Tienda Básica o Tienda Panel. La
+                      escribe `conectar` al registrar la tienda. */
+                   'Producto'];
 
 /* Las columnas de Métricas, cada una con de dónde sale y cómo se ve. Están
    así y no como dos listas paralelas porque una lista de rótulos y otra de
@@ -195,12 +198,15 @@ var PLANES  = ['Básico', 'Estándar', 'Completo', 'Cortesía'];
 
 /* La paleta del panel. Sobria a propósito: esto no es la tienda, es la
    herramienta de trabajo de quien la vende. */
-var VERDE  = '#14472B';
-var ROJO   = '#B3261E';
-var AMBAR  = '#8A6100';
-var GRIS   = '#6E6E6E';
-var LINEA  = '#E4E4E4';
-var FONDO  = '#F7F7F5';
+/* 0.17.0 · la misma tinta que el panel de las tiendas y el de la flota:
+   encabezados casi negros, un gris, un color por estado. */
+var TINTA  = '#18181B';
+var VERDE  = '#067647';
+var ROJO   = '#B42318';
+var AMBAR  = '#93370D';
+var GRIS   = '#71717A';
+var LINEA  = '#E7E7EA';
+var FONDO  = '#FAFAFA';
 
 var ANCHO_BARRA = 20;
 
@@ -215,6 +221,7 @@ function onOpen() {
     .addItem('Cobros de este mes',           'verCobros')
     .addItem('Traer ejecuciones de GitHub',  'actualizarDespliegues')
     .addSeparator()
+    .addItem('Clave para el alta',           'claveParaElAlta')
     .addItem('Diagnóstico',                  'verDiagnostico')
     .addToUi();
 }
@@ -234,7 +241,8 @@ function instalar() {
       'Cortesía', 0, 1, new Date(),
       'https://[la-tienda].[tu-cuenta].workers.dev/',
       '', '', '', 'laboratoriodigital/[repositorio]',
-      'Fila de ejemplo. Reemplázala: pega aquí la URL /exec y el token del maestro.'
+      'Fila de ejemplo. Reemplázala: pega aquí la URL /exec y el token del maestro.',
+      'Tienda Panel'
     ]]);
   }
 
@@ -350,7 +358,8 @@ function leerTiendas() {
       token:     String(f[11] || '').trim(),
       cuenta:    String(f[12] || '').trim(),
       repo:      String(f[13] || '').trim(),
-      notas:     String(f[14] || '').trim()
+      notas:     String(f[14] || '').trim(),
+      producto:  String(f[15] || '').trim()
     };
   }).filter(function (t) { return t.comercio; });
 }
@@ -574,7 +583,7 @@ function formatoTablero(h, L) {
    .setVerticalAlignment('middle');
 
   // Título
-  h.getRange(1, 1, 1, 3).merge().setBackground(VERDE).setFontColor('#FFFFFF')
+  h.getRange(1, 1, 1, 3).merge().setBackground(TINTA).setFontColor('#FFFFFF')
    .setFontSize(14).setFontWeight('bold').setHorizontalAlignment('left');
   h.setRowHeight(1, 40);
 
@@ -585,7 +594,7 @@ function formatoTablero(h, L) {
 
     if (esTitulo) {
       h.getRange(fila, 1, 1, 3).merge().setBackground(FONDO)
-       .setFontWeight('bold').setFontColor(VERDE).setFontSize(11);
+       .setFontWeight('bold').setFontColor(TINTA).setFontSize(11);
       h.setRowHeight(fila, 28);
     } else if (a || L[i][1] !== '') {
       h.getRange(fila, 3).setFontColor(GRIS).setFontSize(9);
@@ -1074,6 +1083,10 @@ function presentar() {
   t.setColumnWidth(7, 120); t.setColumnWidth(8, 100); t.setColumnWidth(9, 100);
   t.setColumnWidth(10, 260); t.setColumnWidth(11, 320); t.setColumnWidth(12, 230);
   t.setColumnWidth(13, 220); t.setColumnWidth(14, 200); t.setColumnWidth(15, 320);
+  t.setColumnWidth(16, 130);
+  /* 0.17.0 · sin cuadrícula y en una sola fuente: se lee como un tablero. */
+  t.setHiddenGridlines(true);
+  t.getRange(1, 1, Math.max(t.getLastRow(), 2), COL_TIENDAS.length).setFontFamily('Arial');
 
   var n = Math.max(t.getLastRow() - 1, 50);
   lista(t, 1, n, ESTADOS, 'Activa, En montaje, Pausada o Cancelada');
@@ -1119,7 +1132,7 @@ function rotulos(h, lista) {
 }
 
 function encabezado(h, ancho) {
-  h.getRange(1, 1, 1, ancho).setBackground(VERDE).setFontColor('#FFFFFF')
+  h.getRange(1, 1, 1, ancho).setBackground(TINTA).setFontColor('#FFFFFF')
    .setFontWeight('bold').setFontSize(10).setVerticalAlignment('middle')
    .setWrap(true);
   h.setRowHeight(1, 34);
@@ -1153,6 +1166,75 @@ function filas(nombre) {
   var h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombre);
   if (!h || h.getLastRow() < 2) return [];
   return h.getRange(2, 1, h.getLastRow() - 1, h.getLastColumn()).getValues();
+}
+
+// =============================================================================
+// 0.17.0 · LAS TIENDAS NUEVAS SE REGISTRAN SOLAS
+// =============================================================================
+/* Cada tienda nueva era una fila escrita a mano en Tiendas —el servicio y el
+   token copiados de un diagnóstico—, y la que no se escribía no existía para
+   el panel: sin métricas, sin resumen, sin cobros. Ahora la escribe `conectar`
+   (repositorio de servicio) en el mismo momento en que conecta la tienda con
+   su hoja: tiene el servicio, el token, el repositorio, el comercio, la
+   dirección y el producto.
+
+   Para eso esta hoja se implementa UNA VEZ como aplicación web (Ejecutar como:
+   yo · Acceso: cualquiera), y su URL y la clave de abajo van a `tiendas` como
+   PANEL_URL y PANEL_CLAVE. Sin la clave no entra nada. Por repositorio: si ya
+   hay una fila con ese repositorio se actualiza (servicio, token, dirección,
+   producto), y si no, se agrega «En montaje». Lo que el operador escribió —
+   contacto, plan, precio, notas— no se toca nunca. */
+function claveParaElAlta() {
+  var p = PropertiesService.getScriptProperties();
+  var clave = 'alta-' + Utilities.getUuid().replace(/-/g, '');
+  p.setProperty('CLAVE_ALTA', clave);
+  registrar('Clave nueva para el alta. La anterior dejó de servir.');
+  var texto = 'CLAVE PARA EL ALTA\n\n' + clave + '\n\n' +
+    'Va en laboratoriodigital/tiendas › Settings › Secrets › Actions:\n' +
+    '  PANEL_CLAVE = esta clave\n' +
+    '  PANEL_URL   = la URL /exec de ESTA hoja (Implementar › Aplicación web,\n' +
+    '                Ejecutar como: yo · Acceso: cualquiera)\n\n' +
+    'Con eso, cada tienda que se conecta aparece sola en Tiendas.\n' +
+    'Se ve una vez: si la pierdes, genera otra y cámbiala en tiendas.';
+  try { SpreadsheetApp.getUi().alert(texto); } catch (e) { }
+  console.log(texto);
+  return clave;
+}
+
+function doPost(e) {
+  var d = {};
+  try { d = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (x) { }
+  return ContentService.createTextOutput(JSON.stringify(atenderAlta(d)))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function atenderAlta(d) {
+  var clave = String(PropertiesService.getScriptProperties().getProperty('CLAVE_ALTA') || '');
+  if (!clave || String(d.clave || '') !== clave) return { ok: false, error: 'Clave que no corresponde.' };
+  if (d.a !== 'registrar_tienda') return { ok: false, error: 'Acción desconocida.' };
+  var repo = String(d.repo || '').trim();
+  var servicio = String(d.servicio || '').trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return { ok: false, error: 'Falta el repositorio.' };
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(servicio)) return { ok: false, error: 'El servicio no es una URL /exec.' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var t = hoja(H_TIENDAS, COL_TIENDAS);
+    var existentes = leerTiendas();
+    var ya = existentes.filter(function (x) { return x.repo.toLowerCase() === repo.toLowerCase(); })[0];
+    var sitio = String(d.sitio || '').trim(), token = String(d.token || '').trim(), producto = String(d.producto || '').trim();
+    if (ya) {
+      t.getRange(ya.linea, 10, 1, 3).setValues([[sitio || ya.sitio, servicio, token || ya.token]]);
+      if (producto) t.getRange(ya.linea, 16).setValue(producto);
+      registrar('conectar actualizó ' + (ya.comercio || repo) + ' (servicio y token).');
+      return { ok: true, fila: ya.linea, nueva: false };
+    }
+    var fila = ['En montaje', String(d.comercio || repo).trim(), '', '', '', '', 0, '', new Date(),
+                sitio, servicio, token, '', repo, 'La registró conectar.', producto];
+    t.appendRow(fila);
+    registrar('conectar registró ' + fila[1] + ' (' + repo + ').');
+    return { ok: true, fila: t.getLastRow(), nueva: true };
+  } finally { lock.releaseLock(); }
 }
 
 function registrar(texto) {
