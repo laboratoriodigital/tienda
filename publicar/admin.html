@@ -102,6 +102,7 @@ textarea.campo{min-height:88px;resize:vertical}
 .barra-publicar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:16px 0 8px;
   padding:12px 14px;border-radius:var(--radio);background:var(--blanco);border:1px solid var(--linea)}
 .barra-publicar .texto{flex:1;min-width:200px;font-size:.88rem}
+.botones-publicar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .barra-publicar .texto b{display:block;font-size:.95rem}
 .barra-publicar.pendiente{border-color:#E8C66A;background:#FFFBEF}
 .barra-publicar.corriendo{border-color:#9DB8E8;background:#F4F8FF}
@@ -207,7 +208,7 @@ details.seccion[open]>summary{margin-bottom:4px}
     <p class="aviso mal" id="avisoEntrar" role="alert" hidden></p>
     <p class="ayuda" style="margin-top:16px"><button type="button" class="enlace" id="abrirRecuperar">¿Olvidaste tu clave?</button>
       Te mandamos un código al correo de tu tienda. También puedes pedir una nueva en tu hoja:
-      menú de la tienda › <b>Clave del panel</b>.</p>
+      menú de la tienda › <b>Clave del panel</b>. Si eres colaborador, pídele una clave nueva al dueño.</p>
 
     <!-- ═══ 2.3 · RECUPERAR LA CLAVE ═══ -->
     <div id="recuperar" hidden>
@@ -250,7 +251,13 @@ details.seccion[open]>summary{margin-bottom:4px}
     <div class="barra-publicar publicar" id="barraPublicar" role="status" aria-live="polite">
       <div class="texto" id="textoPublicar"><b>Revisando tu tienda…</b>
         Lo que guardas queda en tu hoja al momento; la tienda lo muestra cuando publicas.</div>
-      <button class="btn" type="button" id="publicar" hidden>Publicar ahora</button>
+      <div class="botones-publicar">
+        <!-- 0.13.0 · 2.5 · VER ANTES DE PUBLICAR. Abre la tienda leyendo la hoja
+             en vivo —lo guardado, publicado o no—, con un cartel que lo dice y
+             sin poder pedir. -->
+        <a class="btn linea" id="vistaPrevia" href="./?vista=1" target="_blank" rel="noopener">Vista previa</a>
+        <button class="btn" type="button" id="publicar" hidden>Publicar ahora</button>
+      </div>
     </div>
 
     <p class="aviso mal" id="avisoCobro" role="alert" hidden></p>
@@ -449,6 +456,8 @@ details.seccion[open]>summary{margin-bottom:4px}
       <h2 class="titulo-bloque">Ajustes de tu tienda</h2>
       <p class="ayuda" style="margin:0 0 10px">Lo mismo que la pestaña Configuración de tu hoja, que sigue
         funcionando igual. Abre la sección que quieras cambiar.</p>
+      <p class="aviso info" id="avisoRol" hidden>Entraste como colaborador: aquí están los ajustes que puedes cambiar.
+        Lo demás —a dónde llegan la plata y los pedidos, los datos legales, los correos— lo cambia el dueño.</p>
       <div id="vista-tienda">
       <form id="formTienda" class="tarjeta" novalidate>
         <div id="camposTienda"></div>
@@ -464,6 +473,31 @@ details.seccion[open]>summary{margin-bottom:4px}
         </div>
       </form>
       </div>
+
+      <!-- 0.13.0 · 2.2 · Solo el dueño lo ve: el maestro manda `colaborador`
+           únicamente en su sesión. -->
+      <details class="seccion tarjeta" id="seccionColaborador" hidden>
+        <summary>Otra persona en el panel</summary>
+        <p class="ayuda">Un colaborador lleva la tienda contigo: productos, fotos, pedidos, envíos, cupones y publicar.
+          En los ajustes solo ve lo de la vitrina —textos, colores, portada— y si se cobra por WhatsApp o por pasarela.
+          No ve a dónde llega la plata o los pedidos, ni los datos legales, los correos o lo técnico.
+          Lo que haga queda a su nombre en el Registro.</p>
+        <p class="dato" id="estadoColaborador"></p>
+        <label for="c-usuario">Usuario del colaborador</label>
+        <input class="campo" id="c-usuario" autocapitalize="none" spellcheck="false" maxlength="30" autocomplete="off">
+        <label for="c-clave">Tu clave del panel</label>
+        <input class="campo" id="c-clave" type="password" autocomplete="current-password">
+        <p class="ayuda">Se pide cada vez: con una sesión abierta en un celular ajeno, crear un colaborador sería dejar una llave de repuesto.</p>
+        <div class="pie-form">
+          <button class="btn" type="button" id="darColaborador">Darle una clave</button>
+          <button class="btn peligro" type="button" id="quitarColaborador" hidden>Quitarle el acceso</button>
+        </div>
+        <div id="claveColaborador" hidden>
+          <p class="aviso bien"><b>Clave del colaborador:</b> <code id="claveColaboradorTexto"></code><br>
+            Apúntala y dásela en persona: es la única vez que se ve. Si la pierde, le das otra desde aquí.</p>
+        </div>
+        <p class="aviso" id="avisoColaborador" role="status" hidden></p>
+      </details>
 
       <details class="seccion tarjeta" id="seccionEnvios">
         <summary>Zonas de envío</summary>
@@ -584,7 +618,7 @@ async function entrar(ev){
     if (!r.ok) { aviso("#avisoEntrar", "mal", r.error || "No se pudo entrar."); return; }
     guardarTestigo(r.testigo);
     $("#clave").value = "";          // la clave no se queda en la página
-    await abrirPanel(r.usuario);
+    await abrirPanel(r.usuario, r.rol);
   } catch (e) {
     aviso("#avisoEntrar", "mal", "No se pudo hablar con tu tienda. Revisa la conexión e inténtalo de nuevo.");
   } finally {
@@ -653,13 +687,18 @@ function cerrarSesion(motivo){
   pedidoAbierto = null; todosLosPedidos = null; ultimaTienda = "";
   $("#lista").innerHTML = ""; $("#tableroCifras").innerHTML = ""; $("#tableroGraficas").innerHTML = "";
   $("#camposTienda").innerHTML = ""; $("#listaEnvios").innerHTML = ""; $("#listaCupones").innerHTML = "";
+  $("#seccionColaborador").hidden = true; $("#claveColaborador").hidden = true; $("#c-usuario").value = "";
   $("#consultadoTablero").textContent = ""; $("#avisoCobro").hidden = true;
   mostrar("entrar");
   aviso("#avisoEntrar", motivo ? "info" : "", motivo || "");
 }
 
-async function abrirPanel(usuario){
-  $("#usuarioActual").textContent = usuario || "";
+let ROL = "dueño";
+async function abrirPanel(usuario, rol){
+  ROL = rol === "colaborador" ? "colaborador" : "dueño";
+  $("#usuarioActual").textContent = (usuario || "") + (ROL === "colaborador" ? " · colaborador" : "");
+  $("#avisoRol").hidden = ROL !== "colaborador";
+  $("#seccionColaborador").hidden = true;          // lo enciende la configuración, si es del dueño
   mostrar("panel");
   cerrarEditor();
   /* Se entra por Ventas: es lo que se mira cada día. Los productos y los
@@ -1392,7 +1431,7 @@ async function cargarTienda(){
     const r = await llamar("configuracion");
     if (turno !== turnoTienda) return;
     if (!r.ok) { aviso("#avisoTienda", "mal", r.error || "No se pudo leer la configuración."); return; }
-    const huellaTienda = JSON.stringify([r.claves, r.cobro, r.envios, r.cupones]);
+    const huellaTienda = JSON.stringify([r.claves, r.cobro, r.envios, r.cupones, r.colaborador]);
     if (huellaTienda === ultimaTienda) return;         // nada nuevo: no se toca la pantalla
     ultimaTienda = huellaTienda;
     aviso("#avisoTienda", "", "");
@@ -1404,8 +1443,58 @@ async function cargarTienda(){
     pintarEnvios();
     pintarCupones();
     pintarCobro(estadoCobro);
+    pintarColaborador(r.colaborador);
   } catch (e) { if (e.message !== "sesion") aviso("#avisoTienda", "mal", "No se pudo hablar con tu tienda."); }
 }
+
+/* ── 0.13.0 · 2.2 · El colaborador ─────────────────────────────────────────
+   La sección aparece solo si el maestro la manda, y la manda solo al dueño.
+   Aquí no se decide ningún permiso: el maestro ya filtró lo que el colaborador
+   ve y rechaza lo que no puede guardar. */
+let opColaborador = null;
+function pintarColaborador(c){
+  const sec = $("#seccionColaborador");
+  sec.hidden = !c;
+  if (!c) return;
+  $("#estadoColaborador").textContent = c.activo
+    ? "Hoy entra «" + c.usuario + "». Darle una clave nueva cierra sus sesiones; quitarle el acceso, también."
+    : "Hoy solo entras tú.";
+  if (c.activo && !$("#c-usuario").value) $("#c-usuario").value = c.usuario;
+  $("#quitarColaborador").hidden = !c.activo;
+  $("#darColaborador").textContent = c.activo ? "Darle una clave nueva" : "Darle una clave";
+}
+
+async function cambiarColaborador(accion){
+  const u = $("#c-usuario").value.trim(), c = $("#c-clave").value;
+  if (accion === "crear" && !u) { aviso("#avisoColaborador", "mal", "Escribe el usuario con el que va a entrar."); return; }
+  if (!c) { aviso("#avisoColaborador", "mal", "Escribe tu clave del panel."); $("#c-clave").focus(); return; }
+  const botones = [$("#darColaborador"), $("#quitarColaborador")];
+  botones.forEach(b => { b.disabled = true; });
+  if (!opColaborador) opColaborador = nuevaOperacion();
+  $("#claveColaborador").hidden = true;
+  aviso("#avisoColaborador", "info", accion === "crear" ? "Creando la clave…" : "Quitando el acceso…");
+  try {
+    const r = await llamar("colaborador", { op: opColaborador, accion: accion, usuario: u, c: c });
+    opColaborador = null;
+    $("#c-clave").value = "";
+    if (!r.ok) { aviso("#avisoColaborador", "mal", r.error || "No se pudo."); return; }
+    if (accion === "crear" && r.clave) {
+      $("#claveColaboradorTexto").textContent = r.clave;
+      $("#claveColaborador").hidden = false;
+      aviso("#avisoColaborador", "bien", "Listo: «" + r.usuario + "» ya puede entrar en esta misma dirección.");
+    } else if (accion === "crear") {
+      aviso("#avisoColaborador", "info", "Esa clave ya se creó. Si no la alcanzaste a ver, pulsa otra vez para darle una nueva.");
+    } else {
+      $("#c-usuario").value = "";
+      aviso("#avisoColaborador", "bien", "Listo: el colaborador ya no puede entrar.");
+    }
+    pintarColaborador({ usuario: r.usuario || "", activo: !!r.activo });
+  } catch (e) {
+    if (e.message !== "sesion") aviso("#avisoColaborador", "mal", "Se perdió la conexión. Pulsa otra vez; no se va a repetir.");
+  } finally { botones.forEach(b => { b.disabled = false; }); }
+}
+$("#darColaborador").addEventListener("click", () => cambiarColaborador("crear"));
+$("#quitarColaborador").addEventListener("click", () => cambiarColaborador("quitar"));
 
 function campoDe(c){
   const id = "t-" + c.clave, v = c.valor, mal = c.problema ? " mal" : "";
@@ -1920,7 +2009,7 @@ if (NEGOCIO) { $("#marca").textContent = NEGOCIO; document.title = NEGOCIO + " �
   mostrar("cargando");
   try {
     const r = await llamar("sesion");
-    if (r.ok) await abrirPanel(r.usuario);
+    if (r.ok) await abrirPanel(r.usuario, r.rol);
     else cerrarSesion("");
   } catch (e) {
     if (e.message !== "sesion") { mostrar("entrar"); aviso("#avisoEntrar", "mal", "No se pudo hablar con tu tienda."); }

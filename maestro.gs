@@ -231,7 +231,11 @@ function guardarClaveDelPanel(clave) {
 }
 
 function claveDelPanelCorrecta(clave) {
-  var guardada = claveDelPanelGuardada();
+  return claveCorrectaContra(claveDelPanelGuardada(), clave);
+}
+
+function claveCorrectaContra(guardada, clave) {
+  guardada = String(guardada || '');
   var i = guardada.indexOf('$');
   if (i === -1) return false;                       // sin clave puesta, no se entra
   return huellaDeClave(clave, guardada.slice(0, i)) === guardada.slice(i + 1);
@@ -251,10 +255,9 @@ function claveDelPanelCorrecta(clave) {
                 esto lo sigue parando y además lo dice.
    · trozo de la huella — para que cambiar la clave cierre lo que había.       */
 
-function armarTestigo(usuario) {
+function armarTestigo(usuario, rol) {
   var vence = Date.now() + HORAS_TESTIGO * 3600 * 1000;
-  var cuerpo = [String(usuario), String(vence), String(HOJA_ID),
-                claveDelPanelGuardada().slice(-8)].join('|');
+  var cuerpo = [String(usuario), String(vence), String(HOJA_ID), trozoDelRol(rol)].join('|');
   /* Web-safe: el testigo viaja en la barra de direcciones, y un '+' de base64
      normal se convierte en un espacio por el camino. Es el tipo de fallo que
      aparece en una de cada sesenta sesiones y nadie sabe reproducir. */
@@ -283,9 +286,100 @@ function leerTestigo(testigo) {
   var c = String(partes).split('|');
   if (c.length !== 4) return null;
   if (c[2] !== String(HOJA_ID)) return null;                 // testigo de otra tienda
-  if (c[3] !== claveDelPanelGuardada().slice(-8)) return null;  // la clave cambió
+  /* 2.2 · DE QUIÉN ES LA SESIÓN lo dice el cuarto campo: el del colaborador
+     empieza por «~». Así un testigo del colaborador no se puede presentar como
+     del dueño —el trozo sale de otra huella— y quitarle el acceso, o darle una
+     clave nueva, cierra sus sesiones sin tocar las del dueño. */
+  var rol = c[3].charAt(0) === '~' ? 'colaborador' : 'dueño';
+  if (rol === 'colaborador') {
+    var col = colaboradorGuardado();
+    if (!col.u || !col.clave || c[0] !== col.u) return null;   // sin colaborador, o es otro
+  }
+  if (c[3] !== trozoDelRol(rol)) return null;                // la clave cambió
   if (!(Number(c[1]) > Date.now())) return null;             // venció
-  return { usuario: c[0], vence: Number(c[1]) };
+  return { usuario: c[0], vence: Number(c[1]), rol: rol };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   2.2 · MÁS DE UNA PERSONA: EL COLABORADOR (0.13.0)
+   --------------------------------------------------------------------------
+   El dueño pidió una segunda entrada con MENOS permisos: que lleve la tienda
+   entera —productos, pedidos, fotos, envíos, cupones, publicar— y en los
+   ajustes solo lo que se ve en la vitrina (textos, colores, portada) y si se
+   cobra por WhatsApp o por pasarela. Nada de a dónde llega la plata o los
+   pedidos, los datos legales, los correos, el ambiente del cobro ni lo técnico.
+
+   · LO DA EL DUEÑO, DESDE SU PANEL, con su clave otra vez. No hay que tocar la
+     hoja ni volver a pegar el stub. Se guarda en las propiedades del script —el
+     usuario y la huella de la clave, nunca la clave—.
+   · LA CLAVE LA INVENTA EL MAESTRO y se ve una vez, como la del dueño.
+   · SE QUITA con un botón, y sus sesiones mueren en ese momento.
+   · LO QUE HACE QUEDA A SU NOMBRE en el Registro, como lo del dueño.
+   · LO QUE NO PUEDE, NO LE LLEGA: el maestro filtra las claves de ajustes que
+     le enseña y rechaza las demás al guardar. Esconderlo en la página no sería
+     un permiso: sería un adorno.
+   ══════════════════════════════════════════════════════════════════════════ */
+var CLAVES_DEL_COLABORADOR = [
+  'horario', 'tienda_abierta', 'tienda_cerrada_mensaje', 'logo', 'favicon',
+  'portada_titulo', 'portada_texto', 'portada_puntos', 'catalogo_columnas',
+  'pie_descripcion', 'como_compras',
+  'color_principal', 'color_secundario', 'color_alterno',
+  'sitio_titulo', 'sitio_descripcion',
+  'envio_gratis_desde', 'pedido_minimo', 'orden_catalogo', 'f_variantes', 'f_rastreo', 'f_avisame',
+  'cobro_modo'
+];
+var SOLO_DUENO = 'Esto lo hace solo el dueño de la tienda.';
+var USUARIO_VALIDO = /^[a-z0-9][a-z0-9._-]{2,29}$/i;
+
+function colaboradorGuardado() {
+  try {
+    var c = JSON.parse(String(propiedades().getProperty('PANEL_COLABORADOR') || '{}'));
+    return { u: String(c.u || ''), clave: String(c.clave || '') };
+  } catch (e) { return { u: '', clave: '' }; }
+}
+
+function trozoDelRol(rol) {
+  return rol === 'colaborador' ? '~' + colaboradorGuardado().clave.slice(-8)
+                               : claveDelPanelGuardada().slice(-8);
+}
+
+function esColaborador(p) { return !!(p && p._sesion && p._sesion.rol === 'colaborador'); }
+
+/* Dar, cambiar o quitar el acceso. Solo el dueño (la puerta lo exige) y con su
+   clave otra vez: con una sesión robada, crear un colaborador sería dejarse
+   una llave de repuesto. LA CLAVE NUEVA NO PASA POR LA CACHÉ de operaciones:
+   se añade a la respuesta después, para que no quede seis horas guardada en
+   ningún sitio. Un reintento de la misma operación contesta sin ella. */
+function atenderColaborador(p) {
+  var claveNueva = '';
+  var r = conOperacion(p, function () {
+    var rechazo = claveOtraVez(p);
+    if (rechazo) return rechazo;
+    var antes = colaboradorGuardado();
+    if (p.accion === 'quitar') {
+      if (!antes.u) return { ok: true, usuario: '', activo: false };
+      propiedades().deleteProperty('PANEL_COLABORADOR');
+      anotarSeguridad('Panel: se quitó el acceso del colaborador.', 'usuario: ' + antes.u + '. Sus sesiones se cerraron.');
+      return { ok: true, usuario: '', activo: false,
+               _registro: [{ que: 'Quitó el acceso del colaborador', donde: 'Panel · colaborador', antes: antes.u, despues: '' }] };
+    }
+    if (p.accion !== 'crear') return { ok: false, error: 'No sé qué hacer con el colaborador.' };
+    var u = String(p.usuario || '').trim();
+    if (!USUARIO_VALIDO.test(u)) {
+      return { ok: false, error: 'El usuario va de 3 a 30 letras o números, sin espacios (puede llevar . _ -).' };
+    }
+    var dueno = String(leerConfiguracion().panel_usuario || '').trim();
+    if (u.toLowerCase() === dueno.toLowerCase()) return { ok: false, error: 'Ese es tu usuario: elige otro para el colaborador.' };
+    claveNueva = claveInventada();
+    var sal = Utilities.getUuid().replace(/-/g, '');
+    propiedades().setProperty('PANEL_COLABORADOR', JSON.stringify({ u: u, clave: sal + '$' + huellaDeClave(claveNueva, sal) }));
+    anotarSeguridad('Panel: clave nueva del colaborador.', 'usuario: ' + u + '. Sus sesiones anteriores se cerraron.');
+    return { ok: true, usuario: u, activo: true,
+             _registro: [{ que: antes.u ? 'Dio una clave nueva al colaborador' : 'Dio acceso a un colaborador',
+                           donde: 'Panel · colaborador', antes: antes.u, despues: u }] };
+  });
+  if (r && r.ok && !r.repetida && claveNueva) r.clave = claveNueva;
+  return r;
 }
 
 /* ── El límite de intentos ──────────────────────────────────────────────────
@@ -346,15 +440,25 @@ function atenderEntrar(p) {
              pedido.toLowerCase() === usuario.toLowerCase() &&
              claveDelPanelCorrecta(clave);
 
+  /* 2.2 · Si no es el dueño, puede ser el colaborador. Misma respuesta y
+     mismo contador si no es ninguno de los dos. */
+  var rol = 'dueño';
+  if (!bien) {
+    var col = colaboradorGuardado();
+    if (col.u && col.clave && pedido.toLowerCase() === col.u.toLowerCase() && claveCorrectaContra(col.clave, clave)) {
+      bien = true; rol = 'colaborador'; usuario = col.u;
+    }
+  }
+
   if (!bien) {
     anotarIntentoFallido(pedido);
     return { ok: false, error: 'Usuario o clave que no corresponden.' };
   }
 
   limpiarIntentos();
-  var testigo = armarTestigo(usuario);
+  var testigo = armarTestigo(usuario, rol);
   return { ok: true, testigo: testigo, usuario: usuario,
-           vence: new Date(Date.now() + HORAS_TESTIGO * 3600 * 1000).toISOString() };
+           vence: new Date(Date.now() + HORAS_TESTIGO * 3600 * 1000).toISOString(), rol: rol };
 }
 
 /* Quién soy y hasta cuándo. La página la usa para saber si pintar el panel o
@@ -363,7 +467,7 @@ function atenderEntrar(p) {
 function atenderSesion(p) {
   var s = leerTestigo(p.k);
   if (!s) return { ok: false, error: TESTIGO_MALO };
-  return { ok: true, usuario: s.usuario, vence: new Date(s.vence).toISOString() };
+  return { ok: true, usuario: s.usuario, vence: new Date(s.vence).toISOString(), rol: s.rol };
 }
 
 /* LA CLAVE SE PONE DESDE EL MENÚ DE LA HOJA Y NO POR LA WEB, y esta función es
@@ -652,7 +756,7 @@ function conOperacion(p, hacer, publica) {
     if (r && r.ok) {
       if (registro) {
         var quien = leerTestigo(p.k);
-        anotarCambios('Panel', quien ? quien.usuario : '', registro);
+        anotarCambios('Panel', quien ? quien.usuario + (quien.rol === 'colaborador' ? ' (colaborador)' : '') : '', registro);
       }
       cache.put('op:' + op, JSON.stringify(r), HORAS_OPERACION * 3600);
       cache.remove('catalogo');                          // que la tienda en vivo lo vea ya
@@ -1410,13 +1514,15 @@ function versionDeValor(v) {
                                        String(v === undefined || v === null ? '' : v))).slice(0, 12);
 }
 
-function atenderConfiguracion() {
+function atenderConfiguracion(p) {
+  var colab = esColaborador(p);
   var cfg = filasDeConfiguracion();
   var fila = {};
   cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
   var orden = function (d) { var i = GRUPOS_DEL_PANEL.indexOf(d.grupo); return i === -1 ? 99 : i; };
   var vista = leerConfiguracion();
-  var claves = CLAVES_DEL_PANEL.filter(function (d) { return fila[d.clave] !== undefined; })
+  var claves = CLAVES_DEL_PANEL.filter(function (d) { return fila[d.clave] !== undefined &&
+                                         (!colab || CLAVES_DEL_COLABORADOR.indexOf(d.clave) !== -1); })
     .map(function (d, i) { return { d: d, i: i }; })
     .sort(function (x, y) { return orden(x.d) - orden(y.d) || x.i - y.i; })
     .map(function (x) {
@@ -1433,8 +1539,12 @@ function atenderConfiguracion() {
   /* AL FINAL, Y NO EN MEDIO (R1). Lo que el panel necesita para su segunda
      pantalla: cómo se está cobrando de verdad, y las dos pestañas que antes
      solo se editaban en la hoja. */
+  var col = colaboradorGuardado();
   return { ok: true, claves: claves, cobro: estadoDelCobro(), envios: enviosParaElPanel(),
-           cupones: cuponesParaElPanel() };
+           cupones: cuponesParaElPanel(),
+           /* 0.13.0 · 2.2 · al final (R1): quién pregunta, y al dueño, su colaborador. */
+           rol: colab ? 'colaborador' : 'dueño',
+           colaborador: colab ? null : { usuario: col.u, activo: !!(col.u && col.clave) } };
 }
 
 /* Lo que se pidió en la hoja y lo que la tienda está haciendo, con el porqué.
@@ -1466,7 +1576,9 @@ function atenderGuardarConfiguracion(p) {
       var actual = String(cfg.filas[fila[k]][1] === null || cfg.filas[fila[k]][1] === undefined ? '' : cfg.filas[fila[k]][1]).trim();
       return String(cambios[k] === null || cambios[k] === undefined ? '' : cambios[k]).trim() !== actual;
     });
-    if (tocaSensible) {
+    /* El colaborador no llega a lo sensible (abajo se rechaza): no se le pide
+       una clave que no es la suya. */
+    if (tocaSensible && !esColaborador(p)) {
       var rechazo = claveOtraVez(p);
       if (rechazo) return rechazo;
     }
@@ -1477,6 +1589,7 @@ function atenderGuardarConfiguracion(p) {
       /* Una clave que no está en la lista no se toca, aunque exista en la
          hoja: es exactamente la puerta que esta lista existe para cerrar. */
       if (!d || fila[k] === undefined) { errores[k] = 'Esa clave no se cambia desde el panel.'; return; }
+      if (esColaborador(p) && CLAVES_DEL_COLABORADOR.indexOf(k) === -1) { errores[k] = SOLO_DUENO; return; }
       var actual = cfg.filas[fila[k]][1];
       if (String(versiones[k] || '') !== versionDeValor(actual)) {
         errores[k] = 'Cambió en la hoja mientras la editabas. Vuelve a abrir la configuración.';
@@ -1637,7 +1750,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-7';
+var VERSION = '2026-09-22-1';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2963,7 +3076,9 @@ var PUERTAS = {
   /* 0.11.0 · 4.1 · «Avísame cuando llegue». Contar es público —el comprador
      no tiene sesión—; dar por avisado es del comerciante. */
   avisame:               { guarda: 'publica', fn: function (p) { return atenderAvisame(p); } },
-  avisame_hecho:         { guarda: 'panel', soloPost: true, fn: atenderAvisameHecho }
+  avisame_hecho:         { guarda: 'panel', soloPost: true, fn: atenderAvisameHecho },
+  /* 0.13.0 · 2.2 · el colaborador: lo da y lo quita solo el dueño. */
+  colaborador:           { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderColaborador }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -2978,7 +3093,14 @@ function guardiaDe(puerta, p) {
       ? null : { ok: false, error: 'Token que no corresponde a esta tienda.' };
   }
   if (puerta.guarda === 'panel') {
-    return leerTestigo(p.k) ? null : { ok: false, error: TESTIGO_MALO };
+    var s = leerTestigo(p.k);
+    if (!s) return { ok: false, error: TESTIGO_MALO };
+    if (puerta.soloDueno && s.rol !== 'dueño') return { ok: false, error: SOLO_DUENO };
+    /* La sesión ya leída viaja con la petición: quien atiende sabe de quién es
+       sin volver a leer el testigo. Se PISA siempre, así que lo que mande la
+       página con ese nombre no cuenta. */
+    p._sesion = s;
+    return null;
   }
   /* Una guardia que no existe NO deja pasar. Es la única respuesta sensata:
      lo contrario es que una errata en el nombre abra la puerta de par en par. */

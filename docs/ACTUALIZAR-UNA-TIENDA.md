@@ -21,6 +21,23 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.13.0 (tienda): colaborador y vista previa — nada a mano en la hoja
+
+1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
+2. Ni `instalar()` ni el stub: el colaborador se guarda en las propiedades del
+   script y la vista previa no necesita nada nuevo del maestro.
+3. Comprobar: en el panel, **Vista previa** abre la tienda con un cartel azul;
+   en Tienda › *Otra persona en el panel*, darle una clave a alguien y entrar
+   con ella en otra ventana: ve menos ajustes y dice «colaborador» arriba.
+4. Las sesiones abiertas antes de esta versión siguen valiendo (el testigo del
+   dueño no cambió de forma).
+
+**Y desde ahora, la flota**: las tiendas nuevas de esta línea se ponen al día
+desde `laboratoriodigital/tiendas` › Actions › **flota** › `actualizar`, que
+abre un pull request en cada una. Ver su README.
+
+---
+
 ## La 0.12.0 (tienda): arreglos de la prueba real — nada a mano en la hoja
 
 1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.

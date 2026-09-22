@@ -100,9 +100,9 @@
    Paleta: la define cada tienda desde su Configuración.
    ============================================================ */
 :root{
-  --rojo:#666666;
-  --acento:#38761D;
-  --verde:#BF9000;
+  --rojo:#808080;
+  --acento:#808080;
+  --verde:#808080;
   --blanco:#FFFFFF;
   --negro:#000000;
   --linea:#E4E4E4;
@@ -372,6 +372,7 @@ textarea.campo{resize:vertical;min-height:64px}
 .sello.aviso-stock{color:var(--rojo)}
 /* C-3 · Lo que el comprador tiene que saber ANTES de pedir. */
 .sello.falta-gratis{color:var(--verde);font-weight:600}
+.aviso-vista{position:sticky;top:0;z-index:60;background:#1F3A5F;color:#fff;font-size:14px;line-height:1.45;padding:10px 16px;text-align:center}
 .aviso-cerrada{background:#FFF4CC;color:#5A4300;font-weight:600;font-size:14px;line-height:1.45;
   text-align:center;padding:11px 16px}
 .aviso-cerrada[hidden]{display:none}
@@ -516,6 +517,12 @@ textarea.campo{resize:vertical;min-height:64px}
      enviar. Se puede mirar el catálogo; no se puede pedir. -->
 <div class="aviso-cerrada" id="avisoCerrada" role="status" hidden></div>
 
+<!-- 0.13.0 · 2.5 · VISTA PREVIA. Con ?vista en la dirección la página lee la
+     hoja en vivo —lo guardado, publicado o no— en vez del catálogo publicado,
+     y lo dice aquí arriba. No se puede pedir: es para mirar. -->
+<div class="aviso-vista" id="avisoVista" role="status" hidden><b>Vista previa.</b> Así se verá tu tienda con lo que
+  tienes guardado cuando publiques. Aquí no se hacen pedidos. Las fotos recién subidas aparecen al publicar.</div>
+
 <!-- ============================ PORTADA ============================ -->
 <section class="portada">
   <div class="envoltura">
@@ -659,10 +666,14 @@ textarea.campo{resize:vertical;min-height:64px}
 
 // La URL de tu Apps Script publicado (Implementar > Aplicación web).
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXuK42kftKAue18ZtfHTBCQhTvPTTGNt7gtf-u08v4yIPtgQj2dvg-xNFbfQk3rpYDgQ/exec";
+/* 0.13.0 · 2.5 · ¿Vista previa? Arriba de todo: la usan funciones que corren
+   antes de que llegue el catálogo. */
+const VISTA = (() => { try { return new URLSearchParams(location.search).has("vista"); } catch(e){ return false; } })();
+const MENSAJE_VISTA = "Esto es la vista previa: aquí no se hacen pedidos. Publica desde tu panel para que se vea en la tienda.";
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-7";
+const SCRIPT_VERSION = "2026-09-22-1";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -991,6 +1002,11 @@ function aplicarConfiguracion(c){
       }
     }
   }
+
+  /* 2.5 · En la vista previa no se pide: el carrito lo dice donde dice que la
+     tienda está cerrada. Después de pintar el aviso de arriba, que sigue
+     mostrando si la tienda de verdad está abierta o cerrada. */
+  if(VISTA) TIENDA_CERRADA = TIENDA_CERRADA || MENSAJE_VISTA;
 }
 
 
@@ -1199,7 +1215,19 @@ function versionCoincide(){
    tiene catalogo.json, y tiene que seguir funcionando. */
 const CATALOGO_ESTATICO = "catalogo.json";
 
+/* 0.13.0 · 2.5 · LA VISTA PREVIA salta el paso 1: lo que se quiere ver es lo
+   que dice la hoja AHORA, no lo publicado. Por eso pregunta directo al maestro
+   —la misma puerta pública de siempre— y no pide nada. */
+if(VISTA){
+  try {
+    document.getElementById("avisoVista").hidden = false;
+    const m = document.createElement("meta"); m.name = "robots"; m.content = "noindex, nofollow";
+    document.head.appendChild(m);
+  } catch(e){}
+}
+
 function cargarCatalogo(){
+  if(VISTA){ pedirleElCatalogoAlMaestro(); return; }
   fetch(CATALOGO_ESTATICO, { cache: "no-cache" })
     .then(r => r.ok ? r.json() : Promise.reject(new Error("sin catalogo.json")))
     .then(datos => {
@@ -1704,7 +1732,7 @@ function pedirAviso(id){
   if(!p) return;
   const texto = `Hola, avísame cuando vuelva a llegar *${p.nombre}*${p.formato ? " (" + p.formato + ")" : ""}. ¡Gracias!`;
   window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
-  if(SCRIPT_URL && !avisosPedidos.has(id)){
+  if(SCRIPT_URL && !VISTA && !avisosPedidos.has(id)){
     avisosPedidos.add(id);
     fetch(SCRIPT_URL + "?a=avisame&id=" + encodeURIComponent(id), { method:"GET", redirect:"follow", keepalive:true })
       .catch(() => { /* contar es un servicio: si falla, el mensaje ya salió */ });
@@ -3035,6 +3063,7 @@ function quitarPendiente(codigo){
    uno rescatado a los dos días es que la tienda estuvo caída y nadie se enteró.
    El maestro ya descarta los códigos repetidos, así que reenviar es seguro. */
 function reenviarPendientes(){
+  if(VISTA) return;              // la vista previa no manda nada a la hoja
   if(!SCRIPT_URL) return;
   leerBandeja().forEach(x => {
     const minutos = Math.max(1, Math.round((Date.now() - x.t) / 60000));

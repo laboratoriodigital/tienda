@@ -1328,6 +1328,26 @@ agotado.
       y sale en verde; el fallo de verdad (los pasos no ven lo mismo) sigue en
       rojo (bitácora 63).
 
+### 0.13.0 · Una segunda persona, ver antes de publicar, y la flota
+
+**2.2 · El colaborador**  · 2 pts · ✅
+- [x] El dueño da y quita el acceso desde su panel, con su clave otra vez; la
+      clave se ve una vez y no pasa por la caché (decisión 18, bitácora 64).
+- [x] El colaborador lleva la tienda entera y en ajustes solo la vitrina y el
+      modo de cobro; el maestro filtra y rechaza lo demás.
+- [x] Sus sesiones son suyas; lo que hace queda a su nombre en el Registro.
+
+**2.5 · Vista previa**  · 1 pt · ✅
+- [x] «Vista previa» junto a Publicar abre la tienda con `?vista`: lo guardado
+      en la hoja, un cartel, sin pedidos y sin tocar la hoja (bitácora 65).
+
+**S3 · La flota, versión 1**  · 3 pts · ✅ (en `laboratoriodigital/tiendas`)
+- [x] `flota.json`: dos líneas (`tienda`, `organico`), anillos; conectadas
+      Laboratorio Digital, Orgánico y Cinnamon Beauty.
+- [x] `estado` escribe ESTADO.md; `actualizar` abre un pull request por
+      tienda, en ensayo de fábrica, comparando contra tres versiones
+      (decisión 19, bitácora 66).
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

@@ -9,7 +9,7 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.12.1`.** Esta es **la semilla de la segunda
+> **Estado: en construcción · `0.13.0`.** Esta es **la semilla de la segunda
 > versión** del producto, que se llama **tienda**. Nace de la semilla de la
 > línea anterior (`laboratoriodigital/organico`, 3.0.0). Los hitos del MVP
 > —M0 a M3, M3.5 (cobrar en línea con Bold, o seguir por WhatsApp) y M4 (el

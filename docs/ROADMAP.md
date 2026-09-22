@@ -66,7 +66,14 @@ de abrir la página, y un intento fallido no dice si el número existe.
 *Aguanta esperar porque el comerciante sigue contestando a mano, que es trabajo
 suyo y no una venta rota.*
 
-**S3 · La flota que se actualiza sola**   [1.1]
+**S3 · La flota que se actualiza sola**   [1.1 · VERSIÓN 1 HECHA el 22-sep-2026, en `laboratoriodigital/tiendas` — decisión 19]
+*Hecho: `flota.json` (líneas, anillos, lo que es de cada semilla), el flujo
+`flota` con `estado` (ESTADO.md) y `actualizar` (un pull request por tienda,
+en ensayo de fábrica), y la comparación contra tres versiones. Conectadas:
+Laboratorio Digital (línea `tienda`), Orgánico y Cinnamon Beauty (línea
+`organico`). Falta, en este orden: volver atrás solo, disparar el montaje
+desde la flota, el panel web de la flota, y migrar las tiendas 3.x a esta
+línea (su hoja cambia).*
 Que una tienda ya montada reciba una versión nueva sin manos. La secuencia,
 decidida: **sobrescribir** lo de la semilla —nunca fusionar—, **rehornear** desde
 su hoja, correr **todas** las baterías, y solo entonces empujar; publicar el
@@ -87,7 +94,7 @@ deja hecha la mitad, con el horneado determinista y `publicar/` como producto.*
 En el MVP se siguen editando en la hoja porque se tocan una vez al montar. En
 cuanto haya un comercio que cambie cupones cada semana, esto sube.
 
-**2.2 Más de una persona administrando**   [PENSADO]
+**2.2 Más de una persona administrando**   [HECHO · 0.13.0, 22-sep-2026 — decisión 18] — un colaborador, con los permisos en el maestro.
 Hoy es un comercio, una clave. Un segundo usuario pide roles, y roles piden un
 registro de quién hizo qué — que el MVP ya deja puesto con el registro de
 cambios.
@@ -100,7 +107,7 @@ comercio que pierda la clave y no sepa abrir su hoja necesita otro camino.
 Subirla ya está en el MVP. Elegir cuál es la primera, recortarla y reordenar la
 galería, no.
 
-**2.5 Vista previa antes de publicar**   [PENSADO]
+**2.5 Vista previa antes de publicar**   [HECHO · 0.13.0, 22-sep-2026] — «Vista previa» junto a Publicar: la tienda con `?vista`.
 Ver cómo queda la tienda con los cambios sin publicar. Es lo que hoy da el
 despliegue de vista previa a quien sabe mirarlo en GitHub — el comerciante no.
 
@@ -132,6 +139,20 @@ cargar sus secretos. El flujo existe en este repositorio —`servicio/tienda-nue
 y está APARCADO a propósito: nunca se ha corrido de punta a punta, así que el
 camino documentado en `DESPLIEGUE.md` es el manual, que sí se ha corrido. Se
 retoma cuando montar una tienda a mano cueste más que mantener el flujo.
+
+**3.5 El panel de la flota**   [PENSADO · pedido el 22-sep-2026]
+Hoy la flota se ve en `ESTADO.md` y las cifras en la hoja *Panel de tiendas*.
+El paso siguiente es una página detrás de Cloudflare Access que junte las dos,
+con los botones de actualizar y publicar. Y encima, **tareas de valor para los
+comercios**: el informe mensual, campañas de cupones y avisos de «volvió a
+llegar» para todas las tiendas a la vez — el marketing que un comercio solo no
+hace.
+
+**3.6 Migrar las tiendas 3.x a esta línea**   [PENSADO]
+Orgánico y Cinnamon Beauty tienen la hoja de la primera línea: Pagos con otras
+columnas, variantes en su propia pestaña. Pasarlas es un script que lleva la
+hoja a las columnas de la 0.x, ensayado sobre una copia, y después la flota
+las toma como a cualquiera.
 
 **3.4 Sembrar los secretos desde el diagnóstico**   [MEDIDO]
 La mitad del tiempo de montaje se va copiando secretos de una pantalla a otra, y

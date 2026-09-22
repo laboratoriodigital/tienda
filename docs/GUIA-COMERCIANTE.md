@@ -50,6 +50,12 @@ WhatsApp o los datos de pago **pide tu clave otra vez**.
 Todo lo que cambias queda en la pestaña **Registro** de la hoja: quién, cuándo,
 y cómo estaba antes.
 
+**Vista previa** (junto a Publicar) abre tu tienda con lo guardado, publicado
+o no; ahí no se pide. **Otra persona en el panel** (al final de Tienda) le da
+usuario y clave a quien te ayuda: lleva productos, pedidos, envíos, cupones y
+publica; de los ajustes solo ve la vitrina y si se cobra por WhatsApp o
+pasarela. Lo suyo queda a su nombre en el Registro; puedes quitarle el acceso.
+
 ---
 
 ## El menú de tu hoja

@@ -1821,3 +1821,34 @@ dice «Ya estaba publicado» y sale en verde; si no difería de ninguno, sigue
 siendo el fallo de antes, que avisa que los dos pasos no miran lo mismo.
 **Lo prueba** `montaje.js`, corriendo el trozo real del flujo sobre un
 repositorio de juguete; control en rojo sin el arreglo.
+
+**64 · Una segunda persona en el panel, y dónde viven sus permisos.** El dueño
+pidió que alguien le ayude sin ver a dónde llega la plata. Lo tentador era
+esconder campos en la página; eso no es un permiso, es un adorno: la página la
+controla quien la usa. Los permisos quedaron en el maestro —una lista que
+filtra lo que se enseña y rechaza lo demás al guardar, aunque la página lo
+mande— y el testigo del colaborador sale de su propia huella, así que quitarlo
+cierra sus sesiones sin tocar las del dueño. Un detalle que la prueba cazó: la
+clave nueva del colaborador pasaba por la caché de operaciones (seis horas);
+ahora se añade a la respuesta después. **Lo prueba** `colaborador.js` (31);
+controles en rojo sin el filtro al guardar y sin `soloDueno`.
+
+**65 · Ver antes de publicar.** Guardar no publica, y hasta hoy la única forma
+de ver un cambio era publicarlo. La vista previa no necesitó nada nuevo en el
+maestro: la tienda ya sabía leer la hoja en vivo (era su segundo camino, para
+cuando no hay `catalogo.json`); con `?vista` lo toma primero, lo dice arriba,
+no deja pedir y no toca la hoja. **Lo prueba** `vistaprevia.js` (13), con el
+catálogo publicado simulado en el navegador; control en rojo sin el salto.
+
+**66 · La flota, versión 1 — y lo que enseñó la primera tienda real.** La
+regla era «sobrescribir, nunca fusionar». Al mirar Cinnamon Beauty contra
+Orgánico aparecieron dos cosas: Cinnamon tenía un arreglo del SEO que su
+semilla todavía no, y un `todas.sh` con su batería propia. Sobrescribir los
+habría borrado sin ruido. La regla se quedó, con una tabla: cada archivo contra
+la versión de la que salió la tienda, y lo que cambiaron las dos no se toca y
+se dice. Segunda cosa: Orgánico no tiene la etiqueta `v3.6.1`, de la que salió
+Cinnamon; sin base, la flota no pisa nada que difiera. Y tercera, la más
+grande: Orgánico y Cinnamon son de la línea 3.x, con otra hoja; se conectan a
+la flota con **su** semilla, y pasarlas a esta línea es una migración aparte.
+Vive en `laboratoriodigital/tiendas` (`flota.json`, `flota/`, flujo `flota`,
+35 pruebas sin red, una de punta a punta con repositorios de juguete).

@@ -823,6 +823,84 @@ Cloudflare y `sitio_url` bien escrito.
 
 ---
 
+## 18 · Una segunda persona: el colaborador, con los permisos en el maestro
+
+**Estado:** CERRADA el 22 de septiembre de 2026 (0.13.0).
+
+### Qué hacía
+
+Un comercio, un usuario, una clave. Quien ayudaba en la tienda entraba con la
+del dueño y veía y podía cambiar todo: la cuenta de la transferencia, el
+WhatsApp de los pedidos, el ambiente del cobro.
+
+### El límite real
+
+El dueño pidió una segunda entrada con **menos** permisos: la tienda entera
+(productos, pedidos, fotos, envíos, cupones, publicar), y de los ajustes solo
+la vitrina y si se cobra por WhatsApp o pasarela. Nada de a dónde llega la
+plata, datos legales, correos, ambiente ni lo técnico.
+
+### La decisión
+
+**Un** colaborador, no roles configurables: es lo que se pidió y cabe en una
+propiedad. Lo da y lo quita el dueño **desde su panel**, con su clave otra vez
+—sin tocar la hoja ni volver a pegar el stub—. La clave la inventa el maestro
+y se ve una vez. **Los permisos viven en el maestro**: la lista
+`CLAVES_DEL_COLABORADOR` filtra lo que se le enseña y rechaza lo demás al
+guardar; la página solo pinta lo que le llega. El testigo del colaborador sale
+de su propia huella, así que sus sesiones mueren solas al quitarlo.
+
+### Condición de disparo
+
+Si un comercio pide dos colaboradores, o permisos distintos para cada uno, se
+pasa a una pestaña `Personas` con usuario, rol y huella. El testigo ya lleva
+el rol: el cambio es de dónde se lee.
+
+### Contrapartida
+
+Una lista más que mantener: una clave nueva de Configuración no le llega al
+colaborador hasta que alguien decide agregarla a `CLAVES_DEL_COLABORADOR`.
+
+---
+
+## 19 · La flota se actualiza contra tres versiones, y las líneas no se mezclan
+
+**Estado:** CERRADA el 22 de septiembre de 2026 (S3, versión 1, en `laboratoriodigital/tiendas`).
+
+### Qué hacía
+
+Actualizar una tienda era copiar a mano archivos de la semilla. Nadie sabía
+qué versión tenía cada una sin abrir su repositorio.
+
+### El límite real
+
+La regla decidida —sobrescribir, nunca fusionar— se topó el primer día con
+Cinnamon Beauty: había arreglado un archivo de la semilla (los ID repetidos del
+SEO) antes que la semilla. Sobrescribir a ciegas era perder ese arreglo sin
+que nadie lo viera. Y Orgánico y Cinnamon son de la **primera** línea (3.x):
+su hoja no tiene las columnas de esta (Pagos, variantes, inventario).
+
+### La decisión
+
+Cada archivo se compara contra tres versiones —la de la tienda, la nueva y la
+de la que salió la tienda—: se sobrescribe lo que la tienda no tocó, se
+respeta lo que solo cambió la tienda, y **no se toca** lo que cambiaron las
+dos, diciéndolo arriba del pull request. Solo se actualiza a etiquetas de
+release. Una persona fusiona y corre el montaje. Cada línea se actualiza desde
+**su** semilla; pasar de la 3.x a esta es una migración de la hoja, aparte.
+
+### Condición de disparo
+
+Con cinco tiendas por línea, el montaje tras fusionar pasa a dispararse desde
+la flota, con vuelta atrás sola si la tienda viva no contesta la versión.
+
+### Contrapartida
+
+Un secreto más (`FLOTA_TOKEN`), con permiso de escribir en todas las tiendas:
+vive solo en `tiendas`, de grano fino y con vencimiento.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

@@ -641,6 +641,29 @@ está agotado; si no, `ok: false`. **`avisame_hecho`** (panel) — pide `op`, `i
 borra esa fila. **`tablero`** trae además, al final, `avisame` (`id`, `nombre`,
 `personas`, `desde`, `hayStock`).
 
+**`colaborador`** (0.13.0 · 2.2, panel, **solo POST**, **solo el dueño**) — pide
+`op`, `c` (la clave del dueño otra vez) y `accion`: `crear` con `usuario` (3 a
+30 letras, números, `. _ -`; distinto del dueño) o `quitar`. Contesta `ok`,
+`usuario`, `activo` y, al crear, `clave` una vez: **no pasa por la caché de
+operaciones** (un reintento contesta `repetida` sin clave). Se guarda en la
+propiedad `PANEL_COLABORADOR` (`{u, clave: sal$huella}`). Una sesión de
+colaborador en una puerta `soloDueno` recibe `Esto lo hace solo el dueño de la
+tienda.`
+
+**El rol en la sesión** (0.13.0): `entrar` y `sesion` traen al final `rol`
+(`dueño` o `colaborador`). El testigo del colaborador lleva `~` delante del
+trozo de huella; su huella es la suya, así que darle clave nueva o quitarlo
+cierra sus sesiones sin tocar las del dueño. `configuracion` trae al final
+`rol` y `colaborador` (`{usuario, activo}` al dueño; `null` al colaborador), y
+al colaborador solo las claves de `CLAVES_DEL_COLABORADOR`; `guardar_configuracion`
+rechaza las demás con `errores[clave]`, sin pedir clave ni contar intentos. En
+el Registro, lo suyo va como `usuario (colaborador)`.
+
+**La vista previa** (0.13.0 · 2.5): `index.html?vista` pide el catálogo a la
+puerta pública `catalogo` en vez de a `catalogo.json`, pone `noindex`, no deja
+pedir (`TIENDA_CERRADA` = el aviso de la vista), no cuenta «avísame» ni
+reenvía pedidos pendientes. No hay puerta nueva.
+
 **`fotos_cdn`** en el panel es tipo `lista`: `opciones` trae `valor` (la
 plantilla que se escribe en la hoja), `rotulo` y `desactivada`. Hoy: Ninguna, y
 Cloudflare en el propio dominio (desactivada en `*.workers.dev`). Lo que ya
