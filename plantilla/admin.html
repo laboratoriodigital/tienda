@@ -214,11 +214,11 @@ details.seccion[open]>summary{margin-bottom:4px}
       <h3 class="titulo-bloque">Una clave nueva</h3>
       <p class="ayuda" id="recuperarTexto">Te mandamos un código de 8 cifras al correo de la tienda, con tu usuario.
         Con ese código creamos una clave nueva; la que tenías deja de servir.</p>
-      <button class="btn linea" type="button" id="pedirCodigo">Mandar el código</button>
+      <button class="btn linea" type="button" id="pedirCodigo"><span class="girando" aria-hidden="true"></span>Mandar el código</button>
       <div id="cajaCodigo" hidden>
         <label for="codigo">Código del correo</label>
         <input class="campo" id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="12">
-        <button class="btn" type="button" id="usarCodigo">Crear la clave nueva</button>
+        <button class="btn" type="button" id="usarCodigo"><span class="girando" aria-hidden="true"></span>Crear la clave nueva</button>
       </div>
       <div id="claveNueva" hidden>
         <p class="aviso bien"><b>Tu clave nueva:</b> <code id="claveNuevaTexto"></code><br>
@@ -629,7 +629,9 @@ async function usarCodigo(){
   const b = $("#usarCodigo");
   const codigo = $("#codigo").value.replace(/\D/g, "");
   if (codigo.length !== 8) { aviso("#avisoRecuperar", "mal", "El código tiene 8 cifras."); return; }
-  b.disabled = true;
+  b.disabled = true; b.classList.add("ocupado");
+  /* Lo que el dueño vio lento (0.12.0): se dice qué está pasando. */
+  aviso("#avisoRecuperar", "info", "Actualizando tu clave en el sistema… puede tardar unos segundos.");
   try {
     const r = await llamar("recuperar_confirmar", { codigo: codigo });
     if (!r.ok) { aviso("#avisoRecuperar", "mal", r.error || "Ese código no sirve."); return; }
@@ -641,14 +643,14 @@ async function usarCodigo(){
     $("#usuario").value = r.usuario || $("#usuario").value;
     $("#clave").value = r.clave;
   } catch (e) { aviso("#avisoRecuperar", "mal", "No se pudo hablar con tu tienda."); }
-  finally { b.disabled = false; }
+  finally { b.disabled = false; b.classList.remove("ocupado"); }
 }
 
 function cerrarSesion(motivo){
   guardarTestigo("");
   clearTimeout(sondeo);
   productos = []; editando = null; datosTablero = null; productosLeidos = false; clavesTienda = [];
-  pedidoAbierto = null;
+  pedidoAbierto = null; todosLosPedidos = null; ultimaTienda = "";
   $("#lista").innerHTML = ""; $("#tableroCifras").innerHTML = ""; $("#tableroGraficas").innerHTML = "";
   $("#camposTienda").innerHTML = ""; $("#listaEnvios").innerHTML = ""; $("#listaCupones").innerHTML = "";
   $("#consultadoTablero").textContent = ""; $("#avisoCobro").hidden = true;
@@ -1156,16 +1158,49 @@ async function publicar(){
    ═══════════════════════════════════════════════════════════════════════════ */
 let listaPedidos = [], estadosPedido = [], filtroEstado = "", pedidoAbierto = null, opPedido = null;
 
-async function cargarPedidos(){
+/* ── 0.12.0 · LOS FILTROS SON INSTANTÁNEOS ────────────────────────────────
+   Antes cada toque en un filtro («Nuevo», «Pagado»…) o cada letra del buscador
+   era una ida y vuelta a Google: dos o tres segundos, la lista se vaciaba y
+   volvía, y si se tocaba otro filtro antes de que contestara el primero, la
+   respuesta vieja pisaba a la nueva —por eso a veces «tocaba dar clic dos
+   veces»—. Ahora se traen TODOS los pedidos una vez (hasta 200, el mismo tope
+   de siempre) y se filtra aquí, sin red. Solo si la tienda tiene más de 200
+   pedidos y se busca o se filtra, se le pregunta al maestro.
+
+   Y NINGUNA RESPUESTA VIEJA PISA A UNA NUEVA: cada pedido al maestro lleva un
+   número, y solo se pinta la del último. Mientras llega, se ve la lista de
+   antes, no un hueco. */
+let todosLosPedidos = null, conteoPedidos = {}, pedidosCompletos = true, turnoPedidos = 0, totalPedidos = 0;
+
+async function cargarPedidos(conFiltro){
+  const turno = ++turnoPedidos;
+  const q = $("#buscarPedido").value.trim();
+  const remoto = conFiltro && !pedidosCompletos;
+  if (todosLosPedidos) $("#cuentaPedidos").textContent = "Actualizando…";
+  else $("#listaPedidos").innerHTML = '<p class="vacio"><span class="girando" style="display:inline-block"></span> Cargando tus pedidos…</p>';
   try {
-    const r = await llamar("pedidos", { estado: filtroEstado, q: $("#buscarPedido").value.trim() });
+    const r = await llamar("pedidos", remoto ? { estado: filtroEstado, q: q } : {});
+    if (turno !== turnoPedidos) return;               // llegó tarde: ya hay otra en camino
     if (!r.ok) { aviso("#avisoPedidos", "mal", r.error || "No se pudieron leer los pedidos."); return; }
-    listaPedidos = r.pedidos; estadosPedido = r.estados;
-    pintarChips(r.conteo);
-    pintarPedidos(r.cuantos);
+    estadosPedido = r.estados; conteoPedidos = r.conteo || {};
+    if (remoto) { listaPedidos = r.pedidos; pintarChips(conteoPedidos); pintarPedidos(r.cuantos); return; }
+    todosLosPedidos = r.pedidos; totalPedidos = r.cuantos;
+    pedidosCompletos = r.cuantos <= r.pedidos.length;
+    filtrarPedidos();
   } catch (e) {
-    if (e.message !== "sesion") aviso("#avisoPedidos", "mal", "No se pudo hablar con tu tienda.");
+    if (turno === turnoPedidos && e.message !== "sesion") aviso("#avisoPedidos", "mal", "No se pudo hablar con tu tienda.");
   }
+}
+
+function filtrarPedidos(){
+  if (!todosLosPedidos) return;
+  const q = $("#buscarPedido").value.trim().toLowerCase();
+  if (!pedidosCompletos && (filtroEstado || q)) { cargarPedidos(true); return; }
+  listaPedidos = todosLosPedidos.filter(x =>
+    (!filtroEstado || (filtroEstado === "revisar" ? !x.estadoId : x.estadoId === filtroEstado)) &&
+    (!q || String(x.pedido).toLowerCase().indexOf(q) !== -1));
+  pintarChips(conteoPedidos);
+  pintarPedidos(filtroEstado || q ? listaPedidos.length : totalPedidos);
 }
 
 function pintarChips(conteo){
@@ -1346,11 +1381,21 @@ function cerrarPedido(){
    ═══════════════════════════════════════════════════════════════════════════ */
 let clavesTienda = [];
 
+/* 0.12.0 · Se relee en cada visita, pero SOLO SE REPINTA SI CAMBIÓ: repintar
+   lo mismo hacía «aparecer de a pocos» las secciones y cerraba lo que se
+   estaba mirando. Mientras llega la primera lectura, se dice. */
+let ultimaTienda = "", turnoTienda = 0;
 async function cargarTienda(){
-  aviso("#avisoTienda", "", "");
+  const turno = ++turnoTienda;
+  if (!clavesTienda.length) $("#camposTienda").innerHTML = '<p class="dato"><span class="girando" style="display:inline-block"></span> Cargando tus ajustes…</p>';
   try {
     const r = await llamar("configuracion");
+    if (turno !== turnoTienda) return;
     if (!r.ok) { aviso("#avisoTienda", "mal", r.error || "No se pudo leer la configuración."); return; }
+    const huellaTienda = JSON.stringify([r.claves, r.cobro, r.envios, r.cupones]);
+    if (huellaTienda === ultimaTienda) return;         // nada nuevo: no se toca la pantalla
+    ultimaTienda = huellaTienda;
+    aviso("#avisoTienda", "", "");
     clavesTienda = r.claves;
     estadoCobro = r.cobro || null;
     envios = r.envios || [];
@@ -1608,7 +1653,9 @@ let datosTablero = null;
 
 async function cargarTablero(){
   $("#actualizarTablero").disabled = true;
-  aviso("#avisoTablero", "", datosTablero ? "" : "Leyendo tus números…");
+  aviso("#avisoTablero", "", "");
+  if (!datosTablero) $("#tableroCifras").innerHTML = '<p class="dato"><span class="girando" style="display:inline-block"></span> Leyendo tus números del mes…</p>';
+  else $("#consultadoTablero").textContent = "Actualizando tus números…";
   try {
     const r = await llamar("tablero");
     if (!r.ok) { aviso("#avisoTablero", "mal", r.error || "No se pudo leer el tablero."); return; }
@@ -1831,9 +1878,9 @@ $("#actualizarTablero").addEventListener("click", cargarTablero);
 $("#tableroCifras").addEventListener("click", ev => { const b = ev.target.closest("button[data-avisado]");
   if (b) marcarAvisado(b.dataset.avisado, b); });
 $("#chipsEstados").addEventListener("click", ev => { const b = ev.target.closest("button[data-estado]");
-  if (!b) return; filtroEstado = b.dataset.estado; cargarPedidos(); });
+  if (!b) return; filtroEstado = b.dataset.estado; filtrarPedidos(); });
 let tempBuscarPedido = null;
-$("#buscarPedido").addEventListener("input", () => { clearTimeout(tempBuscarPedido); tempBuscarPedido = setTimeout(cargarPedidos, 300); });
+$("#buscarPedido").addEventListener("input", () => { clearTimeout(tempBuscarPedido); tempBuscarPedido = setTimeout(filtrarPedidos, 120); });
 $("#listaPedidos").addEventListener("click", ev => { const b = ev.target.closest("button[data-accion='ver']");
   if (!b) return; const p = listaPedidos.find(x => x.pedido === b.closest(".fila").dataset.pedido); if (p) abrirPedido(p); });
 $("#p-estado").addEventListener("change", alCambiarEstado);

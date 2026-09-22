@@ -692,6 +692,12 @@ que no se leyó); `recortado: true` y `avisos` si el pedido cambió —otro est�
 pagando la última unidad, no alcanza el stock—. **No se cobra un carrito
 distinto del que se vio.** La misma `op` dos veces es el mismo cobro.
 
+**0.12.0:** `pago_crear` y `pago_estado` traen además, al final,
+`seguimiento`: el secreto del rastreo, que para los pedidos cobrados en línea
+pone el maestro (HMAC del número con la firma de la tienda). `pago_estado` lo
+da solo con el cobro pagado o en revisión. El correo al comprador trae el
+enlace.
+
 **`pago_estado`** (M3.5, pública) — pide `token`. Si hace falta, le pregunta a
 Bold (`GET /v2/payment-voucher/<pedido>` con la llave de identidad), como mucho
 una vez cada veinte segundos por cobro. Contesta `ok`, `pedido`, `estado`

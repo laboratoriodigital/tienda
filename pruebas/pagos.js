@@ -360,6 +360,29 @@ const conciliador = g => g.triggers.filter(t => t.getHandlerFunction() === 'conc
        !g.triggers.some(t => t.getHandlerFunction() === 'recalcularResumen'));
   }
 
+  // ═══ 0.12.0 · El rastreo de un pedido cobrado en línea ═══
+  /* En la 0.10.0 el secreto nacía en el navegador y se perdía si Bold devolvía
+     al comprador a otra pestaña u otro navegador (lo que pasó en la prueba del
+     dueño: Brave falló y siguió en Chrome). Ahora lo pone el maestro. */
+  {
+    const { g, bold } = tienda({ modo: 'Pasarela' });
+    const r = crearCobro(g);
+    ok('EL COBRO TRAE EL SECRETO DEL RASTREO, puesto por el maestro', r.ok && /^[A-Za-z0-9]{16}$/.test(r.seguimiento || ''), r.seguimiento);
+    bold.estados[r.pedido] = { payment_status: 'APPROVED', total: 19000 };
+    sinEspera(g, r.pedido);
+    const e = get(g, { a: 'pago_estado', token: r.token });
+    ok('  ...y pago_estado lo devuelve al aprobarse, sin depender del navegador', e.estado === 'pagado' && e.seguimiento === r.seguimiento);
+    const s = post(g, { a: 'seguimiento', n: r.pedido, s: e.seguimiento });
+    ok('  ...y ese enlace abre el pedido pagado', s.ok && s.estado.id === 'pagado' && s.pagoEnLinea, JSON.stringify(s).slice(0, 80));
+    const alComprador = g.correos.find(c => c.to === ENTREGA.correo) || {};
+    ok('  ...y va también en el correo al comprador',
+       (alComprador.htmlBody || '').replace(/&amp;/g, '&').indexOf('/pedido.html?n=' + r.pedido + '&s=' + r.seguimiento) !== -1);
+    const reg = (g.filas('Registro') || []).find(f => f[3] === 'Pago en línea aprobado') || [];
+    ok('EL REGISTRO DICE QUIÉN: la pasarela, con la transacción', /Pasarela Bold · TX-/.test(String(reg[2])), String(reg[2]));
+    const otro = crearCobro(g);
+    ok('  ...y cada pedido tiene el suyo', otro.seguimiento && otro.seguimiento !== r.seguimiento);
+  }
+
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
   process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

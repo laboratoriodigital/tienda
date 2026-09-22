@@ -117,9 +117,9 @@
    Paleta: la define cada tienda desde su Configuración.
    ============================================================ */
 :root{
-  --rojo:#666666;
-  --acento:#38761D;
-  --verde:#BF9000;
+  --rojo:#808080;
+  --acento:#808080;
+  --verde:#808080;
   --blanco:#FFFFFF;
   --negro:#000000;
   --linea:#E4E4E4;
@@ -679,7 +679,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXuK42kftKAue18ZtfH
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-6";
+const SCRIPT_VERSION = "2026-09-21-7";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -2534,7 +2534,6 @@ let cobroActivo  = null;   // { estado, pedido, token, total, checkout, lineas, 
 let datosCobro   = null;   // lo que se escribió en el formulario, solo en memoria
 let avisoCobro   = "";     // lo que dijo el maestro al no poder cobrar
 let opCobro      = null;   // el número de operación vive hasta que llega respuesta
-let segCobro     = "";     // M5: el secreto del seguimiento, nace con la operación
 let consultaCobro = null, vueltaCobro = 0, promesaBold = null;
 
 function cobraEnLinea(){ return COBRO === "pasarela" && !!SCRIPT_URL; }
@@ -2579,7 +2578,7 @@ function iniciarCobro(e){
   if(!formularioListo(d)){ irADatos(); return false; }
   datosCobro = d;
   avisoCobro = "";
-  if(!opCobro){ opCobro = nuevaOperacionCobro(); segCobro = azar(16); }
+  if(!opCobro) opCobro = nuevaOperacionCobro();
   const total = calcular().total;
   cobroActivo = { estado:"preparando", total:total };
   refrescar();
@@ -2588,8 +2587,6 @@ function iniciarCobro(e){
     items: itemsDelPedido(), cupon: cuponActivo || "", envio: envioActivo.id, sub: String(subtotal()),
     entrega: { nombre:d.nombre, tel:d.tel, correo:d.correo, ciudad:d.ciudad, direccion:d.dir, notas:d.notas }
   };
-  if(conRastreo()) cuerpo.seg = segCobro;
-  const seg = segCobro;
   const lineas = resumenDelCarrito();
   fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(cuerpo), redirect:"follow" })
     .then(r => r.json())
@@ -2608,7 +2605,9 @@ function iniciarCobro(e){
       }
       opCobro = null;
       cobroActivo = { estado:"abriendo", pedido:r.pedido, token:r.token, total:r.total,
-                      pruebas:!!r.pruebas, checkout:r.checkout, lineas:lineas, seg:conRastreo() ? seg : "" };
+                      pruebas:!!r.pruebas, checkout:r.checkout, lineas:lineas,
+                      /* 0.12.0: el secreto del rastreo lo pone el maestro. */
+                      seg:conRastreo() ? (r.seguimiento || "") : "" };
       guardarCobro();
       refrescar();
       abrirCobro();
@@ -2682,6 +2681,9 @@ function consultarCobro(ahora){
           c.pedido = r.pedido || c.pedido;
           c.total = Number(r.total) || c.total;
           c.transaccion = r.transaccion || c.transaccion || "";
+          /* 0.12.0 · el enlace llega con la respuesta, aunque el comprador
+             haya vuelto de Bold en otra pestaña u otro navegador. */
+          if(r.seguimiento && RASTREO) c.seg = r.seguimiento;
           if(["pagado", "rechazado", "vencido", "revisar"].indexOf(r.estado) !== -1){
             c.estado = r.estado;
             alTerminarCobro(c);
@@ -2728,7 +2730,8 @@ function terminarCobro(){
 function mensajeDelPago(c){
   return "Hola, acabo de pagar en línea el pedido *" + c.pedido + "* por " + pesos(c.total) +
     (c.transaccion ? " (transacción " + c.transaccion + ")" : "") + "." +
-    (c.lineas && c.lineas.length ? " " + c.lineas.join(", ") + "." : "");
+    (c.lineas && c.lineas.length ? " " + c.lineas.join(", ") + "." : "") +
+    (c.seg && c.pedido ? "\nSigue tu pedido: " + enlaceSeguimiento(c.pedido, c.seg) : "");
 }
 
 function htmlDelCobro(c){
@@ -2744,6 +2747,7 @@ function htmlDelCobro(c){
   if(c.estado === "abriendo") return `<div class="enviado" role="status">${pruebas}${espera}
       <h3>Abriendo la pasarela de pago</h3>${codigo}
       <p>Pagas ${pesos(c.total)} en la página segura de Bold. Tus unidades quedan apartadas unos minutos.</p>
+      <p class="enviado-nota">Si el botón de tu banco no abre, paga por PSE o prueba con otro navegador: algunos, como Brave, bloquean la pasarela.</p>
       <button class="btn-whatsapp" onclick="abrirCobro()">Abrir la pasarela</button></div>`;
   if(c.estado === "esperando") return `<div class="enviado" role="status">${pruebas}${espera}
       <h3>Estamos confirmando tu pago</h3>${codigo}

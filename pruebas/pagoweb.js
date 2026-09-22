@@ -125,6 +125,9 @@ async function llenar(p, conCorreo) {
   ok('  ...y en la hoja, el cobro esperando y sin pedido todavía',
      pago[4] === 'Esperando pago' && !(hs['Pedidos'] || []).some(f => f[1] === pago[1]));
 
+  /* Como si Bold hubiera devuelto al comprador a OTRA pestaña (0.12.0): la
+     página no tiene el secreto del rastreo; tiene que llegarle del maestro. */
+  await p.evaluate(() => { if (cobroActivo) cobroActivo.seg = ""; });
   // Bold aprueba.
   await fetch(U + '/__bold?ref=' + pago[1] + '&estado=APPROVED&total=19000');
   await fetch(U + '/__cobros');
@@ -137,6 +140,11 @@ async function llenar(p, conCorreo) {
   ok('  ...con un WhatsApp OPCIONAL que dice que ya pagó, qué y cuánto',
      /Hola, acabo de pagar en línea el pedido/.test(decodeURIComponent(wa || '')) &&
      /Croissant/.test(decodeURIComponent(wa || '')), decodeURIComponent(wa || '').slice(0, 90));
+  /* 0.12.0 · el enlace de rastreo, en la pantalla y en el WhatsApp, aunque la
+     página no lo tuviera (arriba se le borró). */
+  const enlaceR = await p.getAttribute('#panelCuerpo a.enlace-seguimiento', 'href').catch(() => '');
+  ok('PAGADO: la pantalla trae «Ver en qué va tu pedido»', /\/pedido\.html\?n=.+&s=[A-Za-z0-9]{16}$/.test(enlaceR || ''), enlaceR);
+  ok('  ...y el WhatsApp también lleva el enlace', decodeURIComponent(wa || '').indexOf('Sigue tu pedido: ' + enlaceR) !== -1);
   ok('  ...y el carrito se vacía: lo pagado no se vuelve a ofrecer',
      await p.evaluate(() => carrito.length === 0) && !(await p.evaluate(() => sessionStorage.getItem('cobro-en-curso'))));
   const ped = ((await hojas())['Pedidos'] || []).filter(f => f[1] === pago[1]);

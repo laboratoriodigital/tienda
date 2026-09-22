@@ -280,6 +280,26 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
      await p.locator('#listaPedidos .fila[data-pedido="PANEL2"]').count() === 1);
   ok('  ...con un filtro por estado que dice cuántos hay',
      /Nuevo · 2/.test(await texto('#chipsEstados')), await texto('#chipsEstados'));
+  /* 0.12.0 · LOS FILTROS SON INSTANTÁNEOS: tocar un filtro o buscar no va a
+     Google. Antes era una ida y vuelta por toque, la lista se vaciaba y una
+     respuesta vieja podía pisar a la nueva. */
+  const pedidasDePedidos = async () => ((await (await fetch(U + '/__peticiones')).json())
+    .filter(q => q.metodo === 'POST' && q.a === 'pedidos')).length;
+  const antesFiltro = await pedidasDePedidos();
+  await p.click('#chipsEstados button[data-estado="pagado"]');
+  const vaciaPagado = await p.evaluate(() => document.querySelectorAll('#listaPedidos .fila').length === 0 &&
+                                             /No hay pedidos/.test(document.querySelector('#listaPedidos').textContent));
+  await p.click('#chipsEstados button[data-estado="nuevo"]');
+  const conNuevos = await p.locator('#listaPedidos .fila').count();
+  await p.fill('#buscarPedido', 'PANEL2');
+  await hasta(p, () => document.querySelectorAll('#listaPedidos .fila').length === 1);
+  ok('LOS FILTROS Y EL BUSCADOR responden al instante, sin volver a preguntarle a la hoja',
+     vaciaPagado && conNuevos === 2 && (await pedidasDePedidos()) === antesFiltro &&
+     (await p.locator('#listaPedidos .fila[data-pedido="PANEL2"]').count()) === 1,
+     'peticiones: ' + antesFiltro + ' → ' + (await pedidasDePedidos()));
+  await p.fill('#buscarPedido', '');
+  await p.click('#chipsEstados button[data-estado=""]');
+  await hasta(p, () => document.querySelectorAll('#listaPedidos .fila').length >= 2);
 
   await p.click('#listaPedidos .fila[data-pedido="PANEL1"] button[data-accion="ver"]');
   await quizas(hasta(p, () => !document.querySelector('#pedido').hidden));

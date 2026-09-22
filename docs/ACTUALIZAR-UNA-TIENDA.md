@@ -21,6 +21,16 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.12.0 (tienda): arreglos de la prueba real — nada a mano en la hoja
+
+1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
+2. Ni `instalar()` ni el stub.
+3. Comprobarlo: un pago de prueba en línea trae «Ver en qué va tu pedido» en
+   la pantalla, en el WhatsApp opcional y en el correo al comprador; en el
+   panel, los filtros de pedidos responden al instante.
+
+---
+
 ## La 0.11.0 (tienda): clave por correo, «avísame», columnas y dominio — `instalar()` una vez
 
 1. **El dominio primero** (si la tienda va a tenerlo): la zona en la misma

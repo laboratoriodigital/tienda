@@ -148,8 +148,8 @@ const filasDe = (g, n) => g.filas('Pedidos').map((f, i) => ({ f, i: i + 1 })).fi
     const pag = fs.readFileSync('./index.html', 'utf8');
     const azar = pag.slice(pag.indexOf('function azar('), pag.indexOf('function azar(') + 400);
     ok('  ...y la página, de crypto.getRandomValues', /getRandomValues/.test(azar) && !/Math\.random/.test(azar));
-    ok('EL PEDIDO COBRADO EN LÍNEA hereda la huella de su cobro',
-       /s: huellaDeSeguimiento\(p\.seg\)/.test(m) && /seguimiento: \(c && c\.s\) \|\| ''/.test(m));
+    ok('EL PEDIDO COBRADO EN LÍNEA hereda la huella de su cobro (el secreto lo pone el maestro: pagos.js)',
+       /huellaDeSeguimiento\(secretoDelCobro\(codigo\)\)/.test(m) && /seguimiento: \(c && c\.s\) \|\| ''/.test(m));
   }
 
   await enLaPagina();

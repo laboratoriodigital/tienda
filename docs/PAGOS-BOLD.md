@@ -53,6 +53,14 @@ anterior (`BOLD_BOTON_IDENTIDAD_*`) y `_PRUEBAS` en vez de `_SANDBOX`.
 **El botón** dice «Pagar con PSE» con dinero real y «Pagar con PSE - Pruebas»
 en el ambiente de pruebas.
 
+**Visto en la prueba real (21-sep-2026):** en Brave el botón de Bancolombia de
+la pasarela no abrió (bloqueo del navegador); en Chrome ese mismo botón falló
+y el pago salió por **PSE**, también con Bancolombia. Es de Bold y del banco,
+no de la tienda: la pantalla de pago ahora sugiere PSE u otro navegador si el
+botón del banco no abre. El enlace de rastreo de un pago en línea lo pone el
+maestro (bitácora 61), así que cambiar de navegador a mitad del pago no lo
+pierde.
+
 Son los mismos nombres que usa la línea anterior: dos tiendas del mismo titular
 de Bold pueden tener los mismos cuatro valores, y copiarlos no exige traducir.
 Se cargan igual en cada proyecto: compartir cuenta de Bold no es compartir

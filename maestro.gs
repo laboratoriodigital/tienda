@@ -1637,7 +1637,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-6';
+var VERSION = '2026-09-21-7';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -4591,6 +4591,30 @@ var ESTADOS_PUBLICOS = {
   cancelado:      { rotulo: 'Cancelado', texto: 'Este pedido se canceló. Si no sabes por qué, escríbele a la tienda.' }
 };
 
+/* 0.12.0 · EL SECRETO DE UN PEDIDO COBRADO EN LÍNEA LO PONE EL MAESTRO.
+   En la 0.10.0 nacía en el navegador y se guardaba en sessionStorage para
+   mostrarlo al volver de Bold. Pero Bold puede devolver al comprador en otra
+   pestaña, o en otro navegador —la prueba del dueño: Brave falló, siguió en
+   Chrome—, y ahí no había secreto: ni enlace en la pantalla, ni en el mensaje.
+   Ahora sale del número del pedido firmado con la firma de ESTA tienda: el
+   maestro lo puede volver a calcular cuando quiera, y lo entrega solo a quien
+   tiene el token del cobro (pago_estado) o por correo al comprador. */
+function secretoDelCobro(codigo) {
+  var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  var hex = enHex(Utilities.computeHmacSha256Signature('rastreo|' + String(codigo), firmaDelPanel()));
+  var s = '';
+  for (var i = 0; i < 16; i++) s += abc.charAt(parseInt(hex.substr(i * 2, 2), 16) % abc.length);
+  return s;
+}
+function enlaceDeRastreoHtml(cfg, codigo) {
+  if (!rastreoEncendido(cfg)) return '';
+  var sitio = String(cfg.sitio_url || '').trim().replace(/\/+$/, '');
+  if (!sitio) return '';
+  if (!/^https?:\/\//i.test(sitio)) sitio = 'https://' + sitio;
+  var url = sitio + '/pedido.html?n=' + encodeURIComponent(codigo) + '&s=' + secretoDelCobro(codigo);
+  return '<p><a href="' + escaparHtml(url) + '">Ver en qué va tu pedido</a></p>';
+}
+
 function atenderSeguimiento(p) {
   var cfg = leerConfiguracion();
   var fallo = { ok: false, error: NO_HAY_SEGUIMIENTO, tienda: tiendaParaElComprador(cfg) };
@@ -7180,7 +7204,7 @@ function crearCobro(p) {
                        c: ahora + HORAS_CONSULTABLE * 3600000, t: token, u: 0,
                        /* M5: la huella del enlace de seguimiento, para el pedido que
                           nace cuando Bold apruebe. Solo la huella. */
-                       s: huellaDeSeguimiento(p.seg) };
+                       s: rastreoEncendido() ? huellaDeSeguimiento(secretoDelCobro(codigo)) : '' };
   guardarCobros(abiertos);
 
   var lineas = r.items.map(function (i) {
@@ -7211,7 +7235,9 @@ function crearCobro(p) {
   };
   if (d.direccion) checkout.billingAddress = { address: d.direccion, city: d.ciudad, country: 'CO' };
   return { ok: true, pedido: codigo, token: token, total: r.total, moneda: 'COP',
-           pruebas: cobro.ambiente !== 'produccion', checkout: checkout };
+           pruebas: cobro.ambiente !== 'produccion', checkout: checkout,
+           /* AL FINAL (R1). 0.12.0: el secreto del rastreo lo pone el maestro. */
+           seguimiento: rastreoEncendido() ? secretoDelCobro(codigo) : '' };
 }
 
 /* ── pago_estado ──────────────────────────────────────────────────────────
@@ -7228,8 +7254,13 @@ function atenderPagoEstado(p) {
     if (codigo) revisarCobro(codigo, false);
     var f = filaDelCobro(token);
     if (!f) return { ok: false, error: 'Pago no encontrado.' };
-    return { ok: true, pedido: String(f.datos[1]), estado: estadoPublico(f.datos[4]),
-             total: Number(f.datos[8]) || 0, transaccion: String(f.datos[6] || '') };
+    var estado = estadoPublico(f.datos[4]);
+    return { ok: true, pedido: String(f.datos[1]), estado: estado,
+             total: Number(f.datos[8]) || 0, transaccion: String(f.datos[6] || ''),
+             /* AL FINAL (R1). 0.12.0: el enlace de rastreo, a quien tiene el token
+                del cobro —el que Bold devolvió a su navegador—. */
+             seguimiento: (estado === 'pagado' || estado === 'revisar') && rastreoEncendido()
+               ? secretoDelCobro(String(f.datos[1])) : '' };
   } catch (err) {
     registrarError('pago_estado: ' + (err && err.message ? err.message : err), null);
     return { ok: false, error: 'No pudimos consultar el pago. Intenta en un momento.' };
@@ -7428,7 +7459,10 @@ function confirmarCobro(codigo, f, bold, abiertos) {
     trasCambiarEstado();
   }
   f.h.getRange(f.fila, 5).setValue(sinExistencias.length ? 'Pagado sin existencias' : 'Pagado');
-  anotarCambios('Bold', '', [{ que: 'Pago en línea aprobado', donde: 'Pedidos · #' + codigo,
+  /* «Quién» no puede quedar vacío (0.12.0): lo hizo la pasarela, con la
+     transacción que da Bold. El comprador no se nombra: no se guarda. */
+  anotarCambios('Bold', 'Pasarela Bold' + (bold.transaccion ? ' · ' + bold.transaccion : ''),
+                [{ que: 'Pago en línea aprobado', donde: 'Pedidos · #' + codigo,
     antes: '', despues: pesos(datos[8]) + (bold.transaccion ? ' · transacción ' + bold.transaccion : '') +
                         (sinExistencias.length ? ' · SIN EXISTENCIAS' : '') }]);
   if (sinExistencias.length) {
@@ -7497,7 +7531,8 @@ function avisarPago(codigo, f, abiertos, sinExistencias) {
           subject: (pruebas ? '[PRUEBA] ' : '') + negocio + ' · pago confirmado · pedido ' + codigo,
           htmlBody: '<p>Hola ' + escaparHtml(entrega[2]) + ', recibimos tu pago.</p>' +
                     '<p>Pedido <strong>' + escaparHtml(codigo) + '</strong></p>' + detalle + total +
-                    '<p>' + escaparHtml(negocio) + ' te contacta para coordinar la entrega.</p>' });
+                    '<p>' + escaparHtml(negocio) + ' te contacta para coordinar la entrega.</p>' +
+                    enlaceDeRastreoHtml(cfg, codigo) });
         f.h.getRange(f.fila, 19).setValue('Sí');
       } catch (e1) {
         f.h.getRange(f.fila, 21).setValue(celdaSegura('Correo al comprador: ' + e1.message, 200));

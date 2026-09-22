@@ -1302,6 +1302,25 @@ dominio). Controles en rojo: sin el tope de códigos, sin el tope por código
 —que el bloqueo general tapaba, bitácora 60—, y contando lo que no está
 agotado.
 
+### 0.12.0 · Lo que encontró la prueba real, y lo que se sentía lento
+
+**R-6 · El rastreo de un pago en línea no depende del navegador**  · 1 pt · ✅
+- [x] El secreto lo pone el maestro (número + firma de la tienda); llega por
+      `pago_crear`, por `pago_estado` al aprobarse y en el correo al comprador.
+      La pantalla de «pago confirmado» y el WhatsApp opcional lo traen aunque
+      el comprador vuelva de Bold en otra pestaña (bitácora 61).
+- [x] El Registro dice quién aprobó: «Pasarela Bold · transacción».
+- [x] En la pantalla de pago: «si el botón de tu banco no abre, paga por PSE o
+      prueba con otro navegador» (Brave bloqueó el de Bancolombia).
+
+**D-11 · El panel que no hace esperar**  · 2 pts · ✅
+- [x] Filtros y buscador de pedidos al instante, sin red; ninguna respuesta
+      vieja pisa a una nueva; la lista no se vacía mientras carga (bitácora 62).
+- [x] Los ajustes se repintan solo si cambiaron, y dicen «Cargando…» la
+      primera vez; el tablero dice «Leyendo tus números…».
+- [x] Recuperar la clave dice «Actualizando tu clave en el sistema…» mientras
+      tanto.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

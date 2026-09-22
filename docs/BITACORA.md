@@ -1784,3 +1784,27 @@ es. Ahora la prueba limpia el bloqueo general antes de mirar el tope por
 código, y en rojo se pone roja. Es el mismo caso que la entrada 53, del otro
 lado: allá la guarda redundante quedó como defensa en profundidad; aquí se
 aisló para poder probarla.
+
+**61 · El enlace de rastreo que se quedaba en la otra pestaña.** Probando un
+pago real, el enlace «Sigue tu pedido» no salió ni en la pantalla de pago
+confirmado ni en el WhatsApp. En la 0.10.0 el secreto del rastreo nacía en el
+navegador del comprador y se guardaba en `sessionStorage` para mostrarlo al
+volver de Bold; pero `sessionStorage` es de UNA pestaña, y Bold puede devolver
+al comprador a otra —en la prueba, además, el pago empezó en Brave (el botón de
+Bancolombia falló) y terminó en Chrome—. Ahora el secreto de un pedido cobrado
+en línea lo pone el maestro, derivado del número y la firma de la tienda: lo
+vuelve a calcular cuando quiere y se lo da solo a quien tiene el token del
+cobro (`pago_estado`), además de mandarlo en el correo al comprador. `pagoweb.js`
+lo prueba borrándole el secreto a la página antes de aprobar. **Lo que tiene
+que sobrevivir a un viaje por un tercero no puede vivir en una pestaña.**
+
+**62 · Los filtros de pedidos que había que tocar dos veces.** Cada toque en
+«Nuevo», «Pagado»… era una ida y vuelta a Google (dos o tres segundos), la
+lista se vaciaba mientras tanto, y si se tocaba otro filtro antes de que
+contestara el primero, la respuesta vieja llegaba después y pisaba a la nueva:
+de ahí el «a veces toca dar clic dos veces». Ahora los pedidos se traen una vez
+y se filtran en la página, sin red; cada lectura lleva turno y solo se pinta la
+última; mientras llega, se ve la lista de antes. Los ajustes de la tienda,
+igual: se releen, pero solo se repintan si cambiaron. Del mismo día: el
+Registro no decía quién había aprobado un pago en línea; ahora dice «Pasarela
+Bold · transacción».
