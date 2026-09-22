@@ -138,6 +138,7 @@ details.seccion[open]>summary{margin-bottom:4px}
 .rejilla-ajuste label{margin-top:4px}
 .pie-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
 .estado-fila{font-size:.82rem;color:var(--tenue)}
+.seguimiento{border-top:1px solid var(--linea);margin-top:18px;padding-top:6px}
 #formTienda .pie-form{position:sticky;bottom:0;background:var(--blanco);padding:10px 0 4px;margin-bottom:0}
 
 /* ── Tablero (M4) ── */
@@ -266,6 +267,20 @@ details.seccion[open]>summary{margin-bottom:4px}
           <button class="btn" type="button" id="guardarPedido">Cambiar estado</button>
           <button class="btn peligro firme" type="button" id="guardarPedidoSi" hidden>Sí, cambiarlo</button>
           <button class="btn linea" type="button" id="cerrarPedido">Volver</button>
+        </div>
+        <!-- M5 · el enlace con el que el comprador sigue su pedido. -->
+        <div class="seguimiento" id="seguimientoCaja">
+          <h3 class="titulo-bloque" style="font-size:.95rem">Seguimiento para el comprador</h3>
+          <p class="dato" id="seguimientoTexto"></p>
+          <button class="btn linea chico" type="button" id="crearEnlace">Crear enlace de seguimiento</button>
+          <div id="enlaceCaja" hidden>
+            <input class="campo" id="enlaceUrl" readonly aria-label="Enlace de seguimiento">
+            <div class="pie-fila">
+              <button class="btn chico" type="button" id="copiarEnlace">Copiar</button>
+              <a class="btn linea chico" id="enviarEnlace" href="#" target="_blank" rel="noopener">Mandarlo por WhatsApp</a>
+            </div>
+          </div>
+          <p class="aviso" id="avisoEnlace" role="status" hidden></p>
         </div>
       </section>
     </div>
@@ -1110,11 +1125,54 @@ function abrirPedido(p){
   $("#p-estado").innerHTML = (p.estadoId ? "" : `<option value="" selected disabled>${escapar(p.estado || "(sin estado)")} — elige el correcto</option>`) +
     estadosPedido.map(e => `<option value="${escapar(e.id)}" ${e.id === p.estadoId ? "selected" : ""}>${escapar(e.rotulo)}</option>`).join("");
   $("#p-guia").value = p.guia || "";
+  pintarSeguimiento(p);
   $("#guardarPedidoSi").hidden = true;
   $("#guardarPedido").hidden = false;
   aviso("#avisoPedido", "", "");
   alCambiarEstado();
   window.scrollTo(0, 0);
+}
+
+/* ── M5 · el enlace de seguimiento ──────────────────────────────────────────
+   El que va en el mensaje del comprador no se puede recuperar: la hoja guarda
+   solo su huella. Desde aquí se crea uno NUEVO —para un pedido de antes, o
+   para quien lo perdió—, y el anterior deja de servir; por eso, si ya había
+   uno, pide un segundo toque. */
+let opEnlace = null;
+function pintarSeguimiento(p){
+  opEnlace = null;
+  $("#enlaceCaja").hidden = true; $("#enlaceUrl").value = "";
+  aviso("#avisoEnlace", "", "");
+  const b = $("#crearEnlace");
+  b.dataset.seguro = p.seguimiento ? "" : "1";
+  b.textContent = p.seguimiento ? "Crear un enlace nuevo" : "Crear enlace de seguimiento";
+  b.classList.remove("firme");
+  $("#seguimientoTexto").textContent = p.seguimiento
+    ? "El comprador ya tiene su enlace: va en el mensaje de WhatsApp del pedido. Si lo perdió, crea uno nuevo (el anterior deja de funcionar)."
+    : "Este pedido no tiene enlace de seguimiento. Crea uno y mándaselo al comprador: con él ve en qué va su pedido.";
+}
+async function crearEnlace(){
+  const b = $("#crearEnlace"), p = pedidoAbierto;
+  if (!p) return;
+  if (!b.dataset.seguro) { b.dataset.seguro = "1"; b.textContent = "Sí, crear uno nuevo"; b.classList.add("firme"); return; }
+  if (!opEnlace) opEnlace = nuevaOperacion();
+  b.disabled = true;
+  try {
+    const r = await llamar("enlace_seguimiento", { op: opEnlace, pedido: p.pedido });
+    if (!r.ok) { opEnlace = null; aviso("#avisoEnlace", "mal", r.error || "No se pudo crear el enlace."); return; }
+    $("#enlaceUrl").value = r.url;
+    $("#enviarEnlace").href = "https://wa.me/?text=" + encodeURIComponent("Aquí puedes ver en qué va tu pedido #" + p.pedido + ": " + r.url);
+    $("#enlaceCaja").hidden = false;
+    p.seguimiento = true;
+    aviso("#avisoEnlace", "bien", "Listo. Cópialo y mándaselo al comprador.");
+  } catch (e) {
+    if (e.message !== "sesion") aviso("#avisoEnlace", "mal", "Se perdió la conexión. Pulsa otra vez: no se crean dos.");
+  } finally { b.disabled = false; }
+}
+async function copiarEnlace(){
+  const t = $("#enlaceUrl").value;
+  try { await navigator.clipboard.writeText(t); aviso("#avisoEnlace", "bien", "Copiado."); }
+  catch (e) { $("#enlaceUrl").select(); aviso("#avisoEnlace", "info", "Selecciónalo y cópialo a mano."); }
 }
 
 function efectoDe(p, nuevo){
@@ -1211,6 +1269,17 @@ async function cargarTienda(){
 function campoDe(c){
   const id = "t-" + c.clave, v = c.valor, mal = c.problema ? " mal" : "";
   if (c.tipo === "largo") return `<textarea class="campo${mal}" id="${id}" data-clave="${escapar(c.clave)}">${escapar(v)}</textarea>`;
+  /* Una lista con opciones que traen su propio valor (fotos_cdn): se elige
+     por nombre y se guarda la plantilla. Lo que ya había y no es de la lista
+     queda como «Personalizada», elegida, y no se toca si nadie cambia. */
+  if (c.tipo === "lista") {
+    const ops = c.opciones || [];
+    const esDeLista = ops.some(o => o.valor === v);
+    return `<select class="campo${mal}" id="${id}" data-clave="${escapar(c.clave)}">` +
+      (!esDeLista ? `<option value="${escapar(v)}" selected>Personalizada: ${escapar(v)}</option>` : "") +
+      ops.map(o => `<option value="${escapar(o.valor)}"${o.valor === v ? " selected" : ""}${o.desactivada ? " disabled" : ""}>${escapar(o.rotulo)}</option>`).join("") +
+      `</select>`;
+  }
   if (c.tipo === "sino" || c.tipo === "opcion") {
     const opciones = c.tipo === "sino" ? ["Sí", "No"] : (c.opciones || []);
     const llana = t => String(t).trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -1631,6 +1700,8 @@ $("#f-foto").addEventListener("change", subirFoto);
 $("#guardarCombinaciones").addEventListener("click", guardarCombinaciones);
 document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.vista)));
 $("#publicar").addEventListener("click", publicar);
+$("#crearEnlace").addEventListener("click", crearEnlace);
+$("#copiarEnlace").addEventListener("click", copiarEnlace);
 $("#actualizarTablero").addEventListener("click", cargarTablero);
 $("#chipsEstados").addEventListener("click", ev => { const b = ev.target.closest("button[data-estado]");
   if (!b) return; filtroEstado = b.dataset.estado; cargarPedidos(); });

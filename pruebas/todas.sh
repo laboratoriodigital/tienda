@@ -37,6 +37,7 @@ cp ../maestro.gs            as.js
 cp ../panel.gs              pn.js
 cp ../publicar/index.html   index.html
 cp ../publicar/admin.html   admin.html
+cp ../publicar/pedido.html  pedido.html
 
 # ── EL ARNÉS ES UNA SOLA TIENDA ─────────────────────────────────────────────
 # Desde el 4.20 `publicar/index.html` lleva dentro el catálogo y la
@@ -117,7 +118,7 @@ BATERIAS=${BATERIAS:-"e2e.js movil.js enlace.js val.js fotos.js pag.js test.js c
           calendario.js respaldo.js marca.js plantilla.js worker.js legal.js \
           determinismo.js escribe.js limites.js tiempos.js sondeo.js seo.js variantes.js \
           varpag.js orden.js entrar.js productos.js admin.js \
-          panelpedidos.js panelconfig.js panelpublicar.js pagos.js pagoweb.js comprador.js registro.js inventario.js combinaciones.js paneltablero.js panelajustes.js"}
+          panelpedidos.js panelconfig.js panelpublicar.js pagos.js pagoweb.js comprador.js registro.js inventario.js combinaciones.js paneltablero.js panelajustes.js rastreo.js"}
 
 # ── CUATRO, Y NO UNO POR NÚCLEO ─────────────────────────────────────────────
 # Esto decía «uno por núcleo hasta cuatro», con el razonamiento de que cada

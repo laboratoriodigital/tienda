@@ -101,7 +101,9 @@ const lineas = (g, codigo) => g.filas('Pedidos').filter(f => String(f[1]) === co
                     'producto', 'subtotal', 'total', 'validacion', 'variante', 'version',
                     /* M3.5: con qué se cobró y el número de la transacción. Del
                        comercio, no del comprador. */
-                    'pago', 'transaccion'];
+                    'pago', 'transaccion',
+                    /* M5: SI el pedido tiene enlace de seguimiento (sí o no). */
+                    'seguimiento'];
     const vistos = new Set();
     r.pedidos.forEach(x => { Object.keys(x).forEach(c => vistos.add(c));
                              x.lineas.forEach(l => Object.keys(l).forEach(c => vistos.add(c))); });

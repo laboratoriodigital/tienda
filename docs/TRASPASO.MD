@@ -18,8 +18,8 @@ anterior en su versión 3.0.0, con sus defectos dentro.
 
 El repositorio arranca en **0.1.0** y el MVP sale como **1.0.0**. El MVP
 empezó siendo **M0 a M3**; el 21 de septiembre el dueño le sumó **M3.5 · Cobrar
-en línea** y **M4 · El tablero**. El rastreo del pedido (M5) y la actualización
-automática de la flota (M6) siguen **fuera**, y son la entrega 1.1.
+en línea**, **M4 · El tablero** y **M5 · El rastreo del pedido**. La
+actualización automática de la flota (M6) sigue **fuera**, y es la entrega 1.1.
 
 **Dónde va el trabajo (21 de septiembre de 2026):**
 
@@ -31,6 +31,7 @@ automática de la flota (M6) siguen **fuera**, y son la entrega 1.1.
 | **M3** · El panel del comerciante | **Cerrado** el 21 de septiembre: D-1 a D-7. Entra, edita productos, fotos y stock por combinación, cambia pedidos, edita la configuración, publica, deja registro de todo, y la guía de una página ya explica el panel |
 | **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) |
 | **M3 bis** · El panel alcanza para todo | **Hecho** el 21 de septiembre (0.9.0, decisión 14): dos pantallas, Ventas y Tienda; toda la configuración, zonas de envío y cupones desde el panel; lo que mueve la plata pide la clave otra vez; aviso rojo si la pasarela no está lista. La hoja sigue funcionando igual |
+| **M5** · El rastreo | **Hecho** el 21 de septiembre (0.10.0, decisión 15): el comprador sigue su pedido con `pedido.html?n=…&s=…`, que va en su mensaje de WhatsApp o en la pantalla del pago; la hoja guarda solo la huella del secreto; el panel crea enlaces nuevos |
 | **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
 
 Los números de M1, que son los que deciden si cabe una tienda más:
@@ -49,7 +50,7 @@ real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
 entero por delante. Los dos, holgadamente dentro del presupuesto de
 `presupuesto.json`.
 
-**El MVP está construido** (M0 a M4, más el panel completo de la 0.9.0). Lo que queda antes de llamarlo 1.0.0
+**El MVP está construido** (M0 a M5, más el panel completo de la 0.9.0). Queda solo M6 para la 1.1. Lo que queda antes de llamarlo 1.0.0
 no es código nuevo, es comprobarlo en una tienda de verdad:
 
 1. **La prueba de Bold** con las llaves de pruebas en una tienda publicada

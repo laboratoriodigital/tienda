@@ -21,6 +21,21 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.10.0 (tienda): el rastreo del pedido — `instalar()` una vez
+
+1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.
+   El montaje hornea `publicar/pedido.html` junto al panel.
+2. **`A0_instalar()`**: agrega la columna `Seguimiento` al final de Pedidos y la
+   clave `f_rastreo` (Sí) al final de Configuración. Sin esto el rastreo
+   funciona igual —vacío es Sí—, pero la columna es la que guarda las huellas.
+3. Comprobarlo: hacer un pedido de prueba; el mensaje de WhatsApp trae «Sigue
+   tu pedido: …»; abrir ese enlace muestra el pedido. En el panel, el detalle
+   del pedido ofrece crear un enlace para los pedidos viejos.
+4. Arregla, además, la hora de los pedidos en el panel que la 0.9.0 había
+   perdido (bitácora 58).
+
+---
+
 ## La 0.9.0 (tienda): el panel alcanza para todo — nada a mano en la hoja
 
 1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`.

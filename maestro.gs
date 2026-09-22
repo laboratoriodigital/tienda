@@ -957,7 +957,10 @@ function pedidoParaElPanel(filas, indices) {
                cantidad: Number(f[8]) || 0, precio: Number(f[9]) || 0,
                subtotal: Number(f[10]) || 0, inventario: String(f[12] || '') };
     }),
-    version: versionDePedido(indices.map(function (i) { return filas[i]; }))
+    version: versionDePedido(indices.map(function (i) { return filas[i]; })),
+    /* M5: si el pedido tiene enlace de seguimiento (solo se sabe SI; el
+       enlace no se puede reconstruir desde la hoja). */
+    seguimiento: !!String(primera[20] || '').trim()
   };
 }
 
@@ -1113,11 +1116,13 @@ var CLAVES_DEL_PANEL = [
   { clave: 'repositorio',          grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Repositorio (dueño/nombre)' },
   { clave: 'fotos_drive',          grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Carpeta de Drive con las fotos crudas' },
   { clave: 'fotos_origen',         grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Dónde se sirven las fotos' },
-  { clave: 'fotos_cdn',            grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Transformación de fotos' },
+  { clave: 'fotos_cdn',            grupo: 'Avanzado',   tipo: 'lista',  rotulo: 'Transformación de fotos' },
   { clave: 'fotos_webp',           grupo: 'Avanzado',   tipo: 'sino',   rotulo: 'Fotos en varios tamaños (webp)' },
   { clave: 'respaldo_carpeta',     grupo: 'Avanzado',   tipo: 'texto',  rotulo: 'Carpeta del respaldo semanal' },
   { clave: 'f_autoria',            grupo: 'Avanzado',   tipo: 'sino',   rotulo: 'Mostrar la autoría al pie' },
-  { clave: 'autoria_url',          grupo: 'Avanzado',   tipo: 'url',    rotulo: 'A dónde enlaza la autoría' }
+  { clave: 'autoria_url',          grupo: 'Avanzado',   tipo: 'url',    rotulo: 'A dónde enlaza la autoría' },
+  /* M5 */
+  { clave: 'f_rastreo',            grupo: 'La venta',   tipo: 'sino',   rotulo: 'Enlace para que el comprador siga su pedido' }
 ];
 
 /* EL ORDEN EN QUE SE ENSEÑAN LOS GRUPOS. La lista de arriba solo crece al
@@ -1147,6 +1152,43 @@ function problemaDeValor(def, valor) {
   if (def.tipo === 'url' && !/^https:\/\/\S+$/.test(v)) return 'Una dirección completa, que empiece por https://';
   if (def.tipo === 'hora' && !(/^\d{1,2}$/.test(v) && Number(v) <= 23)) return 'Una hora de 0 a 23.';
   return null;
+}
+
+/* ── LAS LISTAS QUE DEPENDEN DE LA TIENDA ────────────────────────────────────
+   `fotos_cdn` se escribía a mano: una plantilla de URL con {ancho} y {ruta}
+   que nadie sabe escribir. El dueño pidió elegirla de una lista con lo que ya
+   sabemos hacer, y agregar después los proveedores del mercado. Cada opción
+   guarda en la hoja la MISMA plantilla que antes se escribía a mano: la página
+   que la lee no cambia, y la hoja sigue sirviendo sin el panel.
+
+   Lo que ya está en la hoja y no es de la lista se conserva como
+   «Personalizada»: el panel no la toca mientras nadie elija otra. */
+function opcionesDeLista(clave, cfg) {
+  if (clave !== 'fotos_cdn') return [];
+  cfg = cfg || leerConfiguracion();
+  var sitio = String(cfg.sitio_url || '').trim();
+  var host = hostDe(/^https?:\/\//i.test(sitio) ? sitio : 'https://' + sitio);
+  var r = [{ valor: '', rotulo: 'Ninguna: las fotos se sirven tal cual, desde tu sitio' }];
+  if (host) {
+    /* Transformaciones de Cloudflare: mismo dominio, así que no toca la política
+       de seguridad. Pero NO existe en *.workers.dev ni *.pages.dev: ahí se ofrece
+       desactivada, con el porqué, en vez de dejar elegir algo que deja la tienda
+       sin fotos. */
+    var propio = !/\.(workers|pages)\.dev$/.test(host);
+    r.push({ valor: 'https://' + host + '/cdn-cgi/image/format=auto,quality=82,width={ancho},fit=cover/fotos/{ruta}',
+             rotulo: 'Cloudflare, en tu propio dominio' + (propio ? '' : ' (necesita un dominio propio: hoy es ' + host + ')'),
+             desactivada: !propio });
+  }
+  return r;
+}
+
+function problemaDeLista(def, valor, cfg) {
+  var v = String(valor === null || valor === undefined ? '' : valor).trim();
+  if (!v || def.tipo !== 'lista') return null;
+  var ops = opcionesDeLista(def.clave, cfg);
+  if (ops.some(function (o) { return o.valor === v; })) return null;
+  return /^https:\/\/\S*\{ruta\}/.test(v) ? null :
+    'No es una plantilla que la tienda sepa usar: tiene que empezar por https:// y llevar {ruta}. Elige una de la lista.';
 }
 
 /* «Pasarela» se entiende, pero puede no estar lista. Eso también es un
@@ -1193,7 +1235,11 @@ function claveOtraVez(p) {
    el cupón no invalide la edición de sus notas. Un cupón que ya se usó no se
    borra —es historia de ventas—: se desactiva.
    ══════════════════════════════════════════════════════════════════════════ */
-function fechaIso(v) {
+/* El DÍA de una fecha, AAAA-MM-DD, para lo que se edita como día (el
+   vencimiento de un cupón). Se llamó fechaIso durante una versión y pisó en
+   silencio a la de arriba —en Apps Script gana la última declaración—: los
+   pedidos del panel perdieron la hora (bitácora 58). */
+function diaIso(v) {
   if (v instanceof Date && !isNaN(v.getTime())) {
     var dd = function (n) { return (n < 10 ? '0' : '') + n; };
     return v.getFullYear() + '-' + dd(v.getMonth() + 1) + '-' + dd(v.getDate());
@@ -1214,7 +1260,7 @@ var TIPOS_CUPON = ['porcentaje', 'fijo', 'envio'];
 
 function versionDeEnvio(f) { return versionDeFila([texto0(f[0]), texto0(f[1]), texto0(f[2])]); }
 function versionDeCupon(f) {
-  return versionDeFila([texto0(f[0]), texto0(f[1]), texto0(f[2]), texto0(f[3]), fechaIso(f[4]),
+  return versionDeFila([texto0(f[0]), texto0(f[1]), texto0(f[2]), texto0(f[3]), diaIso(f[4]),
                         texto0(f[5]), texto0(f[7]), texto0(f[8])]);
 }
 
@@ -1229,7 +1275,7 @@ function enviosParaElPanel() {
 function cuponesParaElPanel() {
   return filasDe(H_CUPONES, 9).filas.filter(function (f) { return texto0(f[0]); }).map(function (f) {
     return { codigo: texto0(f[0]), tipo: texto0(f[1]).toLowerCase(), valor: texto0(f[2]), minimo: texto0(f[3]),
-             vence: fechaIso(f[4]), usosMaximos: texto0(f[5]), usados: Number(f[6]) || 0,
+             vence: diaIso(f[4]), usosMaximos: texto0(f[5]), usados: Number(f[6]) || 0,
              activo: esSi(f[7]) ? 'Sí' : 'No', notas: texto0(f[8]), version: versionDeCupon(f) };
   });
 }
@@ -1295,7 +1341,7 @@ function atenderGuardarCupon(p) {
       }
     }
     var resumen = function (f) {
-      return [texto0(f[1]), texto0(f[2]), 'mínimo ' + (texto0(f[3]) || '0'), fechaIso(f[4]) ? 'vence ' + fechaIso(f[4]) : '',
+      return [texto0(f[1]), texto0(f[2]), 'mínimo ' + (texto0(f[3]) || '0'), diaIso(f[4]) ? 'vence ' + diaIso(f[4]) : '',
               esSi(f[7]) ? 'activo' : 'inactivo'].filter(function (x) { return x; }).join(' · ');
     };
     var antes = i === -1 ? '' : resumen(t.filas[i]);
@@ -1365,6 +1411,7 @@ function atenderConfiguracion() {
   var fila = {};
   cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
   var orden = function (d) { var i = GRUPOS_DEL_PANEL.indexOf(d.grupo); return i === -1 ? 99 : i; };
+  var vista = leerConfiguracion();
   var claves = CLAVES_DEL_PANEL.filter(function (d) { return fila[d.clave] !== undefined; })
     .map(function (d, i) { return { d: d, i: i }; })
     .sort(function (x, y) { return orden(x.d) - orden(y.d) || x.i - y.i; })
@@ -1373,8 +1420,10 @@ function atenderConfiguracion() {
       var f = cfg.filas[fila[d.clave]];
       var valor = String(f[1] === null || f[1] === undefined ? '' : f[1]);
       return { clave: d.clave, grupo: d.grupo, tipo: d.tipo, rotulo: d.rotulo,
-               opciones: d.opciones || null, ayuda: String(f[2] || ''),
-               valor: valor, problema: problemaDeValor(d, valor) || problemaDelCobro(d, valor),
+               opciones: d.tipo === 'lista' ? opcionesDeLista(d.clave, vista) : (d.opciones || null),
+               ayuda: String(f[2] || ''),
+               valor: valor, problema: problemaDeValor(d, valor) || problemaDeLista(d, valor, vista) ||
+                                       problemaDelCobro(d, valor),
                version: versionDeValor(valor), sensible: !!d.sensible };
     });
   /* AL FINAL, Y NO EN MEDIO (R1). Lo que el panel necesita para su segunda
@@ -1431,6 +1480,11 @@ function atenderGuardarConfiguracion(p) {
       }
       var valor = String(cambios[k] === null || cambios[k] === undefined ? '' : cambios[k]).trim();
       var mal = problemaDeValor(d, valor);
+      /* Una lista acepta sus opciones —las activas— o dejar lo que ya había. */
+      if (!mal && d.tipo === 'lista' && valor !== String(actual === null || actual === undefined ? '' : actual).trim() &&
+          !opcionesDeLista(k).some(function (o) { return o.valor === valor && !o.desactivada; })) {
+        mal = 'Elige una de la lista.';
+      }
       if (mal) { errores[k] = mal; return; }
       if (d.tipo === 'sino' && valor) valor = llano(valor) === 'no' ? 'No' : 'Sí';
       if (d.tipo === 'color') valor = valor.toUpperCase();
@@ -1579,7 +1633,7 @@ function atenderPublicar(p) {
   return r;
 }
 
-var VERSION = '2026-09-21-4';
+var VERSION = '2026-09-21-5';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -1640,7 +1694,12 @@ var ENCABEZADO_PEDIDOS = ['Fecha', 'Pedido', 'Validación', 'Estado', 'Ciudad', 
                           'Variante',
                           /* M3.5: los pedidos que se cobraron en línea. Al
                              final, opcionales, y vacías en los de WhatsApp. */
-                          'Proveedor de pago', 'Referencia de pago', 'Transacción de pago'];
+                          'Proveedor de pago', 'Referencia de pago', 'Transacción de pago',
+                          /* M5: la huella del enlace de seguimiento. La HUELLA,
+                             no el enlace: con esta columna a la vista nadie
+                             puede armar el enlace de otro. Vacía en los pedidos
+                             de antes de M5 y con el rastreo apagado. */
+                          'Seguimiento'];
 
 /* La columna Pedido de Validaciones es el MISMO número que el de Pedidos. Un
    solo identificador para todo: el que llega en el mensaje de WhatsApp. */
@@ -2885,7 +2944,11 @@ var PUERTAS = {
   tablero:               { guarda: 'panel', soloPost: true, fn: atenderTablero },
   /* 0.9.0 · el panel alcanza para todo: las zonas de envío y los cupones. */
   guardar_envio:         { guarda: 'panel', soloPost: true, fn: atenderGuardarEnvio },
-  guardar_cupon:         { guarda: 'panel', soloPost: true, fn: atenderGuardarCupon }
+  guardar_cupon:         { guarda: 'panel', soloPost: true, fn: atenderGuardarCupon },
+  /* M5 · el rastreo. Pública y SOLO POR POST: el secreto viaja en el cuerpo,
+     no en una dirección que queda en los registros de Google. */
+  seguimiento:           { guarda: 'publica', soloPost: true, fn: atenderSeguimiento },
+  enlace_seguimiento:    { guarda: 'panel', soloPost: true, fn: atenderEnlaceSeguimiento }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -4038,7 +4101,11 @@ function semillaDeConfiguracion() {
          fábrica, abierta y sin mínimo: lo que ya hacía. */
       ['tienda_abierta',   'Sí', 'No = la tienda se puede mirar pero no recibe pedidos (vacaciones, inventario). Arriba de todo sale el mensaje de abajo'],
       ['tienda_cerrada_mensaje', '', 'Lo que ve el comprador cuando la tienda está cerrada. Ej.: «Volvemos el lunes 6 de octubre». Vacío = un mensaje genérico'],
-      ['pedido_minimo',    '', 'El pedido mínimo, en pesos, sobre el valor de los productos (sin el envío). Vacío = sin mínimo']
+      ['pedido_minimo',    '', 'El pedido mínimo, en pesos, sobre el valor de los productos (sin el envío). Vacío = sin mínimo'],
+
+      /* AL FINAL (R1). M5: el comprador sigue su pedido con el enlace que va en
+         su mensaje de WhatsApp. Encendido de fábrica: no guarda nada suyo. */
+      ['f_rastreo',        'Sí', 'Sí = cada pedido lleva un enlace para que el comprador vea en qué va (estado, fecha y qué pidió; nada de sus datos). No = sin enlace']
   ];
 }
 
@@ -4453,6 +4520,124 @@ function escribirActa(codigo, subPagina, items, r, autorizada) {
    Por GET no pasa: es el mismo camino que ya usan el catálogo y la validación,
    que sí funcionan. Los precios los pone la hoja, no lo que mande la tienda.
    ========================================================================== */
+/* ==========================================================================
+   M5 · EL RASTREO DEL PEDIDO
+   --------------------------------------------------------------------------
+   El comprador ve en qué va su pedido —estado, fechas, qué pidió— con el
+   enlace que viaja en su propio mensaje de WhatsApp. No se guarda ni se pide
+   un dato suyo más: la hoja sigue sin saber quién compró.
+
+   EL NÚMERO SOLO NO ALCANZA. El número de pedido son cinco caracteres (unos 33
+   millones de combinaciones) y se lee en voz alta, se escribe en una guía, se
+   ve en una captura. Por eso el enlace lleva además un SECRETO de 16 caracteres
+   (80 bits) que nace en el navegador del comprador —o en el maestro, si lo pide
+   el comerciante desde el panel— y del que la hoja guarda solo la HUELLA
+   (SHA-256). Con la hoja abierta no se puede armar el enlace de nadie.
+
+   UN INTENTO FALLIDO NO DICE NADA. Número que no existe, secreto equivocado,
+   pedido viejo sin seguimiento, formato raro: la misma respuesta, palabra por
+   palabra. Así el rastreo no sirve para averiguar qué números existen.
+   ========================================================================== */
+var SECRETO_SEGUIMIENTO = /^[A-Za-z0-9]{16,40}$/;
+var NO_HAY_SEGUIMIENTO = 'No encontramos un pedido con ese enlace. Revisa que esté completo, ' +
+                         'o escríbele a la tienda por WhatsApp.';
+
+function rastreoEncendido(cfg) {
+  /* Vacío es Sí: una hoja de antes de M5 no tiene la clave hasta que corre
+     instalar(), y el rastreo no guarda nada del comprador. */
+  return llano((cfg || leerConfiguracion()).f_rastreo) !== 'no';
+}
+
+function huellaDeSeguimiento(secreto) {
+  var s = String(secreto || '');
+  if (!SECRETO_SEGUIMIENTO.test(s) || !rastreoEncendido()) return '';
+  return enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s)).slice(0, 32);
+}
+
+function tiendaParaElComprador(cfg) {
+  return { negocio: String(cfg.negocio || ''), whatsapp: String(cfg.whatsapp || '').replace(/\D/g, ''),
+           color: String(cfg.color_principal || '') };
+}
+
+/* Lo que el comprador lee, en sus palabras y no en las del comerciante: un
+   estado que la hoja no entiende sale como «Recibido», no como la errata. */
+var ESTADOS_PUBLICOS = {
+  nuevo:          { rotulo: 'Recibido', texto: 'La tienda recibió tu pedido y te confirma por WhatsApp.' },
+  pendiente_pago: { rotulo: 'Esperando el pago', texto: 'La tienda está esperando tu pago para preparar el pedido.' },
+  pagado:         { rotulo: 'Pagado', texto: 'Tu pago está confirmado: están preparando tu pedido.' },
+  despachado:     { rotulo: 'Despachado', texto: 'Tu pedido va en camino.' },
+  entregado:      { rotulo: 'Entregado', texto: 'Tu pedido fue entregado. ¡Gracias por tu compra!' },
+  cancelado:      { rotulo: 'Cancelado', texto: 'Este pedido se canceló. Si no sabes por qué, escríbele a la tienda.' }
+};
+
+function atenderSeguimiento(p) {
+  var cfg = leerConfiguracion();
+  var fallo = { ok: false, error: NO_HAY_SEGUIMIENTO, tienda: tiendaParaElComprador(cfg) };
+  if (!rastreoEncendido(cfg)) {
+    return { ok: false, apagado: true, tienda: fallo.tienda,
+             error: 'Esta tienda no tiene seguimiento en línea. Pregunta por tu pedido por WhatsApp.' };
+  }
+  var n = String(p.n || '').trim().toUpperCase();
+  var s = String(p.s || '').trim();
+  if (!/^[A-Z0-9]{4,12}$/.test(n) || !SECRETO_SEGUIMIENTO.test(s)) return fallo;
+  var h = enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s)).slice(0, 32);
+  var todas = lineasDePedidos().filas;
+  var suyas = todas.filter(function (f) { return String(f[1]).trim().toUpperCase() === n; });
+  if (!suyas.length || String(suyas[0][20] || '').trim() !== h) return fallo;
+
+  var primera = suyas[0];
+  var e = estadoDe(primera[3]);
+  var id = e ? e.id : 'nuevo';
+  var publico = ESTADOS_PUBLICOS[id] || ESTADOS_PUBLICOS.nuevo;
+  var orden = ['nuevo', 'pagado', 'despachado', 'entregado'];
+  var alto = id === 'pendiente_pago' ? 0 : orden.indexOf(id);
+  var pasos = [
+    { id: 'nuevo', rotulo: 'Recibido', fecha: fechaIso(primera[0]) },
+    { id: 'pagado', rotulo: 'Pagado', fecha: fechaIso(primera[13]) },
+    { id: 'despachado', rotulo: 'Despachado', fecha: fechaIso(primera[14]) },
+    { id: 'entregado', rotulo: 'Entregado', fecha: '' }
+  ].map(function (x, i) { x.hecho = id !== 'cancelado' && i <= alto; return x; });
+  return {
+    ok: true,
+    tienda: fallo.tienda,
+    pedido: String(primera[1]).trim(),
+    estado: { id: id, rotulo: publico.rotulo, texto: publico.texto },
+    pasos: id === 'cancelado' ? [] : pasos,
+    guia: id === 'despachado' || id === 'entregado' ? String(primera[15] || '') : '',
+    pagoEnLinea: !!String(primera[17] || ''),
+    total: Number(primera[11]) || 0,
+    lineas: suyas.map(function (f) {
+      return { nombre: String(f[6] || ''), variante: String(f[16] || ''), cantidad: Number(f[8]) || 0,
+               subtotal: Number(f[10]) || 0 };
+    })
+  };
+}
+
+/* El comerciante pide un enlace desde el panel: para un pedido de antes de M5,
+   o para mandárselo a quien lo perdió. Es un secreto NUEVO —del viejo solo hay
+   huella—, así que el enlace anterior deja de funcionar, y el panel lo dice. */
+function atenderEnlaceSeguimiento(p) {
+  return conOperacion(p, function () {
+    var cfg = leerConfiguracion();
+    if (!rastreoEncendido(cfg)) return { ok: false, error: 'El seguimiento está apagado (f_rastreo = No).' };
+    var sitio = String(cfg.sitio_url || '').trim().replace(/\/+$/, '');
+    if (!sitio) return { ok: false, error: 'Falta sitio_url: sin la dirección de la tienda no hay enlace que armar.' };
+    if (!/^https?:\/\//i.test(sitio)) sitio = 'https://' + sitio;
+    var codigo = String(p.pedido || '').trim();
+    var datos = lineasDePedidos();
+    var indices = indicesDelPedido(datos.filas, codigo);
+    if (!indices.length) return { ok: false, error: 'Ese pedido no está en la hoja.' };
+    var secreto = aleatorio(16);
+    var h = enHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, secreto)).slice(0, 32);
+    indices.forEach(function (i) { datos.h.getRange(i + 2, 21).setValue(h); });
+    return { ok: true, pedido: codigo,
+             url: sitio + '/pedido.html?n=' + encodeURIComponent(codigo) + '&s=' + secreto,
+             _registro: [{ que: 'Creó un enlace de seguimiento', donde: 'Pedidos · #' + codigo,
+                           antes: String(datos.filas[indices[0]][20] || '') ? 'tenía otro (dejó de servir)' : '',
+                           despues: 'enlace nuevo' }] };
+  });
+}
+
 function registrarPedido(p) {
   var codigo = celdaSegura(p.pedido).slice(0, 12);
   if (!codigo) return { ok: false, error: 'Pedido sin número' };
@@ -4465,6 +4650,7 @@ function registrarPedido(p) {
     pedido: codigo,
     ref: codigo,
     estado: 'Nuevo',
+    seguimiento: huellaDeSeguimiento(p.seg),
     ciudad: celdaSegura(p.ciudad),
     cupon: celdaSegura(r.cupon.ok ? r.cupon.codigo : ''),
     total: r.total,
@@ -4531,8 +4717,15 @@ function rescates() {
 }
 
 function aleatorio(n) {
-  var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = '';
-  for (var i = 0; i < n; i++) s += abc.charAt(Math.floor(Math.random() * abc.length));
+  /* M5 · DE UNA FUENTE QUE NO SE ADIVINA. Math.random() no es para esto: el
+     número del pedido y el secreto del seguimiento salen de aquí. getUuid() sí
+     es aleatorio de verdad (UUID v4); se toman sus bytes. */
+  var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = '', hex = '';
+  while (s.length < n) {
+    if (hex.length < 2) hex = Utilities.getUuid().replace(/-/g, '');
+    s += abc.charAt(parseInt(hex.slice(0, 2), 16) % 32);
+    hex = hex.slice(2);
+  }
   return s;
 }
 
@@ -4731,8 +4924,11 @@ function guardarPedido(d) {
     var fila = [ahora, d.pedido, d.ref, d.estado, d.ciudad, d.cupon, i.nombre, i.id,
                 i.cantidad, i.precio, i.cantidad * i.precio, d.total,
                 '', pago ? ahora : '', '', '', celdaSegura(i.variante || '')];
-    if (pago) fila.push(celdaSegura(pago.proveedor), celdaSegura(pago.referencia),
-                        celdaSegura(pago.transaccion, 80));
+    /* Las tres del pago van siempre —vacías en WhatsApp— porque detrás viene
+       Seguimiento, y escribir por posición obliga a nombrar las de en medio. */
+    fila.push(pago ? celdaSegura(pago.proveedor) : '', pago ? celdaSegura(pago.referencia) : '',
+              pago ? celdaSegura(pago.transaccion, 80) : '');
+    fila.push(d.seguimiento || '');
     return fila;
   });
   h.getRange(h.getLastRow() + 1, 1, f.length, f[0].length).setValues(f);
@@ -6945,7 +7141,10 @@ function crearCobro(p) {
      dos veces la misma unidad, que es justo lo que E-1 existe para impedir. */
   abiertos[codigo] = { l: r.items.map(function (i) { return [i.id, i.cantidad, i.variante || '']; }),
                        h: ahora + MINUTOS_APARTADO * 60000,
-                       c: ahora + HORAS_CONSULTABLE * 3600000, t: token, u: 0 };
+                       c: ahora + HORAS_CONSULTABLE * 3600000, t: token, u: 0,
+                       /* M5: la huella del enlace de seguimiento, para el pedido que
+                          nace cuando Bold apruebe. Solo la huella. */
+                       s: huellaDeSeguimiento(p.seg) };
   guardarCobros(abiertos);
 
   var lineas = r.items.map(function (i) {
@@ -7175,7 +7374,7 @@ function confirmarCobro(codigo, f, bold, abiertos) {
     }
     var entrega = entregaDelCobro(codigo);
     guardarPedido({
-      pedido: codigo, ref: codigo, estado: 'Pagado',
+      pedido: codigo, ref: codigo, estado: 'Pagado', seguimiento: (c && c.s) || '',
       ciudad: entrega ? celdaSegura(entrega[5]) : '',
       cupon: celdaSegura(datos[10]), total: Number(datos[8]) || 0,
       items: lineas.map(function (i) {

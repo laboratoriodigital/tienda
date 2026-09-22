@@ -24,9 +24,13 @@ import { pathToFileURL } from 'node:url';
 const PLANTILLA = 'plantilla/admin.html';
 const INDEX     = 'publicar/index.html';
 const ADMIN     = 'publicar/admin.html';
+/* M5 · la página del rastreo lleva los mismos dos huecos que el panel y sale
+   de la misma fuente: la dirección del maestro que tiene el index. */
+const PLANTILLA_PEDIDO = 'plantilla/pedido.html';
+const PEDIDO    = 'publicar/pedido.html';
 const revisar   = process.argv.includes('--revisar');
 
-export const ESCRIBE = [ADMIN];
+export const ESCRIBE = [ADMIN, PEDIDO];
 
 /* Lo que va dentro de un <script> como texto de JavaScript: JSON, y el '<'
    escapado para que un nombre de comercio con «</script>» no cierre la
@@ -40,7 +44,7 @@ export function constanteDe(html, nombre) {
   return m ? m[1] : null;
 }
 
-export function armar(plantilla, index) {
+export function armar(plantilla, index, titulo = ' — panel') {
   const url = constanteDe(index, 'SCRIPT_URL') || '';
   const negocio = constanteDe(index, 'NEGOCIO') || '';
   if (!/const SCRIPT_URL = "";/.test(plantilla) || !/let NEGOCIO = "";/.test(plantilla)) {
@@ -50,24 +54,31 @@ export function armar(plantilla, index) {
   let html = plantilla
     .replace('const SCRIPT_URL = "";', 'const SCRIPT_URL = ' + enScript(url) + ';')
     .replace('let NEGOCIO = "";', 'let NEGOCIO = ' + enScript(negocio) + ';');
-  if (negocio) html = html.replace(/<title>[^<]*<\/title>/, '<title>' + enHtml(negocio) + ' — panel</title>');
+  if (negocio) html = html.replace(/<title>[^<]*<\/title>/, '<title>' + enHtml(negocio) + enHtml(titulo) + '</title>');
   return { html, url, negocio };
 }
 
 async function principal() {
-  const [plantilla, index] = await Promise.all([readFile(PLANTILLA, 'utf8'), readFile(INDEX, 'utf8')]);
+  const [plantilla, plantillaPedido, index] = await Promise.all([readFile(PLANTILLA, 'utf8'),
+    readFile(PLANTILLA_PEDIDO, 'utf8'), readFile(INDEX, 'utf8')]);
   const { html, url, negocio } = armar(plantilla, index);
-  let actual = '';
+  const pedido = armar(plantillaPedido, index, ' — tu pedido').html;
+  let actual = '', actualPedido = '';
   try { actual = await readFile(ADMIN, 'utf8'); } catch (e) { actual = ''; }
+  try { actualPedido = await readFile(PEDIDO, 'utf8'); } catch (e) { actualPedido = ''; }
 
   if (revisar) {
-    if (actual !== html) {
-      console.error('publicar/admin.html no es el que sale de la plantilla y del index. ' +
+    if (actual !== html || actualPedido !== pedido) {
+      console.error('publicar/admin.html o publicar/pedido.html no son los que salen de la plantilla y del index. ' +
                     'Corre: node montar/preparar-admin.mjs');
       process.exit(1);
     }
-    console.log('publicar/admin.html está al día.');
+    console.log('publicar/admin.html y publicar/pedido.html están al día.');
     return;
+  }
+  if (actualPedido !== pedido) {
+    await writeFile(PEDIDO, pedido);
+    console.log('Página de seguimiento horneada: publicar/pedido.html');
   }
   if (actual === html) { console.log('El panel ya estaba al día.'); return; }
   await writeFile(ADMIN, html);

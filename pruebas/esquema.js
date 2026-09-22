@@ -60,6 +60,8 @@ function esquemaVivo() {
          acepta — la página la lee para saber si pintar el formulario. */
       entrar:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"entrar"}' } })._texto)),
       sesion:    Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"sesion"}' } })._texto)),
+      /* M5 · la forma con la que el rastreo dice «no»: la página la lee. */
+      seguimiento: Object.keys(JSON.parse(g.api.doPost({ postData: { contents: '{"a":"seguimiento"}' } })._texto)),
       /* M4 · lo que dibuja la pestaña Tablero del panel. Con sesión, porque
          sin ella no contesta nada que valga la pena fotografiar. */
       /* M4 · lo que dibuja el tablero del panel, y (0.9.0) lo que lee la
@@ -147,6 +149,20 @@ for (const h of Object.keys(foto.hojas)) {
 /* Aquí el orden también importa, y no por capricho: escribirConfiguracion()
    ubica la fila por posición para no tocar lo que el comerciante escribió. */
 comparar('CLAVES de Configuración', foto.configuracion, vivo.configuracion);
+
+/* ── 3 bis. Ninguna función del maestro se declara dos veces ─────────────── */
+/* En Apps Script dos `function x()` no dan error: gana la ÚLTIMA, en silencio,
+   y todo lo que llamaba a la primera pasa a llamar a la otra. Pasó en la 0.9.0:
+   una `fechaIso` nueva para los cupones pisó la de los pedidos y el panel
+   perdió la hora de cada pedido (bitácora 58). */
+{
+  const fuente = fs.readFileSync(path.join(__dirname, 'as.js'), 'utf8');
+  const cuenta = {};
+  (fuente.match(/^function\s+([A-Za-z_$][\w$]*)/gm) || []).forEach(l => {
+    const n = l.replace(/^function\s+/, ''); cuenta[n] = (cuenta[n] || 0) + 1; });
+  const dobles = Object.keys(cuenta).filter(n => cuenta[n] > 1);
+  ok('NINGUNA FUNCIÓN DEL MAESTRO se declara dos veces', dobles.length === 0, dobles.join(', '));
+}
 
 /* ── 3 ter. Ninguna constante del maestro nace con huecos ────────────────── */
 /* En Apps Script una `var` existe desde la primera línea pero vale undefined

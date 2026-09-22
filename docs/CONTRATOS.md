@@ -204,6 +204,7 @@ Una fila por línea de pedido, no por pedido. La columna Inventario la escribe e
 | 18 | `Proveedor de pago` |
 | 19 | `Referencia de pago` |
 | 20 | `Transacción de pago` |
+| 21 | `Seguimiento` (M5) — la **huella** (SHA-256, 32 hex) del secreto del enlace de seguimiento, en todas las líneas del pedido. Nunca el secreto. Vacía en pedidos de antes de M5 o con `f_rastreo` = No |
 
 **Las tres del cobro en línea (M3.5).** Las escribe el maestro cuando un pedido
 se cobró en la pasarela: con qué (`Bold`, o `Bold (pruebas)` en el ambiente de
@@ -400,6 +401,7 @@ no pisar lo que el comerciante puso.
 | **Las variantes** | `f_variantes` — con Sí, un producto con la columna `Variantes` llena pide elegir antes de agregar al carrito. Con No se ignoran y el producto se vende sin elección |
 | **El orden del catálogo** | `orden_catalogo` — en qué orden ve el catálogo quien entra. De fábrica, `Destacados primero` |
 | **Antes de pedir (C-3)** | `tienda_abierta` — `No` = se puede mirar, no pedir; arriba de la tienda sale `tienda_cerrada_mensaje`. `pedido_minimo` — en pesos, sobre los productos sin envío; vacío = sin mínimo. `horario` se pinta al pie y en el carrito, y `envio_gratis_desde` se anuncia: «te faltan $12.000 para el envío gratis». Cerrada o por debajo del mínimo, **el maestro no cobra** en línea; un pedido que ya salió por WhatsApp desde una página vieja sí se registra |
+| **El rastreo (M5)** | `f_rastreo` — `Sí` de fábrica (vacío también es Sí): cada pedido lleva en su mensaje de WhatsApp el enlace `pedido.html?n=…&s=…`. `No` = sin enlace, y la página de seguimiento dice que la tienda no lo tiene |
 | **Cómo se cierra la venta (M3.5)** | `cobro_modo` — `WhatsApp` (de fábrica, como siempre) o `Pasarela` (paga en línea con Bold). `cobro_ambiente` — `Pruebas` o `Producción`. **Las llaves de Bold no van aquí**: van en las propiedades del script (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`). Pedir Pasarela sin sus llaves, o sin `sitio_url`, deja la tienda en WhatsApp y el diagnóstico lo dice |
 | **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
@@ -596,6 +598,28 @@ El código no cambia después de creado. Marca cambios sin publicar. Contesta
 borra. Funciona sin publicar.
 
 **`tablero`** además contesta, al final, `cobro` (lo mismo que `configuracion`).
+
+**`seguimiento`** (M5, pública, **solo por POST**) — pide `n` (número) y `s`
+(secreto). Contesta `ok`, `tienda` (`negocio`, `whatsapp`, `color`), `pedido`,
+`estado` (`id`, `rotulo`, `texto`, en palabras del comprador: un estado que la
+hoja no entiende sale como «Recibido»), `pasos` (`id`, `rotulo`, `fecha`,
+`hecho`; vacío si está cancelado), `guia` (solo despachado o entregado),
+`pagoEnLinea`, `total`, `lineas` (`nombre`, `variante`, `cantidad`, `subtotal`).
+**Nada del comprador, ni la ciudad.** Cualquier fallo —número que no existe,
+secreto malo, formato raro, pedido sin enlace— contesta EXACTAMENTE lo mismo:
+`ok: false`, `error`, `tienda`. Con `f_rastreo` = No: `apagado: true`.
+
+**`enlace_seguimiento`** (M5, panel) — pide `op` y `pedido`. Crea un secreto
+nuevo, guarda su huella y contesta `ok`, `pedido`, `url`. El enlace anterior
+deja de servir. `pedidos` trae además, por pedido, `seguimiento` (si tiene).
+
+**`registrar`** y **`pago_crear`** aceptan `seg`: el secreto que nació en el
+navegador del comprador (16 a 40 letras y números). Solo se guarda su huella.
+
+**`fotos_cdn`** en el panel es tipo `lista`: `opciones` trae `valor` (la
+plantilla que se escribe en la hoja), `rotulo` y `desactivada`. Hoy: Ninguna, y
+Cloudflare en el propio dominio (desactivada en `*.workers.dev`). Lo que ya
+estaba escrito y no es de la lista se respeta como «Personalizada».
 
 **Las llaves de Bold** se buscan con y sin el alias de la línea anterior
 (`BOLD_BOTON_IDENTIDAD_*`), sin mirar mayúsculas ni espacios en el nombre, y

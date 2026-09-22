@@ -25,7 +25,7 @@ cd "$(dirname "$0")"
 # el SEO, las variantes en la página, el cobro en línea, el pedido de punta a
 # punta, y los contratos del montaje mismo.
 CORTA="e2e.js movil.js enlace.js fotos.js exif.js config.js hoja.js montaje.js \
-       respaldo.js seo.js plantilla.js varpag.js pagoweb.js comprador.js combinaciones.js"
+       respaldo.js seo.js plantilla.js varpag.js pagoweb.js comprador.js combinaciones.js rastreo.js"
 
 decidir() {
   [ "$GUARDIA" = "corta" ] && { echo corta; return; }

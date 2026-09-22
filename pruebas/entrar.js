@@ -262,7 +262,9 @@ function conPanel(g, usuario) {
     /* M3.5: pago_crear y pago_estado. Las abre el comprador, que no tiene
        credenciales; lo que las protege es el número de operación, el token
        opaco y que nada se da por pagado sin preguntarle a Bold. */
-    const PUBLICAS = ['version', 'catalogo', 'validar', 'registrar', 'entrar', 'pago_crear', 'pago_estado'];
+    /* M5: seguimiento, pública por diseño —el comprador no tiene sesión— y
+       protegida por el secreto de 80 bits del enlace. */
+    const PUBLICAS = ['version', 'catalogo', 'validar', 'registrar', 'entrar', 'pago_crear', 'pago_estado', 'seguimiento'];
     const publicas = Object.keys(guardas).filter(k => guardas[k] === 'publica');
     ok('SOLO ESTAS PUERTAS son públicas, y están escritas una por una',
        publicas.sort().join(',') === PUBLICAS.sort().join(','),

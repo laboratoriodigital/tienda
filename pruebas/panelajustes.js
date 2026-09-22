@@ -154,6 +154,39 @@ const cfgDe = (g, k, c) => post(g, { a: 'configuracion', k }).claves.find(x => x
     ok('SIN SESIÓN no se crea nada', !r6.ok && !cupon('SINSESION'));
   }
 
+  // ═══ 3b. La transformación de fotos, de una lista ═══
+  {
+    const { g, k } = conSesion();
+    const poner = (c, v) => g.hojas.get('Configuración').getRange(g.filas('Configuración').findIndex(f => String(f[0]) === c) + 1, 2).setValue(v);
+    poner('sitio_url', 'https://tienda.workers.dev'.replace('tienda.workers.dev', 'mitienda.laboratoriodigital-la.workers.dev'));
+    poner('fotos_cdn', '');
+    let c = cfgDe(g, k, 'fotos_cdn');
+    const cf = (c.opciones || []).find(o => /Cloudflare/.test(o.rotulo)) || {};
+    ok('LA TRANSFORMACIÓN DE FOTOS se elige de una lista: Ninguna y Cloudflare',
+       c.tipo === 'lista' && c.opciones[0].valor === '' && /cdn-cgi\/image/.test(cf.valor || ''), JSON.stringify(c.opciones));
+    ok('  ...y en un *.workers.dev, Cloudflare sale desactivada y dice por qué',
+       cf.desactivada === true && /dominio propio/.test(cf.rotulo), cf.rotulo);
+    const r0 = post(g, { a: 'guardar_configuracion', k, op: op(), cambios: { fotos_cdn: cf.valor }, versiones: { fotos_cdn: c.version } });
+    ok('  ...y no se puede guardar a la fuerza', !r0.ok && /lista/.test((r0.errores || {}).fotos_cdn || ''), JSON.stringify(r0.errores));
+    poner('sitio_url', 'https://www.mitienda.com');
+    c = cfgDe(g, k, 'fotos_cdn');
+    const cf2 = c.opciones.find(o => /Cloudflare/.test(o.rotulo));
+    const r1 = post(g, { a: 'guardar_configuracion', k, op: op(), cambios: { fotos_cdn: cf2.valor }, versiones: { fotos_cdn: c.version } });
+    ok('CON DOMINIO PROPIO se elige Cloudflare, y en la hoja queda la plantilla de siempre',
+       r1.ok && valor(g, 'fotos_cdn') === 'https://www.mitienda.com/cdn-cgi/image/format=auto,quality=82,width={ancho},fit=cover/fotos/{ruta}',
+       valor(g, 'fotos_cdn'));
+    c = cfgDe(g, k, 'fotos_cdn');
+    const r2 = post(g, { a: 'guardar_configuracion', k, op: op(), cambios: { fotos_cdn: 'https://otro.com/{ruta}' }, versiones: { fotos_cdn: c.version } });
+    ok('  ...y una plantilla inventada desde el panel no entra', !r2.ok && valor(g, 'fotos_cdn') !== 'https://otro.com/{ruta}');
+    poner('fotos_cdn', 'https://ik.imagekit.io/mitienda/{ruta}?tr=w-{ancho}');
+    c = cfgDe(g, k, 'fotos_cdn');
+    ok('LO QUE YA HABÍA EN LA HOJA y no es de la lista se respeta: no se marca como error', !c.problema, c.problema);
+    const t = cfgDe(g, k, 'portada_titulo');
+    const r3 = post(g, { a: 'guardar_configuracion', k, op: op(), cambios: { portada_titulo: 'Con ImageKit', fotos_cdn: c.valor },
+                         versiones: { portada_titulo: t.version, fotos_cdn: c.version } });
+    ok('  ...y guardar otra cosa no lo toca', r3.ok && /imagekit/.test(valor(g, 'fotos_cdn')));
+  }
+
   // ═══ 4. En la página ═══
   await enLaPagina();
 

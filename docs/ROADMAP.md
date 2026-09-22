@@ -56,7 +56,7 @@ por el mismo testigo de sesión que el panel.
 *Aguanta esperar porque la pestaña Tablero de la hoja ya da los mismos números:
 se pierde comodidad, no información.*
 
-**S2 · El rastreo del pedido**   [1.1]
+**S2 · El rastreo del pedido**   [MVP · M5, hecho el 21 de septiembre de 2026 — decisión 15]
 `publicar/pedido.html?n=…`: el comprador consulta estado, fecha y qué pidió, con
 el número que ya viaja en su conversación de WhatsApp. **No guarda ni pide un
 dato más**: la hoja sigue sin saber quién compró, y así se queda.

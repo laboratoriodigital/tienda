@@ -70,7 +70,8 @@
       "Variante",
       "Proveedor de pago",
       "Referencia de pago",
-      "Transacción de pago"
+      "Transacción de pago",
+      "Seguimiento"
     ],
     "Más vendidos": [
       "Producto",
@@ -189,7 +190,8 @@
     "cobro_ambiente",
     "tienda_abierta",
     "tienda_cerrada_mensaje",
-    "pedido_minimo"
+    "pedido_minimo",
+    "f_rastreo"
   ],
   "nombresDePuertas": [
     "version",
@@ -221,7 +223,9 @@
     "guardar_combinaciones",
     "tablero",
     "guardar_envio",
-    "guardar_cupon"
+    "guardar_cupon",
+    "seguimiento",
+    "enlace_seguimiento"
   ],
   "puertas": {
     "version": [
@@ -301,6 +305,11 @@
     "sesion": [
       "ok",
       "error"
+    ],
+    "seguimiento": [
+      "ok",
+      "error",
+      "tienda"
     ],
     "tablero": [
       "ok",

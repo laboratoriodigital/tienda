@@ -9,12 +9,13 @@ propio creado a partir de esta, con su propia cuenta de Google, para que tenga
 sus propios límites gratuitos. **Ningún nombre de comercio va escrito en el
 código**: todos salen de la pestaña `Configuración` de su hoja.
 
-> **Estado: en construcción · `0.9.0`.** Esta es **la semilla de la segunda
+> **Estado: en construcción · `0.10.0`.** Esta es **la semilla de la segunda
 > versión** del producto, que se llama **tienda**. Nace de la semilla de la
 > línea anterior (`laboratoriodigital/organico`, 3.0.0). Los hitos del MVP
 > —M0 a M3, M3.5 (cobrar en línea con Bold, o seguir por WhatsApp) y M4 (el
-> tablero en el panel)— están construidos, y desde la 0.9.0 el panel, en dos
-> pantallas, alcanza para todo lo que se hacía en la hoja; falta probarlos en una tienda de verdad antes de la 1.0.0
+> tablero en el panel) y M5 (el comprador sigue su pedido con un enlace)— están
+> construidos, y desde la 0.9.0 el panel, en dos pantallas, alcanza para todo lo
+> que se hacía en la hoja; falta probarlos en una tienda de verdad antes de la 1.0.0
 > (`docs/TRASPASO.MD`). El detalle, historia por historia, en `docs/PLAN-MVP.md`.
 >
 > El MVP —que saldrá como **1.0.0**— son seis hitos: la semilla limpia y
@@ -26,7 +27,7 @@ código**: todos salen de la pestaña `Configuración` de su hoja.
 
 | | |
 |---|---|
-| `publicar/` | **Lo que se despliega.** La tienda y el panel de gestión, con su tablero —y, en la 1.1, el rastreo—. Es la raíz del sitio en Cloudflare |
+| `publicar/` | **Lo que se despliega.** La tienda, el panel de gestión con su tablero, y `pedido.html`, donde el comprador sigue su pedido. Es la raíz del sitio en Cloudflare |
 | `plantilla/` | *(desde el hito M0)* El código de la semilla. `publicar/` se genera a partir de aquí más la hoja de cada comercio |
 | `maestro.gs` | El backend completo. Va en un proyecto Apps Script **independiente**, uno por comercio |
 | `panel.gs` | El archivo de gestión del operador: todas las tiendas en un tablero. Va en su propia hoja, que no se comparte con ningún cliente |

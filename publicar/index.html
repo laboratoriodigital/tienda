@@ -117,9 +117,9 @@
    Paleta: la define cada tienda desde su Configuración.
    ============================================================ */
 :root{
-  --rojo:#666666;
-  --acento:#38761D;
-  --verde:#BF9000;
+  --rojo:#808080;
+  --acento:#808080;
+  --verde:#808080;
   --blanco:#FFFFFF;
   --negro:#000000;
   --linea:#E4E4E4;
@@ -427,6 +427,7 @@ textarea.campo{resize:vertical;min-height:64px}
 /* M3.5 · Cobrar en línea. En pruebas se DICE, en el carrito y en cada estado
    del pago: un comprador de verdad no puede creer que pagó con una tarjeta de
    prueba, ni el comercio despachar por eso. */
+.enlace-seguimiento{font-weight:700;color:inherit;text-decoration:underline}
 .cobro-pruebas{font-size:12.5px;font-weight:700;color:#7A5A00;background:#FFF4CC;
   border-radius:2px;padding:7px 10px;margin:0 0 10px;text-align:center}
 .cobro-espera{width:34px;height:34px;margin:0 auto 18px;border-radius:50%;
@@ -669,7 +670,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXuK42kftKAue18ZtfH
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-4";
+const SCRIPT_VERSION = "2026-09-21-5";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -815,6 +816,9 @@ let TOPE_PAGO = 0;
    todavía cómo cobra la tienda no puede ofrecer un botón de pagar. */
 let COBRO = "whatsapp";
 let COBRO_PRUEBAS = false;
+/* M5 · el enlace «sigue tu pedido». Nace encendido: no guarda nada del
+   comprador. La hoja lo apaga con f_rastreo = No. */
+let RASTREO = true;
 
 /* C-3. Los cuatro los pone la hoja; vacíos, la tienda se comporta como antes.
    Una cifra que no se puede leer NO se vuelve 0 ni «sin mínimo» por su cuenta:
@@ -910,6 +914,9 @@ function aplicarConfiguracion(c){
   /* M3.5 · CÓMO SE CIERRA LA VENTA. El maestro ya decidió si la pasarela está
      lista: `cobro` dice lo que la tienda PUEDE hacer, no lo que pidió la
      hoja. Cualquier cosa que no sea «pasarela» es WhatsApp, como siempre. */
+  /* M5 · el enlace de seguimiento, encendido salvo que la hoja diga No. */
+  RASTREO = !/^no$/i.test(String(v("f_rastreo") || "").trim());
+
   if(typeof c.cobro === "string"){
     COBRO = c.cobro === "pasarela" ? "pasarela" : "whatsapp";
     COBRO_PRUEBAS = /^s[ií]$/i.test(String(c.cobro_pruebas || "").trim());
@@ -2284,6 +2291,8 @@ function pintarPanel(datos){
         <p class="enviado-codigo">PEDIDO #${escapar(pedidoEnviado)}</p>
         <p>${escapar(NEGOCIO)} te confirma por ese mismo chat la disponibilidad,
            el total definitivo y los datos de pago.</p>
+        ${conRastreo() ? `<p><a class="enlace-seguimiento" href="${escapar(enlaceSeguimiento(pedidoEnviado))}">Ver en qué va tu pedido</a>
+           <br><span class="enviado-nota">El enlace también quedó en tu mensaje de WhatsApp.</span></p>` : ""}
         <p class="enviado-nota">¿No se abrió WhatsApp o no ves el mensaje?
            Vuelve a enviarlo: es el mismo pedido, no se duplica.</p>
         <a class="btn-whatsapp" href="${enlaceWhatsapp()}" target="_blank" rel="noopener">
@@ -2476,6 +2485,7 @@ let cobroActivo  = null;   // { estado, pedido, token, total, checkout, lineas, 
 let datosCobro   = null;   // lo que se escribió en el formulario, solo en memoria
 let avisoCobro   = "";     // lo que dijo el maestro al no poder cobrar
 let opCobro      = null;   // el número de operación vive hasta que llega respuesta
+let segCobro     = "";     // M5: el secreto del seguimiento, nace con la operación
 let consultaCobro = null, vueltaCobro = 0, promesaBold = null;
 
 function cobraEnLinea(){ return COBRO === "pasarela" && !!SCRIPT_URL; }
@@ -2506,7 +2516,7 @@ function guardarCobro(){
          (nombre, correo, celular, dirección) y viajan dentro de `checkout`,
          pero aquí se quitan. Reabrir la pasarela al volver funciona igual:
          son opcionales, y el comprador los escribe allí. */
-      c: { pedido:c.pedido, token:c.token, total:c.total, lineas:c.lineas, pruebas:c.pruebas,
+      c: { pedido:c.pedido, token:c.token, total:c.total, lineas:c.lineas, pruebas:c.pruebas, seg:c.seg || "",
            checkout: c.checkout ? Object.assign({}, c.checkout, { customerData:null, billingAddress:null }) : null },
       carrito: carrito, cupon: cuponActivo, envio: envioActivo.id, t: Date.now() }));
   }catch(e){ /* sin almacenamiento: al volver se pregunta igual, por el token */ }
@@ -2520,7 +2530,7 @@ function iniciarCobro(e){
   if(!formularioListo(d)){ irADatos(); return false; }
   datosCobro = d;
   avisoCobro = "";
-  if(!opCobro) opCobro = nuevaOperacionCobro();
+  if(!opCobro){ opCobro = nuevaOperacionCobro(); segCobro = azar(16); }
   const total = calcular().total;
   cobroActivo = { estado:"preparando", total:total };
   refrescar();
@@ -2529,6 +2539,8 @@ function iniciarCobro(e){
     items: itemsDelPedido(), cupon: cuponActivo || "", envio: envioActivo.id, sub: String(subtotal()),
     entrega: { nombre:d.nombre, tel:d.tel, correo:d.correo, ciudad:d.ciudad, direccion:d.dir, notas:d.notas }
   };
+  if(conRastreo()) cuerpo.seg = segCobro;
+  const seg = segCobro;
   const lineas = resumenDelCarrito();
   fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(cuerpo), redirect:"follow" })
     .then(r => r.json())
@@ -2547,7 +2559,7 @@ function iniciarCobro(e){
       }
       opCobro = null;
       cobroActivo = { estado:"abriendo", pedido:r.pedido, token:r.token, total:r.total,
-                      pruebas:!!r.pruebas, checkout:r.checkout, lineas:lineas };
+                      pruebas:!!r.pruebas, checkout:r.checkout, lineas:lineas, seg:conRastreo() ? seg : "" };
       guardarCobro();
       refrescar();
       abrirCobro();
@@ -2692,6 +2704,8 @@ function htmlDelCobro(c){
   if(c.estado === "pagado") return `<div class="enviado">${pruebas}${marca}
       <h3>Pago confirmado</h3>${codigo}
       <p>Recibimos ${pesos(c.total)}. Te enviamos la confirmación a tu correo, y ${escapar(NEGOCIO)} te contacta para la entrega.</p>
+      ${c.seg && c.pedido ? `<p><a class="enlace-seguimiento" href="${escapar(enlaceSeguimiento(c.pedido, c.seg))}">Ver en qué va tu pedido</a>
+         <br><span class="enviado-nota">Guarda este enlace: con él ves el estado de tu pedido.</span></p>` : ""}
       ${WHATSAPP ? `<a class="btn-whatsapp" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensajeDelPago(c))}" target="_blank" rel="noopener">Avisar por WhatsApp (opcional)</a>` : ""}
       <button class="enviado-otro" onclick="terminarCobro()">Volver a la tienda</button></div>`;
   if(c.estado === "revisar") return `<div class="enviado">${pruebas}
@@ -2726,7 +2740,8 @@ function restaurarCobro(){
   const mio = g.c && g.c.token === token;
   const c = mio ? g.c : {};
   cobroActivo = { estado:"esperando", token:token, pedido:c.pedido || "", total:Number(c.total) || 0,
-                  lineas:c.lineas || [], pruebas:!!c.pruebas, checkout:c.checkout || null };
+                  lineas:c.lineas || [], pruebas:!!c.pruebas, checkout:c.checkout || null,
+                  seg:typeof c.seg === "string" ? c.seg : "" };
   /* El carrito vuelve TAL CUAL, sin filtrarlo contra el catálogo: a esta
      altura la página solo tiene el de respaldo, que puede no traer un
      producto que sí está a la venta. Mientras el cobro esté en pantalla el
@@ -2751,10 +2766,26 @@ const pedidosRegistrados = new Set();   // evita contar dos veces el mismo pedid
 let codigoActual = null;                // el número de ESTE pedido, mientras dure
 let pedidoEnviado = null;               // el código, una vez que el mensaje salió
 
-function codigoPedido(){
+/* M5 · DE UNA FUENTE QUE NO SE ADIVINA. Math.random() no es para números que
+   alguien podría querer adivinar; el navegador trae una que sí sirve. */
+function azar(n){
   const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({length:5}, () => abc[Math.floor(Math.random() * abc.length)]).join("");
+  const a = new Uint8Array(n);
+  (window.crypto || window.msCrypto).getRandomValues(a);
+  return Array.from(a, b => abc[b % 32]).join("");
 }
+function codigoPedido(){ return azar(5); }
+
+/* M5 · EL SECRETO DEL SEGUIMIENTO. Nace aquí, con el pedido, y viaja en el
+   mensaje de WhatsApp del comprador —que es suyo— y al maestro, que guarda
+   solo su huella. 16 caracteres, 80 bits: el enlace no se puede adivinar
+   aunque el número del pedido se lea en voz alta. */
+const secretos = {};
+function secretoDe(codigo){ return secretos[codigo] || (secretos[codigo] = azar(16)); }
+function enlaceSeguimiento(codigo, secreto){
+  return location.origin + "/pedido.html?n=" + encodeURIComponent(codigo) + "&s=" + (secreto || secretoDe(codigo));
+}
+function conRastreo(){ return RASTREO && !!SCRIPT_URL; }
 
 function codigoDelPedido(){
   if(!codigoActual) codigoActual = codigoPedido();
@@ -2797,6 +2828,9 @@ function armarMensaje(){
   if(t.descuento) lineas.push(`Cupón ${cuponActivo}: -${pesos(t.descuento)}`);
   lineas.push(`Envío (${nombreEnvio()}): ${t.envio ? pesos(t.envio) : "sin costo"}`);
   lineas.push(`*TOTAL: ${pesos(t.total)}*`);
+  /* M5 · el enlace va en TODAS las versiones del mensaje, también en la más
+     recortada: es lo que el comprador guarda para preguntar en qué va. */
+  if(conRastreo()) lineas.push(`Sigue tu pedido: ${enlaceSeguimiento(codigo)}`);
   if(!(SCRIPT_URL && selloVigente() && sello.ref)){
     lineas.push(`_Total calculado por la página. ${NEGOCIO} lo confirma antes del despacho._`);
   }
@@ -3002,6 +3036,8 @@ function registrarPedido(d, intento){
        aquí también, que es lo que la hoja compara para detectar discrepancias. */
     sub: String(subtotal())
   });
+  /* M5 · el secreto va al maestro, que guarda solo su huella. */
+  if(conRastreo()) params.set("seg", secretoDe(codigo));
 
   try{
     // keepalive: si el cliente se va a WhatsApp, la petición termina igual.

@@ -1754,3 +1754,23 @@ espera hasta tres minutos **solo si el maestro se publicó en esa misma
 corrida**. Sin haber visto el log no lo doy por seguro: si vuelve a pasar, el
 resumen de la corrida ya trae el mensaje entero. **Un aviso que existe pero se
 lee en otra pestaña no es un aviso.** *(el mensaje, mío)*
+
+**58 · Dos funciones con el mismo nombre, y ganó la última.** Para los cupones
+(0.9.0) escribí una `fechaIso` que devuelve el día (AAAA-MM-DD). Ya había una
+`fechaIso` que devuelve la fecha con hora, y la usan los pedidos del panel. En
+Apps Script dos `function` con el mismo nombre no dan error: gana la última,
+en silencio. Los pedidos del panel quedaron con la fecha sin hora («hace 5
+horas» pasó a contar desde la medianoche UTC) y ninguna batería lo vio, porque
+ninguna miraba la hora. Lo encontré al escribir M5. La nueva se llama `diaIso`,
+y `esquema.js` ahora falla si una función del maestro se declara dos veces —en
+rojo con el defecto puesto—. Quedó publicada una versión (la 0.9.0) con el
+fallo: se arregla sola al publicar esta. *(mío)*
+
+**59 · El emulador que repetía los números al azar.** `Utilities.getUuid()` del
+emulador devolvía un UUID con los primeros 24 caracteres fijos. Mientras nadie
+lo usaba para azar no importaba; cuando el maestro pasó a sacar de ahí el
+número de pedido (M5), `crearCobro` se quedó buscando un número libre para
+siempre y `pagos.js` y `pagoweb.js` se colgaron. El emulador ahora da un UUID
+aleatorio de verdad, como Google. **Un doble de prueba que simplifica una
+propiedad que el código real sí promete termina mintiendo el día que alguien
+depende de ella.**

@@ -247,6 +247,14 @@ const servidor = http.createServer((req, res) => {
     return res.end(admin);
   }
 
+  // ---- el rastreo (M5) ----
+  if (u.pathname === '/pedido.html') {
+    const pag = fs.readFileSync('pedido.html', 'utf8')
+      .replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "' + ORIGEN + '/exec";');
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(pag);
+  }
+
   // ---- la tienda ----
   let html = fs.readFileSync('index.html', 'utf8');
   html = html.replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "' + ORIGEN + '/exec";')

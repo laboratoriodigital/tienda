@@ -717,6 +717,42 @@ tienda desde Avanzado; queda en el Registro y la hoja lo deshace.
 
 ---
 
+## 15 · El rastreo: un secreto aparte, no un número más largo
+
+**Estado:** CERRADA el 21 de septiembre de 2026, con M5.
+
+### Qué hacía
+
+No había rastreo. El `ROADMAP.md` pedía, antes de abrirlo, que el número de
+pedido no se pudiera adivinar: «si es correlativo o corto, se le añade sufijo
+aleatorio».
+
+### El límite real
+
+El número son cinco caracteres de 32 símbolos: unos 33 millones. No es
+correlativo, pero se dicta, se escribe en una guía, sale en una captura. Y
+alargarlo para que sea secreto lo vuelve imposible de dictar.
+
+### La decisión
+
+El número se queda como está y el enlace lleva **aparte** un secreto de 16
+caracteres (80 bits), de una fuente criptográfica. El secreto nace en el
+navegador del comprador —o en el maestro, si lo pide el comerciante— y la hoja
+guarda **solo su huella** (SHA-256). La puerta es pública, solo por POST, y
+contesta lo mismo ante cualquier fallo. No se guarda nada del comprador.
+
+### Condición de disparo
+
+Revisar si algún día se quieren avisos al comprador (eso sí pediría un dato
+suyo, y es otra decisión, con la Ley 1581 delante).
+
+### Contrapartida
+
+El enlace es largo y quien lo tenga ve el pedido (sin datos personales). Si el
+comprador lo pierde, el comerciante crea uno nuevo y el viejo deja de servir.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

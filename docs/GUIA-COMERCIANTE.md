@@ -29,6 +29,8 @@ Tiene **dos pantallas**:
 Cambia un pedido a **Pagado** cuando te paguen: eso descuenta el inventario (te
 lo dice antes de guardar). Cancelar un pedido pagado devuelve las unidades, y
 pide un segundo toque. Las cifras no se actualizan solas: **Actualizar**.
+Cada pedido le llega al comprador con un **enlace para ver en qué va**; si lo
+perdió, en el pedido está **Crear enlace de seguimiento** para mandarle otro.
 
 **Si tu tienda cobra en línea** (Tienda › El cobro › Pasarela), el pedido te
 llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si

@@ -334,8 +334,11 @@ function crear(rutaScript, opciones) {
          una clave salía de 31 caracteres una vez de cada sesenta: entrar.js
          fallaba de tanto en tanto por el emulador, no por el maestro. Un rojo
          intermitente es el peor rojo — enseña a volver a correr hasta el verde. */
-      getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' +
-        (Math.random().toString(16).slice(2) + '000000000000').slice(0, 12),
+      /* Y aleatorio ENTERO, como el de Google (M5): el maestro saca de aquí
+         los números de pedido y los secretos del seguimiento. Con un prefijo
+         fijo, aleatorio(8) repetía y crearCobro se quedaba buscando un número
+         libre para siempre. */
+      getUuid: () => require('crypto').randomUUID(),
       /* Con un arreglo de bytes, el blob son ESOS bytes y su texto es el UTF-8
          que forman. Antes pasaba por String() y `getDataAsString()` devolvía
          "104,111,108,97", que no se parece en nada a lo que devuelve Google. */

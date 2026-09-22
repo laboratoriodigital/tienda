@@ -15,8 +15,8 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 >
 > **El alcance quedó cerrado el 18 de septiembre de 2026: el MVP son los hitos
 > M0 a M3** — y el 21 de septiembre el dueño le sumó **M3.5 · Cobrar en línea**
-> (PSE o botón de pago) y **M4 · El tablero**. El rastreo del pedido y la
-> actualización automática de la flota **salen del MVP** y son la entrega
+> (PSE o botón de pago), **M4 · El tablero** y **M5 · El rastreo del pedido**.
+> La actualización automática de la flota (M6) **sale del MVP** y es la entrega
 > siguiente (1.1), con su orden ya decidido en el `ROADMAP.md`. El producto se llama **tienda**, el
 > repositorio empieza en **0.1.0** y el MVP sale como **1.0.0**.
 >
@@ -318,7 +318,7 @@ panel guarda al instante y marca «hay cambios sin publicar»; publicar es un
 botón que corre el flujo **una vez**. Publicar en cada guardado, con
 repositorios privados, sería pagar minutos por cada tecla.
 
-### 4.4 El tablero y el rastreo — **el tablero entró al MVP (M4); el rastreo, 1.1**
+### 4.4 El tablero y el rastreo — **los dos entraron al MVP (M4 y M5)**
 
 > **El 21 de septiembre de 2026 el tablero entró al MVP como M4**, y no como
 > página aparte sino como **pestaña del panel** (decisión 13). El resto de lo
@@ -428,8 +428,8 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 **El MVP son seis hitos, y este es el orden:**
 
 ```
-M0 → M1 → M2 → M3 → M3.5 → M4        ← la 1.0.0
-                             M5 → M6   ← la 1.1, ya en el ROADMAP
+M0 → M1 → M2 → M3 → M3.5 → M4 → M5   ← la 1.0.0
+                                  M6   ← la 1.1, ya en el ROADMAP
 ```
 
 > **M3.5 · Cobrar en línea entró al MVP el 21 de septiembre de 2026**, por
@@ -1175,6 +1175,11 @@ ruido—; no exporta; no se ve sin sesión.
       clave no queda en ninguna pestaña ni en la página.
 - [x] Las **llaves de Bold no** están en el panel: siguen en las propiedades
       del script.
+- [x] **La transformación de fotos se elige de una lista** (0.10.0, pedido del
+      dueño): Ninguna, o Cloudflare en el propio dominio —desactivada en
+      `*.workers.dev`, donde no existe—. Lo que ya estaba escrito queda como
+      «Personalizada». Los proveedores del mercado (Cloudinary, ImageKit) se
+      agregan a la lista cuando haya una tienda con cuenta.
 - [x] La sección «El cobro» dice cómo se está cobrando de verdad, y arriba de
       las dos pantallas sale un aviso rojo si la hoja pide Pasarela y la tienda
       sigue por WhatsApp, con el porqué (bitácora 57).
@@ -1198,15 +1203,65 @@ ruido—; no exporta; no se ve sin sesión.
 rojo: sin la guarda de la clave, sin el alias de las llaves, un cupón que pisa
 los usos, una zona que cambia de código.
 
+### M5 · El rastreo del pedido   · entró al MVP el 21 de septiembre de 2026 · 0.10.0
+
+> **El plan, antes de construir.** El `ROADMAP.md` (S2) ponía una condición
+> previa y no negociable: **el número de pedido no se puede poder adivinar**.
+> El número son cinco caracteres (≈33 millones), se dice en voz alta y sale en
+> las guías: no alcanza. En vez de alargarlo —el comerciante y el comprador lo
+> leen y lo dictan—, el enlace lleva **aparte** un secreto de 16 caracteres
+> (80 bits) del que la hoja guarda solo la huella (decisión 15). Cinco
+> historias, en este orden: primero lo que no se puede adivinar, después la
+> puerta, después la página, y al final los dos caminos por donde llega el
+> enlace.
+
+**R-1 · Lo que no se adivina**  · 2 pts · ✅ 21-sep-2026
+- [x] El número del pedido y el secreto salen de `crypto.getRandomValues` en
+      la página y de `Utilities.getUuid` en el maestro; ya no de `Math.random`.
+- [x] Columna nueva **`Seguimiento`** en Pedidos, al final (R1): la huella
+      SHA-256 del secreto, en todas las líneas. Nunca el secreto.
+
+**R-2 · La puerta `seguimiento`**  · 2 pts · ✅ 21-sep-2026
+- [x] Pública y **solo por POST**: el secreto no queda en una dirección.
+- [x] Contesta estado en palabras del comprador, pasos con fecha, guía (si se
+      despachó), qué pidió y el total. **Nada del comprador, ni la ciudad.**
+- [x] **Un intento fallido no dice nada**: número que no existe, secreto malo,
+      formato raro o pedido sin enlace dan la misma respuesta, byte a byte.
+- [x] Interruptor `f_rastreo` (Sí de fábrica; vacío también es Sí).
+
+**R-3 · La página `pedido.html`**  · 2 pts · ✅ 21-sep-2026
+- [x] Horneada por `preparar-admin.mjs` con la misma dirección del maestro
+      que el index. `noindex`, `no-referrer`, fuera del sitemap. Una petición,
+      nada guardado en el navegador, lo de la hoja pintado como texto.
+- [x] Sin enlace completo o con uno malo: lo dice y ofrece WhatsApp.
+
+**R-4 · El enlace llega solo**  · 1 pt · ✅ 21-sep-2026
+- [x] **WhatsApp:** «Sigue tu pedido: …» en el mensaje, en todas sus versiones
+      (también la recortada), y en la pantalla de «pedido enviado».
+- [x] **Pasarela:** el secreto viaja con `pago_crear`, el pedido aprobado
+      hereda la huella, y la pantalla de «pago confirmado» trae el enlace.
+
+**R-5 · El enlace desde el panel**  · 1 pt · ✅ 21-sep-2026
+- [x] En el detalle del pedido: «Crear enlace de seguimiento» (o uno nuevo, con
+      segundo toque, porque el anterior deja de servir), Copiar y Mandarlo por
+      WhatsApp. Sirve para los pedidos de antes de M5.
+
+**Lo prueba** `pruebas/rastreo.js` (39 aserciones) y, de paso, `esquema.js`
+—que ahora también se niega a que una función del maestro se declare dos
+veces (bitácora 58)—. Controles en rojo: sin comparar la huella, y guardando
+el secreto en vez de su huella.
+
+**Qué no hace, a propósito:** no manda avisos al comprador cuando cambia el
+estado (eso pediría su celular o su correo, y la hoja no los guarda); no
+permite buscar por número sin el secreto.
+
 ### Lo que sigue después del MVP
 
-**M5 · El rastreo del pedido · M6 · La flota que se actualiza sola.** Están
-diseñados y **fuera de esta entrega** (D11). *(M4 · El tablero entró al MVP el
-21 de septiembre.)* Su detalle —qué
-hacen, en qué orden, y las dos condiciones que no se pueden olvidar: que el
-número de pedido no se pueda adivinar antes de abrir el rastreo, y que la
+**M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**
+(D11). *(M4 · El tablero y M5 · El rastreo entraron al MVP el 21 de
+septiembre.)* Su detalle —y la condición que no se puede olvidar: que la
 publicación automática del maestro se verifique contra la tienda viva y sepa
-volver atrás sola— está en `ROADMAP.md`, fase 2.
+volver atrás sola— está en `ROADMAP.md`.
 
 **Lo que el MVP les deja hecho**, y por eso después son baratos: el horneado
 determinista y `publicar/` como producto (M0) son la mitad de M6; el testigo de
@@ -1259,7 +1314,7 @@ vivo», ese es el número que hay que mirar.
 | **Nombre** | El producto se llama **tienda**. Este repositorio es la semilla de su segunda versión |
 | **Versión** | Empieza en **0.1.0**; el MVP sale como **1.0.0**. `organico` sigue en 3.x, aparte |
 | **Datos de empresa** | **Bloquean**: sin ellos no se publica (§4.2) |
-| **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1. *(Ampliado el 21 de septiembre: entran **M3.5 · Cobrar en línea** y **M4 · El tablero**.)* |
+| **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1. *(Ampliado el 21 de septiembre: entran **M3.5 · Cobrar en línea**, **M4 · El tablero** y **M5 · El rastreo**.)* |
 | **Repositorios** | Semilla y tiendas privadas. La semilla se hará pública cuando el consumo llegue al umbral que el dueño está midiendo; las tiendas, nunca |
 | **Fusión** | El único pull request manual es el de la semilla |
 
