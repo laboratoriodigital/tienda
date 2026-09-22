@@ -532,6 +532,24 @@ jobs:
           # log de Actions parece un fallo de git y es otra cosa: el paso que
           # decidió que había novedades y el que las junta no vieron lo mismo.
           if git diff --cached --quiet; then
+            # ── ¿OTRA CORRIDA LO PUBLICÓ PRIMERO? (bitácora 63) ──────────────
+            # Dos «Publicar» seguidos (o un montaje en medio) se ponen en fila
+            # por el `concurrency`, pero el checkout de la segunda es el commit
+            # del MOMENTO EN QUE SE PIDIÓ, no el de cuando arranca. Ve las
+            # novedades contra ese commit viejo, hornea lo mismo que la primera
+            # ya publicó, y contra el `main` de ahora no queda nada. Eso no es
+            # un fallo: la tienda ya está al día. Se distingue del fallo de
+            # verdad mirando si lo horneado difería del commit de arranque.
+            if ! git diff --quiet "$GITHUB_SHA" -- $PUBLICA; then
+              {
+                echo "### Ya estaba publicado"
+                echo ""
+                echo "Otra corrida publicó lo mismo mientras esta esperaba turno."
+                echo "La tienda ya está al día con la hoja: no hay nada más que hacer."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::notice::Ya estaba publicado por una corrida anterior. Nada que hacer."
+              exit 0
+            fi
             {
               echo "### Se dijo que había novedades y no quedó nada que publicar"
               echo ""

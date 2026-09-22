@@ -1321,6 +1321,13 @@ agotado.
 - [x] Recuperar la clave dice «Actualizando tu clave en el sistema…» mientras
       tanto.
 
+### 0.12.1 · Publicar dos veces seguidas
+
+**P-1 · Una segunda publicación sin nada nuevo no es un fallo**  · 0,5 pt · ✅
+- [x] Si otra corrida ya publicó lo mismo, `fotos` dice «Ya estaba publicado»
+      y sale en verde; el fallo de verdad (los pasos no ven lo mismo) sigue en
+      rojo (bitácora 63).
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

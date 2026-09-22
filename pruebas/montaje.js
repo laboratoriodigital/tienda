@@ -3653,5 +3653,54 @@ const configurar = (g, clave, valor) => {
   ok('  ...y lo lee del catálogo horneado, como el nombre: una sola fuente', /cfg\.sitio_url/.test(src) && /conDominio\(texto0, sitio\)/.test(src));
 }
 
+/* ═══ 0.12.1 · DOS «PUBLICAR» SEGUIDOS (bitácora 63) ═══
+   La segunda corrida espera turno, pero su checkout es el commit del momento en
+   que se pidió. Hornea lo que la primera ya publicó y, contra el `main` de ahora,
+   no queda nada: salía en rojo con «Nada que publicar pese a haber detectado
+   novedades». Se corre el trozo REAL del flujo sobre un repositorio de juguete. */
+{
+  const { execFileSync } = require('child_process');
+  const path = require('path');
+  const f = fs.readFileSync('../.github/workflows/fotos.yml', 'utf8');
+  const i = f.indexOf('          if git diff --cached --quiet; then');
+  const lineas = f.slice(i).split('\n');
+  let fin = lineas.findIndex(l => l === '          fi');
+  const trozo = lineas.slice(0, fin + 1).map(l => l.slice(10)).join('\n');
+  const correr = (dir, sha) => {
+    const resumen = path.join(dir, 'resumen.md');
+    try {
+      execFileSync('bash', ['-c', trozo], { cwd: dir, stdio: 'pipe',
+        env: Object.assign({}, process.env, { GITHUB_SHA: sha, PUBLICA: 'publicar/catalogo.json', GITHUB_STEP_SUMMARY: resumen }) });
+      return { codigo: 0, resumen: fs.readFileSync(resumen, 'utf8') };
+    } catch (e) { return { codigo: e.status, resumen: fs.existsSync(resumen) ? fs.readFileSync(resumen, 'utf8') : '' }; }
+  };
+  const repo = () => {
+    const d = fs.mkdtempSync('/tmp/dosveces-');
+    const git = (...a) => execFileSync('git', a, { cwd: d, stdio: 'pipe' }).toString().trim();
+    git('init', '-q'); git('config', 'user.email', 'x@x'); git('config', 'user.name', 'x');
+    fs.mkdirSync(path.join(d, 'publicar'));
+    fs.writeFileSync(path.join(d, 'publicar/catalogo.json'), '{"precio":1}\n');
+    git('add', '-A'); git('commit', '-qm', 'viejo');
+    const viejo = git('rev-parse', 'HEAD');
+    return { d, git, viejo };
+  };
+  if (!trozo.includes('git diff --cached --quiet') || fin < 0) {
+    ok('EL TROZO del flujo que decide «nada que publicar» se encuentra', false);
+  } else {
+    // La otra corrida ya publicó precio 2; esta horneó lo mismo sobre el commit viejo
+    let r = repo();
+    fs.writeFileSync(path.join(r.d, 'publicar/catalogo.json'), '{"precio":2}\n');
+    r.git('add', '-A'); r.git('commit', '-qm', 'lo publicó la primera');
+    let x = correr(r.d, r.viejo);
+    ok('DOS «PUBLICAR» SEGUIDOS: si otra corrida ya lo publicó, la segunda sale en verde y lo dice',
+       x.codigo === 0 && /Ya estaba publicado/.test(x.resumen), 'código ' + x.codigo);
+    // Control negativo: nada difería ni del commit de arranque → sigue siendo un fallo
+    r = repo();
+    x = correr(r.d, r.viejo);
+    ok('  ...pero si nada difería ni del commit de arranque, sigue siendo un fallo que se dice',
+       x.codigo === 1 && /no quedó nada que publicar/.test(x.resumen), 'código ' + x.codigo);
+  }
+}
+
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);

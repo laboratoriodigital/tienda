@@ -1808,3 +1808,16 @@ y se filtran en la página, sin red; cada lectura lleva turno y solo se pinta la
 igual: se releen, pero solo se repintan si cambiaron. Del mismo día: el
 Registro no decía quién había aprobado un pago en línea; ahora dice «Pasarela
 Bold · transacción».
+
+**63 · «Nada que publicar pese a haber detectado novedades».** El comerciante
+pulsó «Publicar» y el flujo `fotos` salió en rojo en el último paso. No faltaba
+nada: otra corrida (un montaje, o un «Publicar» anterior) había publicado lo
+mismo minutos antes. El `concurrency` pone las corridas en fila, pero el
+checkout de la que espera es el commit del momento en que SE PIDIÓ, no el de
+cuando arranca: contra ese commit viejo veía novedades, horneaba lo que ya
+estaba en `main`, y contra el `main` de ahora no quedaba nada. Ahora, si lo
+horneado difería del commit de arranque pero no del `main` actual, la corrida
+dice «Ya estaba publicado» y sale en verde; si no difería de ninguno, sigue
+siendo el fallo de antes, que avisa que los dos pasos no miran lo mismo.
+**Lo prueba** `montaje.js`, corriendo el trozo real del flujo sobre un
+repositorio de juguete; control en rojo sin el arreglo.
