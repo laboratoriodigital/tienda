@@ -402,6 +402,12 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # 0.16.0 · Si se eligió Cloudflare para las fotos, ¿de verdad transforma?
+      # Nunca tumba la corrida: dice en el resumen si falta activarlo en la zona.
+      - name: Las fotos por Cloudflare, si se eligió
+        if: steps.hay.outputs.sigue == 'si' && inputs.que != 'solo-las-fotos'
+        run: node montar/revisar-fotos-cdn.mjs
+
       # ── LO QUE SE VE ANTES DE QUE CONTESTE NADIE ──────────────────────────
       # Va DESPUÉS de hornear, y no es un detalle de orden: el respaldo es una
       # copia del catalogo.json que el paso anterior acaba de escribir. Pedirle

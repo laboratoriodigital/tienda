@@ -1906,3 +1906,26 @@ clase, porque las baterías leen la página por ellos, y sin fuentes de fuera
 (la política de seguridad no las deja). El panel de la flota nació con el
 mismo lenguaje: una página estática que escribe el flujo `estado`, sin
 JavaScript, sin pedir nada al abrirse, para servir detrás de Cloudflare Access.
+
+**72 · Sembrar los secretos desde el diagnóstico (3.4).** Medido en la línea
+vieja: la mitad del montaje de una tienda se iba copiando secretos de una
+pantalla a otra. Con `conectar` ya se sembraban cuatro (`MAESTRO_URL`,
+`MAESTRO_TOKEN`, `HOJA_ID`, `SCRIPT_ID`) y el alta pone `SEMILLA_TOKEN`; faltaba
+el permiso de GitHub del maestro, sin el cual Publicar y Actualizar desde el
+panel no hacen nada. Ahora el maestro tiene la puerta `permiso` (token de
+montaje, solo POST, no pisa uno puesto) y `conectar` se lo pone con
+`DISPARO_TOKEN`, un token que solo sabe disparar flujos. A mano queda UNO:
+`CLASPRC`, la credencial de Google de la tienda, que nadie más puede crear. Y
+un error de la lista del alta, cazado al escribir esto: decía que el token
+sale del menú › Diagnóstico, y ese menú no lo enseña a propósito — sale de
+`diagnosticoCompleto()` en el editor, que ahora también dice dónde está
+`conectar`. **Lo prueban** `permiso.js` (8) y 72 aserciones de la flota.
+
+**73 · Las fotos con dominio propio: las dos maneras (decisión 22).** Con
+`tienda.laboratorio-digital.com` se puede elegir que Cloudflare transforme las
+fotos. No se quitó la manera de siempre —tres tamaños hechos en el montaje—:
+es gratis sin límite y es el respaldo de la otra. Lo que faltaba era saber si
+lo elegido de verdad pasa: una zona sin *Transformations* activado deja la
+tienda viéndose igual, sin el ahorro, y nadie se entera. Montaje y Publicar
+ahora lo preguntan con una foto del catálogo y lo dicen, sin tumbar nada.
+**Lo prueba** `fotoscdn.js` (8).

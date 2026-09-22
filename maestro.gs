@@ -1276,7 +1276,8 @@ function opcionesDeLista(clave, cfg) {
   cfg = cfg || leerConfiguracion();
   var sitio = String(cfg.sitio_url || '').trim();
   var host = hostDe(/^https?:\/\//i.test(sitio) ? sitio : 'https://' + sitio);
-  var r = [{ valor: '', rotulo: 'Ninguna: las fotos se sirven tal cual, desde tu sitio' }];
+  /* 0.16.0 · LAS DOS SIRVEN, y se dice qué da cada una (decisión 22). */
+  var r = [{ valor: '', rotulo: 'Ninguna: tu sitio sirve las fotos en tres tamaños ya hechos (sin límites, la de siempre)' }];
   if (host) {
     /* Transformaciones de Cloudflare: mismo dominio, así que no toca la política
        de seguridad. Pero NO existe en *.workers.dev ni *.pages.dev: ahí se ofrece
@@ -1284,7 +1285,8 @@ function opcionesDeLista(clave, cfg) {
        sin fotos. */
     var propio = !/\.(workers|pages)\.dev$/.test(host);
     r.push({ valor: 'https://' + host + '/cdn-cgi/image/format=auto,quality=82,width={ancho},fit=cover/fotos/{ruta}',
-             rotulo: 'Cloudflare, en tu propio dominio' + (propio ? '' : ' (necesita un dominio propio: hoy es ' + host + ')'),
+             rotulo: 'Cloudflare, en tu propio dominio: el tamaño y el formato justos para cada pantalla' +
+                     (propio ? ' (5.000 fotos distintas al mes gratis; hay que activarlo en la zona)' : ' (necesita un dominio propio: hoy es ' + host + ')'),
              desactivada: !propio });
   }
   return r;
@@ -1774,7 +1776,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.15.0';
+var VERSION_TIENDA = '0.16.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1814,6 +1816,24 @@ function atenderActualizacion() {
            puede: g.repoOk && !!g.tk, falta: !g.repoOk ? 'repositorio' : !g.tk ? 'permiso' : '' };
 }
 
+/* 0.16.0 · 3.4 · SEMBRAR EL PERMISO DE GITHUB DESDE FUERA.
+   Publicar y Actualizar desde el panel o el menú necesitan GITHUB_TOKEN en las
+   propiedades del script, y era el último paso a mano del alta (después de
+   CLASPRC, que es de Google y no se puede). `conectar` lo trae desde el
+   repositorio de servicio. NO PISA uno que ya esté puesto —puede ser uno más
+   acotado que alguien hizo a propósito— salvo que se pida `forzar`. Solo se
+   acepta algo con forma de token de GitHub, y del token solo se dice si quedó. */
+function atenderPermiso(p) {
+  var tk = String(p.tk || '').trim();
+  if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(tk)) return { ok: false, error: 'Eso no parece un token de GitHub.' };
+  var props = propiedades();
+  var habia = String(props.getProperty('GITHUB_TOKEN') || '');
+  if (habia && String(p.forzar || '') !== 'si') return { ok: true, puesto: false, yaEstaba: true };
+  props.setProperty('GITHUB_TOKEN', tk);
+  anotarSeguridad('Permiso de GitHub puesto desde el alta (conectar).', habia ? 'reemplazó al anterior' : 'no había ninguno');
+  return { ok: true, puesto: true, yaEstaba: !!habia };
+}
+
 function dispararActualizacion() {
   return dispararFlujo('montaje.yml', { semilla: 'true', que: 'todo' }, 'Actualizar la tienda');
 }
@@ -1830,7 +1850,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-3';
+var VERSION = '2026-09-22-4';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2420,6 +2440,9 @@ function diagnostico(mostrarSecretos) {
     ? 'Token:    ' + token()
     : 'Token:    no se muestra aquí. Ejecuta diagnosticoCompleto() en el\n' +
       '          editor del maestro: este informe se puede copiar y reenviar.');
+  /* 0.16.0 · Los mismos dos datos son los del flujo `conectar`: se dice dónde. */
+  decir('Conectar: ' + urlDeConectar() + '\n' +
+        '          (Run workflow: el nombre corto de la tienda, Servicio y Token)');
 
   /* LA MIGRACIÓN DE LOS DOS TOKENS, MEDIDA Y NO SUPUESTA. No se puede mirar el
      stub de la hoja desde aquí, pero sí se puede saber con qué token entró la
@@ -2637,6 +2660,12 @@ function diagnostico(mostrarSecretos) {
    imprime sale por el registro de ejecución, no por la pantalla del cliente.
    No está en ACCIONES_MENU ni tiene puerta en doGet: no se puede llamar
    desde fuera, que es justamente lo que la hace segura. */
+/* Dónde está el flujo `conectar`: en el repositorio de servicio del mismo
+   dueño que la semilla. */
+function urlDeConectar() {
+  return 'https://github.com/' + SEMILLA_REPO.split('/')[0] + '/tiendas/actions/workflows/conectar.yml';
+}
+
 function diagnosticoCompleto() {
   return diagnostico(true);
 }
@@ -2733,6 +2762,8 @@ function diagnosticoEnHtml(puntos, texto, servicio, tk) {
         '<br>Token: ' + (tk ? escaparHtml(tk)
           : '<span style="font-family:Arial,sans-serif;color:#666">se lee con ' +
             '<b>diagnosticoCompleto()</b> en el editor del maestro</span>') +
+        '<br><span style="font-family:Arial,sans-serif;color:#666">Para conectarla: </span>' +
+        escaparHtml(urlDeConectar()) +
         '</p></div>' +
     '<p style="font:400 12px/1.5 Arial,sans-serif;color:#666;margin:0 0 4px">' +
       'Si necesitas ayuda, copia este cuadro y mándalo por WhatsApp a quien te ' +
@@ -3162,7 +3193,10 @@ var PUERTAS = {
   /* 0.14.0 · actualizar la tienda a la última versión de su semilla. Solo el
      dueño: publica el maestro y cambia el código de la tienda. */
   actualizacion:         { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderActualizacion },
-  actualizar:            { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderActualizar }
+  actualizar:            { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderActualizar },
+  /* 0.16.0 · 3.4 · el permiso de GitHub lo siembra `conectar` (repositorio de
+     servicio), con el token de montaje y solo por POST: viaja en el cuerpo. */
+  permiso:               { guarda: 'montaje', soloPost: true, fn: atenderPermiso }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos

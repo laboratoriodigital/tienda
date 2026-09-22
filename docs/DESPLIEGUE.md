@@ -16,6 +16,26 @@ hasta que el comercio está vendiendo, en orden, y con quién hace cada cosa.
 
 ---
 
+## El camino corto (0.16.0): `alta` y `conectar`
+
+Desde `laboratoriodigital/tiendas` › Actions, dos flujos de tres campos cada uno
+hacen los pasos **1, 10 (menos `CLASPRC`), 11** y el permiso de GitHub del
+maestro. Lo que queda es lo de Google, que vive en la cuenta de cada tienda.
+
+| | Quién | Qué |
+|---|---|---|
+| **alta** | Actions › alta › *Run workflow*: nombre corto, comercio, producto | Crea el repositorio clonando la última versión publicada de la semilla, limpio de lo que es de otra tienda; permisos, fusiones automáticas y `SEMILLA_TOKEN`; su fila en la flota. Deja en el resumen la lista de lo que falta |
+| Google | tú, en la cuenta de la tienda | Pasos **3 a 8** y **12** de abajo (hoja, maestro, implementar, abrir la URL, `A0_instalar`, llenar la hoja, el stub). Y el paso **9**: `A2_diagnosticoCompleto()` da *Servicio*, *Token* y el enlace de *Conectar* |
+| **conectar** | [Actions › conectar](https://github.com/laboratoriodigital/tiendas/actions/workflows/conectar.yml) › *Run workflow*: nombre corto, Servicio, Token | Le pregunta al maestro su hoja y su proyecto; pone `MAESTRO_URL`, `MAESTRO_TOKEN`, `HOJA_ID` y `SCRIPT_ID`; escribe en la hoja el comercio, la dirección y el repositorio; le pone al maestro su `GITHUB_TOKEN` (con `DISPARO_TOKEN`); dispara el primer montaje |
+| Cloudflare | tú, **cuando ese montaje termine** | Paso **2**: Import a repository. Al final a propósito: antes publicaría lo que todavía no es esta tienda |
+| **a mano, solo** | tú | `CLASPRC` (paso 10): la credencial de Google de la tienda. Nadie más puede crearla |
+
+Los pasos numerados de abajo siguen siendo el procedimiento completo y el de
+referencia: son los que el camino corto hace por ti. El camino corto todavía
+no ha corrido de punta a punta en una tienda de verdad.
+
+---
+
 ## De un vistazo
 
 ```
@@ -661,6 +681,18 @@ la canónica —SEO, Bold, rastreo, sitemap— es la de la hoja.
    `/admin.html` el panel, y el enlace de un pedido nuevo (rastreo) ya usa el
    dominio.
 
-**Con dominio propio se habilita** la transformación de fotos de Cloudflare en
-el panel (Avanzado › Transformación de fotos), si la zona tiene *Image
-Transformations* activado.
+### Las fotos con dominio propio: dos maneras, las dos valen (decisión 22)
+
+| | **Ninguna** (la de siempre, de fábrica) | **Cloudflare, en tu propio dominio** |
+|---|---|---|
+| Cómo | El montaje hace tres tamaños en WebP (160, 600, 900) y el sitio los sirve | Cloudflare hace el tamaño y el formato justos (AVIF/WebP) al pedirlos, en su borde |
+| Costo | $0 y sin límites | 5.000 fotos distintas al mes gratis; después se cobra por cada mil |
+| Se activa | nada que hacer | Cloudflare › la zona › **Images › Transformations › Enable for zone**, y en el panel › Avanzado › Transformación de fotos |
+| Si falla | — | la página vuelve sola al original: se ve igual, sin el ahorro |
+
+**La recomendación** es seguir con la de siempre mientras la tienda tenga pocas
+fotos, y pasar a Cloudflare cuando el peso de la página importe (catálogos
+grandes, muchas visitas desde celular). Los tres tamaños se siguen haciendo
+igual con Cloudflare elegido: son el respaldo. Desde la 0.16.0 el **montaje y
+Publicar comprueban** que la zona de verdad transforma, y si no, lo dicen en el
+resumen con dónde activarlo (`montar/revisar-fotos-cdn.mjs`).

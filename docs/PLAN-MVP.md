@@ -1379,6 +1379,17 @@ agotado.
 - [x] El panel del comercio: tinta, aire, bordes suaves, foco visible.
 - [x] El panel de la flota (`tiendas/panel/index.html`), con el mismo lenguaje.
 
+### 0.16.0 · Los secretos se siembran solos, y las fotos con dominio propio
+
+**3.4 · Sembrar los secretos**  · 1 pt · ✅ (bitácora 72)
+- [x] Puerta `permiso` en el maestro; `conectar` pone su `GITHUB_TOKEN` con
+      `DISPARO_TOKEN`. A mano queda solo `CLASPRC`.
+- [x] El Diagnóstico y la lista del alta dicen dónde está `conectar`.
+
+**F-1 · Las fotos con dominio propio**  · 1 pt · ✅ (decisión 22, bitácora 73)
+- [x] Las dos maneras, la de siempre de fábrica; el panel dice qué da cada una.
+- [x] Montaje y Publicar comprueban que Cloudflare de verdad transforma.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

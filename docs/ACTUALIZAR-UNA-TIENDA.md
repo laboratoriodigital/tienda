@@ -21,6 +21,15 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.16.0 (tienda): el permiso se siembra, las fotos se comprueban — nada a mano
+
+1. Actualizar como siempre (Panel › *Versión de tu tienda*, el menú, o `release`
+   → `montaje` con el maestro).
+2. Nada en la hoja. Si eliges Cloudflare para las fotos, el resumen del montaje
+   dice si la zona de verdad transforma.
+
+---
+
 ## La 0.15.0 (tienda): el aspecto del panel — nada a mano
 
 1. `git push` → `release` → `montaje` **con** la casilla `maestro` + `PUBLICAR`

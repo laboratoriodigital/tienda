@@ -972,6 +972,41 @@ montaje más largas (todas las baterías).
 
 ---
 
+## 22 · Fotos: las dos maneras, y la de siempre de fábrica
+
+**Estado:** CERRADA el 22 de septiembre de 2026 (0.16.0).
+
+### Qué hacía
+
+El montaje hace tres tamaños WebP de cada foto y el sitio los sirve. Desde la
+0.9.0 el panel ofrecía Cloudflare como transformador, apagado mientras la
+tienda no tuviera dominio propio.
+
+### El límite real
+
+Con dominio propio, Cloudflare da el tamaño y el formato justos (AVIF donde se
+puede), pero cuesta pasadas las 5.000 transformaciones al mes y solo funciona
+si la zona lo tiene activado; si no, la página vuelve al original en silencio.
+
+### La decisión
+
+Quedan las dos. De fábrica, la de siempre (sin límites, $0). Cloudflare es una
+opción del panel para catálogos grandes o mucho tráfico móvil. Los tres
+tamaños se siguen haciendo aunque se elija Cloudflare: son el respaldo. Montaje
+y Publicar comprueban que la zona transforma y lo dicen.
+
+### Condición de disparo
+
+Si una tienda pasa de las 5.000 fotos distintas al mes, o si Cloudflare cambia
+su cuota gratuita, se revisa cuál es la de fábrica.
+
+### Contrapartida
+
+Con Cloudflare elegido el montaje sigue gastando los minutos de hacer los
+tamaños, aunque casi no se usen.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

@@ -381,6 +381,12 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $estado
 
+      # 0.16.0 · lo mismo que en montaje: si se eligió Cloudflare para las
+      # fotos, se comprueba que la zona transforma. Solo avisa.
+      - name: Las fotos por Cloudflare, si se eligió
+        if: steps.publicar.outputs.seguir == 'si'
+        run: node montar/revisar-fotos-cdn.mjs
+
       # La promesa de arriba, comprobada. No es confianza: es una lista.
       # Se fusiona solo lo que este flujo puede generar y nada más: las fotos y
       # el catálogo horneado. Si aparece cualquier otra cosa, se para y lo dice

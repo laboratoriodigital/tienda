@@ -38,6 +38,7 @@ actualización automática de la flota (M6) sigue **fuera**, y es la entrega 1.1
 | **0.13.0** · colaborador, vista previa, flota | **Hecho** el 22 de septiembre: un colaborador con menos permisos (decisión 18); «Vista previa» junto a Publicar; la flota v1 en `tiendas` con Orgánico y Cinnamon conectadas (decisión 19) |
 | **0.14.0** · dos productos, actualización sola, alta | **Hecho** el 22 de septiembre: Básica y Panel separadas (decisión 20); la tienda se actualiza sola desde su montaje, pedida desde el panel, el menú o la flota, con vuelta atrás (decisión 21); el alta en `tiendas` |
 | **0.15.0** · alta mínima, aspecto | **Hecho** el 22 de septiembre: `alta` y `conectar` de tres campos (clonan la etiqueta, sin plantilla); panel del comercio y panel de la flota más sobrios |
+| **0.16.0** · secretos sembrados, fotos | **Hecho** el 22 de septiembre: `conectar` siembra también el permiso de GitHub del maestro (a mano solo `CLASPRC`); fotos con dominio propio: las dos maneras, comprobadas (decisión 22) |
 | **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
 
 Los números de M1, que son los que deciden si cabe una tienda más:

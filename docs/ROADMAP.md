@@ -153,12 +153,19 @@ Llevar a la semilla `organico` lo que la 0.14.0 le dio a la Panel —`semilla.js
 de su montaje, la opción del menú y la vuelta atrás—. Con eso la flota deja
 de abrir pull requests en la Básica y todo queda en un solo modo.
 
+**3.11 Sin `CLASPRC`: que el maestro se publique a sí mismo**   [PENSADO]
+El último paso a mano del alta. El maestro podría recibir su versión nueva por
+una puerta y publicarse con la API de Apps Script usando su propia sesión
+(`ScriptApp.getOAuthToken`), con la API activada una vez en la cuenta. A
+cambio, el token de montaje pasaría a poder cambiar el código del maestro: se
+decide antes de construirlo.
+
 **3.10 Las gráficas de la Básica, como extra**   [PENSADO]
 La Básica tiene sus números en la pestaña Tablero de la hoja. Las gráficas
 del panel (M4) pueden llegarle como una página aparte, detrás del mismo token
 del menú: un extra que se puede cobrar o regalar.
 
-**3.4 Sembrar los secretos desde el diagnóstico**   [MEDIDO]
+**3.4 Sembrar los secretos desde el diagnóstico**   [HECHO · 0.16.0 — bitácora 72: `conectar` siembra los cuatro secretos y el permiso de GitHub del maestro; el alta, `SEMILLA_TOKEN`. A mano queda `CLASPRC`]
 La mitad del tiempo de montaje se va copiando secretos de una pantalla a otra, y
 cuatro de los cinco los sabe el maestro. Medido en la línea vieja: bajaría un
 despliegue de 30 a unos 18 minutos.
