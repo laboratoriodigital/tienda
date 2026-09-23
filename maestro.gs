@@ -1737,7 +1737,10 @@ function dispararFlujo(archivo, entradas, quien) {
      existiera, así que no la incluye — el alta crea repositorios nuevos, y un
      token de lista fija envejece con cada tienda. */
   var porQue =
-    codigo === 401 ? 'El permiso no sirve o se venció. Hay que hacer uno nuevo.' :
+    codigo === 401 ? 'El permiso de esta tienda no sirve o se venció. Haz uno nuevo ' +
+                     '(de grano fino, sobre TODOS los repositorios del dueño, solo Actions: ' +
+                     'Read and write), cámbialo en el secreto `DISPARO_TOKEN` de `tiendas` y ' +
+                     'vuelve a correr `conectar`: desde la 0.20.2 el vencido se reemplaza solo.' :
     codigo === 403 ? 'El permiso existe pero no alcanza. Le falta Actions: Read and write.' :
     codigo === 404 ? 'El permiso de esta tienda no alcanza a ver ' + g.repo + '. ' +
                      'Casi siempre es que el token se hizo sobre «Only select repositories» ' +
@@ -1819,7 +1822,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.20.1';
+var VERSION_TIENDA = '0.20.2';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1866,15 +1869,43 @@ function atenderActualizacion() {
    repositorio de servicio. NO PISA uno que ya esté puesto —puede ser uno más
    acotado que alguien hizo a propósito— salvo que se pida `forzar`. Solo se
    acepta algo con forma de token de GitHub, y del token solo se dice si quedó. */
+/* 0.20.2 · UN PERMISO MUERTO NO SE RESPETA (bitácora 89). «No pisa uno ya
+   puesto» era la regla correcta para no quitarle a una tienda un token bueno
+   que alguien puso a mano. Pero el día que se rota `DISPARO_TOKEN` —porque
+   venció, o porque el anterior no alcanzaba a las tiendas nuevas— volver a
+   correr `conectar` no servía de nada: la tienda se quedaba con el viejo y
+   seguía contestando «el permiso no sirve o se venció», que es exactamente el
+   síntoma que se estaba intentando curar.
+
+   Ahora, antes de respetarlo, se COMPRUEBA: se le pregunta a GitHub por el
+   repositorio de esta tienda con el token que ya está. Si contesta, se
+   respeta; si no —401, 403, 404 o ni siquiera contesta—, el que llega lo
+   reemplaza. Un token que no abre la puerta no es un token que haya que
+   cuidar. */
+function permisoGuardadoSirve() {
+  var g = repositorioYPermiso();
+  if (!g.tk) return false;
+  if (!g.repoOk) return true;   /* sin repositorio escrito no se puede juzgar: no se toca */
+  try {
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + g.repo,
+      { method: 'get', headers: cabecerasGitHub(g.tk), muteHttpExceptions: true });
+    return res.getResponseCode() === 200;
+  } catch (e) { return false; }
+}
+
 function atenderPermiso(p) {
   var tk = String(p.tk || '').trim();
   if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(tk)) return { ok: false, error: 'Eso no parece un token de GitHub.' };
   var props = propiedades();
   var habia = String(props.getProperty('GITHUB_TOKEN') || '');
-  if (habia && String(p.forzar || '') !== 'si') return { ok: true, puesto: false, yaEstaba: true };
+  var forzado = String(p.forzar || '') === 'si';
+  if (habia && habia === tk) return { ok: true, puesto: false, yaEstaba: true, mismo: true };
+  var servia = habia ? permisoGuardadoSirve() : false;
+  if (habia && servia && !forzado) return { ok: true, puesto: false, yaEstaba: true, servia: true };
   props.setProperty('GITHUB_TOKEN', tk);
-  anotarSeguridad('Permiso de GitHub puesto desde el alta (conectar).', habia ? 'reemplazó al anterior' : 'no había ninguno');
-  return { ok: true, puesto: true, yaEstaba: !!habia };
+  anotarSeguridad('Permiso de GitHub puesto desde el alta (conectar).',
+    !habia ? 'no había ninguno' : (forzado ? 'se forzó el reemplazo' : 'el anterior ya no servía'));
+  return { ok: true, puesto: true, yaEstaba: !!habia, servia: servia, reemplazado: !!habia };
 }
 
 function dispararActualizacion() {

@@ -2117,6 +2117,21 @@ de la pestaña Tiendas —al final, R1—, con su chip en el portal. El dato sig
 decidiéndose en `flota.json`: esto es una copia para mirar, y se reescribe cada
 vez que `conectar` pasa por ahí.
 
+**89 · Rotar el token no arreglaba nada.** Se cambió `DISPARO_TOKEN` por uno
+nuevo, se volvió a correr `conectar`… y la tienda siguió diciendo lo mismo,
+ahora con 401: «el permiso no sirve o se venció». La causa era una regla
+nuestra, escrita con buena intención: el maestro **no pisa un permiso ya
+puesto**, para no quitarle a una tienda un token más acotado que alguien puso a
+mano. Con esa regla, el único camino para cambiarlo era una casilla de forzar
+que nadie sabía que existía, y el síntoma sobrevivía a la cura. La corrección
+es medir en vez de suponer: antes de respetar el token guardado, el maestro le
+pregunta a GitHub por el repositorio de ESTA tienda con ese mismo token; si
+contesta, se respeta; si no —401, 403, 404 o silencio—, el que llega lo
+reemplaza y queda anotado por qué. Un token que no abre la puerta no es un
+token que haya que cuidar. Queda además la casilla `forzar_permiso` en
+`conectar` para el caso contrario: cambiarlo aunque el actual sirva. **Lo
+prueban** `permiso.js` (11) y 1 aserción de la flota.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

@@ -1472,6 +1472,14 @@ agotado.
 **3.7d · El anillo en el portal**  · 1 pt · ✅ (bitácora 88)
 - [x] `conectar` manda el anillo; columna al final (R1) y chip en el portal.
 
+### 0.20.2 · El permiso que se cura solo
+
+**C-5 · Rotar `DISPARO_TOKEN`**  · 1 pt · ✅ (bitácora 89)
+- [x] El maestro comprueba el permiso guardado contra GitHub antes de
+      respetarlo; si ya no sirve, lo reemplaza el que llega con `conectar`.
+- [x] Casilla `forzar_permiso` en `conectar` para cambiarlo aunque sirva.
+- [x] El mensaje de 401 dice el camino completo.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

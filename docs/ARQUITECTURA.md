@@ -308,7 +308,7 @@ comparte con el comercio— ni en el repositorio —que puede ser público—.
 | `TOKEN_MENU` | El token del stub (`tk-…`, **otro**) | `A0_instalar` / `A1_generarStub` | Solo abre `?a=menu`. Está a la vista en la hoja del comercio, y por eso no abre nada más |
 | `HOJA_ID` | El identificador de la hoja | `A0_instalar` (0.17.0) | Que la aplicación web funcione aunque su versión implementada sea anterior a pegar la constante (bitácora 74) |
 | `URL_EXEC` | La URL `/exec` aprendida al abrirla una vez | El propio maestro | Poder decirle a la tienda y al stub dónde vive |
-| `GITHUB_TOKEN` | El token que dispara flujos de esa tienda | `conectar` (puerta `permiso`), o a mano | Publicar y Actualizar desde el panel y el menú |
+| `GITHUB_TOKEN` | El token que dispara flujos de esa tienda | `conectar` (puerta `permiso`), o a mano | Publicar y Actualizar desde el panel y el menú. Desde la 0.20.2, si el guardado ya no abre el repositorio de la tienda, `conectar` lo reemplaza sin pedir nada (bitácora 89) |
 | `PANEL_CLAVE` | La clave del panel del comerciante, como **huella con sal** (`sal$sha256`) | El menú de la hoja › *Clave del panel*, o el propio comercio al recuperarla | Entrar al panel. La clave en claro no se guarda en ningún sitio |
 | `PANEL_FIRMA` | La llave con la que se firman los testigos de sesión | El maestro, sola | Que un testigo robado de otra tienda no sirva aquí |
 | `PANEL_COLABORADOR` | `{u, clave}` del colaborador (misma huella con sal) | El dueño desde el panel | El segundo usuario, con menos permisos |

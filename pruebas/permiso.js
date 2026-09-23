@@ -25,9 +25,32 @@ const r = post(g, { a: 'permiso', t: g.token, tk });
 ok('CON EL TOKEN DE MONTAJE queda puesto, y no se repite en la respuesta', r.ok && r.puesto && g.props.GITHUB_TOKEN === tk && JSON.stringify(r).indexOf(tk) === -1);
 ok('  ...y queda anotado', JSON.stringify(g.filas('Errores') || []).indexOf('Permiso de GitHub puesto') !== -1);
 const otro = 'github_pat_' + 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6';
+
+/* 0.20.2 · UNO QUE SIRVE SE RESPETA; UNO MUERTO, NO (bitácora 89). Antes se
+   respetaba siempre, y entonces rotar `DISPARO_TOKEN` no arreglaba nada: la
+   tienda se quedaba con el vencido y seguía diciendo que el permiso no sirve.
+   Ahora se le pregunta a GitHub por el repositorio de ESTA tienda con el token
+   que ya está guardado, y se decide con la respuesta. */
+/* Una sola ruta y una variable: `responder` se queda con la PRIMERA que
+   encaje, así que volver a registrarla no cambia nada. */
+let contestaGitHub = { codigo: 200, cuerpo: { full_name: 'x/y' } };
+g.responder('api.github.com/repos/', () => contestaGitHub);
 const r2 = post(g, { a: 'permiso', t: g.token, tk: otro });
-ok('UNO YA PUESTO no se pisa (puede ser uno más acotado)', r2.ok && !r2.puesto && r2.yaEstaba && g.props.GITHUB_TOKEN === tk);
+ok('UNO QUE SIRVE no se pisa (puede ser uno más acotado)',
+   r2.ok && !r2.puesto && r2.yaEstaba && r2.servia === true && g.props.GITHUB_TOKEN === tk);
 ok('  ...salvo que se pida forzar', post(g, { a: 'permiso', t: g.token, tk: otro, forzar: 'si' }).puesto && g.props.GITHUB_TOKEN === otro);
+
+/* Y el caso que trajo todo esto: el guardado ya no vale. */
+contestaGitHub = { codigo: 401, cuerpo: { message: 'Bad credentials' } };
+const nuevo = 'github_pat_' + 'Q1w2E3r4T5y6U7i8O9p0A1s2D3f4';
+const r3 = post(g, { a: 'permiso', t: g.token, tk: nuevo });
+ok('UNO VENCIDO se reemplaza sin forzar nada: rotar el token vuelve a servir',
+   r3.ok && r3.puesto && r3.reemplazado && r3.servia === false && g.props.GITHUB_TOKEN === nuevo);
+ok('  ...y el mismo token dos veces no cuenta como reemplazo',
+   (() => { const r = post(g, { a: 'permiso', t: g.token, tk: nuevo });
+            return r.ok && !r.puesto && r.mismo === true; })());
+ok('  ...y queda anotado por qué se reemplazó',
+   /ya no servía/.test(JSON.stringify(g.filas('Errores') || [])));
 console.log = () => {};
 const d = JSON.stringify(g.api.diagnostico(false));
 console.log = decir;

@@ -672,7 +672,7 @@ de la hoja suma, al final, `version` → *Actualizar a la última versión*.
 **`sembrar`** (montaje) acepta además, al final, `repositorio` (0.15.0): lo
 escribe `conectar` desde el repositorio de servicio.
 
-**`permiso`** (0.16.0 · 3.4, montaje, **solo POST**) — pide `t` (token de
+**`permiso`** (0.16.0 · 3.4; 0.20.2: comprueba el guardado, montaje, **solo POST**) — pide `t` (token de
 montaje), `tk` (un token de GitHub: `github_pat_…` o `ghp_…`) y opcional
 `forzar: 'si'`. Lo guarda como `GITHUB_TOKEN` en las propiedades del script si
 no había uno (o si se fuerza). Contesta `ok`, `puesto`, `yaEstaba`; nunca el token.
