@@ -2089,6 +2089,34 @@ secretos no falla: lo dice en el resumen y sigue, porque un panel sin publicar
 no es una avería. Lo que falta para dejarlo a la vista de verdad es ponerle
 Cloudflare Access delante, que está explicado en `DESPLIEGUE.md`.
 
+**87 · Dos mensajes que mandaban a mirar donde no era.** El primer intento de
+actualizar `prueba1` desde la flota contestó «Ninguna tienda de esta línea en
+esos anillos», y la tienda estaba en `flota.json`, en la línea correcta y en el
+anillo 2. Lo que pasaba es que el campo *solo esta tienda* pide
+`dueño/repositorio` y se escribió `prueba1`, que es como se llama la tienda en
+todas las demás pantallas; al no encajar ninguna, el flujo daba la frase de «no
+hay tiendas en esos anillos», que manda a revisar los anillos —lo único que
+estaba bien—. Ahora se acepta el nombre corto y, cuando lo pedido no existe, se
+dice eso, con la lista de las que sí hay y su anillo. El segundo fue peor,
+porque el mensaje era correcto y aun así engañaba: pedir la actualización desde
+el panel contestaba «No encuentro el repositorio laboratoriodigital/prueba1, o
+el permiso no lo incluye». GitHub contesta **404 y no 403** cuando un token de
+grano fino no alcanza un repositorio —no confirma que exista—, así que el
+maestro no puede distinguir los dos casos; pero sí se puede decir cuál es el
+probable: un `DISPARO_TOKEN` hecho sobre «Only select repositories» no incluye
+las tiendas que nacieron después, y el alta crea una tienda nueva cada vez. El
+mensaje ahora lo explica y, mejor todavía, `conectar` lo comprueba **antes** de
+sembrar el permiso: pregunta con ese mismo token si ve el repositorio y lo dice
+en el resumen. **Lo prueban** 4 aserciones de la flota.
+
+**88 · El anillo, donde se mira.** «¿Cómo sé a qué anillo pertenece cada
+tienda?» — estaba en `flota.json`, un archivo de un repositorio privado, y en
+el panel estático de la flota. Quien opera mira el portal, así que ahora el
+anillo viaja con el registro que manda `conectar` y vive en su propia columna
+de la pestaña Tiendas —al final, R1—, con su chip en el portal. El dato sigue
+decidiéndose en `flota.json`: esto es una copia para mirar, y se reescribe cada
+vez que `conectar` pasa por ahí.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

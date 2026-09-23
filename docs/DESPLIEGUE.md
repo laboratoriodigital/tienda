@@ -781,6 +781,15 @@ correos. Nada de eso toca el repositorio ni el código.
 Trust cubre hasta 50 usuarios. Lo que cuesta es acordarse de quitar a alguien
 de la lista el día que se va.
 
+**El token de Cloudflare, acotado.** `wrangler deploy` de una página estática
+necesita exactamente dos permisos de cuenta: *Workers Scripts: Edit* y *Account
+Settings: Read* —y *Workers Routes: Edit* de zona solo si el panel va en un
+dominio propio—. KV, R2, Pages, Containers, CI, Observability, Tail y CF Agents
+no hacen falta. El **filtro por IP se deja abierto**: los runners de GitHub
+cambian de dirección en cada corrida, así que acotarlo rompería el flujo el día
+menos pensado; lo que sí conviene es ponerle **vencimiento** al token y anotarlo
+donde se anotan los demás.
+
 **Cómo se publica el panel que hay que proteger.** Dos caminos, y el segundo
 no depende de que nadie conecte nada: (1) Cloudflare › Workers & Pages ›
 Create › Import a repository › `tiendas`, directorio `panel/`; o (2) poner

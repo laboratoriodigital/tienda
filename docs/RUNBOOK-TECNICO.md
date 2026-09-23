@@ -251,6 +251,8 @@ cambia), y vuelve a correr `conectar`.
 | Las fotos no cargan | `fotos_cdn` apunta a un proveedor que no transforma | Vaciar `fotos_cdn` (vuelve al archivo original) y mirar el aviso del montaje |
 | El montaje falla al publicar en `main` | Permisos de Actions | Settings › Actions › General › *Read and write permissions* |
 | El montaje no publica el maestro | Falta `CLASPRC`, `SCRIPT_ID` o `HOJA_ID` | El resumen dice cuál; `clasp login --no-localhost` con la cuenta de la tienda |
+| «No encuentro el repositorio X, o el permiso no lo incluye» al Publicar o Actualizar desde el panel | El `DISPARO_TOKEN` que el maestro tiene como `GITHUB_TOKEN` se hizo sobre **Only select repositories** y esa tienda es posterior | Rehaz `DISPARO_TOKEN` sobre **todos** los repositorios del dueño, solo *Actions: Read and write*, cámbialo en `tiendas` y corre `conectar` otra vez. Desde la 0.20.1 `conectar` avisa en su resumen si ese token no ve la tienda |
+| `flota` › actualizar dice «Ninguna tienda de esta línea en esos anillos» | El campo *solo esta tienda* no encajó, o la línea/anillo no son los de esa tienda | Desde la 0.20.1 basta el nombre corto (`prueba1`) y el resumen lista las tiendas de esa línea con su anillo. Comprueba también la línea: una Tienda Panel no se actualiza con `organico` |
 
 ---
 
@@ -293,7 +295,7 @@ Los **datos** de la hoja no se restauran desde aquí: eso es `A5_respaldos()` y
 | `accion` | `estado` | Pregunta a cada tienda su versión, escribe `ESTADO.md` y el panel, y —si hay token de Cloudflare— lo publica. No toca ninguna tienda |
 | | `actualizar` | Pone al día las tiendas de una línea, por anillos |
 | `linea` | `tienda` · `organico` | Qué producto se actualiza. Una corrida, una línea |
-| `anillo` | `0` · `1` · `2` | Hasta dónde llega: 0 solo las de prueba, 1 las primeras tiendas, 2 todas. Va en orden y **se detiene si una falla** |
+| `anillo` | `0` · `1` · `2` | Hasta dónde llega: 0 solo las de prueba, 1 las primeras tiendas, 2 todas. Va en orden y **se detiene si una falla**. El anillo de cada tienda se decide en `flota.json` y se ve en el portal y en el panel de la flota |
 | `version` | `vX.Y.Z` | Qué versión llevar. Vacío = la última publicada con `release` |
 | `ensayo` | casilla, **marcada de fábrica** | Dice qué haría y no toca nada. Desmarcarla es lo que hace que ocurra de verdad |
 | `tienda` | `dueño/repositorio` | Solo esa tienda, ignorando el anillo |

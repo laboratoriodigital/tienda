@@ -1728,10 +1728,23 @@ function dispararFlujo(archivo, entradas, quien) {
   }
   var codigo = res.getResponseCode();
   if (codigo === 204) return { ok: true, codigo: 204 };
+  /* 0.20.1 · EL 404 DE GITHUB MIENTE A PROPÓSITO (bitácora 87). Cuando un
+     token de grano fino no alcanza a ver un repositorio, GitHub contesta 404 y
+     no 403: no confirma que exista. El mensaje decía «no encuentro el
+     repositorio, o el permiso no lo incluye» y mandaba a revisar el nombre,
+     que casi siempre está bien. La causa de verdad es otra, y tiene nombre: el
+     token se creó sobre «Only select repositories» ANTES de que esta tienda
+     existiera, así que no la incluye — el alta crea repositorios nuevos, y un
+     token de lista fija envejece con cada tienda. */
   var porQue =
     codigo === 401 ? 'El permiso no sirve o se venció. Hay que hacer uno nuevo.' :
     codigo === 403 ? 'El permiso existe pero no alcanza. Le falta Actions: Read and write.' :
-    codigo === 404 ? 'No encuentro el repositorio ' + g.repo + ', o el permiso no lo incluye.' :
+    codigo === 404 ? 'El permiso de esta tienda no alcanza a ver ' + g.repo + '. ' +
+                     'Casi siempre es que el token se hizo sobre «Only select repositories» ' +
+                     'y esta tienda es posterior: hazlo sobre TODOS los repositorios del ' +
+                     'dueño (solo Actions: Read and write) y vuelve a correr `conectar`. ' +
+                     'Si el repositorio de verdad no existe o se renombró, corrígelo en ' +
+                     'Configuración › repositorio.' :
     codigo === 422 ? 'GitHub aceptó la petición pero no encontró la rama main.' :
                      'GitHub contestó ' + codigo + '.';
   anotarError(quien + ' falló con ' + codigo, String(res.getContentText()).slice(0, 200));
@@ -1806,7 +1819,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.20.0';
+var VERSION_TIENDA = '0.20.1';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {

@@ -687,7 +687,8 @@ token }`. `clave` = `CLAVE_ALTA` de las propiedades de esa hoja (menú › *Clav
 para el alta*). Valida `repo` (`dueño/nombre`) y `servicio` (`/exec`). Si el
 repositorio ya está, cambia solo sitio, servicio, token (columnas 10–12) y
 producto (16); si no, agrega la fila *En montaje*. Contesta `ok`, `fila`,
-`nueva`. La pestaña Tiendas suma al final la columna **Producto** (R1).
+`nueva`. Acepta además `anillo` (0.20.1). La pestaña Tiendas suma al final las
+columnas **Producto** (0.17.0) y **Anillo** (0.20.1), en ese orden (R1).
 
 **El stub dice en qué hoja está pegado** (0.18.0): `?a=menu` lleva, además de
 `f`, `t` y `s`, la clave **`h`** — el ID de la hoja donde corre el stub. El

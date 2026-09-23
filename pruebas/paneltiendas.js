@@ -44,7 +44,22 @@ ok('UNA QUE YA ESTÁ se actualiza (servicio y token), sin duplicarse', r2.ok && 
    f2[10].endsWith('cafe2/exec') && f2[11] === 'tk-cafe2');
 ok('  ...y lo que escribió el operador no se toca', f2[2] === 'Doña Rosa' && f2[5] === 'Estándar' && f2[14] === 'Paga el 5');
 ok('  ...y queda en la bitácora del panel', /conectar registró Café La Esquina/.test(JSON.stringify(g.filas('Bitácora'))));
-ok('LA COLUMNA NUEVA va al final (R1)', g.api.COL_TIENDAS[g.api.COL_TIENDAS.length - 1] === 'Producto' && g.api.COL_TIENDAS[14] === 'Notas');
+ok('EL ANILLO llega desde conectar y se ve en el portal (0.20.1 · bitácora 88)',
+   (() => {
+     const conAnillo = Object.assign({}, tienda, { repo: 'laboratoriodigital/con-anillo',
+                                                   comercio: 'Con anillo', anillo: '1' });
+     const r = post(conAnillo);
+     const f = de('laboratoriodigital/con-anillo') || [];
+     const leida = g.api.leerTiendas().filter(x => x.comercio === 'Con anillo')[0];
+     const html = g.api.portalHtml([leida], [], { flota: 'lab/tiendas' });
+     return r.ok && String(f[16]) === '1' && leida.anillo === '1' && /anillo 1/.test(html);
+   })());
+ok('  ...y una tienda sin anillo no inventa ninguno',
+   !/anillo /.test(g.api.portalHtml([{ comercio: 'Sin anillo', estado: 'Activa', producto: '', precio: 0,
+                                       sitio: '', repo: '', notas: '', anillo: '' }], [], {})));
+
+ok('LA COLUMNA NUEVA va al final (R1)', g.api.COL_TIENDAS[g.api.COL_TIENDAS.length - 1] === 'Anillo' &&
+   g.api.COL_TIENDAS[15] === 'Producto' && g.api.COL_TIENDAS[14] === 'Notas');
 
 /* ═══ EL PORTAL (0.18.0 · bitácora 78) ═══
    «No veo por dónde se entra»: ahora se entra por el menú de esta hoja, y lo

@@ -1461,6 +1461,17 @@ agotado.
       la fila.
 - [x] `flota` › estado publica el panel en Cloudflare si hay token.
 
+### 0.20.1 · Los mensajes que mandaban a mirar donde no era
+
+**C-4 · Actualizar una sola tienda**  · 1 pt · ✅ (bitácora 87)
+- [x] *Solo esta tienda* acepta el nombre corto; si no existe, lo dice con la
+      lista de las que sí y su anillo.
+- [x] El 404 de GitHub se explica: un token sobre «Only select repositories» no
+      incluye las tiendas nuevas. `conectar` lo comprueba antes de sembrarlo.
+
+**3.7d · El anillo en el portal**  · 1 pt · ✅ (bitácora 88)
+- [x] `conectar` manda el anillo; columna al final (R1) y chip en el portal.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-var VERSION_PANEL = '2026-09-22-d';
+var VERSION_PANEL = '2026-09-22-e';
 
 var H_TIENDAS  = 'Tiendas';
 var H_METRICAS = 'Métricas';
@@ -45,7 +45,12 @@ var COL_TIENDAS = ['Estado', 'Comercio', 'Contacto', 'Celular', 'Correo',
                    'Cuenta Google', 'Repositorio', 'Notas',
                    /* 0.17.0 · al final (R1): Tienda Básica o Tienda Panel. La
                       escribe `conectar` al registrar la tienda. */
-                   'Producto'];
+                   'Producto',
+                   /* 0.20.1 · al final (R1) otra vez: el anillo de actualización
+                      (0 pruebas · 1 primeras · 2 todas). Vive en `flota.json`,
+                      que es de un repositorio privado; aquí se ve sin abrir
+                      GitHub (bitácora 88). */
+                   'Anillo'];
 
 /* Las columnas de Métricas, cada una con de dónde sale y cómo se ve. Están
    así y no como dos listas paralelas porque una lista de rótulos y otra de
@@ -243,7 +248,7 @@ function instalar() {
       'https://[la-tienda].[tu-cuenta].workers.dev/',
       '', '', '', 'laboratoriodigital/[repositorio]',
       'Fila de ejemplo. Reemplázala: pega aquí la URL /exec y el token del maestro.',
-      'Tienda Panel'
+      'Tienda Panel', 2
     ]]);
   }
 
@@ -360,7 +365,8 @@ function leerTiendas() {
       cuenta:    String(f[12] || '').trim(),
       repo:      repoNormalizado(f[13]) || String(f[13] || '').trim(),
       notas:     String(f[14] || '').trim(),
-      producto:  String(f[15] || '').trim()
+      producto:  String(f[15] || '').trim(),
+      anillo:    String(f[16] === undefined || f[16] === null ? '' : f[16]).trim()
     };
   }).filter(function (t) { return t.comercio; });
 }
@@ -1111,7 +1117,7 @@ function presentar() {
   t.setColumnWidth(7, 120); t.setColumnWidth(8, 100); t.setColumnWidth(9, 100);
   t.setColumnWidth(10, 260); t.setColumnWidth(11, 320); t.setColumnWidth(12, 230);
   t.setColumnWidth(13, 220); t.setColumnWidth(14, 200); t.setColumnWidth(15, 320);
-  t.setColumnWidth(16, 130);
+  t.setColumnWidth(16, 130); t.setColumnWidth(17, 80);
   /* 0.17.0 · sin cuadrícula y en una sola fuente: se lee como un tablero. */
   t.setHiddenGridlines(true);
   t.getRange(1, 1, Math.max(t.getLastRow(), 2), COL_TIENDAS.length).setFontFamily('Arial');
@@ -1346,7 +1352,9 @@ function portalHtml(tiendas, metricas, ctx) {
     partes.push('<h2>' + escaparPortal(t.comercio) + '</h2>' +
       '<span class="e" style="background:' + FONDO + ';border:1px solid ' + LINEA + ';color:' + color + '">' +
       escaparPortal(t.estado || '—') + '</span>' +
-      '<span class="e" style="color:' + GRIS + '">' + escaparPortal(t.producto || '—') + '</span>');
+      '<span class="e" style="color:' + GRIS + '">' + escaparPortal(t.producto || '—') + '</span>' +
+      (t.anillo === '' ? '' : '<span class="e" style="color:' + GRIS + '" title="Orden en que recibe las versiones nuevas: 0 pruebas · 1 primeras · 2 todas">anillo ' +
+        escaparPortal(t.anillo) + '</span>'));
     partes.push('<div class="n">' +
       '<div>Ventas del mes<b>' + escaparPortal(m['Ventas del mes'] === undefined ? '—' : m['Ventas del mes']) + '</b></div>' +
       '<div>Pedidos<b>' + escaparPortal(m['Pedidos del mes'] === undefined ? '—' : m['Pedidos del mes']) + '</b></div>' +
@@ -1430,14 +1438,18 @@ function atenderAlta(d) {
     var existentes = leerTiendas();
     var ya = existentes.filter(function (x) { return x.repo.toLowerCase() === repo.toLowerCase(); })[0];
     var sitio = String(d.sitio || '').trim(), token = String(d.token || '').trim(), producto = String(d.producto || '').trim();
+    /* 0.20.1 · El anillo lo manda `conectar` desde flota.json; si no viene, no
+       se inventa: la celda se queda como esté. */
+    var anillo = String(d.anillo === undefined || d.anillo === null ? '' : d.anillo).trim();
     if (ya) {
       t.getRange(ya.linea, 10, 1, 3).setValues([[sitio || ya.sitio, servicio, token || ya.token]]);
       if (producto) t.getRange(ya.linea, 16).setValue(producto);
+      if (anillo !== '') t.getRange(ya.linea, 17).setValue(anillo);
       registrar('conectar actualizó ' + (ya.comercio || repo) + ' (servicio y token).');
       return { ok: true, fila: ya.linea, nueva: false };
     }
     var fila = ['En montaje', String(d.comercio || repo).trim(), '', '', '', '', 0, '', new Date(),
-                sitio, servicio, token, '', repo, 'La registró conectar.', producto];
+                sitio, servicio, token, '', repo, 'La registró conectar.', producto, anillo];
     t.appendRow(fila);
     registrar('conectar registró ' + fila[1] + ' (' + repo + ').');
     return { ok: true, fila: t.getLastRow(), nueva: true };
