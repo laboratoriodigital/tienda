@@ -709,6 +709,11 @@ barras finales; lo que no encaje se conserva como texto pero no genera enlaces.
 El repositorio de la flota sale del primer repositorio válido (`<dueño>/tiendas`)
 o de la propiedad `REPO_FLOTA` del panel.
 
+**`diagnostico`** (0.20.0, panel, **solo POST**, solo el dueño) — no pide nada
+más que el testigo. Contesta `ok`, `texto` (el informe completo, **sin el token
+de montaje**) y `resumen`: una lista de `{estado, n, titulo}` con `OK`,
+`REVISAR` o `PROBLEMA` por punto.
+
 **`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
 `propios` (rutas; las que acaban en `/` son carpetas). Lo leen
 `montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las

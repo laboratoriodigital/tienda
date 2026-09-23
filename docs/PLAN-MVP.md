@@ -1443,6 +1443,24 @@ agotado.
       cómo se renuevan), flujos, camino de un pedido, medición, Cloudflare.
 - [x] Guardias que impiden que los tres envejezcan en silencio.
 
+### 0.20.0 · Salir al aire: acabado, revisión y la flota publicada
+
+**A-1 · El acabado de la tienda**  · 2 pt · ✅ (bitácora 84)
+- [x] Fuera la tipografía de Google: tres peticiones menos y ninguna espera.
+- [x] Capa de acabado al final de la hoja de estilos, sin tocar un id ni una clase.
+- [x] La CSP deja de permitir tipografías de fuera, en sus tres copias.
+
+**D-15 · La revisión, en el panel**  · 1 pt · ✅ (bitácora 85)
+- [x] Puerta `diagnostico` (panel, solo el dueño, solo POST) y *Revisión de tu
+      tienda* en el panel, con el resumen por puntos.
+- [x] El informe mira lo nuevo: HOJA_ID, stub pegado, permiso de GitHub,
+      medición y si se puede volver atrás.
+
+**3.7c · La dirección y el panel de la flota**  · 1 pt · ✅ (bitácora 83 y 86)
+- [x] El portal enseña la dirección que dice la tienda; `actualizar` la copia a
+      la fila.
+- [x] `flota` › estado publica el panel en Cloudflare si hay token.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

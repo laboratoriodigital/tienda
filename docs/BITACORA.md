@@ -2043,6 +2043,52 @@ lista de funcionalidades no puede dejarse fuera una opción del menú. Los tres
 guardias se verificaron en rojo antes de darlos por buenos. **Lo prueban** 9
 aserciones de `montaje.js`.
 
+**83 · «Ver la tienda» llevaba al dominio de antes.** La columna *Sitio* de la
+hoja de administración la escribió `conectar` el día del alta, con la dirección
+que entonces existía; cuando la tienda se mudó a su dominio propio, esa celda
+se quedó con la vieja y el botón del portal llevaba allí. El dato estaba en dos
+sitios y uno se quedó atrás: patrón 2, otra vez. La dirección la sabe la
+tienda —es su `sitio_url`, la misma con la que se hornea el canónico—, así que
+ahora el portal enseña la que dice la tienda y `actualizar` copia esa dirección
+a la fila y lo anota en la bitácora. Si la tienda no contesta, se usa la de la
+fila: quedarse sin enlace es peor que un enlace viejo. **Lo prueban** 6
+aserciones de `paneltiendas.js`.
+
+**84 · El acabado, y tres peticiones que sobraban.** Para salir al aire se
+pidió un aire más moderno «sin sacrificar velocidad ni simplicidad». Lo primero
+que se fue, entonces, fue la tipografía de Google: dos `preconnect` y una hoja
+de estilos de fuera antes de pintar una sola letra, en una tienda que presume
+de no depender de nadie. Con la pila del sistema la página no espera a nada y
+el carácter lo dan el peso, el interletrado y la escala. Lo demás es una capa
+de acabado **al final de la hoja de estilos**, que no toca un id ni una clase
+—el mismo procedimiento del panel en la 0.15.0, y por la misma razón: un
+rediseño que mueve el HTML hay que volver a probarlo entero—: esquinas de 10px,
+botones en píldora, líneas más claras, una sombra mínima en las tarjetas,
+cifras tabulares en los precios y una respuesta de 120 ms al pasar y al pulsar.
+Y, ya que no se cargan tipografías, la política de seguridad dejó de permitirlas
+en sus tres copias: un permiso que sobra es una puerta abierta sin nadie detrás.
+
+**85 · El diagnóstico donde trabaja el comercio.** El informe existía desde
+siempre y vivía solo en el menú de la hoja; el comerciante que trabaja en el
+panel no abre la hoja, así que llamaba para preguntar por qué su tienda «se
+veía rara». Ahora está en el panel —*Revisión de tu tienda*, sin secretos y solo
+para el dueño—, y de paso aprendió lo que las últimas versiones le enseñaron a
+mirar: si el `HOJA_ID` vino de las propiedades (la versión implementada puede
+ser anterior), qué versión del stub está pegada en la hoja, si el maestro tiene
+su permiso de GitHub —sin él, Publicar y Actualizar no disparan nada—, si la
+medición está encendida y bien escrita, y si de verdad se puede volver atrás:
+cuántas copias hay y de cuándo es la última. Se pide a demanda, porque mirar no
+puede costar una ejecución en cada visita.
+
+**86 · El panel de la flota, publicado sin manos.** Se podía conectar el
+repositorio en Cloudflare y esperar a que publicara solo, pero eso depende de
+que alguien lo haya conectado. Con `CLOUDFLARE_API_TOKEN` y
+`CLOUDFLARE_ACCOUNT_ID` en `tiendas`, el propio flujo `flota` › estado publica
+`panel/` como Worker de recursos estáticos después de escribirlo. Sin esos dos
+secretos no falla: lo dice en el resumen y sigue, porque un panel sin publicar
+no es una avería. Lo que falta para dejarlo a la vista de verdad es ponerle
+Cloudflare Access delante, que está explicado en `DESPLIEGUE.md`.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

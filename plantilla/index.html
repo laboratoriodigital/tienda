@@ -16,7 +16,7 @@
      código: lo peor que puede hacer un tercero de esa lista es no responder. -->
 
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net; connect-src 'self' https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net; connect-src 'self' https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
 <!-- ═══ CONFIGURACIÓN DE ESTA TIENDA ═══
      Generado por generarConfiguracion() en el Apps Script.
      No lo edites a mano: cambia la pestaña Configuración y vuelve a generarlo. -->
@@ -44,9 +44,13 @@
      aquí, no puesto por la página al arrancar. Sin hornear, este hueco
      está vacío a propósito. -->
 <!-- ═══ FIN DE LOS DATOS ESTRUCTURADOS ═══ -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
+<!-- 0.20.0 · SIN TIPOGRAFÍA DE FUERA (bitácora 84). Aquí había tres
+     peticiones a Google —dos preconnect y la hoja de Archivo— antes de pintar
+     una letra: en un celular con red lenta, eso es texto invisible mientras
+     llega, y una dependencia más en la ruta crítica de una tienda que presume
+     de no depender de nadie. La pila del sistema no se descarga: ya está en el
+     teléfono. El carácter lo dan el peso, el interletrado y la escala, que no
+     cuestan una petición. -->
 <style>
 /* ============================================================
    LA SEMILLA — hoja de estilos
@@ -66,7 +70,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
 body{
-  font-family:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   background:var(--blanco);color:var(--negro);
   line-height:1.5;-webkit-font-smoothing:antialiased;
 }
@@ -444,6 +448,96 @@ textarea.campo{resize:vertical;min-height:64px}
 .flotante.oculto{display:none}
 
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   0.20.0 · LA CAPA DE ACABADO (bitácora 84)
+   --------------------------------------------------------------------------
+   Va AL FINAL y solo retoca: no toca un id, ni una clase, ni la estructura —
+   las baterías de navegador leen la página por ellos—. Es el mismo
+   procedimiento con el que se puso sobrio el panel en la 0.15.0, y por la
+   misma razón: un rediseño que mueve el HTML es un rediseño que hay que
+   volver a probar entero.
+
+   QUÉ CAMBIA, Y POR QUÉ CADA COSA:
+     · La tipografía es la del sistema. Cero peticiones, cero espera.
+     · Las esquinas pasan de 2px a 10px, y los botones a 999px: es lo que hace
+       que una tienda se vea de este año sin tocar la paleta del comercio.
+     · Las líneas se aclaran y aparece una sombra mínima en las tarjetas: la
+       jerarquía deja de depender solo del borde.
+     · Los precios van con cifras tabulares: una columna de precios que baila
+       se lee como un error de imprenta.
+     · Cada cosa que se puede tocar responde al pasar y al pulsar, en 120 ms.
+       Con `prefers-reduced-motion` no se mueve nada (ya estaba arriba).
+   NADA DE ESTO PIDE UN BYTE MÁS A LA RED.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root{
+  --radio:10px;
+  --radio-chico:8px;
+  --radio-pildora:999px;
+  --linea:#E8E8EA;
+  --tenue:#5F6068;
+  --sombra:0 1px 2px rgba(16,18,24,.04), 0 1px 3px rgba(16,18,24,.06);
+  --sombra-alta:0 6px 16px rgba(16,18,24,.10);
+  --paso:120ms cubic-bezier(.2,.6,.3,1);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",
+    "Noto Sans",Arial,sans-serif;
+  letter-spacing:-.006em;
+  text-rendering:optimizeLegibility;
+}
+h1,h2,h3,.marca{letter-spacing:-.028em}
+.barra{border-bottom-color:var(--linea)}
+.marca{font-weight:700}
+.btn-carrito{border-radius:var(--radio-pildora);transition:background var(--paso),transform var(--paso)}
+.btn-carrito:active{transform:scale(.97)}
+.contador{font-variant-numeric:tabular-nums}
+
+/* Las tarjetas del catálogo: borde más claro, sombra mínima, y el
+   levantamiento de siempre reducido a lo que se nota sin distraer. */
+.producto,.tarjeta,.caja,.ficha,.linea-carrito{border-radius:var(--radio)}
+.producto{
+  border-color:var(--linea);box-shadow:var(--sombra);
+  transition:box-shadow var(--paso),border-color var(--paso),transform var(--paso);
+}
+.producto:hover{box-shadow:var(--sombra-alta);border-color:#D9D9DE;transform:translateY(-1px)}
+.producto img,.producto picture img{border-radius:var(--radio) var(--radio) 0 0}
+
+/* Precios y cantidades: tabulares. Una columna que no baila. */
+.precio,.precio-antes,.total,.subtotal,.cifra,.n,.contador,
+input[type="number"],.cantidad{font-variant-numeric:tabular-nums}
+
+/* Los controles: píldora, foco visible y respuesta al pulsar. */
+.btn,button.btn,.btn-solido,.btn-linea,.chip,.chips button,.pagina{
+  border-radius:var(--radio-pildora);
+  transition:background var(--paso),color var(--paso),border-color var(--paso),transform var(--paso);
+}
+.btn:active,button.btn:active,.btn-solido:active,.btn-linea:active{transform:scale(.98)}
+.buscador input,select,input[type="text"],input[type="search"],input[type="tel"],
+input[type="email"],textarea{
+  border-radius:var(--radio-chico);
+  transition:border-color var(--paso),box-shadow var(--paso);
+}
+.buscador input:focus,select:focus,input:focus,textarea:focus{
+  border-color:#B9BAC1;box-shadow:0 0 0 3px rgba(16,18,24,.06);
+}
+:focus-visible{outline-width:2px;outline-offset:2px;border-radius:4px}
+
+/* La portada: el titular respira un poco más y el texto pesa un punto menos,
+   que es lo que separa «grande» de «gritado». */
+.portada h1{letter-spacing:-.045em}
+.portada p{color:rgba(255,255,255,.92)}
+.portada-datos span{gap:9px}
+
+/* El botón flotante de WhatsApp: sombra más suave y un toque al pulsar. */
+.flotante{box-shadow:0 2px 10px rgba(16,18,24,.18);transition:transform var(--paso),box-shadow var(--paso)}
+.flotante:hover{box-shadow:0 6px 18px rgba(16,18,24,.22)}
+.flotante:active{transform:scale(.95)}
+
+/* Las ventanas (carrito, ficha, legal): esquinas y sombra de la misma familia. */
+.ventana .caja,.legal-caja,.ficha-caja,.carrito-caja{border-radius:14px;box-shadow:var(--sombra-alta)}
+.legal-cerrar{transition:background var(--paso),border-color var(--paso)}
+.legal-cerrar:hover{background:#F6F6F7}
 </style>
 </head>
 <body>

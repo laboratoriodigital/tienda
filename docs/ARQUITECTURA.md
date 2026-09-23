@@ -591,6 +591,10 @@ borde (`/cdn-cgi/image/...`), que es la opción `fotos_cdn` de la hoja; la otra
 manera —tres tamaños horneados en el montaje— sigue siendo el valor de fábrica
 y el respaldo (decisión 22).
 
+El **panel de la flota** se publica desde el propio flujo `flota` › estado
+cuando `tiendas` tiene `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`
+(`wrangler deploy` sobre `panel/`); sin esos secretos el flujo lo dice y sigue.
+
 **Cloudflare Access** (parte de Cloudflare Zero Trust) es lo que falta para
 servir el panel de la flota en una dirección. No es lo mismo que la tienda:
 Access pone una **puerta de identidad delante de una dirección**. Se explica

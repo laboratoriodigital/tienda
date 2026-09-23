@@ -710,6 +710,16 @@ cuenta **sí** ve.
 > tienda y ninguna otra —una ventana de incógnito ayuda—. Si dice que no
 > tienes acceso, el secreto apunta al maestro de otra.
 
+## La revisión de la tienda (0.20.0)
+
+El mismo informe de siempre, ahora en tres sitios: el menú de la hoja ›
+*Diagnóstico*, el panel del comercio › Tienda › **Revisión de tu tienda**, y
+`A2_diagnosticoCompleto()` en el editor del maestro —el único que enseña el
+token de montaje—. Desde la 0.20.0 mira además: de dónde salió el `HOJA_ID`,
+qué versión del stub está pegada en la hoja, si el maestro tiene su permiso de
+GitHub, si la medición está bien escrita, y cuántas copias de la hoja hay para
+volver atrás.
+
 ## Volver atrás (0.18.0)
 
 Tres cosas se pueden perder, y cada una tiene su punto de restauración y su
@@ -770,6 +780,14 @@ correos. Nada de eso toca el repositorio ni el código.
 **Qué cuesta.** Nada en el uso que le vamos a dar: el plan gratuito de Zero
 Trust cubre hasta 50 usuarios. Lo que cuesta es acordarse de quitar a alguien
 de la lista el día que se va.
+
+**Cómo se publica el panel que hay que proteger.** Dos caminos, y el segundo
+no depende de que nadie conecte nada: (1) Cloudflare › Workers & Pages ›
+Create › Import a repository › `tiendas`, directorio `panel/`; o (2) poner
+`CLOUDFLARE_API_TOKEN` (plantilla *Edit Cloudflare Workers*) y
+`CLOUDFLARE_ACCOUNT_ID` en los secretos de `tiendas`: desde la 0.20.0, cada
+`flota` › **estado** escribe el panel y lo publica. El resumen de la corrida
+dice la dirección.
 
 **Por qué no se enciende todavía.** Porque el portal se abre desde la hoja de
 administración y esa hoja ya está protegida por la cuenta de Google del

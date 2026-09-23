@@ -117,6 +117,49 @@ ok('EL REPOSITORIO se entiende como se escriba: URL, .git o con barras de más',
   delete g.props.REPO_FLOTA;
 }
 
+/* ═══ LA DIRECCIÓN LA DICE LA TIENDA (0.20.0 · bitácora 83) ═══
+   El botón «Ver la tienda» llevaba al dominio viejo: la columna Sitio la
+   escribió `conectar` el día del alta y el comercio se mudó después. */
+{
+  const conSitio = [{ comercio: 'Café La Esquina', estado: 'Activa', producto: 'Tienda Panel', precio: 0,
+                      sitio: 'https://cafe.viejo.workers.dev/', repo: 'lab/cafe', notas: '' }];
+  const met = [['Café La Esquina', 'En línea', '0.20.0', '', '', 'https://cafe.laboratorio-digital.com/']];
+  const h = g.api.portalHtml(conSitio, met, { flota: 'lab/tiendas' });
+  ok('EL PORTAL enseña la dirección que dice la tienda, no la que quedó en la fila',
+     /cafe\.laboratorio-digital\.com/.test(h) && !/cafe\.viejo\.workers\.dev/.test(h),
+     (h.match(/https:\/\/[^"']*cafe[^"']*/) || [])[0]);
+  ok('  ...y su panel cuelga de esa misma dirección',
+     /cafe\.laboratorio-digital\.com\/admin\.html/.test(h));
+
+  const sinMetrica = g.api.portalHtml(conSitio, [], { flota: 'lab/tiendas' });
+  ok('  ...y si la tienda no contesta, se usa la de la fila en vez de dejarlo sin enlace',
+     /cafe\.viejo\.workers\.dev/.test(sinMetrica));
+
+  /* Y al actualizar, la fila se pone al día sola: mirar el portal no puede ser
+     lo único que sepa la verdad. */
+  const hojaT = g.hojas.get('Tiendas');
+  const linea = filas().length + 1;
+  hojaT.getRange(linea, 1).setValue('Activa');
+  hojaT.getRange(linea, 2).setValue('Mudada');
+  hojaT.getRange(linea, 10).setValue('https://vieja.workers.dev');
+  const fila = g.api.leerTiendas().filter(x => x.comercio === 'Mudada')[0];
+  console.log = () => {};
+  const cambios = g.api.sincronizarSitios([{ ok: true, tienda: fila, sitio: 'https://nueva.laboratorio-digital.com/' }]);
+  console.log = decir;
+  const despues = g.api.leerTiendas().filter(x => x.comercio === 'Mudada')[0];
+  ok('AL ACTUALIZAR, la fila toma la dirección que dice la tienda',
+     cambios.length === 1 && despues.sitio === 'https://nueva.laboratorio-digital.com',
+     despues.sitio);
+  ok('  ...y queda en la bitácora, porque nadie lo pidió a mano',
+     /Dirección actualizada desde la tienda/.test(JSON.stringify(g.filas('Bitácora'))));
+  console.log = () => {};
+  const otra = g.api.sincronizarSitios([{ ok: true, tienda: despues, sitio: 'https://nueva.laboratorio-digital.com' }]);
+  const caida = g.api.sincronizarSitios([{ ok: false, tienda: despues, sitio: '' }]);
+  console.log = decir;
+  ok('  ...y no escribe si no cambió nada, ni cuando la tienda no contesta',
+     otra.length === 0 && caida.length === 0);
+}
+
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
 process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

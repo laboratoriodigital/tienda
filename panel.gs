@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-var VERSION_PANEL = '2026-09-22-c';
+var VERSION_PANEL = '2026-09-22-d';
 
 var H_TIENDAS  = 'Tiendas';
 var H_METRICAS = 'Métricas';
@@ -375,6 +375,14 @@ function actualizar() {
   });
 
   var datos = consultar(vivas);
+  /* 0.20.0 · LA DIRECCIÓN LA DICE LA TIENDA, NO ESTA HOJA (bitácora 83). La
+     columna Sitio la escribió `conectar` el día del alta; si después el
+     comercio se mudó a su dominio propio, aquí seguía la vieja y el botón «Ver
+     la tienda» del portal llevaba a la dirección de antes. La tienda sabe cuál
+     es la suya —es su `sitio_url`, la misma con la que se hornea el canónico—,
+     así que se copia aquí y queda anotado. Es la regla de siempre: un dato,
+     una fuente (patrón 2). */
+  sincronizarSitios(datos);
   pintarMetricas(datos);
   pintarTablero(todas, datos);
 
@@ -392,6 +400,25 @@ function actualizar() {
 // =============================================================================
 // MÉTRICAS
 // =============================================================================
+
+/* La dirección que dice cada tienda de sí misma, escrita en su fila. No toca
+   nada más: si la tienda no contesta o no tiene `sitio_url`, la fila se queda
+   como está. */
+function sincronizarSitios(datos) {
+  var t = hoja(H_TIENDAS, COL_TIENDAS);
+  var cambios = [];
+  (datos || []).forEach(function (d) {
+    if (!d || !d.ok || !d.tienda || !d.tienda.linea) return;
+    var suyo = String(d.sitio || '').trim().replace(/\/+$/, '');
+    if (!/^https?:\/\//i.test(suyo)) return;
+    var fila = String(d.tienda.sitio || '').trim().replace(/\/+$/, '');
+    if (fila.toLowerCase() === suyo.toLowerCase()) return;
+    t.getRange(d.tienda.linea, 10).setValue(suyo);
+    cambios.push(d.tienda.comercio + ': ' + (fila || '(vacío)') + ' → ' + suyo);
+  });
+  if (cambios.length) registrar('Dirección actualizada desde la tienda — ' + cambios.join(' · '));
+  return cambios;
+}
 
 function pintarMetricas(datos) {
   var h = hoja(H_METRICAS, COL_METRICAS);
@@ -1331,7 +1358,12 @@ function portalHtml(tiendas, metricas, ctx) {
     if (sinTerminar) partes.push('<p class="f a">Sin terminar: ' + escaparPortal(sinTerminar) + '</p>');
     if (errores) partes.push('<p class="f r">' + errores + ' error(es) anotados en su hoja.</p>');
     var enlaces = [];
-    var sitio = /^https?:\/\//i.test(t.sitio) ? t.sitio.replace(/\/+$/, '') : '';
+    /* El del propio maestro manda sobre el de la fila: es el que la tienda
+       está usando de verdad (bitácora 83). */
+    var suyo = String(m['Sitio'] || '').trim();
+    var deLaFila = String(t.sitio || '').trim();
+    var elegido = /^https?:\/\//i.test(suyo) ? suyo : deLaFila;
+    var sitio = /^https?:\/\//i.test(elegido) ? elegido.replace(/\/+$/, '') : '';
     if (sitio) enlaces.push('<a class="b" href="' + escaparPortal(sitio) + '" target="_blank">Ver la tienda</a>');
     if (sitio && t.producto !== 'Tienda Básica') {
       enlaces.push('<a class="b" href="' + escaparPortal(sitio + '/admin.html') +

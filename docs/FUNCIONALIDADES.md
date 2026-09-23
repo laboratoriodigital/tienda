@@ -47,6 +47,10 @@ Cómo leer las marcas:
 - **Vista previa** (`?vista`): la tienda con lo que todavía no se ha publicado,
   sin indexar, sin poder pedir y sin medir.
 - **Responsive real**, probado con baterías de navegador en ancho de celular.
+- **Sin tipografías ni recursos de terceros** (0.20.0): la tienda no pide un
+  solo archivo fuera de su propio dominio para pintarse. El acabado —esquinas
+  suaves, botones en píldora, sombras mínimas, cifras tabulares— no cuesta una
+  petición.
 
 ## 2. El carrito y el pedido · Comprador
 
@@ -124,6 +128,9 @@ Dos pantallas, con usuario y clave propios de esa tienda.
   última publicada de la semilla.
 - **Recuperar la clave** (2.3) con un código al correo de la tienda, sin pasar
   por el operador.
+- **Revisión de tu tienda** (0.20.0): el diagnóstico completo desde el panel,
+  con el resumen por puntos —qué falta para vender, qué está publicado, las
+  fotos, la copia de seguridad, la medición y si se puede volver atrás—.
 - **Límite de intentos** de entrada y sesión de ocho horas.
 
 ## 5. La hoja del comercio · Comercio

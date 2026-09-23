@@ -63,7 +63,13 @@ var HOJA_ID = '';
    74). Las propiedades del script son de TODAS las versiones: A0_instalar,
    que se corre con el ID puesto, lo deja allí, y desde entonces pegar el ID no
    obliga a volver a implementar. */
-if (!HOJA_ID) { try { HOJA_ID = String(PropertiesService.getScriptProperties().getProperty('HOJA_ID') || ''); } catch (e) { } }
+var HOJA_ID_DE_PROPIEDAD = false;
+if (!HOJA_ID) {
+  try { HOJA_ID = String(PropertiesService.getScriptProperties().getProperty('HOJA_ID') || ''); } catch (e) { }
+  /* 0.20.0 · El diagnóstico lo dice: funciona, pero solo desde la 0.17.0, y la
+     versión IMPLEMENTADA puede ser anterior. */
+  HOJA_ID_DE_PROPIEDAD = !!HOJA_ID;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    LAS QUE SE EJECUTAN A MANO, JUNTAS Y EN ORDEN
@@ -1800,7 +1806,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.19.0';
+var VERSION_TIENDA = '0.20.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1874,7 +1880,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-7';
+var VERSION = '2026-09-22-8';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2232,8 +2238,10 @@ function generarConfiguracion() {
   var medicion = idDeAnalitica(c);
   var cspMed = cspDeAnalitica(medicion);
   var csp = "default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co" + cspMed.script + '; ' +
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-            "font-src https://fonts.gstatic.com; " +
+            /* 0.20.0 · Ya no se carga tipografía de fuera (bitácora 84): la
+               página usa la pila del sistema. Un permiso que sobra es una
+               puerta abierta sin nadie detrás. */
+            "style-src 'self' 'unsafe-inline'; " +
             "img-src 'self' data:" + (hosts.length ? ' https://' + hosts.join(' https://') : '') + cspMed.imagen + '; ' +
             /* 'self' hace falta desde que la vitrina lee su propio catalogo.json. Sin
                él la petición se bloquea sin decir por qué: la CSP no lanza un error de
@@ -2468,6 +2476,18 @@ function diagnostico(mostrarSecretos) {
   decir('Implementar > Gestionar implementaciones > lápiz > Versión: Nueva.');
   decir('Hoja: ' + libro.getName());
   decir('URL:  ' + libro.getUrl());
+  /* 0.20.0 · DE DÓNDE SALIÓ LA HOJA. Si la constante llegó vacía y el ID vino
+     de las propiedades, esta versión funciona pero la IMPLEMENTADA puede ser
+     anterior a la 0.17.0 y no saber hacerlo (bitácora 74). Decirlo aquí es lo
+     que evita el «Falta HOJA_ID» de `conectar` con el diagnóstico en verde. */
+  if (HOJA_ID_DE_PROPIEDAD) {
+    marcar('REVISAR');
+    decir('');
+    decir('La constante HOJA_ID está VACÍA: el ID se leyó de las propiedades.');
+    decir('Funciona, pero solo desde la 0.17.0. Si la tienda o `conectar` dicen');
+    decir('«Falta HOJA_ID», publica una versión nueva: Implementar > Gestionar');
+    decir('implementaciones > lápiz > Versión: Nueva versión.');
+  }
 
   // ── 2 ────────────────────────────────────────────────────────────────────
   /* VA AQUÍ ARRIBA A PROPÓSITO. Si la tienda no está terminada, todo lo demás
@@ -2535,6 +2555,39 @@ function diagnostico(mostrarSecretos) {
     decir('el de ahora lleva un token que solo sirve para el menú.');
   } else {
     decir('OK   el stub usa el token del menú, que solo abre el menú.');
+  }
+
+  /* 0.20.0 · ¿QUÉ VERSIÓN DEL STUB ESTÁ PEGADA? No se puede leer el código de
+     la hoja desde aquí, pero el stub dice de qué versión es en cada petición y
+     `atenderMenu` lo anota. Un stub viejo no se queja: ofrece un menú que ya
+     no existe hasta que alguien toca una opción. */
+  var stubHoja = stubVisto();
+  if (!stubHoja) {
+    marcar('REVISAR');
+    decir('');
+    decir('Nadie ha abierto todavía el menú de esta hoja: no sé qué stub tiene.');
+    decir('Ejecuta A1_generarStub, pégalo en la hoja y abre el menú una vez.');
+  } else if (stubHoja !== VERSION) {
+    marcar('REVISAR');
+    decir('');
+    decir('El stub pegado en la hoja es de la versión ' + stubHoja + ' y este');
+    decir('maestro es ' + VERSION + '. Ejecuta A1_generarStub y pega el nuevo:');
+    decir('si esta versión agregó una opción al menú, la hoja todavía no la tiene.');
+  } else {
+    decir('OK   el stub pegado en la hoja es de esta misma versión.');
+  }
+
+  /* 0.20.0 · EL PERMISO DE GITHUB. Sin él, Publicar y Actualizar desde el
+     panel y desde el menú no hacen nada: el maestro no puede disparar el
+     flujo. Lo siembra `conectar` (0.16.0); una tienda anterior no lo tiene. */
+  if (tokenDeGitHub()) {
+    decir('OK   el maestro tiene su permiso de GitHub: Publicar y Actualizar funcionan.');
+  } else {
+    marcar('REVISAR');
+    decir('');
+    decir('Sin PERMISO DE GITHUB: Publicar ahora y Actualizar desde el panel o el');
+    decir('menú no van a disparar nada. Corre `conectar` otra vez (lo siembra solo)');
+    decir('o pega un token en las propiedades del script como GITHUB_TOKEN.');
   }
 
   // ── 3 ────────────────────────────────────────────────────────────────────
@@ -2706,6 +2759,53 @@ function diagnostico(mostrarSecretos) {
     decir('Sin errores registrados.');
   }
 
+  // ── 10 ───────────────────────────────────────────────────────────────────
+  /* 0.20.0 · LO QUE LA 0.19 TRAJO, Y LO QUE HACE FALTA EL DÍA MALO. Dos cosas
+     que no se ven hasta que se necesitan: si la tienda mide, y si de verdad se
+     puede volver atrás. Un respaldo que nadie comprobó es una copia
+     decorativa (bitácora 77). */
+  punto('Medición y vuelta atrás');
+  var cfgDiag = leerConfiguracion();
+  var idMed = idDeAnalitica(cfgDiag);
+  var crudoMed = String(cfgDiag.analytics_id || '').trim();
+  if (idMed) {
+    decir('Medición: Google Analytics 4 encendido (' + idMed + ').');
+    decir('   Se hornea al publicar: si acabas de ponerlo, publica para que tome efecto.');
+    decir('   Recuerda decirlo en la política de privacidad de la tienda.');
+  } else if (crudoMed) {
+    marcar('REVISAR');
+    decir('Medición: «' + crudoMed + '» NO es un identificador de GA4 y no se hornea.');
+    decir('   Tiene que verse así: G-ABCD123456 (Analytics > Administrar >');
+    decir('   Flujos de datos > Web). Un UA- o un GTM- no sirven.');
+  } else {
+    decir('Medición: apagada. La tienda no carga nada de Google ni pone cookies.');
+  }
+
+  decir('');
+  var carpeta = idDeCarpeta(cfgDiag.respaldo_carpeta);
+  if (!carpeta) {
+    marcar('REVISAR');
+    decir('Volver atrás: NO SE PUEDE. Falta respaldo_carpeta en Configuración,');
+    decir('   así que esta hoja no tiene ninguna copia de la que volver.');
+  } else {
+    var copias = [];
+    try { copias = listarRespaldos(); } catch (e) { copias = []; }
+    if (!copias.length) {
+      marcar('REVISAR');
+      decir('Volver atrás: la carpeta está puesta pero todavía no hay ninguna copia.');
+      decir('   Ejecuta A4_respaldoAhora una vez y comprueba que aparece.');
+    } else {
+      decir('Volver atrás: ' + copias.length + ' copia(s) de esta hoja. La más nueva, ' +
+            copias[0].cuando.toISOString().slice(0, 10) + '.');
+      decir('   Los DATOS: A5_respaldos() para verlas, A6_restaurarDatos(«ultimo», «Catálogo»)');
+      decir('   para volver. Solo ' + pestanasRestaurables().join(', ') + '.');
+    }
+    var ur = ultimaRestauracion();
+    if (ur.fecha) decir('   Última restauración: ' + ur.fecha.slice(0, 10) + ' — ' +
+                        (ur.pestanas || []).join(', ') + ' desde ' + ur.desde + '.');
+  }
+  decir('   El SITIO y la VERSIÓN: Actions > restaurar, en el repositorio de esta tienda.');
+
   /* ── El veredicto, arriba del todo ────────────────────────────────────────
      Se calcula al final porque hasta el final no se sabe, pero se LEE primero:
      el resumen va al principio del informe. Un informe que obliga a bajar
@@ -2730,6 +2830,27 @@ function diagnostico(mostrarSecretos) {
 
   return { tipo: 'html', titulo: 'Diagnóstico', texto: texto,
            html: diagnosticoEnHtml(puntos, copiable, servicio, tk) };
+}
+
+/* 0.20.0 · EL MISMO INFORME, DESDE EL PANEL. El comerciante ya no necesita
+   abrir la hoja ni llamarnos para saber qué le falta: lo lee en su panel. Va
+   sin secretos —`diagnostico(false)`— y devuelve además el resumen por puntos,
+   que es lo que el panel pinta arriba para que se vea de un vistazo. */
+function atenderDiagnostico() {
+  var d = diagnostico(false);
+  return { ok: true, texto: String(d.texto || ''), resumen: resumenDelDiagnostico(d.texto) };
+}
+
+/* El resumen que ya calcula el informe, en datos: el panel no debería tener
+   que leer texto para pintar tres colores. */
+function resumenDelDiagnostico(texto) {
+  var puntos = [];
+  String(texto || '').split('\n').some(function (l) {
+    var m = l.match(/^\s{2}(OK|REVISAR|PROBLEMA)\s+(\d+)\.\s+(.+)$/);
+    if (m) puntos.push({ estado: m[1], n: Number(m[2]), titulo: m[3].trim() });
+    return /^\s*→/.test(l) && puntos.length > 0;
+  });
+  return puntos;
 }
 
 /* El diagnóstico CON los secretos, para el que monta la tienda. Se ejecuta
@@ -3273,7 +3394,13 @@ var PUERTAS = {
   actualizar:            { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderActualizar },
   /* 0.16.0 · 3.4 · el permiso de GitHub lo siembra `conectar` (repositorio de
      servicio), con el token de montaje y solo por POST: viaja en el cuerpo. */
-  permiso:               { guarda: 'montaje', soloPost: true, fn: atenderPermiso }
+  permiso:               { guarda: 'montaje', soloPost: true, fn: atenderPermiso },
+  /* 0.20.0 · El diagnóstico desde el panel. Solo el dueño y solo por POST: el
+     informe dice qué le falta a la tienda, qué versión corre y qué está
+     mostrando —y el colaborador no administra el montaje—. Nunca lleva el
+     token de montaje: eso solo lo imprime `A2_diagnosticoCompleto` en el
+     editor, que no se puede llamar desde fuera. */
+  diagnostico:           { guarda: 'panel', soloPost: true, soloDueno: true, fn: atenderDiagnostico }
 };
 
 /* Cuánto puede pesar lo que se le manda al panel. El registro de pedidos
@@ -4449,6 +4576,20 @@ function tableroParaElPanel() {
 function estadoDelStub() {
   try { return PropertiesService.getScriptProperties()
                  .getProperty('STUB_VISTO') || ''; } catch (e) { return ''; }
+}
+
+/* 0.20.0 · QUÉ VERSIÓN DEL STUB ESTÁ PEGADA EN LA HOJA, medido y no supuesto:
+   lo anota `atenderMenu` en cada petición. Vacío = nadie ha abierto el menú. */
+function stubVisto() {
+  try { return String(PropertiesService.getScriptProperties().getProperty('STUB_VISTO') || '').trim(); }
+  catch (e) { return ''; }
+}
+
+/* 0.20.0 · ¿Tiene el maestro su permiso de GitHub? Sin él, Publicar y
+   Actualizar desde el panel o el menú no disparan nada. */
+function tokenDeGitHub() {
+  try { return !!String(PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN') || '').trim(); }
+  catch (e) { return false; }
 }
 
 function marcaDelTokenViejo() {

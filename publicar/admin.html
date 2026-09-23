@@ -222,6 +222,17 @@ label{font-size:.8rem;font-weight:550;color:#3F3F46;margin:16px 0 6px}
 .aviso.bien{background:#ECFDF3;border-color:#ABEFC6}
 .aviso.info{background:#FFFAEB;border-color:#FEDF89}
 
+/* 0.20.0 · La revisión: el resumen por puntos y el informe completo. El <pre>
+   se desplaza solo en horizontal si hace falta; en el celular, el informe es
+   largo a propósito y se lee con el dedo. */
+.estado.e-ok{background:#ECFDF3;color:#067647}
+.estado.e-revisar{background:#FFFAEB;color:#93370D}
+.estado.e-problema{background:#FEF3F2;color:#B42318}
+#resumenRevision{margin-top:12px}
+#resumenRevision .dato{margin:4px 0;font-size:.86rem}
+.revision{margin-top:12px;max-height:360px;overflow:auto;background:#FAFAFA;border:1px solid #E4E4E7;
+  border-radius:10px;padding:12px;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+
 #entrar{max-width:400px;margin:14vh auto 0}
 #entrar h2{font-size:1.35rem;font-weight:650}
 #entrar .btn{height:44px}
@@ -609,6 +620,23 @@ input[type=checkbox]{accent-color:var(--negro)}
           <button class="btn" type="button" id="actualizarTienda" hidden>Actualizar ahora</button>
         </div>
         <p class="aviso" id="avisoVersion" role="status" hidden></p>
+      </details>
+
+      <!-- 0.20.0 · EL DIAGNÓSTICO, AQUÍ. Estaba solo en el menú de la hoja, y
+           el comerciante que trabaja en el panel no abre la hoja: llamaba para
+           preguntar por qué su tienda «se veía rara». Es el MISMO informe, sin
+           secretos, y se pide solo cuando se toca el botón: mirar no puede
+           costar una ejecución de Apps Script en cada visita. -->
+      <details class="seccion tarjeta" id="seccionRevision">
+        <summary>Revisión de tu tienda</summary>
+        <p class="ayuda">Mira todo de una vez: si falta algo para vender, qué está publicado,
+          las fotos, la copia de seguridad y la medición. Tarda unos segundos.</p>
+        <div class="pie-form">
+          <button class="btn" type="button" id="revisarTienda">Revisar ahora</button>
+        </div>
+        <div id="resumenRevision" hidden></div>
+        <pre class="revision" id="detalleRevision" hidden></pre>
+        <p class="aviso" id="avisoRevision" role="status" hidden></p>
       </details>
 
       <details class="seccion tarjeta" id="seccionEnvios">
@@ -1647,6 +1675,31 @@ async function actualizarTienda(){
   } finally { b.disabled = false; }
 }
 $("#actualizarTienda").addEventListener("click", actualizarTienda);
+
+/* ── La revisión (0.20.0) ────────────────────────────────────────────────
+   El mismo diagnóstico de la hoja, pedido a demanda. Se pinta el resumen por
+   puntos —tres estados, tres colores— y debajo el informe entero, que es lo
+   que el comerciante nos reenvía cuando algo no cuadra. */
+async function revisarTienda(){
+  const b = $("#revisarTienda");
+  b.disabled = true; b.textContent = "Revisando…";
+  try{
+    const r = await llamar("diagnostico");
+    if(!r.ok){ aviso("#avisoRevision", "mal", r.error || "No se pudo revisar."); return; }
+    const caja = $("#resumenRevision");
+    caja.innerHTML = (r.resumen || []).map(p =>
+      `<p class="dato"><b class="estado e-${p.estado.toLowerCase()}">${p.estado}</b> ${escapar(p.titulo)}</p>`
+    ).join("");
+    caja.hidden = false;
+    $("#detalleRevision").textContent = r.texto || "";
+    $("#detalleRevision").hidden = false;
+    const malos = (r.resumen || []).filter(p => p.estado !== "OK").length;
+    aviso("#avisoRevision", malos ? "info" : "bien",
+      malos ? malos + " punto(s) para revisar: el detalle está abajo." : "Todo en orden.");
+  }catch(e){ if(e.message !== "sesion") aviso("#avisoRevision", "mal", "No se pudo revisar."); }
+  finally{ b.disabled = false; b.textContent = "Revisar otra vez"; }
+}
+$("#revisarTienda").addEventListener("click", revisarTienda);
 $("#quitarColaborador").addEventListener("click", () => cambiarColaborador("quitar"));
 
 function campoDe(c){

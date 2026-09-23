@@ -254,6 +254,101 @@ cambia), y vuelve a correr `conectar`.
 
 ---
 
+## K · Los tres flujos que mueven una tienda, opción por opción
+
+### `montaje` (en el repositorio de la tienda) — el que publica
+
+| Entrada | Valores | Qué hace |
+|---|---|---|
+| `que` | `todo` · `solo-la-hoja` · `solo-las-fotos` | Qué se trae antes de hornear. `todo` es lo normal: la hoja y las fotos |
+| `maestro` | casilla | Publica también `maestro.gs` en Apps Script. **Pide `CLASPRC`, `SCRIPT_ID` y `HOJA_ID`** |
+| `confirmar` | texto | Hay que escribir `PUBLICAR` para que la casilla anterior valga. Sin eso, el paso se salta y lo dice |
+| `aprobacion` | `automatica` · `con-pull-request` | Dónde cae el resultado: directo a `main`, o a un pull request para revisarlo |
+| `sin_guardia` | casilla | Se salta el guardia del presupuesto de tiempo. Para una corrida excepcional, no para todos los días |
+| `semilla` | casilla | **Actualiza la tienda**: trae la versión de la semilla antes de hornear |
+| `version` | `vX.Y.Z` | Con `semilla`, qué versión traer. Vacío = la última publicada. **Una versión anterior también vale**: es como se vuelve atrás |
+
+Sin marcar nada, `montaje` hornea lo que diga la hoja y publica. Con `semilla`
+marcado, además actualiza el código; si algo falla en las baterías, no publica
+nada y el maestro vuelve a su versión anterior.
+
+### `restaurar` (en el repositorio de la tienda) — el que vuelve atrás
+
+| Entrada | Valores | Qué hace |
+|---|---|---|
+| `que` | `el-sitio` | Devuelve `publicar/` a un commit anterior y lo publica **como un commit nuevo encima**. Cloudflare republica solo |
+| | `la-version` | Le pide a `montaje` que traiga una versión anterior de la semilla (código y maestro) |
+| `hasta` | vacío | `el-sitio`: el commit anterior que tocó `publicar/`. `la-version`: la etiqueta anterior a la de esta tienda |
+| | `a1b2c3d` | Ese commit en concreto (tiene que haber tocado `publicar/`) |
+| | `v0.18.1` | Esa versión de la semilla |
+| `confirmar` | `RESTAURAR` | Obligatorio. Sin esa palabra exacta no se toca nada |
+
+Los **datos** de la hoja no se restauran desde aquí: eso es `A5_respaldos()` y
+`A6_restaurarDatos()` en el editor del maestro.
+
+### `flota` (en `laboratoriodigital/tiendas`) — el que mueve a todas
+
+| Entrada | Valores | Qué hace |
+|---|---|---|
+| `accion` | `estado` | Pregunta a cada tienda su versión, escribe `ESTADO.md` y el panel, y —si hay token de Cloudflare— lo publica. No toca ninguna tienda |
+| | `actualizar` | Pone al día las tiendas de una línea, por anillos |
+| `linea` | `tienda` · `organico` | Qué producto se actualiza. Una corrida, una línea |
+| `anillo` | `0` · `1` · `2` | Hasta dónde llega: 0 solo las de prueba, 1 las primeras tiendas, 2 todas. Va en orden y **se detiene si una falla** |
+| `version` | `vX.Y.Z` | Qué versión llevar. Vacío = la última publicada con `release` |
+| `ensayo` | casilla, **marcada de fábrica** | Dice qué haría y no toca nada. Desmarcarla es lo que hace que ocurra de verdad |
+| `tienda` | `dueño/repositorio` | Solo esa tienda, ignorando el anillo |
+| `sin_base` | `dejar` · `sobrescribir` | Qué hacer con los archivos distintos cuando no se sabe de qué versión salió la tienda. `dejar` de fábrica |
+
+### Ejemplo completo: actualizar `prueba1` a la última versión de la semilla
+
+Hay tres caminos y sirven para lo mismo; se elige por dónde estés parado.
+
+**1. Desde la flota, una sola tienda (lo que haría el operador).**
+
+1. Corta la versión en la semilla si no existe: `tienda` › Actions › `release`
+   › Run workflow (lee la versión de `package.json`; crea la etiqueta `v0.20.0`).
+2. `tiendas` › Actions › `flota` › Run workflow:
+   - `accion`: **actualizar**
+   - `linea`: **tienda**
+   - `anillo`: **2**
+   - `version`: vacío (la última publicada)
+   - `ensayo`: **marcada** la primera vez
+   - `tienda`: `laboratoriodigital/prueba1`
+3. Lee el resumen del ensayo: dice qué dispararía y con qué versión.
+4. Repite con `ensayo` **desmarcada**. La flota dispara el `montaje` de
+   `prueba1` con `semilla: true` y **espera a que termine**.
+
+**2. Desde la propia tienda (lo que hace el comercio).**
+
+`prueba1` › Actions › `montaje` › Run workflow, marcando **`semilla`** y
+dejando `version` vacío. O, sin salir del navegador del comercio: panel ›
+Tienda › *Versión de tu tienda* › **Actualizar ahora**; o el menú de la hoja ›
+*Actualizar a la última versión*. Las tres cosas disparan exactamente el mismo
+flujo.
+
+**Qué pasa por dentro, en los dos casos** (~10-20 minutos):
+
+1. `actualizar-semilla.mjs` clona la semilla, se planta en la etiqueta pedida y
+   escribe en la tienda solo los archivos que `semilla.json` declara suyos.
+2. Si vino un `maestro.gs` nuevo, el flujo lo publica en Apps Script con
+   `CLASPRC` y **espera a que la tienda conteste esa versión**.
+3. Se rehornea todo desde la hoja: `<head>`, catálogo, respaldo, SEO, fotos.
+4. Se corre la suite **completa** sobre los archivos ya modificados.
+5. Si todo está verde, un solo commit a `main` y Cloudflare publica.
+6. Si algo falló, **no se publica nada** y el maestro vuelve a su versión
+   anterior.
+
+**Comprobar después:**
+
+- [ ] `prueba1` › Actions: el montaje en verde.
+- [ ] El portal (hoja de administración › Panel › Abrir el portal): la columna
+      Versión de `prueba1` dice la nueva.
+- [ ] El panel de la tienda › *Revisión de tu tienda*: todo en orden.
+- [ ] Si algo quedó mal: `prueba1` › Actions › `restaurar` › `la-version`,
+      `hasta` vacío, `confirmar` = `RESTAURAR`.
+
+---
+
 ## J · Tareas recurrentes del operador
 
 | Cada | Qué | Cómo |

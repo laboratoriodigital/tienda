@@ -40,6 +40,46 @@ const valor = (g, c) => String((g.filas('Configuración').find(f => String(f[0])
 const cfgDe = (g, k, c) => post(g, { a: 'configuracion', k }).claves.find(x => x.clave === c);
 
 (async () => {
+  /* ═══ 0. LA REVISIÓN DESDE EL PANEL (0.20.0 · bitácora 85) ═══
+     El mismo diagnóstico de la hoja, para el comerciante que nunca abre la
+     hoja. Lo que se vigila: que sea del DUEÑO, que no se escape el token de
+     montaje —el informe se reenvía por WhatsApp— y que el resumen venga en
+     datos y no obligue al panel a leer texto. */
+  {
+    const { g, k } = conSesion();
+    const decir = console.log; console.log = () => {};
+    const r = post(g, { a: 'diagnostico', k });
+    console.log = decir;
+    ok('LA REVISIÓN se pide desde el panel y trae el informe entero',
+       r.ok && /RESUMEN/.test(r.texto) && r.texto.length > 400, String(r.texto || '').slice(0, 40));
+    ok('  ...con el resumen en datos: estado, número y título por punto',
+       Array.isArray(r.resumen) && r.resumen.length >= 8 &&
+       r.resumen.every(x => /^(OK|REVISAR|PROBLEMA)$/.test(x.estado) && x.n > 0 && x.titulo),
+       JSON.stringify((r.resumen || [])[0]));
+    ok('  ...y SIN el token de montaje, que el informe se reenvía por WhatsApp',
+       r.texto.indexOf(g.api.token()) === -1);
+    ok('  ...mira lo que las últimas versiones enseñaron: stub, permiso, medición y respaldo',
+       /stub/i.test(r.texto) && /PERMISO DE GITHUB|permiso de GitHub/.test(r.texto) &&
+       /Medición/.test(r.texto) && /Volver atrás/.test(r.texto));
+
+    /* El colaborador administra la tienda; el montaje y sus secretos, no. */
+    console.log = () => {};
+    g.api.propiedades().setProperty('PANEL_COLABORADOR',
+      JSON.stringify({ u: 'ayudante', clave: 'x$y' }));
+    const sinSesion = post(g, { a: 'diagnostico' });
+    console.log = decir;
+    ok('  ...y sin sesión no contesta nada',
+       !sinSesion.ok && /[Ss]esión/.test(String(sinSesion.error)), String(sinSesion.error));
+    const puerta = g.api.PUERTAS.diagnostico;
+    ok('  ...la puerta es del panel, solo del dueño y solo por POST',
+       puerta && puerta.guarda === 'panel' && puerta.soloDueno === true && puerta.soloPost === true);
+
+    const admin = require('fs').readFileSync('../plantilla/admin.html', 'utf8');
+    ok('  ...y el panel la ofrece: «Revisión de tu tienda», a demanda',
+       /id="revisarTienda"/.test(admin) && /llamar\("diagnostico"\)/.test(admin) &&
+       /Revisión de tu tienda/.test(admin));
+  }
+
   // ═══ 1. Lo sensible pide la clave ═══
   {
     const { g, k, clave } = conSesion();
