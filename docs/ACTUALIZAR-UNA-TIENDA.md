@@ -21,6 +21,16 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
 
 ---
 
+## La 0.18.1 (panel de tiendas): los enlaces del portal
+
+1. Pega el `panel.gs` nuevo en la hoja de administración y ejecuta `instalar`.
+   Los botones del portal ya no dependen de cómo esté escrita la columna
+   *Repositorio* (bitácora 79).
+2. Si tu repositorio de flota no se llama `tiendas`, ponlo en las propiedades
+   del script del panel: `REPO_FLOTA = dueño/nombre`.
+
+---
+
 ## La 0.18.0 (tienda): volver atrás, el portal — y REPEGAR EL STUB
 
 1. Actualizar como siempre (Panel › *Versión de tu tienda*, el menú, o `release`

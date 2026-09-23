@@ -1786,7 +1786,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.18.0';
+var VERSION_TIENDA = '0.18.1';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {

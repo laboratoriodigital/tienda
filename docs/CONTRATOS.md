@@ -702,6 +702,12 @@ variante`; deja antes una copia y anota en el `Registro`. El flujo
 (opcional) y `confirmar` = `RESTAURAR`; lo que decide vive en
 `montar/volver-atras.mjs`.
 
+**La columna Repositorio del panel** (0.18.1) se normaliza al leerla: se
+aceptan `dueño/nombre`, `https://github.com/dueño/nombre`, con `.git` o con
+barras finales; lo que no encaje se conserva como texto pero no genera enlaces.
+El repositorio de la flota sale del primer repositorio válido (`<dueño>/tiendas`)
+o de la propiedad `REPO_FLOTA` del panel.
+
 **`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
 `propios` (rutas; las que acaban en `/` son carpetas). Lo leen
 `montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las

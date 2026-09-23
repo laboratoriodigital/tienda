@@ -1359,7 +1359,7 @@ const configurar = (g, clave, valor) => {
   {
     const mapa = fs.readFileSync('../docs/DESPLIEGUE.md', 'utf8');
     ok('  ...y el mapa de despliegue manda a alta y conectar',
-       /El camino corto/.test(mapa) && /actions\/workflows\/conectar\.yml/.test(mapa) &&
+       /El camino normal/.test(mapa) && /actions\/workflows\/conectar\.yml/.test(mapa) &&
        !/servicio\/tienda-nueva\.yml/.test(mapa));
   }
 

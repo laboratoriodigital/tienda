@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-var VERSION_PANEL = '2026-09-22-b';
+var VERSION_PANEL = '2026-09-22-c';
 
 var H_TIENDAS  = 'Tiendas';
 var H_METRICAS = 'Métricas';
@@ -358,7 +358,7 @@ function leerTiendas() {
       servicio:  String(f[10] || '').trim().replace(/\?.*$/, ''),
       token:     String(f[11] || '').trim(),
       cuenta:    String(f[12] || '').trim(),
-      repo:      String(f[13] || '').trim(),
+      repo:      repoNormalizado(f[13]) || String(f[13] || '').trim(),
       notas:     String(f[14] || '').trim(),
       producto:  String(f[15] || '').trim()
     };
@@ -1205,18 +1205,43 @@ function filas(nombre) {
 
 function abrirPortal() {
   var html = HtmlService.createHtmlOutput(
-      portalHtml(leerTiendas(), filas(H_METRICAS), { dueno: duenoDeLaFlota() }))
+      portalHtml(leerTiendas(), filas(H_METRICAS), { flota: repoDeLaFlota() }))
     .setWidth(1040).setHeight(720);
   try { SpreadsheetApp.getUi().showModalDialog(html, 'Portal de tiendas'); }
   catch (e) { console.log('El portal se abre desde la hoja: menú Panel › Abrir el portal.'); }
   return true;
 }
 
-/* De quién son los repositorios. Sale de las tiendas que ya están anotadas, no
-   de una constante: la flota de otro operador tiene otro dueño. */
-function duenoDeLaFlota() {
-  var t = leerTiendas().filter(function (x) { return x.repo.indexOf('/') > 0; })[0];
-  return t ? t.repo.split('/')[0] : 'laboratoriodigital';
+/* EL REPOSITORIO, COMO LO ESCRIBA QUIEN LO ESCRIBA. En la columna Repositorio
+   cabe lo que uno pega del navegador —`https://github.com/dueño/tienda`—, con
+   `.git` al final o con una barra de más. `conectar` escribe la forma corta,
+   pero una fila puesta a mano no tiene por qué. Y de ahí salían las
+   direcciones del portal: `github.com/https:/tiendas/actions/…`, que es
+   exactamente el enlace roto que se vio (bitácora 79). Se normaliza al leer,
+   una sola vez, y lo que no sea `dueño/nombre` no es un repositorio. */
+function repoNormalizado(v) {
+  var t = String(v === undefined || v === null ? '' : v).trim()
+    .replace(/^https?:\/\/(www\.)?github\.com\//i, '')
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\.git$/i, '');
+  return /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(t) ? t : '';
+}
+
+/* EL REPOSITORIO DE LA FLOTA, que es donde viven `alta`, `conectar` y `flota`.
+   Sale de las tiendas ya anotadas —la flota de otro operador tiene otro
+   dueño—, saltándose la fila de ejemplo, y se puede fijar a mano en las
+   propiedades del script (`REPO_FLOTA`) cuando no se llame `tiendas`. */
+function repoDeLaFlota() {
+  var puesto = '';
+  try { puesto = repoNormalizado(
+    PropertiesService.getScriptProperties().getProperty('REPO_FLOTA')); } catch (e) { }
+  if (puesto) return puesto;
+  var dueno = '';
+  leerTiendas().forEach(function (t) {
+    if (dueno || !t.repo || t.repo.indexOf('[') !== -1) return;
+    dueno = t.repo.split('/')[0];
+  });
+  return (dueno || 'laboratoriodigital') + '/tiendas';
 }
 
 function escaparPortal(t) {
@@ -1237,9 +1262,14 @@ function metricaDe(metricas, comercio) {
 }
 
 function portalHtml(tiendas, metricas, ctx) {
-  var dueno = (ctx && ctx.dueno) || 'laboratoriodigital';
-  var acciones = 'https://github.com/' + dueno + '/tiendas/actions/workflows/';
-  var vivas = (tiendas || []).filter(function (t) { return t.estado !== 'Cancelada'; });
+  var flota = repoNormalizado((ctx && (ctx.flota || (ctx.dueno && ctx.dueno + '/tiendas'))) || '') ||
+              'laboratoriodigital/tiendas';
+  var acciones = 'https://github.com/' + flota + '/actions/workflows/';
+  /* Ni las canceladas ni la fila de ejemplo que deja `instalar`: sus enlaces
+     llevarían a `github.com/laboratoriodigital/[repositorio]`. */
+  var vivas = (tiendas || []).filter(function (t) {
+    return t.estado !== 'Cancelada' && t.comercio.charAt(0) !== '[';
+  });
   var ingreso = vivas.filter(function (t) { return t.estado === 'Activa'; })
                      .reduce(function (a, t) { return a + (t.precio || 0); }, 0);
 
@@ -1271,7 +1301,7 @@ function portalHtml(tiendas, metricas, ctx) {
     '<a class="b" href="' + acciones + 'alta.yml" target="_blank">Dar de alta una tienda</a>' +
     '<a class="b" href="' + acciones + 'conectar.yml" target="_blank">Conectar una tienda con su hoja</a>' +
     '<a class="b" href="' + acciones + 'flota.yml" target="_blank">Actualizar la flota</a>' +
-    '<a class="b" href="https://github.com/' + dueno + '/tiendas" target="_blank">El repositorio de la flota</a>' +
+    '<a class="b" href="https://github.com/' + flota + '" target="_blank">' + escaparPortal(flota) + '</a>' +
     '</p>');
 
   if (!vivas.length) {
@@ -1301,17 +1331,22 @@ function portalHtml(tiendas, metricas, ctx) {
     if (sinTerminar) partes.push('<p class="f a">Sin terminar: ' + escaparPortal(sinTerminar) + '</p>');
     if (errores) partes.push('<p class="f r">' + errores + ' error(es) anotados en su hoja.</p>');
     var enlaces = [];
-    if (t.sitio) enlaces.push('<a class="b" href="' + escaparPortal(t.sitio) + '" target="_blank">Ver la tienda</a>');
-    if (t.sitio && t.producto !== 'Tienda Básica') {
-      enlaces.push('<a class="b" href="' + escaparPortal(t.sitio.replace(/\/+$/, '') + '/admin.html') +
+    var sitio = /^https?:\/\//i.test(t.sitio) ? t.sitio.replace(/\/+$/, '') : '';
+    if (sitio) enlaces.push('<a class="b" href="' + escaparPortal(sitio) + '" target="_blank">Ver la tienda</a>');
+    if (sitio && t.producto !== 'Tienda Básica') {
+      enlaces.push('<a class="b" href="' + escaparPortal(sitio + '/admin.html') +
                    '" target="_blank">Su panel</a>');
     }
-    if (t.repo) {
-      enlaces.push('<a class="b" href="https://github.com/' + escaparPortal(t.repo) + '" target="_blank">Repositorio</a>');
-      enlaces.push('<a class="b" href="https://github.com/' + escaparPortal(t.repo) +
+    var repo = repoNormalizado(t.repo);
+    if (repo) {
+      enlaces.push('<a class="b" href="https://github.com/' + repo + '" target="_blank">Repositorio</a>');
+      enlaces.push('<a class="b" href="https://github.com/' + repo +
                    '/actions/workflows/montaje.yml" target="_blank">Publicar / actualizar</a>');
-      enlaces.push('<a class="b" href="https://github.com/' + escaparPortal(t.repo) +
+      enlaces.push('<a class="b" href="https://github.com/' + repo +
                    '/actions/workflows/restaurar.yml" target="_blank">Volver atrás</a>');
+    } else if (t.repo) {
+      enlaces.push('<span class="b" style="color:' + AMBAR + '">Repositorio mal escrito: ' +
+                   escaparPortal(t.repo) + '</span>');
     }
     partes.push('<p style="margin:8px 0 0">' + enlaces.join('') + '</p>');
     if (t.notas) partes.push('<p class="f">' + escaparPortal(t.notas) + '</p>');

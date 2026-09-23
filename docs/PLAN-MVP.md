@@ -1417,6 +1417,17 @@ agotado.
 - [x] Menú de la hoja › Abrir el portal: cada tienda con sus cifras y sus enlaces.
 - [x] Abrirlo no consulta a ninguna tienda.
 
+### 0.18.1 · Los enlaces del portal y la documentación al día
+
+**C-3 · Los botones del portal**  · 1 pt · ✅ (bitácora 79)
+- [x] El repositorio se normaliza al leer la hoja; lo que no es `dueño/nombre`
+      no genera enlace. `REPO_FLOTA` para una flota con otro nombre.
+
+**D-13 · El mapa de despliegue y el roadmap, al día**  · 1 pt · ✅ (bitácora 80)
+- [x] `DESPLIEGUE.md` abre con el camino normal (`alta` → Google → `conectar` →
+      stub → Cloudflare) y marca con ⚙ lo que hace un flujo.
+- [x] Roadmap: 3.3 y 5.1 hechos, 3.12 sin número repetido, fase 3 en orden.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

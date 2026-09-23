@@ -1995,3 +1995,31 @@ porque quien puede abrir la hoja ya es quien puede ver esto. Y abrirlo no
 consulta a ninguna tienda: pinta lo de la última actualización, que es lo que
 evita que mirar cueste ejecuciones de Apps Script. **Lo prueban** 7 aserciones
 de `paneltiendas.js`.
+
+**79 · Los botones del portal llevaban a ninguna parte.** El portal saca el
+dueño de la flota de la columna *Repositorio* de la pestaña Tiendas, y ahí cabe
+lo que uno pega del navegador: `https://github.com/dueño/tienda`. Partido por
+la barra, el «dueño» era `https:` y los botones apuntaban a
+`github.com/https:/tiendas/actions/…`. `conectar` escribe la forma corta, así
+que esto solo se ve en las filas puestas a mano — que son justo las primeras.
+Se arregla donde se lee, no donde se usa: `leerTiendas` normaliza el
+repositorio (quita el `https://github.com/`, el `.git`, las barras de más) y lo
+que no tenga forma de `dueño/nombre` deja de ser un repositorio: el portal lo
+dice en ámbar en vez de fabricar un enlace roto. La fila de ejemplo que deja
+`instalar` tampoco sale ya en el portal, porque su repositorio es
+`laboratoriodigital/[repositorio]`. Y si la flota no se llama `tiendas`, se
+fija en las propiedades del panel (`REPO_FLOTA`). **Lo prueban** 5 aserciones
+de `paneltiendas.js`.
+
+**80 · La documentación que se quedó en el camino viejo.** El mapa de
+despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
+a punta en una tienda de verdad» —ya había montado dos— y presentaba los
+dieciséis pasos manuales como el procedimiento de referencia; el roadmap tenía
+en PENSADO o SIGUIENTE cosas hechas hacía dos versiones (3.3, 5.1), un número
+3.10 repetido y los puntos de la fase 3 en desorden. Es el patrón 2 otra vez,
+en documentación: la que no se actualiza en el mismo movimiento que el código
+no miente enseguida, miente después. Ahora `DESPLIEGUE.md` abre con el camino
+normal —qué hace `alta`, qué es de Google, qué hace `conectar`, y qué queda
+corriendo solo después—, los pasos numerados están marcados con ⚙ cuando los
+hace un flujo, y el roadmap dice al principio de la fase 3 qué está hecho y qué
+sigue, en orden.

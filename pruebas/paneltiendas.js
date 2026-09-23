@@ -67,7 +67,7 @@ const tiendasPortal = [
   { comercio: 'La que se fue', estado: 'Cancelada', producto: '', precio: 99, sitio: '', repo: '', notas: '' }
 ];
 const metricasPortal = [['Café La Esquina', 'En línea', '0.18.0']];
-const html = g.api.portalHtml(tiendasPortal, metricasPortal, { dueno: 'lab' });
+const html = g.api.portalHtml(tiendasPortal, metricasPortal, { flota: 'lab/tiendas' });
 
 ok('  ...con cada tienda viva, y sin las canceladas',
    /Café La Esquina/.test(html) && /Cinnamon/.test(html) && !/La que se fue/.test(html));
@@ -82,6 +82,40 @@ ok('  ...y ABRIRLO NO CONSULTA a ninguna tienda: pinta lo de la última actualiz
    g.peticiones.length === peticionesAntes);
 ok('  ...y dice dónde se restauran los datos, que no es aquí',
    /A6_restaurarDatos/.test(html));
+
+/* ═══ LAS DIRECCIONES DEL PORTAL (0.18.1 · bitácora 79) ═══
+   Los botones llevaban a `github.com/https:/tiendas/…`: la columna Repositorio
+   admite lo que uno pega del navegador, y de ahí salía el dueño de la flota. */
+ok('EL REPOSITORIO se entiende como se escriba: URL, .git o con barras de más',
+   g.api.repoNormalizado('https://github.com/lab/cafe') === 'lab/cafe' &&
+   g.api.repoNormalizado('https://github.com/lab/cafe.git/') === 'lab/cafe' &&
+   g.api.repoNormalizado('lab/cafe') === 'lab/cafe' &&
+   g.api.repoNormalizado('no es un repositorio') === '' &&
+   g.api.repoNormalizado('') === '',
+   g.api.repoNormalizado('https://github.com/lab/cafe.git/'));
+
+{
+  const hojaT = g.hojas.get('Tiendas');
+  const linea2 = filas().length + 1;
+  hojaT.getRange(linea2, 1).setValue('Activa');
+  hojaT.getRange(linea2, 2).setValue('Pegado del navegador');
+  hojaT.getRange(linea2, 14).setValue('https://github.com/otro-dueno/tienda-x.git');
+  const leida = g.api.leerTiendas().filter(x => x.comercio === 'Pegado del navegador')[0];
+  ok('  ...y se normaliza al leer la hoja, no en cada sitio que lo usa',
+     leida.repo === 'otro-dueno/tienda-x', leida.repo);
+  const h2 = g.api.portalHtml(g.api.leerTiendas(), [], {});
+  ok('  ...así que los botones del portal apuntan a un repositorio de verdad',
+     /github\.com\/laboratoriodigital\/tiendas\/actions\/workflows\/alta\.yml/.test(h2) &&
+     !/github\.com\/https/.test(h2),
+     (h2.match(/https:\/\/github\.com\/[^"]*alta\.yml/) || [])[0]);
+  ok('  ...y la fila de ejemplo de instalar no sale en el portal',
+     !/\[Nombre del comercio\]/.test(h2) && !/\[repositorio\]/.test(h2));
+  g.props.REPO_FLOTA = 'otro-dueno/mi-flota';
+  const h3 = g.api.portalHtml(g.api.leerTiendas(), [], { flota: g.api.repoDeLaFlota() });
+  ok('  ...y si la flota no se llama «tiendas», se fija en las propiedades (REPO_FLOTA)',
+     /otro-dueno\/mi-flota\/actions\/workflows\/conectar\.yml/.test(h3));
+  delete g.props.REPO_FLOTA;
+}
 
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
