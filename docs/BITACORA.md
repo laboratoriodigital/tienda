@@ -2011,6 +2011,38 @@ dice en ámbar en vez de fabricar un enlace roto. La fila de ejemplo que deja
 fija en las propiedades del panel (`REPO_FLOTA`). **Lo prueban** 5 aserciones
 de `paneltiendas.js`.
 
+**81 · Medir sin quedar atados (decisión 23).** Faltaba lo obvio: nadie sabía
+cuánta gente entra a una tienda. Se pedía «lo más sencillo posible», y lo más
+sencillo es también lo que menos compromete: una clave en la hoja
+—`analytics_id`— y el fragmento oficial de GA4 horneado en el `<head>`. Vacío
+es el valor de fábrica y significa exactamente nada: sin script, sin cookies,
+sin conexiones, y la política de seguridad de esa tienda ni nombra a Google.
+Lo que costó pensar fue la otra mitad del encargo —no cerrarle la puerta al
+medidor propio—: la página no llama a `gtag` por ahí suelto, llama a
+`medir(evento, datos)`, que hoy se lo pasa a Google, no revienta nunca y no
+mide la vista previa. Los tres puntos de medida ya están puestos (agregar al
+carrito, enviar pedido, pagar en línea), así que el medidor propio será una
+línea dentro de esa función y no una vuelta por todas las pantallas. Y la
+trampa que casi se cuela: `_headers` es igual en todas las tiendas y se aplica
+a la vez que el `<meta>`, mandando la más restrictiva — si no nombrara a
+Google, la tienda que sí mide mediría cero sin un solo error visible, que es
+exactamente lo que ya pasó una vez con `connect-src` y el catálogo. **Lo
+prueba** `medicion.js` (14).
+
+**82 · Tres documentos que faltaban, y el guardia que los mantiene vivos.** El
+dueño pidió tres cosas: un runbook para el técnico que despliega, la lista
+completa de lo que hace el producto, y la radiografía de la arquitectura «sin
+suponer nada, con los secretos, dónde se crean y cómo se renuevan». Escribirlos
+es media tarde; que sigan siendo ciertos dentro de tres versiones es el
+problema de verdad —es el patrón 2 aplicado a la documentación, y ya nos costó
+cuatro documentos borrados en la 3.0.0—. Así que los tres nacen con guardia:
+cada `secrets.X` de cualquier flujo y cada propiedad que el maestro o el panel
+tocan **tienen que estar nombradas** en `ARQUITECTURA.md`; el runbook solo
+puede mandar ejecutar funciones que existen y nombrar flujos que existen; y la
+lista de funcionalidades no puede dejarse fuera una opción del menú. Los tres
+guardias se verificaron en rojo antes de darlos por buenos. **Lo prueban** 9
+aserciones de `montaje.js`.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

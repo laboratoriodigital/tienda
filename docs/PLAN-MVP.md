@@ -1428,6 +1428,21 @@ agotado.
       stub → Cloudflare) y marca con ⚙ lo que hace un flujo.
 - [x] Roadmap: 3.3 y 5.1 hechos, 3.12 sin número repetido, fase 3 en orden.
 
+### 0.19.0 · Medición, y la documentación que faltaba
+
+**M-1 · Google Analytics, opcional y horneado**  · 1 pt · ✅ (decisión 23, bitácora 81)
+- [x] `analytics_id` en la hoja; vacío = la tienda no carga nada de Google.
+- [x] La CSP de esa tienda crece solo cuando mide; `_headers` los nombra siempre.
+- [x] Una sola costura, `medir()`, con tres puntos de medida puestos.
+
+**D-14 · Runbook, funcionalidades y radiografía**  · 2 pt · ✅ (bitácora 82)
+- [x] `RUNBOOK-TECNICO.md`: paso a paso con comprobaciones, incidentes y tareas
+      recurrentes.
+- [x] `FUNCIONALIDADES.md`: todo lo que hace el producto, por categoría.
+- [x] `ARQUITECTURA.md`: credenciales completas (dónde nacen, qué permiten,
+      cómo se renuevan), flujos, camino de un pedido, medición, Cloudflare.
+- [x] Guardias que impiden que los tres envejezcan en silencio.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

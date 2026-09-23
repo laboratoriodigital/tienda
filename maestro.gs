@@ -1240,7 +1240,12 @@ var CLAVES_DEL_PANEL = [
   /* 0.11.0 */
   { clave: 'f_avisame',            grupo: 'La venta',   tipo: 'sino',   rotulo: '«Avísame cuando llegue» en lo agotado' },
   { clave: 'catalogo_columnas',    grupo: 'La portada', tipo: 'opcion', rotulo: 'Productos por fila en computador',
-    opciones: ['3', '4', '5'] }
+    opciones: ['3', '4', '5'] },
+  /* 0.19.0 · AL FINAL (R1). La medición. Vacío = la tienda no carga NADA de
+     Google y no pone una sola cookie: es el valor de fábrica y es el que hace
+     que una tienda sin política de cookies siga siendo legal. */
+  { clave: 'analytics_id',         grupo: 'Google y WhatsApp', tipo: 'medicion',
+    rotulo: 'Google Analytics 4 (G-…)' }
 ];
 
 /* EL ORDEN EN QUE SE ENSEÑAN LOS GRUPOS. La lista de arriba solo crece al
@@ -1269,6 +1274,15 @@ function problemaDeValor(def, valor) {
   if (def.tipo === 'correo' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Eso no parece un correo.';
   if (def.tipo === 'url' && !/^https:\/\/\S+$/.test(v)) return 'Una dirección completa, que empiece por https://';
   if (def.tipo === 'hora' && !(/^\d{1,2}$/.test(v) && Number(v) <= 23)) return 'Una hora de 0 a 23.';
+  /* 0.19.0 · El identificador de GA4, y no el de otra cosa. `UA-…` es Universal
+     Analytics, que Google apagó; `GTM-…` es Tag Manager, que carga lo que
+     alguien haya configurado allá y no cabe en esta política de seguridad. Un
+     valor que no es G- no se hornea: la tienda se publica sin medición, y el
+     panel dice por qué en vez de dejar una página muda. */
+  if (def.tipo === 'medicion' && !ANALITICA_VALIDA.test(v)) {
+    return 'El identificador de Google Analytics 4 se ve así: G-ABCD123456 ' +
+           '(Analytics › Administrar › Flujos de datos › Web). Vacío = sin medición.';
+  }
   return null;
 }
 
@@ -1786,7 +1800,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.18.1';
+var VERSION_TIENDA = '0.19.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1860,7 +1874,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-6';
+var VERSION = '2026-09-22-7';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2153,6 +2167,52 @@ function conEsquema(u) {
   return /^https?:\/\//i.test(s) ? s : 'https://' + s.replace(/^\/+/, '');
 }
 
+/* 0.19.0 · MEDIR, DE LA MANERA MÁS SENCILLA QUE HAY (decisión 23).
+   ---------------------------------------------------------------------------
+   Una clave en la hoja —`analytics_id`— y el fragmento oficial de Google
+   horneado en el <head>. Ni etiquetas de terceros, ni gestor de etiquetas, ni
+   un archivo más que cargar: la tienda pide un script a Google y nada más.
+
+   VACÍO ES EL VALOR DE FÁBRICA, y significa exactamente nada: sin script, sin
+   cookies, sin conexiones a Google, y la política de seguridad de esa tienda
+   ni siquiera nombra a googletagmanager.com. Una tienda que no mide no tiene
+   que explicar que mide.
+
+   Y LA COSTURA PARA EL MEDIDOR PROPIO: la página no llama a `gtag` por ahí
+   suelto. Llama a `medir(evento, datos)`, que hoy se lo pasa a Google si está
+   y se calla si no. El día que tengamos nuestro propio recolector, se le suma
+   una línea a ESA función y los puntos de medida ya están puestos. */
+var ANALITICA_VALIDA = /^G-[A-Z0-9]{4,20}$/i;
+
+function idDeAnalitica(c) {
+  var v = String((c || {}).analytics_id || '').trim();
+  return ANALITICA_VALIDA.test(v) ? v.toUpperCase() : '';
+}
+
+/* Los hosts que hacen falta para GA4, y solo cuando se mide:
+     www.googletagmanager.com   el script (script-src) y su pixel (img-src)
+     *.google-analytics.com     donde se manda la medida (connect-src, img-src)
+     *.analytics.google.com     la señal de Google Signals, si se enciende allá */
+function cspDeAnalitica(id) {
+  if (!id) return { script: '', conecta: '', imagen: '' };
+  return { script: ' https://www.googletagmanager.com',
+           conecta: ' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com',
+           imagen: ' https://*.google-analytics.com https://www.googletagmanager.com' };
+}
+
+/* El fragmento oficial, escrito una sola vez. `anonymize_ip` no existe en GA4
+   —las IP se anonimizan siempre—, así que no se escribe: una opción que no
+   hace nada es una promesa que nadie puede comprobar. */
+function bloqueDeAnalitica(id) {
+  if (!id) return [];
+  return [
+    '<!-- Medición: Google Analytics 4. La enciende la clave analytics_id de la hoja. -->',
+    '<script async src="https://www.googletagmanager.com/gtag/js?id=' + id + '"></script>',
+    '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}' +
+      "gtag('js',new Date());gtag('config','" + id + "');</script>"
+  ];
+}
+
 function generarConfiguracion() {
   var c = leerConfiguracion();
   var url = conEsquema(c.sitio_url).replace(/\/+$/, '') + '/';
@@ -2169,15 +2229,17 @@ function generarConfiguracion() {
      y cambiar de modo en la hoja no puede exigir volver a hornearla — con la
      pasarela encendida y la política vieja, el botón de pagar no abriría nada
      y el navegador ni siquiera lo diría en la página. */
-  var csp = "default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co; " +
+  var medicion = idDeAnalitica(c);
+  var cspMed = cspDeAnalitica(medicion);
+  var csp = "default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co" + cspMed.script + '; ' +
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
             "font-src https://fonts.gstatic.com; " +
-            "img-src 'self' data:" + (hosts.length ? ' https://' + hosts.join(' https://') : '') + '; ' +
+            "img-src 'self' data:" + (hosts.length ? ' https://' + hosts.join(' https://') : '') + cspMed.imagen + '; ' +
             /* 'self' hace falta desde que la vitrina lee su propio catalogo.json. Sin
                él la petición se bloquea sin decir por qué: la CSP no lanza un error de
                red, simplemente no deja salir, y la página cae al respaldo como si la
                hoja no hubiera contestado. */
-            "connect-src 'self' https://script.google.com https://script.googleusercontent.com; " +
+            "connect-src 'self' https://script.google.com https://script.googleusercontent.com" + cspMed.conecta + '; ' +
             "form-action 'none'; base-uri 'none'";
 
   var bloque = [
@@ -2201,9 +2263,10 @@ function generarConfiguracion() {
     '<link rel="canonical" href="' + url + '">',
     '<meta name="theme-color" content="' + (c.color_principal || '#D0211C') + '">',
     '<link rel="icon" href="' + icono + '">',
-    '<link rel="apple-touch-icon" href="' + icono + '">',
+    '<link rel="apple-touch-icon" href="' + icono + '">'
+  ].concat(bloqueDeAnalitica(medicion)).concat([
     '<!-- ═══ FIN DE LA CONFIGURACIÓN ═══ -->'
-  ].join('\n');
+  ]).join('\n');
 
   var js = [
     'const SCRIPT_URL     = "' + (urlLista() || 'PEGA_AQUÍ_LA_URL_QUE_TERMINA_EN_/exec') + '";',
@@ -4589,7 +4652,11 @@ function semillaDeConfiguracion() {
 
       /* AL FINAL (R1). 0.11.0: dos del ROADMAP (4.1 y 4.4). */
       ['f_avisame',        'Sí', 'Sí = en lo agotado sale «Avísame cuando llegue»: el comprador te escribe por WhatsApp y la pestaña Avísame cuenta cuántos esperan cada producto. No se guarda ningún dato suyo. No = sin el botón'],
-      ['catalogo_columnas', '3', 'Cuántos productos por fila en una pantalla ancha (computador): 3, 4 o 5. En el celular siempre son 1 o 2']
+      ['catalogo_columnas', '3', 'Cuántos productos por fila en una pantalla ancha (computador): 3, 4 o 5. En el celular siempre son 1 o 2'],
+
+      /* AL FINAL (R1). La medición, apagada de fábrica: una tienda que no mide
+         no carga nada de Google, no pone cookies y no necesita banner. */
+      ['analytics_id',      '', 'Google Analytics 4: el identificador G-XXXXXXXXXX de tu flujo de datos web (analytics.google.com › Administrar › Flujos de datos › Web). Vacío = la tienda NO carga nada de Google y no pone cookies de medición. Al ponerlo, la tienda mide visitas, agregar al carrito, pedidos enviados y pagos: hay que publicar para que tome efecto, y hay que avisarlo en la política de privacidad']
   ];
 }
 

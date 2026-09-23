@@ -200,7 +200,8 @@
     "pedido_minimo",
     "f_rastreo",
     "f_avisame",
-    "catalogo_columnas"
+    "catalogo_columnas",
+    "analytics_id"
   ],
   "nombresDePuertas": [
     "version",
@@ -238,7 +239,11 @@
     "recuperar_pedir",
     "recuperar_confirmar",
     "avisame",
-    "avisame_hecho"
+    "avisame_hecho",
+    "colaborador",
+    "actualizacion",
+    "actualizar",
+    "permiso"
   ],
   "puertas": {
     "version": [
@@ -361,7 +366,9 @@
       "claves",
       "cobro",
       "envios",
-      "cupones"
+      "cupones",
+      "rol",
+      "colaborador"
     ],
     "configuracion.clave": [
       "clave",

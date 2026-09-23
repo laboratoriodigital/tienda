@@ -171,6 +171,14 @@ Llevar a la semilla `organico` lo que la 0.14.0 le dio a la Panel —`semilla.js
 de su montaje, la opción del menú y la vuelta atrás—. Con eso la flota deja
 de abrir pull requests en la Básica y todo queda en un solo modo.
 
+**3.13 Medición propia**   [SIGUIENTE · 0.19.0 dejó la costura — decisión 23]
+La tienda mide con Google Analytics 4 si la hoja pone `analytics_id`, y la
+página manda todo por una sola función, `medir()`. Lo que falta es el otro
+lado: una puerta o un Worker con almacenamiento que reciba esos eventos, y un
+tablero que los enseñe junto a las ventas. Con eso, los datos de comportamiento
+dejan de ser de Google y pasan a ser del comercio y nuestros — que es, además,
+lo que un comercio pequeño no puede comprar en ninguna otra parte.
+
 **3.10 Las gráficas de la Básica, como extra**   [PENSADO]
 La Básica tiene sus números en la pestaña Tablero de la hoja. Las gráficas
 del panel (M4) pueden llegarle como una página aparte, detrás del mismo token

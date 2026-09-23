@@ -7,6 +7,14 @@
 # iframe invisible para robarte el clic de "Enviar pedido". No funcionan desde una
 # etiqueta <meta>, por eso este archivo existe.
 #
+# LA MEDICIÓN (0.19.0). Los hosts de Google Analytics van aquí SIEMPRE, y en el
+# <meta> de cada tienda solo cuando esa tienda tiene `analytics_id`. Permitir un
+# host no carga nada: lo que carga es el <script> que el montaje hornea, y ese
+# solo aparece si la hoja lo pidió. Al revés no se puede: este archivo es igual
+# en todas las tiendas, así que si no los nombrara, la tienda que sí mide vería
+# su medida bloqueada por la copia menos permisiva — sin error, sin datos y sin
+# forma de enterarse.
+#
 # OJO CON connect-src: ESTA CSP Y LA DEL <meta> SE APLICAN LAS DOS, y manda la
 # más restrictiva. Cuando la vitrina pasó a leer su propio catalogo.json hubo que
 # poner 'self' en LAS TRES copias de esta regla —aquí, en el <meta> del
@@ -16,7 +24,7 @@
 # las tres.
 
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net; connect-src 'self' https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net https://*.google-analytics.com https://www.googletagmanager.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; form-action 'none'; base-uri 'none'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

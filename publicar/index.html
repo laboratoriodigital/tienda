@@ -673,12 +673,31 @@ const MENSAJE_VISTA = "Esto es la vista previa: aquí no se hacen pedidos. Publi
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-22-6";
+const SCRIPT_VERSION = "2026-09-22-7";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
 // consola, en vez de quedar bloqueadas sin explicación.
 const FOTOS_HOSTS = ["res.cloudinary.com", "ik.imagekit.io", "imagedelivery.net"];
+
+/* ── MEDIR (0.19.0 · decisión 23) ──────────────────────────────────────────
+   UN SOLO SITIO POR DONDE SALE LA MEDIDA. La página no llama a `gtag` suelta
+   por ahí: llama a `medir(evento, datos)`. Hoy eso es Google Analytics 4, si
+   la hoja puso su `analytics_id` y el montaje horneó el fragmento en el
+   <head>; si no hay nada, esta función no hace nada y la tienda no pide una
+   sola conexión de más.
+
+   Está escrita así a propósito, pensando en el medidor propio que viene
+   después: sumarle una línea aquí —un `navigator.sendBeacon` a nuestra
+   puerta— pone en marcha todos los puntos de medida de la tienda a la vez, sin
+   tocar ni una pantalla. Y en la VISTA PREVIA no mide: mirar cómo quedó la
+   tienda no es una visita.
+
+   Nunca revienta: una medida que rompe una venta es peor que no medir. */
+function medir(evento, datos){
+  if(VISTA) return;
+  try{ if(typeof gtag === "function") gtag("event", evento, datos || {}); }catch(e){}
+}
 
 // Respaldo mínimo por si la hoja no contesta. La pestaña Configuración manda.
 let WHATSAPP = "573008610480";
@@ -2052,6 +2071,7 @@ function agregar(id, n, eleccion){
   else if(elegido) carrito.push({ id, cantidad:n, variante:elegido });
   else carrito.push({ id, cantidad:n });
   cantidades[id] = 1;              // la tarjeta vuelve a 1 tras agregar
+  medir("agregar_al_carrito", { item_id: id, quantity: n });
   refrescar();
 }
 
@@ -2656,6 +2676,7 @@ function abrirCobro(){
     if(k.customerData) datos.customerData = JSON.stringify(k.customerData);
     if(k.billingAddress) datos.billingAddress = JSON.stringify(k.billingAddress);
     new BoldCheckout(datos).open();
+    medir("pagar_en_linea", { transaction_id: k.orderId, value: Number(k.amount) || subtotal(), currency: k.currency || "COP" });
     if(cobroActivo !== c) return;
     c.estado = "esperando";
     refrescar();
@@ -3134,6 +3155,7 @@ function alEnviar(e){
      si el mensaje no llegó, "volver a enviarlo" usa el MISMO código y la hoja
      no lo cuenta dos veces. */
   pedidoEnviado = codigoDelPedido();
+  medir("enviar_pedido", { transaction_id: pedidoEnviado, value: subtotal(), currency: "COP" });
   setTimeout(refrescar, 0);          // después de que el enlace navegue
   return true;                       // el enlace navega solo, sin window.open
 }

@@ -1007,6 +1007,47 @@ tamaños, aunque casi no se usen.
 
 ---
 
+## 23 · Medir con Google Analytics, y una sola costura para el medidor propio
+
+**Estado:** CERRADA el 22 de septiembre de 2026 (0.19.0).
+
+### Qué se decidió
+
+La tienda mide con **Google Analytics 4** cuando la hoja pone `analytics_id`, y
+con nada cuando no. El fragmento oficial se hornea en el `<head>` en el
+montaje, junto con los tres hosts que la política de seguridad necesita; sin la
+clave, la página no carga nada de Google, no pone cookies y la política ni
+siquiera los nombra. Los eventos salen por **una sola función de la página**,
+`medir(evento, datos)`.
+
+### Por qué así y no de otra manera
+
+Se consideraron tres caminos. **Tag Manager** (`GTM-…`) deja a cualquiera
+inyectar scripts desde otra consola: ni cabe en esta política de seguridad ni
+queremos esa puerta. **Un medidor propio desde ya** es lo que de verdad
+queremos —los datos serían nuestros y del comercio— pero pide una puerta, un
+almacén y un tablero, y eso es una entrega entera, no una característica.
+**GA4 horneado** es una clave y quince líneas, el comercio ya sabe leerlo, y no
+compromete nada: el día que exista el medidor propio, `medir()` manda a los
+dos, o solo al nuestro, según lo que diga la hoja.
+
+### Condición de disparo
+
+Cuando exista el recolector propio (una puerta del maestro o un Worker con
+almacenamiento), `medir()` suma una línea y `analytics_id` pasa a ser opcional
+de verdad. También se revisa si algún comercio pide Tag Manager por exigencia
+de su agencia: la respuesta preparada es que se le da el `G-…` y se le explica
+por qué el contenedor no entra.
+
+### Contrapartida
+
+Mientras la medición sea de Google, los datos de comportamiento del comprador
+son de Google, y la tienda que mide necesita decirlo en su política de
+privacidad. Por eso vacío es el valor de fábrica: una tienda que no mide no
+tiene nada que declarar.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

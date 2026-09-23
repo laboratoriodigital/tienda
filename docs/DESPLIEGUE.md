@@ -36,6 +36,11 @@ lo que hacen**: sirven para entender y para cuando algo falla.
 Tiempo: **el alta y conectar son dos minutos de reloj cada uno**; lo que cuesta
 sigue siendo Google (la cuenta, la hoja y llenarla) y las fotos.
 
+> **Para hacerlo con los dedos, paso a paso y con las comprobaciones de cada
+> uno, está `RUNBOOK-TECNICO.md`.** Este documento es el mapa: dice qué pasa y
+> por qué. Aquel es la lista de clics. Y lo que el producto sabe hacer, entero
+> y por categorías, está en `FUNCIONALIDADES.md`.
+
 > **⚠ Implementa DESPUÉS de pegar `HOJA_ID` y correr `A0_instalar`** (bitácora
 > 74). La aplicación web corre la versión IMPLEMENTADA, no lo que ves en el
 > editor: si pegas algo después, *Implementar › Gestionar implementaciones ›
@@ -484,6 +489,24 @@ Después, menú de la hoja → **Publicar ahora**.
 > sin tenerlas**. Casi siempre es la carpeta equivocada o el nombre que no
 > coincide.
 
+## 13b · La medición, si el comercio la quiere (0.19.0)
+
+Opcional y apagada de fábrica. En `analytics.google.com`: crear la propiedad
+del comercio › Administrar › **Flujos de datos** › Web › la dirección de la
+tienda. Copiar el identificador `G-XXXXXXXXXX` y pegarlo en la clave
+`analytics_id` de la pestaña Configuración. **Publicar** después: el
+identificador se hornea en el `<head>` durante el montaje, no se lee en vivo.
+
+Tres cosas que conviene decirle al comercio:
+
+- **Vacío es vacío**: sin esa clave la tienda no carga nada de Google y no pone
+  una sola cookie. Con ella sí, y eso hay que mencionarlo en la política de
+  privacidad.
+- Solo sirve **GA4** (`G-…`). Un `UA-…` (apagado por Google) o un `GTM-…` (Tag
+  Manager) no se hornean, y el panel dice por qué.
+- La tienda ya manda tres eventos: `agregar_al_carrito`, `enviar_pedido` y
+  `pagar_en_linea`. No hay que configurar nada más en Analytics.
+
 ## 14 · WhatsApp Business — la respuesta automática
 
 **Es el único paso donde el diseño de seguridad se convierte en un agujero
@@ -709,6 +732,54 @@ una copia**, que es lo que hace que restaurar mal también tenga vuelta.
 El flujo `restaurar` viaja dentro de la semilla: cada tienda lo tiene en su
 pestaña Actions y no pide ningún secreto nuevo. Después de restaurar datos hay
 que **publicar** la tienda para que el sitio muestre lo restaurado.
+
+## Cloudflare Access: qué es y cuándo se enciende
+
+El panel de la flota y el portal enseñan la lista de clientes, sus ventas y sus
+direcciones. Mientras se abran desde la hoja de administración, quien puede
+abrir la hoja es quien los ve, y no hay nada que proteger. El día que esa misma
+pantalla se sirva en una dirección —`flota.laboratorio-digital.com`—, hace
+falta una puerta, y esa puerta es **Cloudflare Access**.
+
+**Qué es.** Access es la parte de Cloudflare Zero Trust que pone una
+comprobación de identidad **delante** de una dirección. No es una contraseña en
+la página ni código nuestro: la petición ni siquiera llega al Worker hasta que
+Cloudflare ha comprobado quién entra.
+
+**Cómo funciona, por dentro.**
+
+1. Alguien abre la dirección protegida. Cloudflare ve que hay una aplicación de
+   Access sobre ese dominio y **no deja pasar la petición**.
+2. Le enseña una pantalla de entrada con los métodos que hayas permitido:
+   código de un solo uso al correo, Google, GitHub, Microsoft, y otros.
+3. La persona se identifica. Cloudflare comprueba su identidad contra la
+   **política** que escribiste: por ejemplo, «solo estos tres correos», o «solo
+   los correos que terminan en @laboratorio-digital.com».
+4. Si pasa, Cloudflare emite una **cookie de sesión firmada** para ese dominio
+   (dura lo que tú digas: una hora, un día, un mes) y **a partir de ahí sí**
+   manda la petición al Worker, con una cabecera que dice quién es.
+5. Si no pasa, la petición muere en el borde de Cloudflare: el Worker nunca se
+   entera y la página nunca existe para esa persona.
+
+**Qué hay que hacer, una vez.** En el panel de Cloudflare: Zero Trust › Access
+› Applications › **Add an application** › *Self-hosted*; el dominio y la ruta
+que se protege; un método de entrada (el más simple es **One-time PIN**: un
+código al correo, sin cuentas nuevas); y una política *Allow* con la lista de
+correos. Nada de eso toca el repositorio ni el código.
+
+**Qué cuesta.** Nada en el uso que le vamos a dar: el plan gratuito de Zero
+Trust cubre hasta 50 usuarios. Lo que cuesta es acordarse de quitar a alguien
+de la lista el día que se va.
+
+**Por qué no se enciende todavía.** Porque el portal se abre desde la hoja de
+administración y esa hoja ya está protegida por la cuenta de Google del
+operador. Access entra cuando el portal se sirva en una dirección propia
+—roadmap 3.7—, y entonces protege también el panel estático que escribe el
+flujo `estado` de `tiendas`.
+
+**Lo que Access NO hace:** no protege la tienda del comercio (esa es pública, y
+tiene que serlo), no cifra nada que no estuviera ya cifrado por HTTPS, y no
+sustituye a la clave del panel del comerciante, que vive en su maestro.
 
 ## Y uno que solo aparece al rotar el token
 

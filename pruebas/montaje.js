@@ -1685,8 +1685,17 @@ const configurar = (g, clave, valor) => {
   const maestro  = fs.readFileSync('../maestro.gs', 'utf8');
   const cabeceras = fs.readFileSync('../publicar/_headers', 'utf8');
   const conectan = t => (t.match(/connect-src ([^;"]+)/) || [])[1] || '';
-  const tres = [conectan(pag), conectan(maestro), conectan(cabeceras)]
-    .map(x => x.trim().split(/\s+/).sort().join(' '));
+  /* 0.19.0 · LA MEDICIÓN ES LA EXCEPCIÓN, Y ESTÁ ACOTADA. `_headers` es igual
+     en todas las tiendas, así que nombra los hosts de Google Analytics
+     SIEMPRE; el <meta> de cada tienda solo cuando esa tienda mide. Permitir un
+     host no carga nada. Así que la comparación es: quitando esos hosts —los
+     que el propio maestro declara, no una lista escrita aparte— las tres
+     copias tienen que decir exactamente lo mismo. */
+  const deMedicion = ((maestro.match(/conecta: '([^']+)'/) || [])[1] || '')
+    .trim().split(/\s+/).filter(Boolean);
+  const listas = [conectan(pag), conectan(maestro), conectan(cabeceras)]
+    .map(x => x.trim().split(/\s+/).filter(Boolean));
+  const tres = listas.map(l => l.filter(h => deMedicion.indexOf(h) === -1).sort().join(' '));
 
   ok('LA CSP dice lo mismo en los TRES sitios donde vive',
      tres[0] && tres[0] === tres[1] && tres[1] === tres[2],
@@ -1694,6 +1703,10 @@ const configurar = (g, clave, valor) => {
   ok('  ...y las tres dejan a la tienda leer su propio catálogo',
      tres.every(x => /'self'/.test(x)),
      "sin 'self' en _headers el fetch se bloquea en produccion y aqui no se nota");
+  ok('  ...y los hosts de medición están en _headers, que es igual para todas',
+     deMedicion.length === 3 && deMedicion.every(h => listas[2].indexOf(h) !== -1) &&
+     deMedicion.every(h => listas[0].indexOf(h) === -1),
+     deMedicion.join(' ') || 'el maestro no declara ninguno');
 
   ok('EL CATÁLOGO se sirve con caché corta, no eterna',
      /\/catalogo\.json/.test(cabeceras) && /max-age=60/.test(cabeceras),
@@ -2440,6 +2453,77 @@ const configurar = (g, clave, valor) => {
   ok('  ...y en una tienda a medias marca PROBLEMA, no un aviso suave',
      /PROBLEMA.*terminada/i.test(vacia.api.diagnostico().texto),
      (vacia.api.diagnostico().texto.match(/[^\n]*terminada[^\n]*/) || [''])[0].trim());
+}
+
+/* ═══ 27c. EL RUNBOOK Y LA LISTA DE FUNCIONALIDADES, VIVOS (0.19.0) ═══
+   Dos documentos nuevos que un técnico sigue con los dedos y que un comercial
+   enseña. El modo de fallo de los dos es el mismo: nombrar una función, un
+   flujo o una opción que ya no existe, y que nadie se entere hasta que alguien
+   está montando una tienda a las once de la noche. Así que se comprueban
+   contra el código, no contra el recuerdo. */
+{
+  const runbook = fs.readFileSync('../docs/RUNBOOK-TECNICO.md', 'utf8');
+  const funcs = fs.readFileSync('../docs/FUNCIONALIDADES.md', 'utf8');
+  const g = nuevo();
+
+  const nombradas = [...new Set(runbook.match(/A\d_[A-Za-z]+/g) || [])];
+  const inventadas = nombradas.filter(f => typeof g.api[f] !== 'function');
+  ok('EL RUNBOOK solo manda ejecutar funciones que existen',
+     nombradas.length >= 4 && inventadas.length === 0,
+     inventadas.join(', ') || nombradas.join(', '));
+
+  const flujos = fs.readdirSync('../.github/workflows').map(f => f.replace('.yml', ''));
+  const citados = [...new Set((runbook.match(/flujo `([a-z]+)`/g) || [])
+    .map(x => x.replace(/flujo `|`/g, '')))];
+  const fantasmas = citados.filter(f => flujos.indexOf(f) === -1 &&
+    ['alta', 'conectar', 'flota'].indexOf(f) === -1);
+  ok('  ...y solo nombra flujos que existen (aquí o en el repositorio de servicio)',
+     citados.length >= 3 && fantasmas.length === 0, fantasmas.join(', ') || citados.join(', '));
+
+  ok('  ...y lleva las comprobaciones de cada paso, que es para lo que sirve',
+     (runbook.match(/- \[ \]/g) || []).length >= 20 && /## I · Incidentes/.test(runbook),
+     (runbook.match(/- \[ \]/g) || []).length + ' comprobaciones');
+
+  const rotulos = g.api.menuDeLaHoja().map(m => m.rotulo);
+  const fuera = rotulos.filter(r => funcs.indexOf(r) === -1);
+  ok('LA LISTA DE FUNCIONALIDADES no se deja ninguna opción del menú fuera',
+     fuera.length === 0, fuera.join(' · ') || rotulos.length + ' opciones');
+  ok('  ...ni las pestañas de la hoja, ni lo que la tienda NO hace',
+     ['Catálogo', 'Configuración', 'Envíos', 'Cupones', 'Pedidos', 'Avísame', 'Papelera', 'Validaciones']
+       .every(h => funcs.indexOf(h) !== -1) && /no\*\* hace/.test(funcs));
+}
+
+/* ═══ 27b. NINGUNA CREDENCIAL SIN DOCUMENTAR (0.19.0) ═══
+   El dueño pidió que la arquitectura dijera, sin suponer nada, qué secretos
+   hay, dónde viven y qué permiten. Una tabla escrita a mano envejece en la
+   primera versión que agrega un secreto —y lo hace en silencio—, así que la
+   tabla tiene guardia: cada `secrets.X` de cualquier flujo y cada propiedad
+   que el maestro o el panel leen o escriben tiene que estar NOMBRADA en
+   ARQUITECTURA.md. Con acento invertido, no como palabra suelta en la prosa. */
+{
+  const arq = fs.readFileSync('../docs/ARQUITECTURA.md', 'utf8');
+  const fuentes = ['../maestro.gs', '../panel.gs'].map(f => fs.readFileSync(f, 'utf8')).join('\n');
+  const flujos = fs.readdirSync('../.github/workflows')
+    .map(f => fs.readFileSync('../.github/workflows/' + f, 'utf8')).join('\n');
+
+  const secretos = [...new Set((flujos.match(/secrets\.[A-Z_]+/g) || [])
+    .map(x => x.replace('secrets.', '')))].filter(x => x !== 'GITHUB_TOKEN');
+  const sinDocumentar = secretos.filter(x => arq.indexOf('`' + x + '`') === -1);
+  ok('TODO SECRETO de un flujo está en la tabla de credenciales de ARQUITECTURA.md',
+     sinDocumentar.length === 0, sinDocumentar.join(', ') || secretos.join(', '));
+
+  /* Las propiedades del script: las que se leen o se escriben por nombre. Las
+     de Bold se buscan armadas (BOLD_ + tipo + sufijo), así que no aparecen en
+     esta lista y se comprueban aparte. */
+  const props = [...new Set((fuentes.match(/etProperty\('[A-Z_0-9]+'/g) || [])
+    .map(x => x.replace(/.*\('/, '').replace(/'$/, '')))];
+  const propsFuera = props.filter(x => arq.indexOf('`' + x + '`') === -1);
+  ok('  ...y toda propiedad del maestro o del panel, también',
+     propsFuera.length === 0 && props.length >= 20, propsFuera.join(', ') || props.length + ' propiedades');
+  ok('  ...incluidas las llaves de la pasarela, que se arman por partes',
+     /`BOLD_IDENTIDAD_SANDBOX`/.test(arq) && /`BOLD_SECRETA_PRODUCCION`/.test(arq));
+  ok('  ...y cada una dice dónde nace y cómo se renueva',
+     /Cómo se renueva/.test(arq) && /Quién la escribe/.test(arq) && /clasp login/.test(arq));
 }
 
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══
