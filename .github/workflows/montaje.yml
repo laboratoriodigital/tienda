@@ -755,6 +755,19 @@ jobs:
           SIN_GUARDIA: ${{ inputs.sin_guardia && '1' || '0' }}
         run: |
           estado=0
+          # 0.20.3 · MEDIR NO PUEDE TUMBAR UN MONTAJE (bitácora 90). Una tienda
+          # que nació de una versión anterior puede no traer esta herramienta:
+          # el flujo nuevo la llama, el archivo no está, y Node se cae con
+          # MODULE_NOT_FOUND llevándose por delante una corrida que había
+          # publicado bien. Lo que falta es el cronómetro, no la tienda.
+          if [ ! -f montar/tiempos.mjs ]; then
+            {
+              echo ""
+              echo "_Sin cronómetro: esta tienda no trae \`montar/tiempos.mjs\`._"
+              echo "_Llega con la próxima actualización (montaje › **semilla**)._"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           node montar/tiempos.mjs || estado=$?
           # La herramienta imprime y escribe tiempos.md; el flujo lo pega en
           # el resumen. Es como lo hacen todos los pasos de aquí, y deja que

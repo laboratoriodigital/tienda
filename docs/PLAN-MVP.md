@@ -1480,6 +1480,13 @@ agotado.
 - [x] Casilla `forzar_permiso` en `conectar` para cambiarlo aunque sirva.
 - [x] El mensaje de 401 dice el camino completo.
 
+### 0.20.3 · Un flujo no llama a lo que la tienda no tiene
+
+**C-6 · El cronómetro**  · 1 pt · ✅ (bitácora 90)
+- [x] El montaje avisa y sigue si falta `montar/tiempos.mjs`.
+- [x] Batería: toda herramienta que un flujo ejecuta existe y está versionada.
+- [x] El alta se planta si el repositorio nuevo no trae lo que sus flujos llaman.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

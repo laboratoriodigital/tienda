@@ -18,6 +18,7 @@ const { hornear } = require('../montar/catalogo-estatico.mjs');
 const { veredicto } = require('../montar/misma-tienda.mjs');
 const respaldo = require('../montar/sembrar-respaldo.mjs');
 const fs = require('fs');
+const cp = require('node:child_process');
 const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 
 const CARPETA = '1CarpetaDeFotosDelComercio';
@@ -2453,6 +2454,42 @@ const configurar = (g, clave, valor) => {
   ok('  ...y en una tienda a medias marca PROBLEMA, no un aviso suave',
      /PROBLEMA.*terminada/i.test(vacia.api.diagnostico().texto),
      (vacia.api.diagnostico().texto.match(/[^\n]*terminada[^\n]*/) || [''])[0].trim());
+}
+
+/* ═══ 27bis. LO QUE UN FLUJO EJECUTA, EXISTE Y VIAJA (0.20.3 · bitácora 90) ═══
+   El montaje de una tienda se cayó con «Cannot find module montar/tiempos.mjs»
+   después de publicar bien: el flujo llamaba a una herramienta que ESE
+   repositorio no tenía. Dos cosas tienen que ser ciertas para que eso no
+   vuelva: que todo `node montar/x.mjs` de cualquier flujo exista aquí, y que
+   esté versionado —un archivo ignorado por git está en la semilla y no llega a
+   ninguna tienda—. Lo tercero, que el flujo no se caiga si aun así falta, se
+   comprueba abajo. */
+{
+  const flujos = fs.readdirSync('../.github/workflows')
+    .map(f => ({ f, t: fs.readFileSync('../.github/workflows/' + f, 'utf8') }));
+  const llamadas = [...new Set(flujos.flatMap(({ t }) =>
+    [...t.matchAll(/node\s+(montar\/[\w.-]+\.mjs)/g)].map(m => m[1])))];
+  const ausentes = llamadas.filter(r => !fs.existsSync('../' + r));
+  ok('TODA HERRAMIENTA que un flujo ejecuta existe en la semilla',
+     llamadas.length >= 10 && ausentes.length === 0, ausentes.join(', ') || llamadas.length + ' herramientas');
+
+  /* Versionadas: lo que git ignora no viaja a la tienda, y el fallo aparece
+     semanas después, en el repositorio de otro. */
+  const ignorado = (() => {
+    try {
+      return cp.execFileSync('git', ['check-ignore', '--no-index', ...llamadas],
+        { cwd: '..', stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim().split('\n').filter(Boolean);
+    } catch (e) { return []; }            // salida 1 = ninguno ignorado
+  })();
+  ok('  ...y ninguna está ignorada por git: lo que no se versiona no llega a la tienda',
+     ignorado.length === 0, ignorado.join(', ') || 'todas versionadas');
+
+  /* Y la que mide el tiempo, además, no puede tumbar la corrida por faltar:
+     medir es un servicio, no el trabajo. */
+  const m = flujos.filter(x => x.f === 'montaje.yml')[0].t;
+  ok('  ...y si el cronómetro no está, el montaje lo dice y sigue',
+     /\[ ! -f montar\/tiempos\.mjs \]/.test(m) && /Sin cronómetro/.test(m),
+     'una tienda de una versión anterior no trae la herramienta nueva');
 }
 
 /* ═══ 27c. EL RUNBOOK Y LA LISTA DE FUNCIONALIDADES, VIVOS (0.19.0) ═══

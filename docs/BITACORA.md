@@ -2132,6 +2132,22 @@ token que haya que cuidar. Queda además la casilla `forzar_permiso` en
 `conectar` para el caso contrario: cambiarlo aunque el actual sirva. **Lo
 prueban** `permiso.js` (11) y 1 aserción de la flota.
 
+**90 · El cronómetro tumbó el montaje.** La tienda de prueba publicó bien y la
+corrida terminó en rojo: `Cannot find module montar/tiempos.mjs`. Ese archivo
+mide cuánto tardó cada paso —es un servicio, no el trabajo—, y ese repositorio
+no lo tenía. Lo que enseña el fallo no es dónde quedó el archivo, sino tres
+huecos de diseño: un flujo puede llamar a una herramienta que ESE repositorio
+no trae, y Node se cae sin decir que lo que falta es el cronómetro; una
+herramienta ignorada por git viviría en la semilla y no llegaría nunca a
+ninguna tienda, y nadie lo notaría hasta semanas después, en el repositorio de
+otro; y el alta entrega la tienda sin comprobar que trae lo que sus propios
+flujos ejecutan. Los tres se cerraron: el paso de los tiempos comprueba que el
+archivo esté y, si no, lo dice en el resumen y sigue; una batería exige que
+todo `node montar/x.mjs` de cualquier flujo exista **y esté versionado**; y el
+alta se planta antes de entregar si la etiqueta que clonó no trae alguna. La
+tienda que ya está se cura sola en la próxima actualización, que es la que le
+lleva el archivo. **Lo prueban** 3 aserciones de `montaje.js` y 2 de la flota.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los
