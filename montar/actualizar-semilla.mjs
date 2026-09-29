@@ -4,15 +4,17 @@
    Lo corre el flujo `montaje` cuando se le pide `semilla: true` —desde el
    panel, el menú de la hoja o la flota—. Deja los archivos de la semilla
    escritos en la carpeta de la tienda y NO hace commit: el mismo montaje
-   publica el maestro, rehornea desde la hoja, corre TODAS las baterías y solo
-   entonces publica todo junto en main. Si algo falla, no se publica nada.
+   publica el maestro, rehornea desde la hoja, corre la compuerta de
+   publicación (`pruebas/publicacion.sh`: en una tienda, la tienda viva; en la
+   semilla, todas las baterías) y solo entonces publica todo junto en main. Si
+   algo falla, no se publica nada.
 
      node montar/actualizar-semilla.mjs
 
    Lee semilla.json (qué es de la semilla y dónde vive). Variables:
-     SEMILLA_TOKEN   para leer la semilla si es privada y para poder traer los
-                     flujos (.github/workflows). Sin él, se intenta sin
-                     credenciales y los flujos quedan pendientes.
+     SEMILLA_TOKEN   para leer la semilla si es privada. Sin él, se intenta sin
+                     credenciales. Los flujos (.github/workflows) de una tienda
+                     no los trae esto: los entrega la flota (bitácora 103).
      VERSION         la versión a traer (vacío = la última etiqueta vX.Y.Z).
      SIN_BASE        'sobrescribir' para pisar lo distinto cuando no se sabe
                      de qué versión salió la tienda (de fábrica, no se toca).

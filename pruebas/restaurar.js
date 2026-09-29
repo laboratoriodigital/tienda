@@ -129,6 +129,33 @@ ok('SE PIDE POR NÚMERO, por nombre o por id, y «ultimo» es la más nueva',
   ok('  ...y para la versión no se inventa el procedimiento: se lo pide a montaje',
      /gh workflow run montaje\.yml/.test(flujo) && /semilla=true/.test(flujo));
 
+  /* bitácora 106: con git DE VERDAD, lo que hace volver-atras.mjs y la
+     pregunta que hace el flujo. Comparar el árbol con el índice daba «Ya estaba
+     así» siempre, porque `git checkout <commit> -- publicar/` deja los dos
+     iguales. */
+  {
+    const { execFileSync } = require('child_process');
+    const os = require('os'), path = require('path');
+    const cond = (flujo.match(/if (git diff --quiet[^;]*-- publicar\/);/) || [])[1] || '';
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'restaurar-'));
+    const git = (...a) => execFileSync('git', a, { cwd: d, stdio: 'pipe' }).toString().trim();
+    git('init', '-q'); git('config', 'user.email', 'x@x'); git('config', 'user.name', 'x');
+    fs.mkdirSync(path.join(d, 'publicar'));
+    fs.writeFileSync(path.join(d, 'publicar/index.html'), 'antes\n');
+    git('add', '-A'); git('commit', '-qm', 'antes'); const viejo = git('rev-parse', 'HEAD');
+    fs.writeFileSync(path.join(d, 'publicar/index.html'), 'despues\n');
+    git('add', '-A'); git('commit', '-qm', 'despues');
+    const igual = () => { try { execFileSync('bash', ['-c', cond], { cwd: d, stdio: 'pipe' }); return true; } catch { return false; } };
+    const sinCambios = igual();
+    git('checkout', viejo, '--', 'publicar/');
+    const trasVolver = igual();
+    ok('EL SITIO DE ANTES se publica de verdad: tras traer publicar/ del commit viejo, el flujo ve que difiere de lo publicado',
+       !!cond && sinCambios === true && trasVolver === false,
+       'condición «' + cond + '» · sin cambios: ' + sinCambios + ' · tras volver: ' + trasVolver);
+    ok('  ...y corre en el mismo grupo que montaje y fotos: los tres escriben publicar/ en main',
+       /group: tienda-\$\{\{ github\.repository \}\}/.test(flujo));
+  }
+
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
   process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

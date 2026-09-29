@@ -1,25 +1,29 @@
 # La vía rápida de lo que cambia el comercio: sus fotos y sus precios.
 #
 # Subir una foto o cambiar un precio son acciones del COMERCIO, y el comercio no
-# entiende de pull requests ni tiene por qué esperar al lunes. Este flujo mira
-# el Drive y la hoja cada cuatro horas y, si hay algo nuevo, lo publica solo.
+# entiende de pull requests ni tiene por qué esperar al lunes. Este flujo es el
+# «Publicar ahora» del menú de la hoja: mira el Drive y la hoja y, si hay algo
+# nuevo, lo publica. Además corre una vez al día solo para AVISAR si quedó algo
+# sin publicar (ver `schedule`, abajo; antes era cada cuatro horas y publicaba).
 #
 # EL CATÁLOGO ENTRÓ AQUÍ POR UNA DEUDA QUE DEJÓ EL SPRINT 2. Al hornear el
 # catálogo dentro del sitio, un cambio de precio dejó de estar en la calle en
 # diez segundos y pasó a esperar un despliegue. Eso se aceptó a cambio de que la
 # vitrina no compita con el checkout por las 30 ejecuciones de Apps Script —pero
 # aceptarlo NO era dejar al comerciante vendiendo al precio de la semana pasada
-# hasta que alguien se acordara de disparar `montaje` a mano. Cuatro horas es el
-# techo, y el «Publicar ahora» del menú (Sprint 4) será el suelo.
+# hasta que alguien se acordara de disparar `montaje` a mano. Hoy el suelo es el
+# «Publicar ahora» del menú y el techo, el aviso diario.
 #
 # El nombre del flujo se queda en `fotos` a propósito: renombrarlo arrastra doce
 # menciones en la documentación, y el Sprint 4 probablemente lo reemplaza entero
 # cuando el maestro pueda disparar su propio despliegue.
 #
-# POR QUÉ ESTO SÍ SE FUSIONA SOLO Y EL OTRO NO
+# POR QUÉ ESTO SE FUSIONA SOLO
+# (Historia: al principio `montaje` abría un pull request y aquí no. Hoy los dos
+# publican directo en main por defecto —`aprobacion: automatica`— detrás de la
+# compuerta de publicación; `con-pull-request` sigue existiendo en ambos.)
 # `montaje` puede reescribir el <head>, la política de seguridad y SCRIPT_URL:
-# si la configuración de la hoja quedó mal, la tienda se cae. Por eso ahí hay
-# una persona en el medio.
+# si la configuración de la hoja quedó mal, la tienda se cae.
 #
 # Una foto no puede hacer eso. Lo peor que pasa si el comercio sube una foto
 # fea o equivocada es que se vea una foto fea: no toca precios, no toca la

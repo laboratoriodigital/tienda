@@ -298,6 +298,21 @@ async function main() {
   const tienda = await laTienda();
   let datos = await alMaestro(tienda, 'bloques');
 
+  /* 0.22.3 · ¿EL MAESTRO VIVO ES EL DE ESTE REPOSITORIO? (bitácora 106). Solo
+     pregunta y lo dice en tres líneas que lee `release`; no escribe nada.
+     La semilla también es una tienda, y a ella nadie le traía su maestro nuevo:
+     a las hijas se lo publica su actualización, pero la semilla cambia por
+     push. Quedaba atrás hasta que «Publicar ahora» chocaba con la guarda de
+     abajo. */
+  if (process.argv.includes('--al-dia')) {
+    const delRepo = await versionDelRepositorio();
+    const viva = datos.valores.SCRIPT_VERSION || '';
+    console.log('repo=' + delRepo);
+    console.log('viva=' + viva);
+    console.log('desalineado=' + (versionDesalineada(delRepo, viva) ? 'si' : 'no'));
+    return;
+  }
+
   if (!revisar) {
     const delRepo = await versionDelRepositorio();
     /* RECIÉN PUBLICADO, GOOGLE PUEDE TARDAR EN SERVIRLO. El flujo lo avisa con

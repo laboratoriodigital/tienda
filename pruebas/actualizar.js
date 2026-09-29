@@ -261,8 +261,11 @@ function red(t, o) {
   ok('  ...se PREGUNTA si el permiso de la semilla alcanza a esta tienda, antes de contar con él',
      /id: permiso/.test(flujo) && /api\.github\.com\/repos\/\$GITHUB_REPOSITORY/.test(flujo) &&
      /flujos=\$flujos" >> "\$GITHUB_OUTPUT"/.test(flujo));
-  ok('  ...y si no alcanza, dice qué ampliar en vez de dejar un 403 suelto',
-     /Repository access/.test(flujo) && /Workflows/.test(flujo) && /Read and write/.test(flujo));
+  /* 0.22.3 · bitácora 106: ya no pide *Workflows* en escritura —no sirve de
+     nada desde la 103—: dice que no frena nada y quién entrega los flujos. */
+  ok('  ...y si no alcanza, lo anota sin pedir permisos que ya no sirven: los flujos los entrega la flota',
+     /no alcanza a esta tienda/.test(flujo) && /No frena nada/.test(flujo) &&
+     /flota\*\* › \\`flujos\\`/.test(flujo) && !/\*Workflows\* en \*\*Read and write\*\*/.test(flujo));
   ok('  ...la respuesta viaja a la herramienta, que solo escribe flujos si se pueden empujar',
      /FLUJOS: \$\{\{ steps\.permiso\.outputs\.flujos \}\}/.test(flujo) &&
      /excluir: puedeFlujos\(\)/.test(fs.readFileSync('../montar/actualizar-semilla.mjs', 'utf8')));

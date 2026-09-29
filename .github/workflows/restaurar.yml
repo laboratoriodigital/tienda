@@ -42,8 +42,11 @@ permissions:
   # Para pedirle a `montaje` que traiga una versión anterior.
   actions: write
 
+# El mismo grupo que `montaje` y `fotos`: los tres escriben `publicar/` en
+# main, y dos a la vez se pisan o se rechazan el push (bitácora 106). La
+# versión se la pide a `montaje` y NO lo espera, así que no se bloquean.
 concurrency:
-  group: publicar-${{ github.repository }}
+  group: tienda-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -114,7 +117,11 @@ jobs:
         env:
           COMMIT: ${{ steps.decidir.outputs.commit }}
         run: |
-          if git diff --quiet -- publicar/; then
+          # HEAD y no el índice: volver-atras.mjs hace `git checkout <commit> --
+          # publicar/`, que deja el índice IGUAL al árbol. Comparar esos dos
+          # decía «Ya estaba así» siempre y el sitio no volvía nunca (bitácora
+          # 106, encontrado auditando la documentación, sin haberse usado).
+          if git diff --quiet HEAD -- publicar/; then
             echo "### Ya estaba así" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "El sitio publicado es idéntico al de \`${COMMIT:0:7}\`: no hay nada que restaurar." >> "$GITHUB_STEP_SUMMARY"

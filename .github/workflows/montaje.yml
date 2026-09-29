@@ -185,12 +185,11 @@ jobs:
           restore-keys: npm-${{ runner.os }}-
 
       # ── ¿HASTA DÓNDE LLEGA EL PERMISO DE LA SEMILLA? (0.20.5 · bitácora 92) ──
-      # `alta` copia `SEMILLA_TOKEN` a cada tienda para que pueda traerse los
-      # flujos nuevos. Si ese permiso está acotado a la semilla —lo normal en un
-      # token de grano fino— aquí no vale: se pregunta una vez, se dice en el
-      # resumen qué falta exactamente, y la actualización sigue trayendo todo lo
-      # demás. Un permiso corto deja la tienda una versión atrás en sus flujos;
-      # no puede dejarla sin actualizarse.
+      # `alta` copia `SEMILLA_TOKEN` a cada tienda para que pueda leer la
+      # semilla. Antes también debía traerse los flujos nuevos; desde la 0.22.1
+      # eso no funciona con ningún token desde aquí (bitácora 103) y los entrega
+      # la flota. Se sigue preguntando porque FLUJOS lo lee la herramienta, que
+      # en una tienda no escribe flujos nunca; si no alcanza, solo se anota.
       - name: ¿El permiso de la semilla alcanza a esta tienda?
         id: permiso
         env:
@@ -207,13 +206,9 @@ jobs:
             else
               {
                 echo ""
-                echo "**El permiso \`SEMILLA_TOKEN\` de esta tienda no la alcanza a ella misma** (GitHub contesta \`$codigo\`)."
-                echo "La actualización trae todo lo demás; lo que se queda atrás son los **flujos**"
-                echo "(\`.github/workflows\`), que necesitan ese permiso para poder empujarse."
-                echo ""
-                echo "Para arreglarlo, en el token de grano fino que \`tiendas\` copia a cada tienda:"
-                echo "*Repository access* tiene que incluir **\`$GITHUB_REPOSITORY\`**, con *Contents* y"
-                echo "*Workflows* en **Read and write**. No hay que crear uno nuevo: basta con ampliarlo."
+                echo "_El permiso \`SEMILLA_TOKEN\` no alcanza a esta tienda (GitHub contesta \`$codigo\`)._"
+                echo "_No frena nada: aquí solo sirve para leer la semilla. Los flujos (\`.github/workflows\`)_"
+                echo "_de una tienda los entrega la flota —\`tiendas\` › Actions › **flota** › \`flujos\`— (bitácora 103)._"
               } >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
@@ -596,6 +591,14 @@ jobs:
           # la dice semilla.json, no este archivo (patrón 2).
           if [ "${{ steps.semilla.outputs.cambio }}" = "si" ]; then
             PUBLICA="$PUBLICA $(node -p "require('./semilla.json').propios.join(' ')")"
+            # 0.22.3 · Y LO QUE LA SEMILLA RETIRÓ (bitácora 106). La actualización
+            # lo borra del disco, pero si no entra aquí el borrado nunca llega al
+            # commit: `servicio/` seguía en cada tienda vieja versión tras versión.
+            # Solo lo que git todavía conoce: un pathspec que no casa con nada
+            # tumba el `git add` entero.
+            for r in $(node -p "(require('./semilla.json').retirados || []).join(' ')"); do
+              [ -n "$(git ls-files -- "$r")" ] && PUBLICA="$PUBLICA $r"
+            done
           fi
           git add -A -- $PUBLICA
 
@@ -817,8 +820,7 @@ jobs:
               {
                 echo ""
                 echo "**Los flujos se quedaron atrás** (este permiso no puede escribir \`.github/workflows\`)."
-                echo "Lo demás se publicó igual. Con \`SEMILLA_TOKEN\` —Contents y Workflows en escritura—"
-                echo "llegan en la próxima actualización."
+                echo "Lo demás se publicó igual. Los entrega la flota: \`tiendas\` › Actions › **flota** › \`flujos\`."
               } >> "$GITHUB_STEP_SUMMARY"
               git push --quiet origin "HEAD:$1" && return 0
             fi

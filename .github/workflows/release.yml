@@ -1,8 +1,11 @@
 # Cortar una versión de la plantilla.
 #
-# Esto NO despliega nada. Publica una versión con nombre para que las tiendas
-# de los clientes puedan pedirla: cada una tiene su propio repositorio y su
-# propio ritmo, y ninguna se mueve hasta que alguien aprueba su pull request.
+# Esto NO despliega ninguna tienda hija. Publica una versión con nombre para
+# que las tiendas puedan pedirla: la flota por anillos (`tiendas` › flota ›
+# actualizar) o cada tienda con `montaje` › semilla (también desde el menú de
+# su hoja o el panel). Ninguna se mueve hasta que alguien lo pide.
+# Lo único que sí toca es la PROPIA semilla, que también es una tienda: el
+# último paso pone al día su maestro vivo si quedó atrás (bitácora 106).
 #
 # La versión se lee de package.json: es el único lugar donde vive. Súbela en
 # la rama del cambio, fusiona, y entonces corre esto desde la pestaña Actions.
@@ -20,7 +23,10 @@ env:
 
 permissions:
   contents: write
-  actions: read
+  # write, no read: el último paso dispara `montaje` en la semilla cuando su
+  # propio maestro quedó atrás (bitácora 106). workflow_dispatch es de los
+  # pocos eventos que el permiso de Actions SÍ puede disparar.
+  actions: write
 
 jobs:
   publicar:
@@ -198,4 +204,57 @@ jobs:
             echo ""
             echo "Ya se puede pedir: **flota › actualizar** para la flota entera, o"
             echo "**montaje › semilla** en una tienda. Quien no pida nada se queda como está."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── LA SEMILLA TAMBIÉN ES UNA TIENDA (0.22.3 · bitácora 106) ──────────
+      # A una hija, su actualización le publica el maestro nuevo. La semilla
+      # cambia por push y nadie se lo publicaba: su tienda viva se quedaba en el
+      # maestro anterior hasta que «Publicar ahora» chocaba con «EL MAESTRO
+      # PUBLICADO CONTESTA LA VERSIÓN …». Aquí se le pregunta al maestro vivo y,
+      # si no es el de este commit, se dispara `montaje` con la casilla del
+      # maestro y PUBLICAR: lo mismo que haría una persona. Corre también
+      # cuando no hay nada que cortar: volver a correr `release` pone al día
+      # una semilla que quedó atrás, y si ya está al día no hace nada.
+      - name: El maestro de la semilla, al día
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAESTRO_URL: ${{ secrets.MAESTRO_URL }}
+          MAESTRO_TOKEN: ${{ secrets.MAESTRO_TOKEN }}
+        run: |
+          if [ -z "$MAESTRO_URL" ] || [ -z "$MAESTRO_TOKEN" ]; then
+            {
+              echo ""
+              echo "### El maestro de la semilla: sin comprobar"
+              echo ""
+              echo "Faltan los secretos \`MAESTRO_URL\` y \`MAESTRO_TOKEN\` en este repositorio."
+              echo "Si \`maestro.gs\` cambió, publícalo con **montaje** marcando la casilla del maestro y PUBLICAR."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! salida=$(node montar/preparar-index.mjs --al-dia 2>&1); then
+            {
+              echo ""
+              echo "### El maestro de la semilla: no contestó"
+              echo ""
+              echo "La versión está cortada. No se pudo preguntar al maestro vivo; si \`maestro.gs\`"
+              echo "cambió, publícalo con **montaje** marcando la casilla del maestro y PUBLICAR."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "$salida" | tail -5
+            exit 0
+          fi
+          repo=$(echo "$salida" | sed -n 's/^repo=//p')
+          viva=$(echo "$salida" | sed -n 's/^viva=//p')
+          if [ "$(echo "$salida" | sed -n 's/^desalineado=//p')" != "si" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "El maestro de la semilla ya es el de este commit (\`$viva\`)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh workflow run montaje.yml --ref "${GITHUB_REF_NAME}" \
+            -f maestro=true -f confirmar=PUBLICAR -f que=todo
+          {
+            echo ""
+            echo "### El maestro de la semilla quedó atrás: se publica"
+            echo ""
+            echo "La tienda de la semilla contesta \`$viva\` y este commit trae \`$repo\`."
+            echo "Se disparó **montaje** con la casilla del maestro y PUBLICAR; su corrida está en Actions."
           } >> "$GITHUB_STEP_SUMMARY"

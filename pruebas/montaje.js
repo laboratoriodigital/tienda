@@ -1041,6 +1041,21 @@ const configurar = (g, clave, valor) => {
     ok('  ...leyendo el commit de la etiqueta, no el del objeto etiqueta',
        /\^\{\}/.test(rel),
        'en una etiqueta anotada el sha del ref no es el del commit');
+    /* 0.22.3 · bitácora 106: la semilla también es una tienda, y su maestro
+       nuevo no se lo publicaba nadie. */
+    const paso = rel.slice(rel.indexOf('- name: El maestro de la semilla, al día'));
+    ok('EL RELEASE pone al día el maestro de la propia semilla: pregunta al vivo y, si quedó atrás, dispara montaje con la casilla y PUBLICAR',
+       rel.includes('- name: El maestro de la semilla, al día') &&
+       /preparar-index\.mjs --al-dia/.test(paso) && /desalineado=/.test(paso) &&
+       /gh workflow run montaje\.yml[\s\S]*-f maestro=true -f confirmar=PUBLICAR/.test(paso) &&
+       /^\s*actions: write\s*$/m.test(rel),
+       'sin esto, «Publicar ahora» en la semilla choca con la guarda de versión');
+    ok('  ...y no está atado a que haya algo que cortar: volver a correr release pone al día una semilla atrasada',
+       !/if:/.test(paso.split('run:')[0]));
+    const pix = fs.readFileSync('../montar/preparar-index.mjs', 'utf8');
+    ok('  ...y `--al-dia` solo pregunta: sale antes de escribir nada',
+       pix.indexOf("includes('--al-dia')") > 0 &&
+       pix.indexOf("includes('--al-dia')") < pix.indexOf('await escribirSiCambio(PUBLICAR,'));
   }
 
   ok('NINGUNA ACCIÓN SE QUEDÓ en una versión que pide Node 20',
@@ -4108,6 +4123,42 @@ if (!fs.existsSync('../.github/workflows/release.yml')) {
     x = correr(r.d, r.viejo);
     ok('  ...pero si nada difería ni del commit de arranque, sigue siendo un fallo que se dice',
        x.codigo === 1 && /no quedó nada que publicar/.test(x.resumen), 'código ' + x.codigo);
+  }
+}
+
+/* ═══ 27k. LO QUE LA SEMILLA RETIRÓ ENTRA EN EL COMMIT (0.22.3 · bitácora 106) ═══
+   La actualización borraba los `retirados` del disco, pero `montaje` solo
+   indexaba publicar/, wrangler y los propios: el borrado no llegaba nunca al
+   commit. Con git de verdad y el trozo del flujo tal cual. */
+{
+  const { execFileSync } = require('child_process');
+  const path = require('path');
+  const y = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
+  const ini = y.indexOf('PUBLICA="publicar/ wrangler.jsonc"');
+  const fin = y.indexOf('git add -A -- $PUBLICA', ini);
+  if (ini < 0 || fin < 0) {
+    ok('EL TROZO del flujo que decide qué entra en el commit se encuentra', false);
+  } else {
+    const trozo = y.slice(ini, fin + 'git add -A -- $PUBLICA'.length)
+      .replace(/\$\{\{ steps\.semilla\.outputs\.cambio \}\}/g, 'si');
+    const d = fs.mkdtempSync('/tmp/retirados-');
+    const git = (...a) => execFileSync('git', a, { cwd: d, stdio: 'pipe' }).toString().trim();
+    git('init', '-q'); git('config', 'user.email', 'x@x'); git('config', 'user.name', 'x');
+    const escribe = (r, t) => { fs.mkdirSync(path.dirname(path.join(d, r)), { recursive: true }); fs.writeFileSync(path.join(d, r), t); };
+    escribe('publicar/index.html', 'a\n'); escribe('wrangler.jsonc', '{}\n'); escribe('x.txt', '1\n');
+    escribe('servicio/viejo.js', 'x\n');
+    escribe('semilla.json', JSON.stringify({ propios: ['x.txt', 'semilla.json'], retirados: ['servicio', 'nunca-existio'] }));
+    git('add', '-A'); git('commit', '-qm', 'antes');
+    fs.rmSync(path.join(d, 'servicio'), { recursive: true });      // lo que hace aplicar()
+    escribe('x.txt', '2\n');
+    let error = '';
+    try { execFileSync('bash', ['-c', 'set -e\n' + trozo], { cwd: d, stdio: 'pipe' }); }
+    catch (e) { error = String(e.stderr || e.message).slice(0, 160); }
+    const indice = error ? '' : git('diff', '--cached', '--name-status');
+    ok('LO QUE LA SEMILLA RETIRÓ entra en el commit: el borrado de servicio/ se indexa junto con los propios',
+       !error && /^D\s+servicio\/viejo\.js$/m.test(indice) && /^M\s+x\.txt$/m.test(indice),
+       error || indice.replace(/\n/g, ' · '));
+    ok('  ...y un retirado que esta tienda nunca tuvo no tumba el `git add`', !error, error);
   }
 }
 

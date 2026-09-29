@@ -1829,7 +1829,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.22.2';
+var VERSION_TIENDA = '0.22.3';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -7522,7 +7522,7 @@ function ayuda() {
     linea('Lo mismo: <b>Publicar ahora</b>. Y comprueba que el nombre del archivo sea ' +
           'idéntico al de la columna <b>Imágenes</b> del catálogo, con mayúsculas y todo.') +
     titulo('Llegó un pedido y quiero confirmarlo') +
-    linea('En la pestaña <b>Pedidos</b>, cambia <b>Estado</b> a <b>Confirmado</b>. Eso ' +
+    linea('En la pestaña <b>Pedidos</b>, cambia <b>Estado</b> a <b>Pagado</b>. Eso ' +
           'descuenta el inventario. No hay que hacer nada más.') +
     titulo('Algo no funciona y no sé qué es') +
     linea('Abre <b>Diagnóstico</b>: revisa la tienda entera y dice qué está mal y dónde, ' +
