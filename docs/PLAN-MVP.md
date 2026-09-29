@@ -1573,6 +1573,21 @@ agotado.
 - [x] Y si el rechazo llega igual, se quitan y se publica el resto.
 - [x] El resumen dice qué se quedó atrás y con qué llega.
 
+### 0.22.0 · Lo que decide si una tienda publica
+
+**C-15 · La tienda viva**  · 3 pt · ✅ (bitácora 102)
+- [x] En una tienda, la guardia es `tienda-viva.js`: invariantes sobre lo horneado
+      con SUS datos, y la página abierta en un navegador. Ni un dato escrito.
+- [x] La decisión vive en `publicacion.sh`, que llega con la actualización: una
+      tienda con el flujo viejo ya usa la guardia nueva.
+- [x] La tiendita corre esa guardia también con los datos de otro comercio.
+- [x] De 2–5 minutos de Actions por publicación a segundos.
+
+**Pendiente de la revisión (bitácora 102)**
+- [ ] Causa 3: unificar los permisos de GitHub en los menos posibles, con una sola
+      comprobación de alcance al principio de cada flujo.
+- [ ] Causa 4: que `montaje` diga TODO lo que falla en una corrida, no lo primero.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

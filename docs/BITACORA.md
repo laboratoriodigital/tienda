@@ -2414,6 +2414,72 @@ que falta. **Lo prueban** 4 aserciones de `montaje.js`, con su control negativo,
 y una simulación con un repositorio de juguete para comprobar que los comandos
 hacen lo que el comentario dice.
 
+**102 · Por qué la automatización de las tiendas tardó tanto, y el cambio que lo
+cierra.** Lo pidió el dueño después de la duodécima vuelta: cada arreglo
+destapaba el fallo siguiente, y cada fallo costaba media hora —cambio, push,
+release, montaje en la tienda, captura, diagnóstico—. El último fue `config.js`
+rojo dentro de prueba1: cuatro aserciones que daban por hecho que el icono de la
+pestaña es el marcador dibujado, y prueba1 tiene logo —que desde la 0.21.0 es el
+icono—. El propio archivo tenía escrita, desde hace meses, la lección exacta:
+«el flujo `montaje` corre las baterías sobre el index.html que acaba de escribir
+CON LA CONFIGURACIÓN DE ESA TIENDA, así que cualquier cosa quemada aquí es una
+tienda que no se puede montar». La lección estaba escrita y se rompió igual.
+
+Esa es la conclusión de la revisión: **no era mala suerte ni falta de cuidado;
+era la arquitectura.** Mirando las entradas 90 a 102 juntas salen cinco causas,
+y la primera explica casi todo:
+
+1. **La guardia que decidía si una tienda publica era la suite de desarrollo de
+   la semilla.** ~2.480 aserciones escritas para probar el código de la semilla,
+   con los datos de muestra de la semilla, en el repositorio de la semilla. Al
+   actualizarse, cada tienda las corría TODAS contra SUS datos y SU repositorio.
+   Cada suposición de «ser la semilla» era un bloqueo esperando turno: el flujo
+   `release` (93), las fotos de muestra (93), el respaldo de la plantilla (93),
+   la carpeta `servicio/` (94, 95), un comercio con logo (102). Y no protegía de
+   nada, porque el código de una tienda actualizada es el de una etiqueta que
+   `release` no corta sin la suite completa en verde: repetir esas pruebas no
+   añadía información, solo maneras de fallar. Encima era lo que se comía los
+   minutos de Actions: dos a cinco por publicación.
+2. **La tienda se actualiza con su versión vieja.** El que se actualiza a sí mismo
+   ejecuta la versión anterior de sí mismo, así que un arreglo en el flujo o en
+   la herramienta llega una versión tarde, y si la versión vieja bloquea la
+   actualización, no hay forma de que la nueva llegue (90, 92, 95, 101).
+3. **Cuatro permisos con alcances que se pisan** —`DISPARO`, `SEMILLA`, `FLOTA`,
+   `ALTA`— y copias por tienda que envejecen solas (89, 92, 96, 97, 101).
+4. **Fallar rápido en producción esconde el fallo siguiente**: cada corrida
+   enseñaba uno solo, y cada uno costaba una vuelta entera.
+5. **Mi definición de «hecho» era la equivocada**: «la suite en verde en la
+   semilla», cuando lo que importa es «una tienda de verdad publica». Varios de
+   los rojos los puse yo, con aserciones que eran ciertas aquí.
+
+EL CAMBIO. En una tienda, lo que decide si se publica ya no es la suite: es
+**`pruebas/tienda-viva.js`**, que mira los archivos reales de `publicar/` y SOLO
+con invariantes —cosas ciertas para cualquier comercio con cualquier hoja, y
+falsas únicamente cuando el horneado salió mal—: que la página sepa a qué maestro
+preguntar y espere su misma versión, que su política la deje hablar con él, que
+el catálogo se lea y no repita identificadores, que el respaldo lleve los mismos
+productos que el catálogo y sea de la misma tienda, y que la página abra de
+verdad en un navegador y pinte los productos de ESA tienda sin un error. Ni un
+nombre, ni un color, ni un producto escritos: una aserción aparte lo exige. Lo
+que es del comercio pero no bloquea —una foto nombrada que no subió— se avisa y
+no detiene. En la semilla no cambia nada: ahí sí se prueba el código, entero.
+
+La decisión vive en `pruebas/publicacion.sh` y no en el flujo, y eso resuelve la
+causa 2 para este cambio: la actualización escribe `pruebas/` ANTES de correr la
+guardia, así que una tienda con el flujo viejo ya usa la guardia nueva en la
+misma corrida que la trae. Y la tiendita (95) corre ahora esa misma guardia,
+también con los datos de OTRO comercio —su logo de icono, otros colores, otro
+nombre—, que es exactamente lo que tumbó a prueba1: lo que antes se descubría en
+producción se descubre en tres segundos antes del commit. La primera corrida lo
+demostró encontrando un rojo mío en la aserción nueva, antes de que saliera de
+aquí. Las causas 3 y 4 quedan anotadas en el plan: la 3 ya no tiene huecos
+conocidos (89, 96, 97 y 101 los cerraron), y la 4 pierde casi todo su costo
+cuando la guardia es pequeña y dice todo lo que falla de una vez. **Lo prueban**
+`tienda-viva.js` (12), 4 aserciones de `montaje.js`, 2 de `tiendita.js` y la
+revisada de `actualizar.js`, con los controles negativos en rojo —un horneado
+contra otro maestro, un catálogo y un respaldo de corridas distintas, un error
+de JavaScript en la página— y el positivo en verde: los datos de prueba1.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

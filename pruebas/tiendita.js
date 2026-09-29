@@ -96,10 +96,23 @@ const CORREN = [
   { f: 'montaje.js', env: {} },
   { f: 'exif.js', env: {} },
   { f: 'medicion.js', env: {} },
-  { f: 'actualizar.js', env: { SIN_NAVEGADOR: '1' } }
+  { f: 'actualizar.js', env: { SIN_NAVEGADOR: '1' } },
+  /* 0.22.0 · LA GUARDIA QUE DE VERDAD DECIDE si una tienda publica (bitácora
+     102). La tiendita corre desde el principio lo que corre una tienda. */
+  { f: 'tienda-viva.js', env: {} }
 ];
 
+/* LA TIENDA VIVA MIRA LO QUE SE HORNEÓ, y en una tienda recién clonada eso
+   todavía no existe: `alta` no hereda el catálogo. En la tienda de verdad esta
+   batería corre DESPUÉS del horneado, así que aquí se pone lo horneado antes
+   de correrla —el de la semilla, que es un horneado válido—. */
+const horneado = r => {
+  const a = path.join(raiz, 'publicar', r), b = path.join(copia, 'publicar', r);
+  if (fs.existsSync(a) && !fs.existsSync(b)) fs.copyFileSync(a, b);
+};
+
 CORREN.forEach(({ f, env }) => {
+  if (f === 'tienda-viva.js') horneado('catalogo.json');
   let salida = '', estado = 0;
   try {
     salida = cp.execFileSync('node', [f], {
@@ -118,6 +131,40 @@ CORREN.forEach(({ f, env }) => {
        : marcador + (fallas.length ? '\n     ' + fallas.slice(0, 3).join('\n     ')
                                    : '\n     ' + salida.trim().split('\n').slice(-4).join('\n     ')));
 });
+
+/* LA MISMA DECISIÓN QUE TOMA UNA TIENDA. `publicacion.sh` es quien elige qué se
+   corre antes de publicar; aquí se le pregunta con el repositorio de una tienda
+   y pidiendo «todas», que es exactamente lo que le manda un montaje con
+   actualización. */
+let decide = '';
+try {
+  decide = cp.execFileSync('bash', ['publicacion.sh'], {
+    cwd: path.join(copia, 'pruebas'), stdio: ['ignore', 'pipe', 'ignore'],
+    env: Object.assign({}, process.env, { GITHUB_REPOSITORY: 'laboratoriodigital/tiendita',
+                                          GUARDIA: 'todas', SOLO_DECIDIR: '1' })
+  }).toString().trim();
+} catch (e) { decide = 'no contestó'; }
+ok('EN UNA TIENDA se decide la tienda viva, aunque el montaje pida «todas»',
+   decide === 'tienda', decide);
+
+/* Y CON DATOS QUE NO SON LOS DE MUESTRA. Lo que tumbó a prueba1 la última vez
+   fue una aserción que daba por hecho que el comercio no tenía logo. Aquí la
+   copia se hornea «como prueba1» —su logo de icono, otros colores, otro
+   nombre— y la guardia tiene que seguir en verde: lo único que puede tumbarla
+   es un horneado roto, no un comercio distinto. */
+const idx = path.join(copia, 'publicar', 'index.html');
+fs.writeFileSync(idx, fs.readFileSync(idx, 'utf8')
+  .replace(/<link rel="icon" href="[^"]*"/, '<link rel="icon" href="https://res.cloudinary.com/x/image/upload/logo.png"')
+  .replace(/<meta name="theme-color" content="[^"]*"/, '<meta name="theme-color" content="#14472B"')
+  .replace(/<title>[^<]*<\/title>/, '<title>OTRO COMERCIO</title>'));
+let comoPrueba1 = '', estado1 = 0;
+try {
+  comoPrueba1 = cp.execFileSync('node', ['tienda-viva.js'], { cwd: path.join(copia, 'pruebas'),
+    stdio: ['ignore', 'pipe', 'pipe'], env: Object.assign({}, process.env, { GITHUB_REPOSITORY: 'laboratoriodigital/tiendita' }) }).toString();
+} catch (e) { estado1 = e.status || 1; comoPrueba1 = String(e.stdout || '') + String(e.stderr || ''); }
+ok('  ...y la tienda viva sigue en verde con el logo, los colores y el nombre de OTRO comercio',
+   estado1 === 0, (comoPrueba1.match(/Resultado: \d+\/\d+/) || ['sin marcador'])[0] +
+   (estado1 ? '\n     ' + comoPrueba1.split('\n').filter(l => l.indexOf(' FALLA') === 0).slice(0, 2).join('\n     ') : ''));
 
 fs.rmSync(copia, { recursive: true, force: true });
 console.log(T.join('\n'));

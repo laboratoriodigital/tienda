@@ -232,8 +232,17 @@ function red(t, o) {
      i('La versión nueva de la semilla') < i('Dependencias') && i('Dependencias') < i('Publicar maestro.gs'));
   ok('  ...un maestro nuevo de la semilla se publica sin PUBLICAR', /steps\.semilla\.outputs\.maestro \}\}" = "si"/.test(flujo));
   ok('  ...lo que se publica suma lo que dice semilla.json (una sola lista)', /require\('\.\/semilla\.json'\)\.propios/.test(flujo));
-  ok('  ...corren TODAS las baterías', /GUARDIA: \$\{\{ steps\.semilla\.outputs\.cambio == 'si' && 'todas'/.test(flujo) &&
-     execFileSync('bash', ['publicacion.sh'], { env: Object.assign({}, process.env, { GUARDIA: 'todas', SOLO_DECIDIR: '1', GITHUB_REPOSITORY: 'x/y', GH_TOKEN: 'z' }) }).toString().trim() === 'todas');
+  /* 0.22.0 · «TODAS» EN LA SEMILLA; EN UNA TIENDA, LA TIENDA VIVA (bitácora
+     102). El flujo sigue pidiendo todas cuando trae una versión nueva, y en la
+     semilla eso es lo que se corre; dentro de una tienda, ese código es el de
+     una etiqueta que ya pasó la suite entera, y lo que se prueba es lo que se
+     horneó con sus datos. */
+  const decide = repo => execFileSync('bash', ['publicacion.sh'], { env: Object.assign({}, process.env,
+    { GUARDIA: 'todas', SOLO_DECIDIR: '1', GITHUB_REPOSITORY: repo, GH_TOKEN: 'z' }) }).toString().trim();
+  ok('  ...corren TODAS las baterías en la semilla, y en una tienda la tienda viva',
+     /GUARDIA: \$\{\{ steps\.semilla\.outputs\.cambio == 'si' && 'todas'/.test(flujo) &&
+     decide('laboratoriodigital/tienda') === 'todas' && decide('laboratoriodigital/prueba1') === 'tienda',
+     decide('laboratoriodigital/tienda') + ' · ' + decide('laboratoriodigital/prueba1'));
   ok('  ...siempre directo a main (automático)', /AUTO: \$\{\{ inputs\.aprobacion != 'con-pull-request' \|\| steps\.semilla\.outputs\.cambio == 'si' \}\}/.test(flujo));
   ok('  ...y si algo falla después de publicar el maestro, vuelve al de antes', i('Volver atrás el maestro') > i('Publicar en main') &&
      /if: failure\(\) && steps\.publicado\.outcome == 'success' && steps\.semilla\.outputs\.maestro == 'si'/.test(flujo) &&

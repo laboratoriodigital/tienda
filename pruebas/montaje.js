@@ -1519,7 +1519,9 @@ const configurar = (g, clave, valor) => {
     .filter(n => /\.js$/.test(n) && /Resultado: /.test(fs.readFileSync(n, 'utf8')));
   const todas = fs.readFileSync('./todas.sh', 'utf8');
   const auxiliares = ['servidor.js', 'gas.js', 'as.js', 'pn.js'];
-  const enLista = [...new Set(todas.match(/\b[a-z0-9]+\.js\b/g) || [])]
+  /* Con guion también: `tienda-viva.js` se leía como `viva.js` y la aserción
+     decía que una batería listada no estaba en la lista. */
+  const enLista = [...new Set(todas.match(/\b[a-z0-9][a-z0-9-]*\.js\b/g) || [])]
     .filter(n => auxiliares.indexOf(n) === -1);
   const sinCorrer = enDisco.filter(n => enLista.indexOf(n) === -1);
   ok('TODAS LAS BATER\u00cdAS est\u00e1n en todas.sh', sinCorrer.length === 0,
@@ -1897,7 +1899,10 @@ const configurar = (g, clave, valor) => {
                                                 GUARDIA: '' }, entorno) }).trim();
       } catch (e) { return 'reventó'; }
     };
-    const enFlujo = { GITHUB_REPOSITORY: 'x/y', GH_TOKEN: 't' };
+    /* La guardia corta es una decisión DE LA SEMILLA: en una tienda decide la
+       tienda viva (bitácora 102). Así que se pregunta desde el repositorio de
+       la semilla, que es donde esta regla sigue valiendo. */
+    const enFlujo = { GITHUB_REPOSITORY: 'laboratoriodigital/tienda', GH_TOKEN: 't' };
     const r = [decide('1', enFlujo), decide('0', enFlujo), decide(null, enFlujo),
                decide('1', { GITHUB_REPOSITORY: '', GH_TOKEN: '' })];
     ok('LA GUARDIA CORTA sale solo si el código tiene una corrida de pruebas en verde',
@@ -2826,6 +2831,45 @@ const configurar = (g, clave, valor) => {
   ok('  ...y el permiso de la semilla se intenta siempre que exista',
      /if \[ -n "\$SEMILLA_TOKEN" \]; then\n\s+# Se intenta SIEMPRE/.test(m),
      'esperar a que una comprobación diga que sí es una condición de más para fallar');
+}
+
+/* ═══ 27i. LO QUE DECIDE SI UNA TIENDA PUBLICA (0.22.0 · bitácora 102) ═══
+   Hasta la 0.21, una tienda corría la suite ENTERA de la semilla antes de
+   publicar. Cinco bloqueos seguidos salieron de ahí —cada uno, una suposición de
+   la semilla que dentro de una tienda era falsa— sin que ninguno protegiera de
+   nada: el código de una tienda actualizada es el de una etiqueta que `release`
+   no corta sin la suite en verde. Ahora, en una tienda, decide `tienda-viva.js`:
+   solo lo que se hornea con SUS datos, y solo con invariantes. */
+{
+  const pub = fs.readFileSync('./publicacion.sh', 'utf8');
+  const decide = (repo, extra) => cp.execFileSync('bash', ['publicacion.sh'],
+    { env: Object.assign({}, process.env, { GITHUB_REPOSITORY: repo, SOLO_DECIDIR: '1' }, extra || {}),
+      stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  ok('EN UNA TIENDA la guardia es la tienda viva, aunque el montaje pida «todas»',
+     decide('laboratoriodigital/prueba1', { GUARDIA: 'todas' }) === 'tienda' &&
+     decide('laboratoriodigital/tienda', { GUARDIA: 'todas' }) === 'todas',
+     'la semilla sigue probando su código entero; la tienda, lo que hornea');
+  ok('  ...y la decisión se toma ANTES de mirar GUARDIA, en un archivo que llega con la actualización',
+     pub.indexOf("require('./donde.js').esSemilla()") !== -1 &&
+     pub.indexOf("require('./donde.js').esSemilla()") < pub.indexOf('[ "$GUARDIA" = "todas" ]'),
+     'en el flujo llegaría una versión tarde, que es lo que tenía bloqueadas a las tiendas');
+  ok('  ...y SUITE_ENTERA la fuerza en cualquier sitio, para quien quiera mirar',
+     decide('laboratoriodigital/prueba1', { SUITE_ENTERA: '1' }) === 'todas');
+
+  /* La tienda viva no puede saber NADA de ningún comercio: una aserción que
+     dependa de los datos de uno es una tienda que no se puede publicar. */
+  const viva = fs.readFileSync('./tienda-viva.js', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const { terminos } = JSON.parse(fs.readFileSync('../terminos-prohibidos.json', 'utf8'));
+  /* Los identificadores de muestra, si hay catálogo: una tienda recién nacida
+     no lo tiene, y abrirlo a ciegas es justo lo que la 27e prohíbe. (La
+     tiendita lo encontró antes de que llegara a ninguna tienda.) */
+  const deMuestra = fs.existsSync('../publicar/catalogo.json')
+    ? (JSON.parse(fs.readFileSync('../publicar/catalogo.json', 'utf8')).productos || []).map(p => String(p.id)).filter(Boolean)
+    : [];
+  const sabe = [...terminos, ...deMuestra].filter(t => viva.toLowerCase().indexOf(String(t).toLowerCase()) !== -1)
+    .concat((viva.match(/#[0-9A-Fa-f]{6}\b/g) || []));
+  ok('  ...y la tienda viva no nombra ni un producto, ni un comercio, ni un color',
+     sabe.length === 0, sabe.join(', ') || 'solo invariantes');
 }
 
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══

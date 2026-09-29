@@ -518,7 +518,7 @@ Todo el producto vive en **dos** repositorios más uno por tienda:
 
 | Flujo | Cuándo corre | Qué hace | Permisos que pide |
 |---|---|---|---|
-| `montaje` | A mano, los lunes a las 11:00 UTC, y cuando lo dispara el panel, el menú, `conectar`, `flota` o `restaurar` | En este orden: trae la versión nueva de la semilla (opcional), publica `maestro.gs` (opcional, con `PUBLICAR`), hornea el `<head>`, el catálogo, el respaldo y el SEO desde la hoja, baja las fotos, **corre todas las baterías sobre lo ya modificado** y publica en `main` | `contents: write`, `pull-requests: write`, `actions: read` |
+| `montaje` | A mano, los lunes a las 11:00 UTC, y cuando lo dispara el panel, el menú, `conectar`, `flota` o `restaurar` | En este orden: trae la versión nueva de la semilla (opcional), publica `maestro.gs` (opcional, con `PUBLICAR`), hornea el `<head>`, el catálogo, el respaldo y el SEO desde la hoja, baja las fotos, **comprueba lo horneado** —en la semilla, todas las baterías; en una tienda, `tienda-viva.js` (bitácora 102)— y publica en `main` | `contents: write`, `pull-requests: write`, `actions: read` |
 | `fotos` | Una vez al día y a demanda | Mira si el comercio subió fotos nuevas al Drive; si las hay, las prepara y abre/fusiona su pull request | `contents: write`, `pull-requests: write` |
 | `pruebas` | En cada `push` a `main` y en cada pull request | La suite completa. `release` la exige en verde | Ninguno especial |
 | `release` | A mano, **solo en la semilla** | Corta la etiqueta `vX.Y.Z` desde `package.json`. En una tienda se planta y explica por qué | `contents: write` |

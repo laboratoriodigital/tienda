@@ -383,7 +383,7 @@ todos como vienen salvo dos:
 | `maestro` | **marcarlo** | Publica `maestro.gs` desde aquí. Pide los tres secretos de la sección anterior |
 | `confirmar` | escribir `PUBLICAR` | Solo hace falta si marcaste `maestro`: es la confirmación de que sí |
 | `aprobacion` | `automatica` — sin marcar lo contrario | El flujo publica directo en `main` cuando todo sale verde. `con-pull-request` deja un pull request abierto para mirarlo antes |
-| `semilla` | sin marcar | **Actualizar la tienda** (0.14.0): trae la última versión publicada de su semilla, publica el maestro si cambió, corre TODAS las baterías y publica en `main`, o vuelve atrás solo. Es lo que disparan el panel, el menú y la flota. Con `version` se pide una en particular. Para traer también los flujos hace falta el secreto `SEMILLA_TOKEN` |
+| `semilla` | sin marcar | **Actualizar la tienda** (0.14.0): trae la última versión publicada de su semilla, publica el maestro si cambió, comprueba lo horneado con `tienda-viva.js` —el código ya pasó la suite entera en la semilla antes de que `release` cortara la versión; bitácora 102— y publica en `main`, o vuelve atrás solo. Es lo que disparan el panel, el menú y la flota. Con `version` se pide una en particular. Para traer también los flujos hace falta el secreto `SEMILLA_TOKEN` |
 | `version` | vacío | Solo con `semilla`: qué versión traer (vacío = la última) |
 | `sin_guardia` | sin marcar | Se salta el guardia del presupuesto de tiempo (`presupuesto.json`). Para una corrida que se sabe que va a tardar de más — un catálogo enorme la primera vez, por ejemplo — y no se quiere que falle por eso |
 
@@ -395,7 +395,7 @@ le escribe el <head>, las cinco constantes y la paleta de ESTA hoja
 trae las fotos del Drive
 hornea publicar/catalogo.json desde ESTA hoja
 le escribe el catálogo de respaldo y CONFIG_SEMILLA desde ese catálogo
-corre todas las baterías SOBRE LOS ARCHIVOS YA MODIFICADOS
+comprueba lo horneado SOBRE LOS ARCHIVOS YA MODIFICADOS (en una tienda: tienda-viva.js)
 abre el pull request
 ```
 

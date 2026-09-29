@@ -28,6 +28,27 @@ CORTA="e2e.js movil.js enlace.js fotos.js exif.js config.js hoja.js montaje.js \
        respaldo.js seo.js plantilla.js varpag.js pagoweb.js comprador.js combinaciones.js rastreo.js avisame.js vistaprevia.js"
 
 decidir() {
+  # 0.22.0 · EN UNA TIENDA, LA GUARDIA ES LA TIENDA VIVA (bitácora 102).
+  # Va PRIMERO, antes de mirar GUARDIA, a propósito: el `montaje` de una tienda
+  # pide GUARDIA=todas cada vez que se actualiza, y «todas» dentro de una
+  # tienda eran ~2.480 aserciones escritas para la semilla, con sus datos de
+  # muestra y su repositorio. Cada suposición de esas fue una publicación
+  # bloqueada —cinco veces seguidas— sin proteger de nada: el código de una
+  # tienda actualizada es el de una etiqueta que `release` no corta sin la suite
+  # entera en verde. Lo que puede romperse en una tienda es lo que se hornea con
+  # SUS datos, y eso es lo que mira `tienda-viva.js`.
+  #
+  # Y está AQUÍ, y no en el flujo, porque este archivo lo escribe la
+  # actualización ANTES de que se corra: una tienda con el flujo viejo ya usa la
+  # guardia nueva en la misma corrida que la trae. En el flujo llegaría una
+  # versión tarde, y es justo lo que la tenía bloqueada (bitácora 95).
+  #
+  # SUITE_ENTERA=1 fuerza todas en cualquier sitio, para quien quiera mirar.
+  if [ -z "$SUITE_ENTERA" ] && [ "$(node -p "require('./donde.js').esSemilla()" 2>/dev/null)" = "false" ]; then
+    echo "tienda: el código es el de una etiqueta que ya pasó la suite; se prueba lo horneado" >&2
+    echo tienda; return
+  fi
+  [ -n "$SUITE_ENTERA" ] && { echo todas; return; }
   [ "$GUARDIA" = "todas" ] && { echo todas; return; }
   [ "$GUARDIA" = "corta" ] && { echo corta; return; }
   [ -n "$GITHUB_REPOSITORY" ] && [ -n "$GH_TOKEN" ] || { echo "todas: no corre en un flujo de GitHub" >&2; echo todas; return; }
@@ -50,7 +71,10 @@ decidir() {
 cual=$(decidir)
 # Para que una batería pueda comprobar la decisión sin correr nada.
 [ -n "$SOLO_DECIDIR" ] && { echo "$cual"; exit 0; }
-if [ "$cual" = "corta" ]; then
+if [ "$cual" = "tienda" ]; then
+  echo "LA TIENDA VIVA — lo que se horneó con los datos de esta tienda (bitácora 102)."
+  export BATERIAS="tienda-viva.js"
+elif [ "$cual" = "corta" ]; then
   echo "GUARDIA CORTA — $(echo $CORTA | wc -w) baterías sobre lo publicado (el código ya pasó todas)."
   export BATERIAS="$CORTA"
 else
