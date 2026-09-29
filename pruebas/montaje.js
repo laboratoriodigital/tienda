@@ -2874,6 +2874,44 @@ const configurar = (g, clave, valor) => {
      sabe.length === 0, sabe.join(', ') || 'solo invariantes');
 }
 
+/* ═══ 27j. EL QUE MIRA Y EL QUE PUBLICA VEN LO MISMO (0.22.2 · bitácora 104) ═══
+   `fotos` decide si hay algo que publicar con un paso que MIRA, y después otro
+   PUBLICA. El que mira horneaba la configuración desde la plantilla y la
+   comparaba con lo publicado, que además lleva el respaldo y el SEO que escriben
+   otras dos herramientas: salía distinto SIEMPRE, y cada «Publicar ahora» moría
+   en «Nada que publicar pese a haber detectado novedades». Se prueba con el
+   horneado completo de verdad, como lo deja el paso que publica. */
+{
+  /* Una tienda configurada de punta a punta: sin eso el horneado se niega, con
+     razón, a publicar una tienda que todavía no puede vender. */
+  const g = nuevo();
+  require('./gas.js').configurar(g);
+  const datos = puerta(g, 'bloques');
+  const { baseParaRevisar } = require('../montar/preparar-index.mjs');
+  const plantilla = fs.readFileSync('../plantilla/index.html', 'utf8');
+  const cat = fs.existsSync('../publicar/catalogo.json')
+    ? JSON.parse(fs.readFileSync('../publicar/catalogo.json', 'utf8')) : null;
+  if (!cat) {
+    console.log('  SALTA | el que mira y el que publica: aquí no hay catálogo horneado con qué armar la página.');
+  } else {
+    const seo = require('../montar/sembrar-seo.mjs');
+    const s_ = x => typeof x === 'string' ? x : x.html;
+    const publicada = s_(seo.aplicar(s_(respaldo.aplicar(aplicar(plantilla, datos), cat, cat.version)), cat));
+    const mira = d => aplicar(baseParaRevisar(plantilla, publicada, true), d);
+    ok('JUSTO DESPUÉS DE PUBLICAR, el que mira no ve nada nuevo',
+       mira(datos) === publicada,
+       'antes veía «cambió la configuración» siempre, y «Publicar ahora» moría sin publicar nada');
+    const otra = JSON.parse(JSON.stringify(datos)); otra.valores.NEGOCIO = 'Otro nombre de verdad';
+    ok('  ...y si la hoja cambia, sí lo ve', mira(otra) !== publicada);
+    ok('  ...y para publicar se sigue partiendo de la plantilla, que es como llega el código nuevo',
+       baseParaRevisar(plantilla, publicada, false) === plantilla);
+  }
+  const py = fs.readFileSync('../.github/workflows/pruebas.yml', 'utf8');
+  ok('`pruebas` decide con publicacion.sh: en la semilla todo, en una tienda la tienda viva',
+     /GUARDIA: todas\n\s+run: \|\n\s+set -o pipefail\n\s+\.\/publicacion\.sh/.test(py) && !/\.\/todas\.sh 2>&1/.test(py),
+     'la flota empuja los flujos de cada tienda, y cada entrega disparaba la suite entera allá');
+}
+
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══
    El archivo tiene más de cien funciones y el selector del editor las lista
    revueltas. Las cinco que un humano ejecuta estaban perdidas entre las demás,

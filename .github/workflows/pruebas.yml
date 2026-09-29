@@ -167,10 +167,20 @@ jobs:
 
       # todas.sh copia maestro.gs e index.html reales antes de correr, y sale
       # con código 1 si falla una sola aserción.
+      # 0.22.2 · EN UNA TIENDA, LA TIENDA VIVA TAMBIÉN AQUÍ (bitácora 104).
+      # Esto corría `todas.sh` a secas: dentro de una tienda, la suite entera de
+      # la semilla en cada push —y la flota empuja los flujos de cada tienda con
+      # un permiso que SÍ dispara esto, así que cada entrega eran dos o tres
+      # corridas de dos minutos, rojas por las mismas suposiciones de la
+      # bitácora 102—. La decisión es una sola, la de `publicacion.sh`: con
+      # GUARDIA=todas, en la semilla corre todo —lo que `release` exige— y en
+      # una tienda, lo que se hornea con sus datos.
       - name: Todas las baterías
+        env:
+          GUARDIA: todas
         run: |
           set -o pipefail
-          ./todas.sh 2>&1 | tee /tmp/pruebas.txt || estado=$?
+          ./publicacion.sh 2>&1 | tee /tmp/pruebas.txt || estado=$?
           # EL MARCADOR SE DICE UNA VEZ (0.20.4 · bitácora 91). Este volcado
           # traía el TOTAL, la lista de baterías con problemas Y cada línea de
           # FALLA: en verde son tres maneras de decir lo mismo, y en rojo el

@@ -265,6 +265,29 @@ export function versionDesalineada(delRepositorio, laViva) {
   ].join('\n');
 }
 
+/* 0.22.2 · EL QUE MIRA COMPARA LO QUE ÉL ESCRIBE, NO LO DE OTROS (bitácora 104).
+   Con --revisar esto horneaba desde la PLANTILLA y comparaba con lo publicado.
+   Pero lo publicado lleva además lo que escriben DESPUÉS `sembrar-respaldo` y
+   `sembrar-seo` —el catálogo de respaldo, los datos para buscadores—, así que
+   la comparación salía distinta SIEMPRE, también justo después de una
+   publicación perfecta: «cambió la configuración de la hoja», el paso que
+   publica horneaba exactamente lo mismo, y `fotos` moría en «Nada que publicar
+   pese a haber detectado novedades». Pasaba en cada «Publicar ahora» de cada
+   tienda.
+
+   La pregunta de este paso es «¿cambió lo que la hoja pone en la página?», así
+   que se contesta aplicando la hoja SOBRE lo publicado: si nada cambió, sale
+   idéntico; si cambió algo, sale distinto justo en eso. Al publicar se sigue
+   partiendo de la plantilla, que es como llega el código nuevo de la semilla. */
+export function baseParaRevisar(plantilla, publicada, revisando) {
+  return revisando && publicada ? publicada : plantilla;
+}
+async function baseDelHorneado(plantilla) {
+  let publicada = null;
+  try { publicada = await readFile(PUBLICAR, 'utf8'); } catch { /* aún no hay nada publicado */ }
+  return baseParaRevisar(plantilla, publicada, revisar);
+}
+
 async function versionDelRepositorio() {
   try {
     return ((await readFile('maestro.gs', 'utf8')).match(/var VERSION = '([^']+)'/) || [])[1] || '';
@@ -295,7 +318,7 @@ async function main() {
   }
 
   const plantilla = await readFile(PLANTILLA, 'utf8');
-  const nuevo = aplicar(plantilla, datos);
+  const nuevo = aplicar(await baseDelHorneado(plantilla), datos);
 
   const plantilla404 = await readFile(PLANTILLA_404, 'utf8');
   const nuevo404 = aplicar404(plantilla404, datos.valores.NEGOCIO);

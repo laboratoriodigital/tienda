@@ -1597,6 +1597,12 @@ agotado.
 - [x] El push de la tienda va con su permiso, sin token en la URL.
 - [x] `SEMILLA_TOKEN` por tienda ya no hace falta para los flujos (causa 3, en parte).
 
+### 0.22.2 · El que mira y el que publica ven lo mismo
+
+**C-17 · «Publicar ahora»**  · 1 pt · ✅ (bitácora 104)
+- [x] `preparar-index --revisar` aplica la hoja sobre lo publicado, no sobre la plantilla.
+- [x] `pruebas` decide con `publicacion.sh`: en una tienda, la tienda viva.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

@@ -2514,6 +2514,34 @@ pasa el `sha` al reemplazar, no escribe nada en ensayo—, 1 de la tiendita sobr
 un git de verdad, y las revisadas de `montaje.js` y `actualizar.js`, con sus
 controles negativos en rojo.
 
+**104 · «Nada que publicar pese a haber detectado novedades» no era un caso raro:
+pasaba siempre.** Con los flujos ya entregados por la flota, prueba1 se actualizó
+en verde por primera vez —montaje #21— y aun así *Publicar ahora* volvió a morir
+con ese mensaje. Esta vez se reprodujo con el emulador en vez de adivinar. El
+flujo `fotos` decide si hay algo que publicar con un paso que MIRA, y después
+otro PUBLICA. El que mira hornea la configuración desde la plantilla y la compara
+con `publicar/index.html`; pero lo publicado lleva además lo que escriben después
+`sembrar-respaldo` y `sembrar-seo`. Justo después de una publicación perfecta, lo
+que mira medía 169.938 bytes y lo publicado 174.271: **distinto siempre**. Así que
+el que mira decía «cambió la configuración de la hoja» en cada «Publicar ahora»
+de cada tienda, el que publica horneaba exactamente lo mismo, y la corrida moría.
+La bitácora 99 había encontrado un hueco real en la lista de `fotos` —`404.html`—,
+pero no era ESTA causa, y di por bueno el diagnóstico sin reproducirlo: la lección
+de la 102 otra vez.
+
+El arreglo es contestar la pregunta que el paso hace: «¿cambió lo que la hoja pone
+en la página?». Se aplica la hoja SOBRE lo publicado: si nada cambió sale idéntico
+—comprobado—, y si cambió algo sale distinto justo en eso. Para publicar se sigue
+partiendo de la plantilla, que es como llega el código nuevo de la semilla.
+
+Y de paso, lo que se vio en la misma captura: la flota empuja los flujos de cada
+tienda con un permiso que sí dispara `pruebas`, y `pruebas` corría la suite
+entera de la semilla dentro de la tienda —dos o tres corridas de dos minutos por
+entrega, rojas por las mismas suposiciones de la 102—. Ahora `pruebas` decide
+con `publicacion.sh` como todo lo demás: en la semilla, todo; en una tienda, la
+tienda viva. **Lo prueban** 4 aserciones de `montaje.js`, con el horneado
+completo de verdad y su control negativo.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los
