@@ -2292,6 +2292,30 @@ vez que se corrió encontró exactamente los dos rojos que la tienda estaba
 enseñando en ese momento. **Lo prueban** ella misma, sus cinco aserciones, y las
 dos guardas que la hicieron falta.
 
+**96 · El permiso se sembraba primero y se comprobaba después.** La tienda ya
+publicaba sola, y al tocar *Publicar* desde la hoja salió «el permiso de esta
+tienda no sirve o se venció». El `DISPARO_TOKEN` de `tiendas` —el que el maestro
+guarda como `GITHUB_TOKEN` para disparar flujos— está vencido o es de grano fino
+sobre «Only select repositories» y no incluye a esa tienda. Eso solo, ya estaba
+previsto: `conectar` lo comprueba y lo dice (bitácora 87). Lo que no estaba
+previsto es el ORDEN. El comentario de la comprobación decía, con todas sus
+letras, «se le pregunta aquí, ANTES de sembrárselo», y el programa hacía lo
+contrario: sembraba el token y después preguntaba si servía. Como desde la
+0.20.2 el maestro reemplaza el permiso que ya no sirve por el que llega
+(bitácora 89), un token muerto **pisa uno bueno**, el aviso queda tres líneas
+más abajo en un resumen que nadie vuelve a abrir, y el fallo sale semanas
+después, en el mostrador, el día que el comercio toca Publicar.
+
+Ahora se comprueba primero y, si no sirve, no se siembra: un permiso muerto no
+borra al que la tienda pudiera tener. `conectar` no se cae por eso —los
+secretos, la hoja y el primer montaje son lo que de verdad conecta una tienda—;
+deja el aviso de GitHub en la corrida y dice qué ampliar. La lección es sobre los
+comentarios: este describía la intención y llevaba versiones contradiciendo al
+código de al lado. Un comentario no vigila nada; ahora hay una aserción que lee
+el propio archivo y exige que la comprobación esté escrita ANTES de la siembra.
+**Lo prueban** 3 aserciones de la flota, con el control negativo —invertir las
+dos líneas— visto en rojo.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los
