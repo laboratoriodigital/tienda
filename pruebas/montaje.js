@@ -1749,7 +1749,7 @@ const configurar = (g, clave, valor) => {
      /git status --porcelain -- \$PUBLICA/.test(flujo),
      'un «no» sin pruebas obliga a ir a buscarlas afuera');
   ok('EL HORNEADO deja en el resumen lo que hizo',
-     /tee \/tmp\/catalogo\.txt/.test(flujo) && /### El catálogo/.test(flujo),
+     /tee \/tmp\/catalogo\.txt/.test(flujo) && /(### |<summary>)El catálogo/.test(flujo),
      'desde Actions el log es lo único que hay');
   ok('  ...con pipefail, que es lo que hace que un fallo cuente',
      /set -o pipefail\n          node montar\/catalogo-estatico/.test(flujo),
@@ -1761,7 +1761,7 @@ const configurar = (g, clave, valor) => {
   const pruebasYml = fs.readFileSync('../.github/workflows/pruebas.yml', 'utf8');
   for (const [nombre, y] of [['montaje', flujo], ['pruebas', pruebasYml]]) {
     ok('EL FLUJO `' + nombre + '` pone las líneas FALLA en el resumen',
-       /### Las baterías/.test(y) && /grep -E "\^ FALLA/.test(y),
+       /### (Las baterías|En rojo)/.test(y) && /grep -E "\^ FALLA/.test(y),
        'desde Actions el resumen es lo primero que se ve');
     ok('  ...y sigue fallando cuando fallan',
        /exit \$\{estado:-0\}/.test(y),
@@ -2486,10 +2486,16 @@ const configurar = (g, clave, valor) => {
 
   /* Y la que mide el tiempo, además, no puede tumbar la corrida por faltar:
      medir es un servicio, no el trabajo. */
-  const m = flujos.filter(x => x.f === 'montaje.yml')[0].t;
-  ok('  ...y si el cronómetro no está, el montaje lo dice y sigue',
-     /\[ ! -f montar\/tiempos\.mjs \]/.test(m) && /Sin cronómetro/.test(m),
-     'una tienda de una versión anterior no trae la herramienta nueva');
+  /* 0.20.4 · Y NO SOLO EN `montaje`. Esta aserción miraba un solo flujo, y
+     `fotos` —el que corre todos los días en todas las tiendas— llamaba al
+     cronómetro sin red: la misma caída de la bitácora 90, esperando en el
+     flujo de al lado. Ahora se le exige a cualquiera que lo llame. */
+  const conReloj = flujos.filter(x => /node montar\/tiempos\.mjs/.test(x.t));
+  const sinRed = conReloj.filter(x => !(/\[ ! -f montar\/tiempos\.mjs \]/.test(x.t) &&
+                                        /Sin cronómetro/.test(x.t)));
+  ok('  ...y si el cronómetro no está, el flujo lo dice y sigue: TODOS los que lo llaman',
+     conReloj.length >= 2 && sinRed.length === 0,
+     sinRed.map(x => x.f).join(', ') || conReloj.map(x => x.f).join(', '));
 }
 
 /* ═══ 27c. EL RUNBOOK Y LA LISTA DE FUNCIONALIDADES, VIVOS (0.19.0) ═══
@@ -2561,6 +2567,84 @@ const configurar = (g, clave, valor) => {
      /`BOLD_IDENTIDAD_SANDBOX`/.test(arq) && /`BOLD_SECRETA_PRODUCCION`/.test(arq));
   ok('  ...y cada una dice dónde nace y cómo se renueva',
      /Cómo se renueva/.test(arq) && /Quién la escribe/.test(arq) && /clasp login/.test(arq));
+}
+
+/* ═══ 27d. EL RESUMEN DE CADA FLUJO: QUÉ ES, CÓMO ESTÁ, SIN REPETIRSE
+       (0.20.4 · bitácora 91) ═══
+   El resumen de una corrida es lo único que lee quien no escribió el flujo, y se
+   había vuelto una pila de volcados: empezaba por lo que imprimió la tercera
+   herramienta, no decía de qué tienda era, ni en qué versión estaba, ni por qué
+   había corrido, y repetía lo mismo tres veces —el marcador de las baterías
+   salía en el TOTAL, en la lista de baterías con problemas y en cada línea de
+   FALLA—. Decir algo tres veces es la otra manera de no decirlo.
+
+   LA FORMA, IGUAL EN LOS OCHO FLUJOS DE LOS DOS REPOSITORIOS: una ficha arriba
+   (qué es esto, sobre qué, cómo está ANTES de tocar nada, qué se pidió y quién
+   lo pidió), lo que se averigua en medio, y el cierre abajo diciendo cómo quedó.
+
+   SE COMPRUEBA AQUÍ porque un flujo no se puede correr en el equipo de nadie: lo
+   que no vigila una aserción lo vigila el susto, y el susto llega en la tienda
+   de un cliente. */
+{
+  const dir = '../.github/workflows';
+  const flujos = fs.readdirSync(dir).filter(f => /\.ya?ml$/.test(f))
+    .map(f => ({ f, t: fs.readFileSync(dir + '/' + f, 'utf8') }));
+
+  /* Los pasos, en el orden en que GitHub los corre. El resumen se escribe por
+     añadidura, así que el orden del archivo ES el orden de la página. */
+  const pasos = t => t.split(/\n      - (?=name:|uses:)/).slice(1)
+    .map(p => ({ nombre: (p.match(/^name: (.+)/) || ['', ''])[1].trim(), t: p }));
+
+  const sinFicha = flujos.filter(({ t }) => {
+    const p = pasos(t).filter(x => /GITHUB_STEP_SUMMARY/.test(x.t))[0];
+    return !p || p.nombre !== 'Qué es esta corrida';
+  });
+  ok('LA FICHA es lo PRIMERO que cualquier flujo escribe en el resumen',
+     flujos.length >= 5 && sinFicha.length === 0,
+     sinFicha.map(x => x.f).join(', ') || flujos.length + ' flujos');
+
+  /* Qué es, sobre qué, cómo está y quién lo pidió: sin las cuatro cosas la
+     ficha es un título. */
+  const floja = flujos.filter(({ t }) => {
+    const p = pasos(t).filter(x => x.nombre === 'Qué es esta corrida')[0];
+    return !p || !(/echo "## /.test(p.t) && /GITHUB_REPOSITORY/.test(p.t) &&
+                   /GITHUB_ACTOR/.test(p.t) && /package\.json/.test(p.t));
+  });
+  ok('  ...y dice qué es, sobre qué repositorio, en qué versión y quién lo pidió',
+     floja.length === 0, floja.map(x => x.f).join(', ') || 'las cinco fichas completas');
+
+  /* Dos encabezados iguales en la misma página son dos bloques que dicen lo
+     mismo, o uno que sobra. */
+  const repes = [];
+  flujos.forEach(({ f, t }) => {
+    const titulos = (t.match(/echo "#{2,4} [^"]+"/g) || [])
+      .map(x => x.replace(/^echo "#+ |"$/g, ''));
+    const cuenta = {};
+    titulos.forEach(x => { cuenta[x] = (cuenta[x] || 0) + 1; });
+    Object.keys(cuenta).filter(k => cuenta[k] > 1).forEach(k => repes.push(f + ' › ' + k));
+  });
+  ok('  ...y ningún encabezado se repite dentro del mismo flujo',
+     repes.length === 0, repes.join(' · ') || 'sin repeticiones');
+
+  /* Los dos flujos que tocan la tienda cierran diciendo en qué estado la dejan,
+     corra bien o mal: una corrida roja terminaba sin una sola frase sobre si la
+     tienda estaba tocada o no. */
+  const cierran = ['montaje.yml', 'fotos.yml'].map(f => {
+    const p = pasos(flujos.filter(x => x.f === f)[0].t)
+      .filter(x => x.nombre === 'Cómo quedó')[0];
+    return { f, bien: !!p && /if: always\(\)/.test(p.t) && /sigue como estaba/.test(p.t) &&
+                     /queda publicada/.test(p.t) };
+  });
+  ok('  ...y montaje y fotos cierran diciendo cómo queda la tienda, pase lo que pase',
+     cierran.every(x => x.bien), cierran.filter(x => !x.bien).map(x => x.f).join(', ') || 'los dos');
+
+  /* Y el marcador de las baterías, una sola vez: en el encabezado. El volcado
+     solo aparece cuando hay algo roto que mirar. */
+  const pr = flujos.filter(x => x.f === 'pruebas.yml')[0].t;
+  ok('  ...y el marcador de las baterías se dice UNA vez, en el encabezado',
+     /echo "### Todo en verde ·\$total"/.test(pr) &&
+     !/grep -E "\^ FALLA\|\^  TOTAL/.test(pr),
+     'en verde, una línea; en rojo, el marcador y las fallas');
 }
 
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══

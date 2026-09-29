@@ -131,6 +131,42 @@ jobs:
         with:
           node-version: 22
 
+      # ── LA FICHA DE LA CORRIDA (0.20.4 · bitácora 91) ─────────────────────
+      # LO PRIMERO QUE SE LEE, EN TODOS LOS FLUJOS: qué es esta corrida, sobre
+      # qué tienda, cómo está ANTES de tocar nada y qué se le pidió. Sin esto un
+      # resumen empieza por el volcado de la tercera herramienta y hay que
+      # deducir de qué tienda es y por qué corrió.
+      #
+      # LA ESCRIBE EL FLUJO, CON LO QUE YA TIENE A MANO. No hay herramienta
+      # nueva a propósito: una tienda que nació de una versión anterior no la
+      # tendría y el flujo se caería por faltarle un archivo (bitácora 90).
+      #
+      # Y LO QUE DICE AQUÍ NO SE REPITE ABAJO: la versión, el repositorio y lo
+      # que se pidió se dicen UNA vez (patrón 2); los pasos de abajo solo añaden
+      # lo que averiguan, y el cierre dice cómo quedó.
+      - name: Qué es esta corrida
+        run: |
+          v=$(node -p "require('./package.json').version" 2>/dev/null || echo '?')
+          n=$(node -p "require('./package.json').name"    2>/dev/null || echo "${GITHUB_REPOSITORY#*/}")
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            pedido='la red de seguridad diaria: **solo mira y avisa**, no publica'
+          else
+            pedido="publicar lo que haya, aprobación: ${{ inputs.aprobacion }}"
+          fi
+          {
+            echo "## Fotos y catálogo de $n"
+            echo ""
+            echo "Baja del Drive las fotos nuevas del comercio, rehornea el catálogo y publica."
+            echo "Es el mismo camino que usa el botón **Publicar ahora** del menú de la hoja."
+            echo ""
+            echo "|  |  |"
+            echo "|---|---|"
+            echo "| Tienda | \`$GITHUB_REPOSITORY\`, versión **$v** |"
+            echo "| Antes de esto | \`$(git log -1 --format='%h · %cd' --date=format:'%d %b %H:%M')\` |"
+            echo "| Se pidió | $pedido |"
+            echo "| Lo disparó | $GITHUB_ACTOR · \`$GITHUB_EVENT_NAME\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: ¿Está configurada esta tienda?
         id: hay
         env:
@@ -175,10 +211,12 @@ jobs:
         run: |
           node montar/sondear.mjs 2>&1 | tee /tmp/sondeo.txt || true
           {
-            echo "### El sondeo"
+            echo "<details><summary>El sondeo</summary>"
+            echo ""
             echo '```'
             cat /tmp/sondeo.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: ¿Esta hoja es la de esta tienda?
@@ -190,10 +228,12 @@ jobs:
           set -o pipefail
           node montar/misma-tienda.mjs --desde 2>&1 | tee /tmp/misma.txt || estado=$?
           {
-            echo "### De qué tienda es la hoja"
+            echo "<details><summary>De qué tienda es la hoja</summary>"
+            echo ""
             echo '```'
             cat /tmp/misma.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
           exit ${estado:-0}
 
@@ -370,14 +410,18 @@ jobs:
             echo '```'
             cat /tmp/fotos.txt 2>/dev/null || echo "(no llegó a correr)"
             echo '```'
-            echo "### El catálogo"
+            echo "<details><summary>El catálogo</summary>"
+            echo ""
             echo '```'
             cat /tmp/catalogo.txt 2>/dev/null || echo "(no llegó a correr)"
             echo '```'
-            echo "### El respaldo del index"
+            echo "</details>"
+            echo "<details><summary>El respaldo del index</summary>"
+            echo ""
             echo '```'
             cat /tmp/respaldo.txt 2>/dev/null || echo "(no llegó a correr)"
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
           exit $estado
 
@@ -614,7 +658,6 @@ jobs:
           # pull request no añadía una sola comprobación. Se va directo a main.
           if [ "$AUTO" = "true" ]; then
             if git push --quiet origin "$rama":main; then
-              echo "Publicado en \`main\`. Cloudflare despliega solo." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             # Si `main` está protegido, el push se rechaza y no es un fallo:
@@ -658,6 +701,18 @@ jobs:
           SIN_GUARDIA: ${{ inputs.sin_guardia && '1' || '0' }}
         run: |
           estado=0
+          # 0.20.4 · MEDIR NO PUEDE TUMBAR UNA PUBLICACIÓN (bitácora 90 y 91).
+          # `montaje` ya toleraba que faltara el cronómetro; este flujo no, y es
+          # el que corre todos los días en las tiendas viejas. La tolerancia se
+          # comprueba ahora para TODO flujo que lo llame, no solo para uno.
+          if [ ! -f montar/tiempos.mjs ]; then
+            {
+              echo ""
+              echo "_Sin cronómetro: esta tienda no trae \`montar/tiempos.mjs\`._"
+              echo "_Llega con la próxima actualización (montaje › **semilla**)._"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           node montar/tiempos.mjs || estado=$?
           # La herramienta imprime y escribe tiempos.md; el flujo lo pega en
           # el resumen. Es como lo hacen todos los pasos de aquí, y deja que
@@ -674,3 +729,28 @@ jobs:
           path: tiempos.json
           retention-days: 30
           if-no-files-found: ignore
+
+      # ── CÓMO QUEDÓ (0.20.4 · bitácora 91) ────────────────────────────────
+      # Igual que en `montaje`, y por lo mismo: el estado en que queda la tienda
+      # se dice una vez, al final, corra bien o mal.
+      - name: Cómo quedó
+        if: always()
+        run: |
+          v=$(node -p "require('./package.json').version" 2>/dev/null || echo '?')
+          ahora=$(git rev-parse --short=7 HEAD)
+          {
+            echo ""
+            if [ "${{ job.status }}" != "success" ]; then
+              echo "### La tienda sigue como estaba"
+              echo ""
+              echo "En \`${GITHUB_SHA:0:7}\`, versión **$v**: esta corrida no dejó nada publicado."
+            elif [ "$ahora" = "${GITHUB_SHA:0:7}" ]; then
+              echo "### La tienda ya estaba al día"
+              echo ""
+              echo "En \`$ahora\`, versión **$v**. No hizo falta publicar nada."
+            else
+              echo "### La tienda queda publicada en \`$ahora\`"
+              echo ""
+              echo "Versión **$v**. Cloudflare republica solo, en un minuto."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

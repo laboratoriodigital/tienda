@@ -55,6 +55,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ── LA FICHA DE LA CORRIDA (0.20.4 · bitácora 91) ─────────────────────
+      # La misma de todos los flujos: qué es esto, sobre qué repositorio, cómo
+      # está antes de tocar nada y qué se pidió. Una vez, arriba, y ningún paso
+      # de abajo lo repite.
+      # `working-directory: .` a mano: este flujo tiene `defaults` en `pruebas/`,
+      # y el package.json y la historia están en la raíz (mismo tropiezo que el
+      # cronómetro en la 0.19.2).
+      - name: Qué es esta corrida
+        working-directory: .
+        run: |
+          v=$(node -p "require('./package.json').version" 2>/dev/null || echo '?')
+          n=$(node -p "require('./package.json').name"    2>/dev/null || echo "${GITHUB_REPOSITORY#*/}")
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            que="pull request **#${{ github.event.number }}** (\`$GITHUB_HEAD_REF\` → \`$GITHUB_BASE_REF\`)"
+          else
+            que="\`$GITHUB_REF_NAME\`"
+          fi
+          {
+            echo "## Las baterías de $n"
+            echo ""
+            echo "Todas las aserciones del repositorio —el maestro emulado, el panel, la página,"
+            echo "los flujos y los documentos— sobre estos bytes. Nada se publica sin este verde."
+            echo ""
+            echo "|  |  |"
+            echo "|---|---|"
+            echo "| Repositorio | \`$GITHUB_REPOSITORY\`, versión **$v** |"
+            echo "| Se prueba | $que · \`${GITHUB_SHA:0:7}\` |"
+            echo "| Lo disparó | $GITHUB_ACTOR · \`$GITHUB_EVENT_NAME\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # ── Que la versión suba cuando cambia lo que se despliega ──
       # Sin esto, una mejora sale al aire y las tiendas siguen creyendo que
       # tienen la de antes: el panel las muestra al día y no lo están. La
@@ -141,11 +171,21 @@ jobs:
         run: |
           set -o pipefail
           ./todas.sh 2>&1 | tee /tmp/pruebas.txt || estado=$?
+          # EL MARCADOR SE DICE UNA VEZ (0.20.4 · bitácora 91). Este volcado
+          # traía el TOTAL, la lista de baterías con problemas Y cada línea de
+          # FALLA: en verde son tres maneras de decir lo mismo, y en rojo el
+          # número que importa queda enterrado entre ellas.
+          total=$(grep -E "^  TOTAL" /tmp/pruebas.txt | tail -1 | tr -s ' ')
           {
-            echo "### Las baterías"
-            echo '```'
-            grep -E "^ FALLA|^  TOTAL|Baterías con problemas|^    ·" /tmp/pruebas.txt || tail -30 /tmp/pruebas.txt
-            echo '```'
+            if [ "${estado:-0}" = "0" ]; then
+              echo "### Todo en verde ·$total"
+            else
+              echo "### En rojo ·$total"
+              echo ""
+              echo '```'
+              grep -E "^ FALLA|Baterías con problemas|^    ·" /tmp/pruebas.txt || tail -30 /tmp/pruebas.txt
+              echo '```'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit ${estado:-0}
 
@@ -173,6 +213,17 @@ jobs:
           SIN_GUARDIA: '0'
         run: |
           estado=0
+          # 0.20.4 · Igual que en `montaje` y `fotos` (bitácora 90 y 91): si la
+          # tienda no trae el cronómetro, se dice y se sigue. Medir es un
+          # servicio, no el trabajo.
+          if [ ! -f montar/tiempos.mjs ]; then
+            {
+              echo ""
+              echo "_Sin cronómetro: esta tienda no trae \`montar/tiempos.mjs\`._"
+              echo "_Llega con la próxima actualización (montaje › **semilla**)._"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           node montar/tiempos.mjs || estado=$?
           # La herramienta imprime y escribe tiempos.md; el flujo lo pega en
           # el resumen. Es como lo hacen todos los pasos de aquí, y deja que

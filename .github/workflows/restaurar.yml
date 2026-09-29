@@ -61,6 +61,31 @@ jobs:
         with:
           node-version: 22
 
+      # ── LA FICHA DE LA CORRIDA (0.20.4 · bitácora 91) ─────────────────────
+      # La misma de todos los flujos: qué es esto, sobre qué repositorio, cómo
+      # está antes de tocar nada y qué se pidió. Una vez, arriba, y ningún paso
+      # de abajo lo repite.
+      - name: Qué es esta corrida
+        run: |
+          v=$(node -p "require('./package.json').version" 2>/dev/null || echo '?')
+          n=$(node -p "require('./package.json').name"    2>/dev/null || echo "${GITHUB_REPOSITORY#*/}")
+          hasta='**el anterior**'
+          [ -n "${{ inputs.hasta }}" ] && hasta='`${{ inputs.hasta }}`'
+          {
+            echo "## Volver atrás en $n"
+            echo ""
+            echo "Devuelve el **código** y la **página**. Los datos de la hoja —catálogo,"
+            echo "configuración, envíos, cupones— se restauran desde el editor del maestro"
+            echo "con \`A5_respaldos()\` y \`A6_restaurarDatos()\`: son de Google, no de GitHub."
+            echo ""
+            echo "|  |  |"
+            echo "|---|---|"
+            echo "| Tienda | \`$GITHUB_REPOSITORY\`, versión **$v** |"
+            echo "| Ahora mismo | \`$(git log -1 --format='%h · %cd' --date=format:'%d %b %H:%M' -- publicar/)\` en \`publicar/\` |"
+            echo "| Se pidió | \`${{ inputs.que }}\` hasta $hasta |"
+            echo "| Lo pidió | $GITHUB_ACTOR |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # Las etiquetas son de la SEMILLA: la tienda no corta versiones. Con
       # SEMILLA_TOKEN se leen aunque sea privada; sin él, se intenta igual y si
       # no se puede, hay que escribir la versión a mano en el formulario.

@@ -123,6 +123,45 @@ jobs:
         with:
           node-version: 22
 
+      # ── LA FICHA DE LA CORRIDA (0.20.4 · bitácora 91) ─────────────────────
+      # LO PRIMERO QUE SE LEE, EN TODOS LOS FLUJOS: qué es esta corrida, sobre
+      # qué tienda, cómo está ANTES de tocar nada y qué se le pidió. Sin esto un
+      # resumen empieza por el volcado de la tercera herramienta y hay que
+      # deducir de qué tienda es y por qué corrió.
+      #
+      # LA ESCRIBE EL FLUJO, CON LO QUE YA TIENE A MANO. No hay herramienta
+      # nueva a propósito: una tienda que nació de una versión anterior no la
+      # tendría y el flujo se caería por faltarle un archivo (bitácora 90).
+      #
+      # Y LO QUE DICE AQUÍ NO SE REPITE ABAJO: la versión, el repositorio y lo
+      # que se pidió se dicen UNA vez (patrón 2); los pasos de abajo solo añaden
+      # lo que averiguan, y el cierre dice cómo quedó.
+      - name: Qué es esta corrida
+        run: |
+          v=$(node -p "require('./package.json').version" 2>/dev/null || echo '?')
+          n=$(node -p "require('./package.json').name"    2>/dev/null || echo "${GITHUB_REPOSITORY#*/}")
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            pedido='la revisión de los lunes: todo lo que haya cambiado'
+          else
+            pedido='`${{ inputs.que }}`'
+            [ "${{ inputs.semilla }}" = "true" ] && pedido="$pedido · **semilla** ${{ inputs.version }}"
+            [ "${{ inputs.maestro }}" = "true" ] && pedido="$pedido · **maestro**"
+            pedido="$pedido · publicar: ${{ inputs.aprobacion }}"
+          fi
+          {
+            echo "## Montaje de $n"
+            echo ""
+            echo "Trae de la hoja y del Drive lo que cambió el comercio, lo hornea en \`publicar/\`,"
+            echo "corre las baterías sobre lo horneado y publica. Si algo falla, no publica nada."
+            echo ""
+            echo "|  |  |"
+            echo "|---|---|"
+            echo "| Tienda | \`$GITHUB_REPOSITORY\`, versión **$v** |"
+            echo "| Antes de esto | \`$(git log -1 --format='%h · %cd' --date=format:'%d %b %H:%M')\` |"
+            echo "| Se pidió | $pedido |"
+            echo "| Lo disparó | $GITHUB_ACTOR · \`$GITHUB_EVENT_NAME\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # LA CACHÉ DE NPM, A MANO Y NO CON `cache: npm`.
       # `cache: npm` exige un package-lock.json, y en este repositorio los dos
       # están en .gitignore: en un checkout limpio no existen, y setup-node se
@@ -206,10 +245,12 @@ jobs:
         run: |
           node montar/sondear.mjs 2>&1 | tee /tmp/sondeo.txt || true
           {
-            echo "### El sondeo"
+            echo "<details><summary>El sondeo</summary>"
+            echo ""
             echo '```'
             cat /tmp/sondeo.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: ¿Esta hoja es la de esta tienda?
@@ -221,10 +262,12 @@ jobs:
           set -o pipefail
           node montar/misma-tienda.mjs --desde 2>&1 | tee /tmp/misma.txt || estado=$?
           {
-            echo "### De qué tienda es la hoja"
+            echo "<details><summary>De qué tienda es la hoja</summary>"
+            echo ""
             echo '```'
             cat /tmp/misma.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
           exit ${estado:-0}
 
@@ -315,10 +358,12 @@ jobs:
           set -o pipefail   # sin esto manda el código de tee y un fallo se pierde
           node montar/publicar-maestro.mjs | tee /tmp/maestro.txt
           {
-            echo '### Maestro'
+            echo "<details><summary>Maestro</summary>"
+            echo ""
             echo '```'
             cat /tmp/maestro.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ── 2. Lo que dice la hoja ──
@@ -396,10 +441,12 @@ jobs:
           set -o pipefail
           node montar/catalogo-estatico.mjs --desde 2>&1 | tee /tmp/catalogo.txt
           {
-            echo "### El catálogo"
+            echo "<details><summary>El catálogo</summary>"
+            echo ""
             echo '```'
             cat /tmp/catalogo.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # 0.16.0 · Si se eligió Cloudflare para las fotos, ¿de verdad transforma?
@@ -431,10 +478,12 @@ jobs:
           set -o pipefail
           node montar/sembrar-respaldo.mjs 2>&1 | tee /tmp/respaldo.txt
           {
-            echo "### El respaldo del index.html"
+            echo "<details><summary>El respaldo del index.html</summary>"
+            echo ""
             echo '```'
             cat /tmp/respaldo.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ── EL NOMBRE DEL WORKER, QUE ES LO ÚNICO QUE PUEDE PISAR A OTRA TIENDA ──
@@ -463,10 +512,12 @@ jobs:
           set -o pipefail
           node montar/sembrar-seo.mjs 2>&1 | tee /tmp/seo.txt
           {
-            echo "### El SEO horneado"
+            echo "<details><summary>El SEO horneado</summary>"
+            echo ""
             echo '```'
             cat /tmp/seo.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: El nombre del Worker, desde la hoja
@@ -475,10 +526,12 @@ jobs:
           set -o pipefail
           node montar/nombrar-worker.mjs 2>&1 | tee /tmp/worker.txt
           {
-            echo "### El nombre del Worker"
+            echo "<details><summary>El nombre del Worker</summary>"
+            echo ""
             echo '```'
             cat /tmp/worker.txt
             echo '```'
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: ¿Cambió algo?
@@ -655,7 +708,6 @@ jobs:
 
           if [ "$AUTO" = "true" ]; then
             if git push --quiet origin HEAD:main; then
-              echo "Publicado en \`main\`. Cloudflare despliega solo." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             # Si `main` está protegida, el push se rechaza y eso NO es un fallo:
@@ -784,3 +836,30 @@ jobs:
           path: tiempos.json
           retention-days: 30
           if-no-files-found: ignore
+
+      # ── CÓMO QUEDÓ (0.20.4 · bitácora 91) ────────────────────────────────
+      # La última línea del resumen dice en qué estado queda la TIENDA, que es
+      # lo que se fue a averiguar. Antes lo decía a medias el paso que empuja
+      # («Publicado en main»), y solo si llegaba a correr: una corrida roja
+      # terminaba sin una sola frase sobre si la tienda estaba tocada o no.
+      - name: Cómo quedó
+        if: always()
+        run: |
+          v=$(node -p "require('./package.json').version" 2>/dev/null || echo '?')
+          ahora=$(git rev-parse --short=7 HEAD)
+          {
+            echo ""
+            if [ "${{ job.status }}" != "success" ]; then
+              echo "### La tienda sigue como estaba"
+              echo ""
+              echo "En \`${GITHUB_SHA:0:7}\`, versión **$v**: esta corrida no dejó nada publicado."
+            elif [ "$ahora" = "${GITHUB_SHA:0:7}" ]; then
+              echo "### La tienda ya estaba al día"
+              echo ""
+              echo "En \`$ahora\`, versión **$v**. No hizo falta publicar nada."
+            else
+              echo "### La tienda queda publicada en \`$ahora\`"
+              echo ""
+              echo "Versión **$v**. Cloudflare republica solo, en un minuto."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -28,6 +28,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # ── LA FICHA DE LA CORRIDA (0.20.4 · bitácora 91) ─────────────────────
+      # La misma de todos los flujos: qué es esto, sobre qué repositorio, cómo
+      # está antes de tocar nada y qué se pidió. Una vez, arriba, y ningún paso
+      # de abajo lo repite.
+      - name: Qué es esta corrida
+        run: |
+          v=$(node -p "require('./package.json').version")
+          ultima=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          {
+            echo "## Cortar la versión $v de la semilla"
+            echo ""
+            echo "Esto **no despliega ninguna tienda**: publica una versión con nombre para que"
+            echo "las tiendas puedan pedirla cuando les toque, cada una a su ritmo."
+            echo ""
+            echo "|  |  |"
+            echo "|---|---|"
+            echo "| Semilla | \`$GITHUB_REPOSITORY\` · \`${GITHUB_SHA:0:7}\` |"
+            echo "| Se va a cortar | **$v** (de \`package.json\`) |"
+            echo "| La última cortada | ${ultima:-ninguna todavía} |"
+            echo "| Lo disparó | $GITHUB_ACTOR |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # ── ESTE FLUJO NO ES DE UNA TIENDA ────────────────────────────────────
       # `release` corta la versión de la PLANTILLA. Una tienda no corta
       # versiones: nace de la plantilla y consume la suya. Pero el flujo viaja
@@ -155,6 +177,10 @@ jobs:
           cp panel.gs            entrega/panel.gs
           tar -czf entrega/publicar.tar.gz -C publicar .
 
+      # ── CÓMO QUEDÓ (0.20.4 · bitácora 91) ────────────────────────────────
+      # Un release en verde no decía NADA en el resumen: solo hablaban los
+      # caminos rojos. Quien lo corre para poner una versión a disposición de la
+      # flota tenía que ir a la pestaña Releases a comprobar que pasó.
       - name: Etiqueta y publicación
         if: steps.hay.outputs.corta == 'si'
         env:
@@ -166,3 +192,10 @@ jobs:
             --generate-notes \
             entrega/index.html entrega/maestro.gs entrega/panel.gs \
             entrega/publicar.tar.gz
+          {
+            echo ""
+            echo "### \`v${{ steps.v.outputs.v }}\` cortada"
+            echo ""
+            echo "Ya se puede pedir: **flota › actualizar** para la flota entera, o"
+            echo "**montaje › semilla** en una tienda. Quien no pida nada se queda como está."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2148,6 +2148,43 @@ alta se planta antes de entregar si la etiqueta que clonó no trae alguna. La
 tienda que ya está se cura sola en la próxima actualización, que es la que le
 lleva el archivo. **Lo prueban** 3 aserciones de `montaje.js` y 2 de la flota.
 
+**91 · La prueba que solo era verdad hasta el día 28, y el resumen que no decía
+de qué corrida era.** Las baterías se cayeron en Actions sin que nadie hubiera
+tocado una línea: 2439 de 2440, y la que faltaba era la de los cobros del panel.
+Sembraba dos tiendas —una que cobra el día 1 y otra el 28— y exigía que
+**exactamente una** estuviera vencida. Eso es cierto del 2 al 28 de cada mes; el
+29 las dos lo están, y el día 1 ninguna. La aserción no probaba la regla, probaba
+la regla *y* el calendario del día en que se escribió. El producto estaba bien:
+`cobrosDelMes()` marca vencido lo que tiene el día de cobro antes que hoy, y eso
+no dependía de nada. Ahora los días se siembran relativos a hoy —el de ayer
+vencido, el de hoy no— y, lo que importa más, `panel.js` entró en la máquina que
+ya existía para esto: `calendario.js` la corre con el reloj falseado en diez días
+de dos meses, entre ellos el 1, el 28 y los que solo existen en los meses largos.
+La herramienta llevaba dos versiones cazando esta clase de fallo en el tablero y
+en el correo; la batería que dependía del día estaba justo al lado, fuera de la
+lista.
+
+Aprovechando el viaje se revisaron los resúmenes de los **ocho** flujos de los
+dos repositorios, que es lo único que lee quien no escribió el flujo. Tenían tres
+defectos del mismo tipo. No decían **qué eran**: la página empezaba por el
+volcado de la tercera herramienta, sin decir de qué tienda era la corrida, en qué
+versión estaba, qué se había pedido ni quién lo había pedido. No decían **cómo
+quedó la cosa**: «Publicado en `main`» solo aparecía si el paso de publicar
+llegaba a correr, así que una corrida roja terminaba sin una sola frase sobre si
+la tienda estaba tocada o no. Y **repetían**: el marcador de las baterías salía
+tres veces en la misma pantalla —el TOTAL, la lista de baterías con problemas y
+cada línea de FALLA—, que es la otra manera de no decir nada. Los ocho abren
+ahora con la misma ficha (qué es esto, sobre qué, cómo está antes de tocar nada,
+qué se pidió, quién lo pidió), `montaje` y `fotos` cierran diciendo en qué estado
+queda la tienda pase lo que pase, el marcador se dice una vez y en rojo enseña
+solo lo roto, y los volcados de cada herramienta quedan plegados a un clic. De
+paso apareció un hueco de la 0.20.3: la tolerancia a que falte el cronómetro
+estaba en `montaje` y no en `fotos`, que es el que corre todos los días en todas
+las tiendas — la misma caída esperando en el flujo de al lado. **Lo prueban** 2
+aserciones nuevas de `panel.js` y 1 de `calendario.js`, 5 de `montaje.js` y 4 de
+la flota; y las tres que vigilan la forma del resumen se vieron en rojo antes de
+darlas por buenas.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

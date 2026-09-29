@@ -1487,6 +1487,24 @@ agotado.
 - [x] Batería: toda herramienta que un flujo ejecuta existe y está versionada.
 - [x] El alta se planta si el repositorio nuevo no trae lo que sus flujos llaman.
 
+### 0.20.4 · El resumen dice qué es, y una prueba no depende del calendario
+
+**C-7 · El día del mes**  · 1 pt · ✅ (bitácora 91)
+- [x] Los cobros se siembran relativos a hoy: la aserción vale cualquier día.
+- [x] `panel.js` entra en `calendario.js`: diez días de dos meses, con el 1, el
+      28 y los de mes largo.
+
+**C-8 · La ficha de la corrida**  · 2 pt · ✅ (bitácora 91)
+- [x] Los ocho flujos abren con **«Qué es esta corrida»**: qué es, sobre qué, cómo
+      está antes de tocar nada, qué se pidió y quién lo pidió.
+- [x] `montaje` y `fotos` cierran con **«Cómo quedó»**, con `always()`: en qué
+      estado queda la tienda, corra bien o mal.
+- [x] Nada se dice dos veces: el marcador de las baterías, una vez; los volcados
+      de cada herramienta, plegados.
+- [x] `fotos` y `pruebas` también toleran que falte el cronómetro (hueco de la
+      0.20.3).
+- [x] Baterías en los dos repositorios, cada una sobre sus propios flujos.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**
