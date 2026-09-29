@@ -53,8 +53,12 @@ export function principal(dir = process.cwd()) {
 /* Si el flujo ya preguntó, manda su respuesta; si no (una corrida vieja, o
    correrlo a mano), vale lo de antes: el permiso existe, se supone que sirve. */
 export function puedeFlujos(env = process.env) {
-  if (env.FLUJOS) return env.FLUJOS === 'si';
-  return !!(env.SEMILLA_TOKEN || env.SEMILLA_ORIGEN);
+  /* 0.22.1 · LOS FLUJOS LOS ENTREGA LA FLOTA (bitácora 103). Una tienda no
+     puede empujarlos —`actions/checkout` deja una cabecera con el permiso de
+     Actions que gana a cualquier token en la URL—, así que aquí no se escriben
+     nunca; solo el banco de pruebas (SEMILLA_ORIGEN, repositorios en disco) los
+     sigue escribiendo, para comprobar la mecánica de aplicar. */
+  return !!env.SEMILLA_ORIGEN && env.FLUJOS !== 'no';
 }
 
 function trabajar(dir) {

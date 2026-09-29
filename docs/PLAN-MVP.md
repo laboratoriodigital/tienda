@@ -1588,6 +1588,15 @@ agotado.
       comprobación de alcance al principio de cada flujo.
 - [ ] Causa 4: que `montaje` diga TODO lo que falla en una corrida, no lo primero.
 
+### 0.22.1 · Los flujos de las tiendas son de la flota
+
+**C-16 · Entregar flujos**  · 2 pt · ✅ (bitácora 103)
+- [x] `flota/flujos.mjs`: copia los `.github/workflows` de la semilla a cada tienda,
+      solo los que cambian. `flota › flujos` a mano; `actualizar`, sola.
+- [x] Una tienda no mete nunca sus flujos en su commit (`publicacion.sh` y el flujo).
+- [x] El push de la tienda va con su permiso, sin token en la URL.
+- [x] `SEMILLA_TOKEN` por tienda ya no hace falta para los flujos (causa 3, en parte).
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

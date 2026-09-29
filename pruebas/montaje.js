@@ -2817,20 +2817,22 @@ const configurar = (g, clave, valor) => {
 {
   const m = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
   ok('NO SE COMMITEA lo que no se va a poder empujar',
-     /if \[ "\$FLUJOS" != "si" \] && ! git diff --cached --quiet -- \.github\/workflows; then/.test(m) &&
+     /require\('\.\/pruebas\/donde\.js'\)\.esSemilla\(\)[^\n]*= "false" \] && \\\n\s+! git diff --cached --quiet -- \.github\/workflows; then/.test(m) &&
      /git restore --staged --worktree -- \.github\/workflows/.test(m) &&
      /Los flujos se quedan como estaban/.test(m),
      'un archivo que sobra no puede dejar la tienda sin catálogo');
-  ok('  ...y ese paso sabe si los flujos pueden viajar',
-     /id: cambios[\s\S]{0,200}?FLUJOS: \$\{\{ steps\.permiso\.outputs\.flujos \}\}/.test(m));
+  /* 0.22.1 · Y en una tienda, SIEMPRE: el push de una tienda no puede escribir
+     flujos con ningún token, así que los pone la flota (bitácora 103). */
+  ok('  ...y en una tienda no se commitean nunca: los entrega la flota',
+     /tiendas\\` › Actions › \*\*flota\*\* › \\`flujos\\`/.test(m));
   ok('  ...y si el rechazo llega igual, se quitan y se publica el resto',
      /workflow\.\*without \.workflows\. permission/.test(m) &&
      /git commit --quiet --amend --no-edit/.test(m) &&
      /Los flujos se quedaron atrás/.test(m),
      'una publicación a medias es mejor que ninguna, si se dice cuál es la mitad que falta');
-  ok('  ...y el permiso de la semilla se intenta siempre que exista',
-     /if \[ -n "\$SEMILLA_TOKEN" \]; then\n\s+# Se intenta SIEMPRE/.test(m),
-     'esperar a que una comprobación diga que sí es una condición de más para fallar');
+  ok('  ...y el push no finge que otro token en la URL cambia algo',
+     !/x-access-token:\$\{SEMILLA_TOKEN\}/.test(m) && /cabecera con el permiso de Actions/.test(m),
+     '`actions/checkout` deja una cabecera que gana a cualquier token en la URL');
 }
 
 /* ═══ 27i. LO QUE DECIDE SI UNA TIENDA PUBLICA (0.22.0 · bitácora 102) ═══

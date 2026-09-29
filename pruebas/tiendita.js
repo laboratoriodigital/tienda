@@ -147,6 +147,25 @@ try {
 ok('EN UNA TIENDA se decide la tienda viva, aunque el montaje pida «todas»',
    decide === 'tienda', decide);
 
+/* 0.22.1 · LOS FLUJOS NO VAN EN EL COMMIT DE UNA TIENDA (bitácora 103). Se
+   prueba de verdad, sobre el git de la copia: se deja un flujo cambiado en el
+   índice —lo que hace la actualización— y se corre la guardia como la corre el
+   montaje. Tiene que sacarlo del commit y dejar el resto. */
+let sacados = false;
+try {
+  const flujo = path.join(copia, '.github', 'workflows', 'fotos.yml');
+  fs.appendFileSync(flujo, '\n# cambio que trae una versión nueva\n');
+  fs.appendFileSync(path.join(copia, 'publicar', '404.html'), '\n<!-- horneado nuevo -->\n');
+  git('add', '-A', '--', '.github/workflows', 'publicar/404.html');
+  cp.execFileSync('bash', ['publicacion.sh'], { cwd: path.join(copia, 'pruebas'), stdio: ['ignore', 'pipe', 'ignore'],
+    env: Object.assign({}, process.env, { GITHUB_REPOSITORY: 'laboratoriodigital/tiendita', SOLO_DECIDIR: '1', GITHUB_STEP_SUMMARY: '' }) });
+  const enIndice = git('diff', '--cached', '--name-only').toString().trim().split('\n');
+  sacados = enIndice.indexOf('.github/workflows/fotos.yml') === -1 && enIndice.indexOf('publicar/404.html') !== -1;
+  git('reset', '--quiet', '--hard');
+} catch (e) { sacados = false; }
+ok('LOS FLUJOS SALEN del commit de una tienda, y lo demás se queda',
+   sacados, 'un flujo en el commit de una tienda es un push rechazado entero');
+
 /* Y CON DATOS QUE NO SON LOS DE MUESTRA. Lo que tumbó a prueba1 la última vez
    fue una aserción que daba por hecho que el comercio no tenía logo. Aquí la
    copia se hornea «como prueba1» —su logo de icono, otros colores, otro

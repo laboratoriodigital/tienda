@@ -68,6 +68,35 @@ decidir() {
   fi
 }
 
+# ── 0.22.1 · UNA TIENDA NO PUBLICA SUS PROPIOS FLUJOS (bitácora 103) ──────
+# Los archivos de `.github/workflows` solo los puede escribir un permiso con
+# *Workflows*. El de Actions no puede nunca, y el truco de empujar con
+# `SEMILLA_TOKEN` en la URL no servía de nada: `actions/checkout` deja en
+# `.git/config` una cabecera con el permiso de Actions que git manda en CADA
+# push a GitHub, gane quien gane en la URL. Así que una tienda que traía flujos
+# nuevos se quedaba sin publicar NADA —el push se rechaza entero— y no podía
+# salir de ahí sola, porque el arreglo viajaba justo en esos flujos.
+#
+# Los flujos de una tienda los entrega ahora LA FLOTA (`tiendas` › flota ›
+# flujos), que tiene el permiso para eso. Aquí se sacan del commit antes de
+# publicar, y se dice. Está en este archivo, y no en el flujo, porque este lo
+# escribe la actualización ANTES de que se corra: funciona también con el
+# flujo viejo de la tienda, que es el que hay que rescatar.
+if [ "$(node -p "require('./donde.js').esSemilla()" 2>/dev/null)" = "false" ] && \
+   ! git -C .. diff --cached --quiet -- .github/workflows 2>/dev/null; then
+  echo "LOS FLUJOS NO VAN EN ESTE COMMIT: los entrega la flota (tiendas › flota › flujos)."
+  git -C .. diff --cached --name-only -- .github/workflows | sed 's/^/  · /'
+  git -C .. reset --quiet -- .github/workflows
+  git -C .. checkout -- .github/workflows 2>/dev/null || true
+  if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+    {
+      echo ""
+      echo "**Los flujos no van en el commit de la tienda** (bitácora 103): este repositorio no"
+      echo "puede escribirlos. Los entrega la flota: \`tiendas\` › Actions › **flota** › \`flujos\`."
+    } >> "$GITHUB_STEP_SUMMARY"
+  fi
+fi
+
 cual=$(decidir)
 # Para que una batería pueda comprobar la decisión sin correr nada.
 [ -n "$SOLO_DECIDIR" ] && { echo "$cual"; exit 0; }

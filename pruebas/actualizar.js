@@ -266,17 +266,26 @@ function red(t, o) {
   ok('  ...la respuesta viaja a la herramienta, que solo escribe flujos si se pueden empujar',
      /FLUJOS: \$\{\{ steps\.permiso\.outputs\.flujos \}\}/.test(flujo) &&
      /excluir: puedeFlujos\(\)/.test(fs.readFileSync('../montar/actualizar-semilla.mjs', 'utf8')));
-  ok('  ...y el empujón usa el de la semilla cuando sirve, y el propio cuando no',
-     /empujar\(\) \{/.test(flujo) && /x-access-token:\$\{SEMILLA_TOKEN\}/.test(flujo) &&
+  /* 0.22.1 · El empujón con `SEMILLA_TOKEN` en la URL no funcionó NUNCA
+     (bitácora 103): `actions/checkout` deja una cabecera con el permiso de
+     Actions que gana a cualquier token en la URL. La tienda empuja con el suyo
+     y sus flujos los pone la flota. */
+  ok('  ...y el empujón va con el permiso de la tienda, sin fingir otro en la URL',
+     /empujar\(\) \{/.test(flujo) && !/x-access-token:\$\{SEMILLA_TOKEN\}/.test(flujo) &&
      /git push --quiet origin "HEAD:\$1"/.test(flujo) &&
      !/git push (--quiet )?(-u )?origin HEAD:(main|"\$rama")/.test(flujo),
-     'un permiso corto deja los flujos atrás; no puede dejar la tienda sin publicar');
+     'lo que el permiso de la tienda no puede escribir —los flujos— lo entrega la flota');
 
   {
     const { puedeFlujos } = await import(path.resolve('../montar/actualizar-semilla.mjs'));
-    ok('PUEDE-FLUJOS: manda lo que contestó GitHub, y si nadie preguntó, que el permiso exista',
-       puedeFlujos({}) === false && puedeFlujos({ SEMILLA_TOKEN: 'x' }) === true &&
-       puedeFlujos({ SEMILLA_TOKEN: 'x', FLUJOS: 'no' }) === false && puedeFlujos({ FLUJOS: 'si' }) === true);
+    /* 0.22.1 · UNA TIENDA NO ESCRIBE SUS FLUJOS, NUNCA (bitácora 103): los
+       entrega la flota. Ni con token, ni con la comprobación diciendo que sí:
+       el push de una tienda va SIEMPRE con el permiso de Actions, que no
+       puede escribirlos. Solo el banco de pruebas los sigue escribiendo. */
+    ok('PUEDE-FLUJOS: en una tienda, nunca; solo en el banco de pruebas',
+       puedeFlujos({}) === false && puedeFlujos({ SEMILLA_TOKEN: 'x' }) === false &&
+       puedeFlujos({ SEMILLA_TOKEN: 'x', FLUJOS: 'si' }) === false &&
+       puedeFlujos({ SEMILLA_ORIGEN: '/tmp/x' }) === true);
   }
 
   /* La parte de navegador necesita el servidor que le levanta `todas.sh`. La

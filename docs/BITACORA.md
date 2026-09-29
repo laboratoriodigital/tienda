@@ -2480,6 +2480,40 @@ revisada de `actualizar.js`, con los controles negativos en rojo —un horneado
 contra otro maestro, un catálogo y un respaldo de corridas distintas, un error
 de JavaScript en la página— y el positivo en verde: los datos de prueba1.
 
+**103 · Ningún push de una tienda usó nunca `SEMILLA_TOKEN`, y los flujos pasan a
+ser de la flota.** Con la tienda viva, prueba1 pasó la guardia en dos segundos
+—12/12— y el push volvió a rechazarse: «refusing to allow a GitHub App to create
+or update workflow». Esta vez se entendió por qué, y no era el permiso: el
+montaje intentaba empujar con `SEMILLA_TOKEN` metido en la URL, y eso **no
+funcionó ni una sola vez**. `actions/checkout` deja en `.git/config` una cabecera
+de autorización con el permiso de Actions, y git la manda en cada petición a
+GitHub gane quien gane en la URL. Mientras el checkout se hacía con
+`SEMILLA_TOKEN` —hasta la 0.20.5— esa cabecera ERA la del token bueno y todo
+funcionaba sin que nadie supiera por qué; cuando en la 0.20.5 lo cambié por el
+permiso propio (bitácora 92, con buena intención), todos los pushes de todas las
+tiendas pasaron a ir con el de Actions. Desde entonces ninguna tienda pudo
+recibir flujos nuevos, y como el arreglo de cada cosa viajaba justo en esos
+flujos, ninguna podía salir de ahí sola. Las bitácoras 101 y esta son el mismo
+fallo visto dos veces.
+
+La solución no es otro truco con el token sino quitarle a la tienda un trabajo
+que no puede hacer. **Los flujos de una tienda los entrega la flota**: `FLOTA_TOKEN`
+tiene *Workflows* en escritura sobre todas, así que `flota/flujos.mjs` copia los
+`.github/workflows` de la semilla, en la versión pedida, a cada tienda —por la
+API de contenidos, solo los que cambian—. Lo hace sola `flota › actualizar`
+después de cada tienda que se actualiza bien, y se puede pedir a mano con
+`flota › flujos`, que es también el rescate de una tienda atascada. Del lado de
+la tienda, sus flujos no van nunca en su commit: los saca `publicacion.sh` —que
+llega con la actualización ANTES de correr, así que funciona con el flujo viejo
+que hay que rescatar— y los saca también el paso «¿Cambió algo?» del flujo
+nuevo. El empujón deja de fingir que otro token en la URL cambia algo. Y
+`SEMILLA_TOKEN` en cada tienda deja de hacer falta para los flujos: un permiso
+menos por tienda, que era la causa 3 de la revisión. **Lo prueban** 7 aserciones
+de la flota —con un GitHub de mentira en memoria: escribe solo lo que cambia,
+pasa el `sha` al reemplazar, no escribe nada en ensayo—, 1 de la tiendita sobre
+un git de verdad, y las revisadas de `montaje.js` y `actualizar.js`, con sus
+controles negativos en rojo.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

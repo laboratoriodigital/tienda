@@ -140,7 +140,7 @@ export function informeEnTexto({ desde, hasta, informe }) {
   const p = [`### La semilla: ${desde || '(versión desconocida)'} → ${hasta}`, ''];
   if (informe.desvios.length) p.push('**⚠ No se tocaron: la tienda y la semilla los cambiaron los dos.** Revísalos a mano:', '', l(informe.desvios), '');
   if (informe.sinBaseDejados.length) p.push(`**⚠ No se tocaron: la semilla no tiene la etiqueta de la versión de la tienda (${desde || '?'})**, así que no se sabe si tenían un cambio propio:`, '', l(informe.sinBaseDejados), '');
-  if (informe.pendientes.length) p.push('**⚠ Los flujos no se pudieron traer**: falta el secreto `SEMILLA_TOKEN` (con permiso de *Workflows*). El resto sí:', '', l(informe.pendientes), '');
+  if (informe.pendientes.length) p.push('**Los flujos los entrega la flota** (`tiendas` › Actions › **flota** › `flujos`): una tienda no puede escribirlos. Llegan de allá:', '', l(informe.pendientes), '');
   if (informe.retirados && informe.retirados.length) p.push('**Se retiró lo que la semilla ya no entrega** (venía de una versión anterior):', '', l(informe.retirados), '');
   if (informe.noRetirados && informe.noRetirados.length) p.push('**⚠ No se retiraron** (la ruta no es de las que se pueden borrar):', '', l(informe.noRetirados), '');
   p.push(`Sobrescritos: ${informe.sobrescritos.length + informe.sinBase.length} · nuevos: ${informe.nuevos.length} · retirados: ${(informe.retirados || []).length} · cambios propios respetados: ${informe.propios.length}`);

@@ -607,7 +607,11 @@ jobs:
           # tienda se queda sin publicar su catálogo, sus fotos y su índice por
           # culpa de un archivo que ni siquiera había pedido. Se sacan del
           # índice, se deja el resto, y se dice qué se quedó atrás.
-          if [ "$FLUJOS" != "si" ] && ! git diff --cached --quiet -- .github/workflows; then
+          # 0.22.1 · En una tienda, SIEMPRE (bitácora 103): sus flujos los
+          # entrega la flota, porque el push de una tienda no puede escribirlos
+          # con ningún token —ver `empujar`, abajo—.
+          if [ "$(node -p "require('./pruebas/donde.js').esSemilla()" 2>/dev/null)" = "false" ] && \
+             ! git diff --cached --quiet -- .github/workflows; then
             pendientes=$(git diff --cached --name-only -- .github/workflows | sed 's/^/  · /')
             git restore --staged --worktree -- .github/workflows 2>/dev/null || \
               { git reset --quiet -- .github/workflows; git checkout -- .github/workflows; }
@@ -623,8 +627,8 @@ jobs:
               echo "$pendientes"
               echo '```'
               echo ""
-              echo "Para que lleguen: \`SEMILLA_TOKEN\` en los secretos de esta tienda, de grano fino,"
-              echo "con **Contents** y **Workflows** en *Read and write* sobre este repositorio."
+              echo "Los entrega la flota: \`tiendas\` › Actions › **flota** › \`flujos\`, y \`flota\` ›"
+              echo "\`actualizar\` los pone sola después de cada tienda que se actualiza bien."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
           if git diff --cached --quiet -- $PUBLICA; then
@@ -793,12 +797,12 @@ jobs:
           # un permiso que no llega puede dejar los flujos atrás, pero no puede
           # dejar la tienda sin publicar todo lo demás.
           empujar() {
-            if [ -n "$SEMILLA_TOKEN" ]; then
-              # Se intenta SIEMPRE con el de la semilla, exista o no la respuesta
-              # del paso que lo comprueba: es el único que puede llevar flujos, y
-              # si no sirve, abajo está el propio (0.21.2 · bitácora 101).
-              git push --quiet "https://x-access-token:${SEMILLA_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:$1" && return 0
-            fi
+            # 0.22.1 · SIN TRUCOS CON EL TOKEN (bitácora 103). Aquí se intentaba
+            # primero con `SEMILLA_TOKEN` metido en la URL, para poder llevar
+            # flujos. No servía NUNCA: `actions/checkout` deja en `.git/config`
+            # una cabecera con el permiso de Actions que git manda en cada push a
+            # GitHub, gane quien gane en la URL. El push de una tienda va con el
+            # permiso de Actions y ya; los flujos los pone la flota.
             git push --quiet origin "HEAD:$1" 2>/tmp/push.txt && return 0
             # UN RECHAZO POR LOS FLUJOS NO PUEDE DEJAR A LA TIENDA SIN PUBLICAR.
             # GitHub rechaza el push entero cuando el commit toca
