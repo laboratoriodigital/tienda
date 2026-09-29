@@ -2390,6 +2390,30 @@ arrancaba la actualización de la flota entera. Ahora lleva el mismo remate que
 las demás herramientas —corre cuando se lanza, no cuando se importa—. **Lo
 prueban** 3 aserciones de `montaje.js` y 8 de la flota.
 
+**101 · Un archivo que nadie pidió dejó la tienda sin publicar.** La tienda de
+prueba corrió su actualización entera —2473 aserciones en verde, el catálogo
+horneado, las fotos bajadas— y el push se rechazó: «refusing to allow a GitHub
+App to create or update workflow `.github/workflows/fotos.yml` without
+`workflows` permission». GitHub no rechaza EL ARCHIVO: rechaza el push entero.
+Así que la tienda se quedó sin publicar su catálogo, su índice y sus fotos por un
+archivo de flujo que la actualización había escrito y que ni el comercio ni nadie
+había pedido en esa corrida.
+
+La causa de fondo es una asimetría que ya conocíamos y no habíamos rematado: el
+`GITHUB_TOKEN` de Actions no puede escribir `.github/workflows` NUNCA, y el
+permiso que sí puede —`SEMILLA_TOKEN`— es opcional. Lo que faltaba era que esa
+asimetría no se pagara con todo lo demás. Dos redes, a propósito, porque la
+primera depende de una comprobación que puede fallar y la segunda no depende de
+nada: **no se commitea lo que no se va a poder empujar** —si los flujos están en
+el índice y no hay permiso para ellos, se sacan y se publica el resto—, y si aun
+así el rechazo llega, **se quitan del commit y se vuelve a empujar una vez**. En
+los dos casos el resumen dice qué se quedó atrás y con qué llega: un
+`SEMILLA_TOKEN` con *Contents* y *Workflows* en escritura sobre esa tienda. Una
+publicación a medias es mejor que ninguna, siempre que se diga cuál es la mitad
+que falta. **Lo prueban** 4 aserciones de `montaje.js`, con su control negativo,
+y una simulación con un repositorio de juguete para comprobar que los comandos
+hacen lo que el comentario dice.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

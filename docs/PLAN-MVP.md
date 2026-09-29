@@ -1566,6 +1566,13 @@ agotado.
 - [x] Una tienda que ya no existe en GitHub no detiene a la flota: se salta y se
       dice cuál quitar de `flota.json`.
 
+### 0.21.2 · Lo que no se puede empujar no bloquea la publicación
+
+**C-14 · El push que se rechazaba entero**  · 1 pt · ✅ (bitácora 101)
+- [x] Los flujos salen del commit cuando no hay permiso para escribirlos.
+- [x] Y si el rechazo llega igual, se quitan y se publica el resto.
+- [x] El resumen dice qué se quedó atrás y con qué llega.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

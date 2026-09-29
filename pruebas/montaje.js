@@ -2795,6 +2795,39 @@ const configurar = (g, clave, valor) => {
      'maestro.gs la llama VERSION y panel.gs, VERSION_PANEL');
 }
 
+/* ═══ 27h. UN ARCHIVO QUE NO SE PUEDE EMPUJAR NO DEJA A LA TIENDA SIN PUBLICAR
+       (0.21.2 · bitácora 101) ═══
+   GitHub rechaza un push ENTERO cuando el commit toca `.github/workflows` y el
+   permiso no puede escribir flujos —el GITHUB_TOKEN de Actions no puede nunca—.
+   La actualización escribe esos archivos, así que una tienda sin
+   `SEMILLA_TOKEN` útil se quedaba sin publicar su catálogo, sus fotos y su
+   índice por culpa de un archivo que nadie había pedido: el rechazo no dice
+   «los flujos no», dice «no».
+
+   Dos redes, porque la primera depende de una comprobación que puede fallar y
+   la segunda no depende de nada: no se COMMITEA lo que no se va a poder
+   empujar, y si aun así el rechazo llega, se quitan del commit y se publica el
+   resto. Lo que se queda atrás se dice, con lo que hay que poner para que
+   llegue. */
+{
+  const m = fs.readFileSync('../.github/workflows/montaje.yml', 'utf8');
+  ok('NO SE COMMITEA lo que no se va a poder empujar',
+     /if \[ "\$FLUJOS" != "si" \] && ! git diff --cached --quiet -- \.github\/workflows; then/.test(m) &&
+     /git restore --staged --worktree -- \.github\/workflows/.test(m) &&
+     /Los flujos se quedan como estaban/.test(m),
+     'un archivo que sobra no puede dejar la tienda sin catálogo');
+  ok('  ...y ese paso sabe si los flujos pueden viajar',
+     /id: cambios[\s\S]{0,200}?FLUJOS: \$\{\{ steps\.permiso\.outputs\.flujos \}\}/.test(m));
+  ok('  ...y si el rechazo llega igual, se quitan y se publica el resto',
+     /workflow\.\*without \.workflows\. permission/.test(m) &&
+     /git commit --quiet --amend --no-edit/.test(m) &&
+     /Los flujos se quedaron atrás/.test(m),
+     'una publicación a medias es mejor que ninguna, si se dice cuál es la mitad que falta');
+  ok('  ...y el permiso de la semilla se intenta siempre que exista',
+     /if \[ -n "\$SEMILLA_TOKEN" \]; then\n\s+# Se intenta SIEMPRE/.test(m),
+     'esperar a que una comprobación diga que sí es una condición de más para fallar');
+}
+
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══
    El archivo tiene más de cien funciones y el selector del editor las lista
    revueltas. Las cinco que un humano ejecuta estaban perdidas entre las demás,
