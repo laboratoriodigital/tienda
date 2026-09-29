@@ -2727,6 +2727,46 @@ const configurar = (g, clave, valor) => {
      'sin GITHUB_REPOSITORY —en el equipo de alguien— esto es la semilla');
 }
 
+/* ═══ 27f. LO QUE UNA HERRAMIENTA ESCRIBE, EL FLUJO LO PUBLICA
+       (0.21.0 · bitácora 99) ═══
+   `fotos` decidía si había que publicar mirando una lista de rutas escrita en el
+   propio flujo (`PUBLICA`), y esa lista se quedó sin `publicar/404.html` —que lo
+   escribe `preparar-index`, una de las herramientas que ese mismo flujo corre—.
+   El resultado: el comercio cambiaba el nombre o los colores, el paso que MIRA
+   decía «hay novedades», el que PUBLICA no encontraba nada suyo, y la corrida
+   moría con «Nada que publicar pese a haber detectado novedades», que suena a
+   fallo de git y era una lista incompleta.
+
+   Cada herramienta ya declara lo que escribe (A-8 · `export const ESCRIBE`).
+   Así que la lista del flujo no se revisa a ojo: se compara con lo que declaran
+   las herramientas que ese flujo ejecuta. */
+{
+  const dir = '../.github/workflows';
+  const sueltos = [];
+  fs.readdirSync(dir).filter(f => /\.ya?ml$/.test(f)).forEach(f => {
+    const t = fs.readFileSync(dir + '/' + f, 'utf8');
+    const m = t.match(/\n\s*PUBLICA:\s*(.+)/);
+    if (!m) return;                                   // un flujo que no publica
+    const publica = m[1].trim().split(/\s+/);
+    const cubre = r => publica.some(p => r === p || r.indexOf(p.replace(/\/$/, '') + '/') === 0);
+    const herramientas = [...new Set([...t.matchAll(/node\s+(montar\/[\w.-]+\.mjs)/g)].map(x => x[1]))];
+    herramientas.forEach(h => {
+      if (!fs.existsSync('../' + h)) return;
+      let escribe = [];
+      try {
+        escribe = JSON.parse(cp.execFileSync('node',
+          ['-e', "import('./" + h + "').then(m => process.stdout.write(JSON.stringify(m.ESCRIBE || [])))"],
+          { cwd: '..', stdio: ['ignore', 'pipe', 'ignore'] }).toString() || '[]');
+      } catch (e) { return; }
+      escribe.filter(r => String(r).indexOf('publicar/') === 0)
+             .forEach(r => { if (!cubre(r)) sueltos.push(f + ' › ' + h + ' escribe ' + r); });
+    });
+  });
+  ok('LO QUE ESCRIBE cada herramienta está en la lista de lo que el flujo publica',
+     sueltos.length === 0, sueltos.join(' · ') ||
+     'ninguna escribe fuera de lo que su flujo publica');
+}
+
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══
    El archivo tiene más de cien funciones y el selector del editor las lista
    revueltas. Las cinco que un humano ejecuta estaban perdidas entre las demás,

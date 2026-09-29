@@ -1218,8 +1218,8 @@ var CLAVES_DEL_PANEL = [
      llevarse la plata. Por eso piden la clave otra vez, cada vez (`sensible`).
      Las LLAVES de Bold no están aquí ni van a estar: viven en las propiedades
      del script, donde solo llega quien edita el proyecto. */
-  { clave: 'logo',                 grupo: 'Tu tienda',  tipo: 'url',    rotulo: 'Logo (URL de Cloudinary; vacío = el signo con tus colores)' },
-  { clave: 'favicon',              grupo: 'Tu tienda',  tipo: 'url',    rotulo: 'Ícono de la pestaña (URL de Cloudinary, cuadrado)' },
+  { clave: 'logo',                 grupo: 'Tu tienda',  tipo: 'imagen', rotulo: 'Logo: el archivo de tu carpeta de fotos (logo.png) o una dirección completa. Vacío = el signo con tus colores' },
+  { clave: 'favicon',              grupo: 'Tu tienda',  tipo: 'imagen', rotulo: 'Ícono de la pestaña (cuadrado). Vacío = se usa tu logo; si tampoco hay, un marcador con tus colores' },
   { clave: 'cobro_ambiente',       grupo: 'El cobro',   tipo: 'opcion', rotulo: 'Pasarela: ¿pruebas o dinero real?',
     opciones: ['Pruebas', 'Producción'], sensible: true },
   { clave: 'pago_llave',           grupo: 'El cobro',   tipo: 'texto',  rotulo: 'Transferencia: llave Bre-B o número de cuenta', sensible: true },
@@ -1279,6 +1279,13 @@ function problemaDeValor(def, valor) {
   if (def.tipo === 'celular' && !/^\+?[\d\s-]{10,16}$/.test(v)) return 'Un celular con indicativo: 573001234567';
   if (def.tipo === 'correo' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Eso no parece un correo.';
   if (def.tipo === 'url' && !/^https:\/\/\S+$/.test(v)) return 'Una dirección completa, que empiece por https://';
+  /* 0.21.0 · Una imagen de la tienda se nombra como en el catálogo: el archivo
+     de la carpeta de fotos, o una dirección completa. Una ruta con carpetas no:
+     lo que se publica es esa carpeta y nada más. */
+  if (def.tipo === 'imagen' && !/^https:\/\/\S+$/.test(v) &&
+      !/^[^\/\\]+\.(jpe?g|png|webp|avif)$/i.test(v)) {
+    return 'El archivo de tu carpeta de fotos (logo.png), o una dirección completa que empiece por https://';
+  }
   if (def.tipo === 'hora' && !(/^\d{1,2}$/.test(v) && Number(v) <= 23)) return 'Una hora de 0 a 23.';
   /* 0.19.0 · El identificador de GA4, y no el de otra cosa. `UA-…` es Universal
      Analytics, que Google apagó; `GTM-…` es Tag Manager, que carga lo que
@@ -1822,7 +1829,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.20.8';
+var VERSION_TIENDA = '0.21.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1877,17 +1884,27 @@ function atenderActualizacion() {
    seguía contestando «el permiso no sirve o se venció», que es exactamente el
    síntoma que se estaba intentando curar.
 
-   Ahora, antes de respetarlo, se COMPRUEBA: se le pregunta a GitHub por el
-   repositorio de esta tienda con el token que ya está. Si contesta, se
-   respeta; si no —401, 403, 404 o ni siquiera contesta—, el que llega lo
-   reemplaza. Un token que no abre la puerta no es un token que haya que
-   cuidar. */
+   Ahora, antes de respetarlo, se COMPRUEBA: se le pregunta a GitHub con el
+   token que ya está. Si contesta, se respeta; si no —401, 403, 404 o ni
+   siquiera contesta—, el que llega lo reemplaza. Un token que no abre la
+   puerta no es un token que haya que cuidar.
+
+   0.21.0 · Y SE PREGUNTA POR LA PUERTA QUE HAY QUE ABRIR (bitácora 97). La
+   pregunta era `GET /repos/{tienda}`, que solo demuestra *Metadata: read*: un
+   token que ve el repositorio y no puede disparar nada pasaba la prueba, se
+   respetaba, y el comercio seguía viendo «el permiso no sirve o se venció» cada
+   vez que tocaba Publicar —con `conectar` diciendo que no hacía falta tocar
+   nada—. Lo que este token tiene que poder hacer es disparar flujos, así que se
+   pregunta por los FLUJOS: eso ya exige *Actions*, que es el permiso del que
+   depende el botón. Sigue sin probar la escritura —solo dispararlo la prueba,
+   y disparar por probar no es gratis—, pero descarta el caso que nos costó una
+   tarde. */
 function permisoGuardadoSirve() {
   var g = repositorioYPermiso();
   if (!g.tk) return false;
   if (!g.repoOk) return true;   /* sin repositorio escrito no se puede juzgar: no se toca */
   try {
-    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + g.repo,
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + g.repo + '/actions/workflows',
       { method: 'get', headers: cabecerasGitHub(g.tk), muteHttpExceptions: true });
     return res.getResponseCode() === 200;
   } catch (e) { return false; }
@@ -2388,7 +2405,15 @@ function hostsDeFotos(c, urlSitio) {
    la hoja, así que cada tienda tiene el suyo. Si el dueño prefiere su propio
    ícono, pone la URL en la clave favicon y esa manda. */
 function iconoDeLaTienda(c) {
-  if (String(c.favicon || '').trim()) return String(c.favicon).trim();
+  /* 0.21.0 · EL MISMO ARCHIVO SIRVE DE ICONO (bitácora 98). Quien sube su logo
+     casi nunca tiene aparte un cuadrado de 512 para la pestaña, y pedirle dos
+     archivos para lo mismo es pedirle que uno de los dos se quede viejo. Si hay
+     `favicon`, manda; si no, se usa el logo; si tampoco, el marcador dibujado.
+     Un nombre de archivo se sirve de la carpeta de fotos de la propia tienda:
+     una ruta relativa vale en un <link rel="icon"> y no mete un host más en la
+     política de seguridad. */
+  var propio = String(c.favicon || '').trim() || String(c.logo || '').trim();
+  if (propio) return /^https?:\/\//i.test(propio) ? propio : 'fotos/' + propio.replace(/^\/+/, '');
   var rojo  = c.color_principal  || '#D0211C';
   var verde = c.color_secundario || '#1B5E3A';
   var svg =
@@ -4416,6 +4441,17 @@ function fotosQueUsaElCatalogo() {
       salida.push(limpio);
     });
   });
+  /* 0.21.0 · EL LOGO Y EL ICONO TAMBIÉN SALEN DE ESA CARPETA (bitácora 98).
+     Sin esto el montaje los cuenta como «fotos que ningún producto nombra» —un
+     aviso falso en cada corrida— y, peor, no avisa cuando el comercio escribe
+     mal el nombre: la tienda se publica sin logo y nadie lo dice. */
+  var c = leerConfiguracion();
+  [c.logo, c.favicon].forEach(function (n) {
+    var limpio = String(n || '').trim();
+    if (!limpio || /^https?:\/\//i.test(limpio) || vistas[limpio]) return;
+    vistas[limpio] = true;
+    salida.push(limpio);
+  });
   return salida.sort();
 }
 
@@ -4737,7 +4773,7 @@ function semillaDeConfiguracion() {
   return [
       ['negocio',           '[NOMBRE DEL COMERCIO]', 'El nombre que se ve en toda la tienda, y también el del menú de esta hoja'],
       ['whatsapp',          '', '57 + el celular, sin + ni espacios. VACÍO A PROPÓSITO: un número de fábrica manda los pedidos al teléfono de otro'],
-      ['logo',              '', 'URL de Cloudinary con el logo. Vacío = se usa el signo por defecto con los colores de la marca'],
+      ['logo',              '', 'Tu logo. El nombre del archivo en tu carpeta de fotos de Drive (ej: logo.png), o una dirección completa https://… Vacío = el signo dibujado con los colores de tu marca. Sale en la barra de arriba, al lado del nombre'],
       ['portada_titulo',    '[EL TITULAR DE TU PORTADA]', 'El titular grande de la portada'],
       ['portada_texto',     '[Dos líneas contando qué vendes y qué te hace distinto.]', 'El párrafo debajo del titular'],
       ['portada_puntos',    'Producto de la semana|Entregas a todo el país|Pides y confirmas por WhatsApp', 'Las leyendas del banner, separadas por |'],
@@ -4765,7 +4801,7 @@ function semillaDeConfiguracion() {
       ['respaldo_carpeta',  '', 'La carpeta de Drive del administrador donde cae la copia semanal de esta hoja. Pega el enlace de la carpeta. Vacío = no se respalda nada'],
       ['fotos_drive',       '', 'La carpeta de Drive donde el comercio sube sus fotos CRUDAS. Pega el enlace de la carpeta o solo su identificador. Vacío = el montaje no baja fotos'],
       ['fotos_webp',        'No', 'Sí = las fotos se prepararon con preparar-fotos.mjs y existen en varios tamaños (producto-1-600.webp). Recupera el formato moderno cuando NO hay proveedor de transformación. Si no se generaron, la tienda vuelve sola al archivo original'],
-      ['favicon',           '', 'El iconito de la pestaña del navegador. Vacío = se dibuja un marcador redondo con los colores de la marca. Si quieres el tuyo, pon aquí una URL de Cloudinary (cuadrada, 512x512)'],
+      ['favicon',           '', 'El iconito de la pestaña del navegador (cuadrado). Vacío = se usa tu logo; si tampoco hay, se dibuja un marcador redondo con los colores de tu marca. Se nombra igual que el logo: el archivo de tu carpeta de fotos, o una dirección completa'],
 
       /* EL PAGO. Estas claves NO viajan a la página: el comprador recibe los
          datos de pago por la respuesta automática de WhatsApp, después de que

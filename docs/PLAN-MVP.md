@@ -1541,6 +1541,22 @@ agotado.
 - [x] Escrito: el que se actualiza a sí mismo ejecuta la versión anterior de sí
       mismo, así que lo retirado se limpia una versión más tarde.
 
+### 0.21.0 · El logo del comercio (y dos permisos bien preguntados)
+
+**M7 · El logo**  · 2 pt · ✅ (bitácora 98)
+- [x] `logo` se nombra como una foto del catálogo: el archivo de la carpeta de Drive
+      o una dirección completa; lo resuelve `urlFoto()`.
+- [x] Solo la barra, reemplazando al signo; el nombre sigue escrito (alt vacío).
+- [x] El mismo archivo sirve de icono de la pestaña si no hay `favicon`.
+- [x] Cuenta como foto usada: el montaje avisa por nombre si falta, y si no llega
+      vuelve el signo en vez de un icono roto.
+- [x] Batería propia: `pruebas/logo.js`.
+
+**C-13 · Dos comprobaciones que preguntaban mal**  · 1 pt · ✅ (bitácora 97 y 99)
+- [x] El maestro juzga su permiso preguntando por los **flujos**, no por el repositorio.
+- [x] `fotos` publica todo lo que declaran las herramientas que corre (`ESCRIBE`),
+      con una batería que compara las dos listas.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

@@ -2316,6 +2316,51 @@ el propio archivo y exige que la comprobación esté escrita ANTES de la siembra
 **Lo prueban** 3 aserciones de la flota, con el control negativo —invertir las
 dos líneas— visto en rojo.
 
+**97 · Se comprobaba el permiso preguntando por la puerta equivocada.** El
+comercio tocaba Publicar y le salía «el permiso de esta tienda no sirve o se
+venció» —con `DISPARO_TOKEN` bien puesto en `tiendas`, sobre todos los
+repositorios del dueño—. El maestro tenía guardado un token viejo y no lo
+reemplazaba, porque desde la 0.20.2 solo reemplaza el que ya no sirve… y la
+comprobación de «sirve» era `GET /repos/{tienda}`, que solo demuestra *Metadata:
+read*. Un token que ve el repositorio y no puede disparar nada pasaba la prueba y
+se respetaba para siempre. Ahora se pregunta por los FLUJOS de ese repositorio,
+que ya exige *Actions* —el permiso del que depende el botón—. No prueba la
+escritura, porque probarla sería dispararla, pero descarta el caso que costó la
+tarde. Volver a correr `conectar` reemplazó el token y el botón funcionó. **Lo
+prueba** 1 aserción de `permiso.js`, con su control negativo.
+
+**98 · El logo, y el archivo que ya estaba en su carpeta.** La clave `logo`
+existía desde hacía versiones y solo aceptaba una URL de Cloudinary, que era la
+única forma que había cuando se escribió: el comercio que sube su logo al Drive
+—la misma carpeta donde ya tiene sus fotos— no tenía manera de usarlo. Ahora se
+nombra igual que en la columna Imágenes del catálogo: el archivo (`logo.png`) o
+una dirección completa, y lo resuelve `urlFoto()`, el mismo sitio por donde pasan
+todas las fotos. Tres decisiones del dueño, y las tres estrechan a propósito:
+**solo la barra** —ni portada ni pie: importa más que la página siga siendo una
+sola petición y no se mueva al cargar—, **el mismo archivo sirve de icono** de la
+pestaña —pedir dos archivos para lo mismo es pedir que uno se quede viejo— y **el
+nombre sigue escrito** al lado, con el logo en `alt` vacío, porque lo que nombra
+la tienda es lo que leen Google y un lector de pantalla y eso no se cambia por una
+imagen. Si el archivo no llega, vuelve el signo dibujado en vez de un icono roto;
+el logo cuenta como foto usada, así que el montaje deja de llamarlo «foto que
+nadie usa» y empieza a avisar por nombre cuando está mal escrito; y el respaldo se
+lo lleva, así que la marca se ve también con Google caído. **Lo prueba**
+`pruebas/logo.js`, 21 aserciones.
+
+**99 · «Nada que publicar pese a haber detectado novedades», otra vez, y esta vez
+era una lista.** El flujo `fotos` decide qué publicar con una lista de rutas
+escrita en el propio flujo (`PUBLICA`), y esa lista no incluía
+`publicar/404.html` —que escribe `preparar-index`, una de las herramientas que ese
+mismo flujo corre—. Así que al cambiar el nombre o los colores, el paso que MIRA
+decía «hay novedades», el que PUBLICA no encontraba nada suyo, y la corrida moría
+con un mensaje que suena a fallo de git y era una lista incompleta. Cada
+herramienta ya declara lo que escribe (A-8 · `ESCRIBE`), así que la lista no se
+revisa a ojo: una batería compara las dos cosas para todos los flujos. Y el
+mensaje de ese fallo, que decía «mira los dos volcados», ahora enseña la lista de
+lo que el flujo publica y el estado de TODO el repositorio, que es donde se ve si
+el horneado escribió en otro sitio. **Lo prueba** 1 aserción de `montaje.js`, con
+su control negativo.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

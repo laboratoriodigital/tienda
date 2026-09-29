@@ -118,7 +118,15 @@ jobs:
     # «tu tienda se está actualizando», y no cambiaba nada. Ningún error en
     # ninguna parte. Es el patrón 1: el fallo que funciona.
     env:
-      PUBLICA: publicar/fotos publicar/catalogo.json publicar/index.html publicar/sitemap.xml publicar/robots.txt
+      # 0.21.0 · `publicar/404.html` ESTABA FUERA (bitácora 99). Lo escribe
+      # `preparar-index`, que este flujo corre: cuando el comercio cambiaba el
+      # nombre o los colores y solo cambiaba esa página, el paso que mira decía
+      # «hay novedades», el que publica no encontraba nada suyo que publicar, y
+      # la corrida moría con «Nada que publicar pese a haber detectado
+      # novedades» — un mensaje que acusa a git de lo que era una lista
+      # incompleta. Lo que cada herramienta escribe lo declara ella (A-8), y
+      # ahora una batería compara las dos cosas.
+      PUBLICA: publicar/fotos publicar/catalogo.json publicar/index.html publicar/404.html publicar/sitemap.xml publicar/robots.txt
 
     steps:
       - uses: actions/checkout@v7
@@ -603,10 +611,23 @@ jobs:
             {
               echo "### Se dijo que había novedades y no quedó nada que publicar"
               echo ""
-              echo "El paso «¿Hay fotos nuevas?» dijo que sí, pero después de"
-              echo "bajar y hornear no hay ningún cambio en \`$PUBLICA\`."
-              echo "Eso no es un fallo de git: es que los dos pasos no están"
-              echo "mirando lo mismo. Mira los dos volcados de arriba."
+              echo "El paso «¿Hay fotos nuevas?» dijo que sí —arriba se ve cuál de los tres"
+              echo "lo dijo: fotos, catálogo o configuración— y, después de bajar y hornear,"
+              echo "no hay ningún cambio en lo que este flujo publica:"
+              echo ""
+              echo '```'
+              echo "$PUBLICA" | tr ' ' '\n' | sed 's/^/  /'
+              echo '```'
+              echo ""
+              echo "Eso no es un fallo de git: los dos pasos no están mirando lo mismo."
+              echo "O el que mira cuenta algo que el horneado no cambia, o el horneado"
+              echo "escribió en un archivo que no está en esa lista (bitácora 99)."
+              echo ""
+              echo "Esto es lo que quedó tocado en TODO el repositorio, que es donde se ve:"
+              echo '```'
+              git status --porcelain || true
+              echo "(vacío = el horneado no escribió nada en ninguna parte)"
+              echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error::Nada que publicar pese a haber detectado novedades."
             exit 1

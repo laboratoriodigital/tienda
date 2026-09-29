@@ -943,14 +943,29 @@ function aplicarConfiguracion(c){
   if(c && typeof c.fotos_cdn === "string") FOTOS.cdn = c.fotos_cdn;
   FOTOS.webp = /^(s[ií]|si|true|1)$/i.test(String(v("fotos_webp") || "").trim());
 
-  // Logo propio, si el negocio tiene uno. Si no, queda el signo por defecto,
-  // que al menos toma los colores de la marca.
+  // EL LOGO DEL COMERCIO, EN LA BARRA (0.21.0 · bitácora 98).
+  // Se nombra como las fotos del catálogo: el archivo de la misma carpeta de
+  // Drive (logo.png) o una dirección completa. Antes solo se aceptaba una URL
+  // de Cloudinary —la única forma que existía cuando se escribió—, así que el
+  // comercio que subía su logo al Drive, donde ya están sus fotos, no tenía
+  // manera de usarlo.
+  //
+  // EL NOMBRE NO SE TOCA: sigue en texto al lado, que es lo que leen Google y
+  // un lector de pantalla. El logo reemplaza al SIGNO dibujado, no al nombre, y
+  // por eso va con alt vacío: es decorativo, lo que nombra la tienda ya está
+  // escrito ahí mismo. El tamaño lo fija la hoja de estilo (.marca img), así
+  // que la barra no se mueve cuando la imagen llega.
   const logo = v("logo");
   const signo = $("#marcaSigno");
-  if(logo && /^https:\/\/res\.cloudinary\.com\//.test(logo) && signo){
+  const fuente = logo ? urlFoto(logo, "miniatura") : "";
+  if(fuente && signo){
     const img = document.createElement("img");
-    img.src = urlFoto(logo, "miniatura");
-    img.alt = NEGOCIO;
+    img.src = fuente;
+    img.alt = "";
+    // Si el archivo no llega —nombre mal escrito, foto que no se subió—, vuelve
+    // el signo de siempre: una tienda con el icono roto se ve peor que una sin
+    // logo, y el montaje ya avisa por nombre de lo que falta.
+    img.onerror = function(){ try{ img.replaceWith(signo); }catch(e){} };
     signo.replaceWith(img);
   }
 

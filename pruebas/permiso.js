@@ -34,11 +34,20 @@ const otro = 'github_pat_' + 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6';
 /* Una sola ruta y una variable: `responder` se queda con la PRIMERA que
    encaje, así que volver a registrarla no cambia nada. */
 let contestaGitHub = { codigo: 200, cuerpo: { full_name: 'x/y' } };
-g.responder('api.github.com/repos/', () => contestaGitHub);
+/* 0.21.0 · Y SE GUARDA POR QUÉ SE PREGUNTÓ (bitácora 97): la comprobación
+   preguntaba `GET /repos/{tienda}`, que solo demuestra *Metadata: read*. Un
+   token que ve el repositorio y no puede disparar nada pasaba la prueba, se
+   respetaba, y el comercio seguía viendo «el permiso no sirve o se venció»
+   cada vez que tocaba Publicar. */
+let preguntado = '';
+g.responder('api.github.com/repos/', (url) => { preguntado = url; return contestaGitHub; });
 const r2 = post(g, { a: 'permiso', t: g.token, tk: otro });
 ok('UNO QUE SIRVE no se pisa (puede ser uno más acotado)',
    r2.ok && !r2.puesto && r2.yaEstaba && r2.servia === true && g.props.GITHUB_TOKEN === tk);
 ok('  ...salvo que se pida forzar', post(g, { a: 'permiso', t: g.token, tk: otro, forzar: 'si' }).puesto && g.props.GITHUB_TOKEN === otro);
+ok('  ...y para juzgarlo se pregunta por los FLUJOS, que es lo que este token tiene que poder',
+   /\/actions\/workflows$/.test(preguntado),
+   preguntado || 'no preguntó nada');
 
 /* Y el caso que trajo todo esto: el guardado ya no vale. */
 contestaGitHub = { codigo: 401, cuerpo: { message: 'Bad credentials' } };

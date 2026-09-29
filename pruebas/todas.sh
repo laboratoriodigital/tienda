@@ -115,7 +115,7 @@ rm -rf "$SALIDA"; mkdir -p "$SALIDA" || { echo "ERROR: no se pudo crear $SALIDA"
 BATERIAS=${BATERIAS:-"e2e.js movil.js enlace.js val.js fotos.js pag.js test.js config.js \
           cat.js version.js hoja.js sec2.js exif.js montaje.js panel.js \
           pedidos.js correo.js presentacion.js menu.js tablero.js esquema.js \
-          calendario.js tiendita.js respaldo.js marca.js plantilla.js worker.js legal.js \
+          calendario.js tiendita.js respaldo.js marca.js logo.js plantilla.js worker.js legal.js \
           determinismo.js escribe.js limites.js tiempos.js sondeo.js seo.js variantes.js \
           varpag.js orden.js entrar.js productos.js admin.js \
           panelpedidos.js panelconfig.js panelpublicar.js pagos.js pagoweb.js comprador.js registro.js inventario.js combinaciones.js paneltablero.js panelajustes.js rastreo.js recuperar.js avisame.js colaborador.js vistaprevia.js actualizar.js fotoscdn.js permiso.js hojaid.js paneltiendas.js restaurar.js medicion.js"}
