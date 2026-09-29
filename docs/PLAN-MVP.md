@@ -1557,6 +1557,15 @@ agotado.
 - [x] `fotos` publica todo lo que declaran las herramientas que corre (`ESCRIBE`),
       con una batería que compara las dos listas.
 
+### 0.21.1 · El panel se publica solo
+
+**3.11b · `panel.gs` sin copiar y pegar**  · 1 pt · ✅ (bitácora 100)
+- [x] `publicar-maestro.mjs` sube el archivo que le digan (`ARCHIVO`).
+- [x] Flujo `panel` en `tiendas`: clona la semilla y la llama con `panel.gs`.
+      Secretos nuevos: `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`.
+- [x] Una tienda que ya no existe en GitHub no detiene a la flota: se salta y se
+      dice cuál quitar de `flota.json`.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

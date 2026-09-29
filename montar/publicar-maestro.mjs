@@ -50,6 +50,21 @@ import { pathToFileURL } from 'node:url';
 import { olvidarSondeo } from './tienda.mjs';
 
 const CLASP  = 'montar/.clasp.json';
+
+/* 0.21.1 · LA MISMA HERRAMIENTA PARA EL PANEL DE LA FLOTA (bitácora 100).
+   Esto subía `maestro.gs` y nada más, porque era lo único que había que subir.
+   La hoja de administración de la flota tiene su propio Apps Script —`panel.gs`,
+   el mismo archivo de la semilla— y se estaba pegando A MANO en cada versión:
+   el único paso del despliegue que seguía siendo copiar y pegar. Es el mismo
+   trabajo (clasp push + actualizar la implementación) sobre otro proyecto, así
+   que se hace con esta herramienta y no con una copia suya en el otro
+   repositorio (patrón 2).
+
+   Lo único que cambia es lo de la HOJA: el maestro lleva el id de su hoja
+   horneado —`var HOJA_ID`— porque puede vivir suelto; el panel está pegado a
+   SU hoja y la abre con getActive(), así que no lleva ninguno. */
+const ARCHIVO = String(process.env.ARCHIVO || 'maestro.gs').trim();
+const ES_MAESTRO = ARCHIVO === 'maestro.gs';
 const TIENDA = 'tienda.json';
 const MANIFIESTO = {
   timeZone: 'America/Bogota',
@@ -275,21 +290,27 @@ async function main() {
      los docs y el index. */
   const tmp = mkdtempSync(join(tmpdir(), 'tienda-'));
   try {
-    const hojaId = idDeLaHoja();
-    const fuente = readFileSync('maestro.gs', 'utf8');
-    const conHoja = fuente.replace(/var HOJA_ID = '[^']*';/,
-                                   "var HOJA_ID = '" + hojaId + "';");
-    if (conHoja === fuente) {
-      console.error("\nNo encontré la línea  var HOJA_ID = '…';  en maestro.gs.\n");
-      process.exit(1);
+    const fuente = readFileSync(ARCHIVO, 'utf8');
+    let contenido = fuente;
+    if (ES_MAESTRO) {
+      const hojaId = idDeLaHoja();
+      contenido = fuente.replace(/var HOJA_ID = '[^']*';/,
+                                 "var HOJA_ID = '" + hojaId + "';");
+      if (contenido === fuente) {
+        console.error("\nNo encontré la línea  var HOJA_ID = '…';  en maestro.gs.\n");
+        process.exit(1);
+      }
+      console.log('Hoja de esta tienda: ' + hojaId.slice(0, 14) + '…');
+    } else {
+      console.log(ARCHIVO + ' se sube tal cual: su script está pegado a SU hoja y la abre');
+      console.log('con getActive(), así que no lleva ningún id horneado.');
     }
-    writeFileSync(join(tmp, 'maestro.gs'), conHoja);
-    console.log('Hoja de esta tienda: ' + hojaId.slice(0, 14) + '…');
+    writeFileSync(join(tmp, ARCHIVO), contenido);
     writeFileSync(join(tmp, 'appsscript.json'), JSON.stringify(MANIFIESTO, null, 2));
     writeFileSync(join(tmp, '.clasp.json'),
                   JSON.stringify({ ...cfg, rootDir: tmp }));
 
-    console.log('Subiendo maestro.gs…');
+    console.log('Subiendo ' + ARCHIVO + '…');
     /* CAPTURADA Y ADEMÁS IMPRESA. Con stdio:'inherit' la salida se veía pero
        `push.stdout` quedaba en null, así que mirarla para decidir qué mensaje
        dar habría sido mirar a la nada: una comprobación que no comprueba. */
@@ -404,8 +425,10 @@ async function main() {
       process.exit(1);
     }
 
-    const version = (readFileSync('maestro.gs', 'utf8')
-      .match(/var VERSION = '([^']+)'/) || [])[1] || 'sin versión';
+    /* `maestro.gs` la llama VERSION y `panel.gs`, VERSION_PANEL: se lee la que
+       tenga el archivo que se está subiendo, y no una escrita aquí. */
+    const version = (readFileSync(ARCHIVO, 'utf8')
+      .match(/var VERSION(?:_[A-Z]+)? = '([^']+)'/) || [])[1] || 'sin versión';
 
     console.log('Actualizando la implementación ' + dep + ' a la versión ' + version + '…');
     const desplegar = mayor >= 3
@@ -427,11 +450,16 @@ async function main() {
 
     console.log('\nListo. La URL /exec no cambió.');
     console.log('');
-    console.log('Compruébalo EN LA HOJA DE LA TIENDA (no en el panel):');
-    console.log('  el menú de la hoja > Diagnóstico');
-    console.log('  "Versión del MAESTRO de esta tienda" debe decir ' + version + '.');
-    console.log('');
-    console.log('El panel tiene su propia versión, que es otra cosa y no coincide.');
+    if (ES_MAESTRO) {
+      console.log('Compruébalo EN LA HOJA DE LA TIENDA (no en el panel):');
+      console.log('  el menú de la hoja > Diagnóstico');
+      console.log('  "Versión del MAESTRO de esta tienda" debe decir ' + version + '.');
+      console.log('');
+      console.log('El panel tiene su propia versión, que es otra cosa y no coincide.');
+    } else {
+      console.log('Compruébalo en la hoja de administración: recarga el portal y');
+      console.log('mira el pie, que dice la versión del panel: ' + version + '.');
+    }
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

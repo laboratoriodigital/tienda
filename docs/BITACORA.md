@@ -2361,6 +2361,35 @@ lo que el flujo publica y el estado de TODO el repositorio, que es donde se ve s
 el horneado escribió en otro sitio. **Lo prueba** 1 aserción de `montaje.js`, con
 su control negativo.
 
+**100 · El último copiar-y-pegar del despliegue, y la lista que paraba a la
+flota.** Quedaba un paso manual en cada versión: abrir `panel.gs`, copiarlo y
+pegarlo en el Apps Script de la hoja de administración. No era un problema
+técnico sino una omisión: es EXACTAMENTE el mismo trabajo que el montaje ya hace
+con el maestro de cada tienda —`clasp push` y actualizar la implementación—,
+sobre otro proyecto. Así que lo hace la misma herramienta: `publicar-maestro.mjs`
+recibe `ARCHIVO` y sube el que le digan, y un flujo nuevo en `tiendas` —`panel`—
+clona la semilla en la versión pedida y la llama con `ARCHIVO=panel.gs`. Copiar
+esa herramienta al otro repositorio habría sido la misma regla en dos sitios, y
+la copia se separa de su original el día que una de las dos cambia (patrón 2).
+Lo único distinto entre los dos casos es la hoja: el maestro lleva el id de la
+suya horneado porque puede vivir suelto, y el panel está pegado a la suya y la
+abre con `getActive()`. Dos secretos nuevos, solo en `tiendas`:
+`PANEL_SCRIPT_ID` y `PANEL_CLASPRC`.
+
+En la misma tanda, `flota` › actualizar se detuvo en seco: «**prueba-panel**: no
+pude leer su versión — 404. Me detengo aquí», y ninguna tienda recibió nada. El
+repositorio de esa tienda de prueba ya no existe y su fila seguía en
+`flota.json`, que lo edita una persona. Una tienda que NO ESTÁ no es un fallo de
+la versión que se está repartiendo —es un dato viejo—, así que ahora se dice, se
+salta y al final se recuerda cuáles hay que quitar de la lista; lo que sigue
+deteniendo a la flota es una tienda que está y falla, que es para lo que existen
+los anillos. Si no existe NINGUNA de las pedidas, eso sí es rojo: alguien pidió
+repartir una versión y no se repartió a nadie. Y de paso, `actualizar.mjs` se
+ejecutaba al importarlo: la batería que quería comprobar una función suya
+arrancaba la actualización de la flota entera. Ahora lleva el mismo remate que
+las demás herramientas —corre cuando se lanza, no cuando se importa—. **Lo
+prueban** 3 aserciones de `montaje.js` y 8 de la flota.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

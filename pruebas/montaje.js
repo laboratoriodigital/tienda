@@ -286,8 +286,11 @@ const configurar = (g, clave, valor) => {
   ok('SIN IMPLEMENTACIÓN previa explica qué hacer una sola vez',
      /no tiene ninguna implementación publicada/.test(src) &&
      /Cualquier persona/.test(src) && /abre esa URL una vez/.test(src));
-  ok('SUBE SOLO el maestro, no el repositorio entero',
-     /mkdtempSync/.test(src) && /writeFileSync\(join\(tmp, 'maestro\.gs'\)/.test(src) &&
+  /* 0.21.1 · El archivo lo dice ahora `ARCHIVO` —el maestro de fábrica, o
+     `panel.gs` cuando lo llama la flota (bitácora 100)—, pero lo que se prueba
+     es lo mismo: que se sube ESE archivo y nada más del repositorio. */
+  ok('SUBE SOLO el archivo que toca, no el repositorio entero',
+     /mkdtempSync/.test(src) && /writeFileSync\(join\(tmp, ARCHIVO\)/.test(src) &&
      /rootDir/.test(src), 'una carpeta temporal con lo único que debe existir allá');
   ok('  ...y la borra pase lo que pase', /finally \{[\s\S]{0,80}rmSync/.test(src));
   ok('  ...dejando la implementación pública, el error más repetido',
@@ -2765,6 +2768,31 @@ const configurar = (g, clave, valor) => {
   ok('LO QUE ESCRIBE cada herramienta está en la lista de lo que el flujo publica',
      sueltos.length === 0, sueltos.join(' · ') ||
      'ninguna escribe fuera de lo que su flujo publica');
+}
+
+/* ═══ 27g. LA MISMA HERRAMIENTA PUBLICA EL MAESTRO Y EL PANEL
+       (0.21.1 · bitácora 100) ═══
+   `panel.gs` corre en la hoja de administración de la flota y se pegaba A MANO
+   en cada versión: el último paso del despliegue que seguía siendo copiar y
+   pegar. Es el mismo trabajo que ya hace esta herramienta con el maestro de cada
+   tienda, así que lo hace ella —con `ARCHIVO=panel.gs`— y no una copia suya en
+   el repositorio de servicio, que se separaría el día que una de las dos cambie
+   (patrón 2). Lo único distinto es la hoja: el maestro lleva el id de la suya
+   horneado porque puede vivir suelto; el panel está pegado a la suya. */
+{
+  const t = fs.readFileSync('../montar/publicar-maestro.mjs', 'utf8');
+  ok('LA HERRAMIENTA sube el archivo que le pidan, y de fábrica el maestro',
+     /const ARCHIVO = String\(process\.env\.ARCHIVO \|\| 'maestro\.gs'\)/.test(t) &&
+     /readFileSync\(ARCHIVO, 'utf8'\)/.test(t) && /writeFileSync\(join\(tmp, ARCHIVO\)/.test(t),
+     'una copia de esta herramienta en el otro repositorio sería la misma regla en dos sitios');
+  ok('  ...y solo al maestro le hornea el id de su hoja',
+     /if \(ES_MAESTRO\) \{[\s\S]{0,400}?var HOJA_ID/.test(t) &&
+     /pegado a SU hoja/.test(t),
+     'exigirle HOJA_ID al panel sería pedirle algo que no tiene');
+  ok('  ...y la versión sale del archivo que se sube, no de un nombre escrito aquí',
+     /var VERSION\(\?:_\[A-Z\]\+\)\? = '\(\[\^'\]\+\)'/.test(t) &&
+     /readFileSync\(ARCHIVO, 'utf8'\)\s*\n?\s*\.match/.test(t),
+     'maestro.gs la llama VERSION y panel.gs, VERSION_PANEL');
 }
 
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══
