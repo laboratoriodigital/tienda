@@ -532,8 +532,23 @@ function panel(tiendas, respuestas) {
   ok('COBROS suma solo lo activo', c.total === 150000, String(c.total));
   ok('  ...ordenado por día de cobro', c.lista.map(x => x.dia).join(',') === '1,28',
      c.lista.map(x => x.dia).join(','));
-  ok('  ...y marca lo que ya pasó de fecha',
-     c.lista.filter(x => x.vencido).length === (new Date().getDate() > 1 ? 1 : 0));
+  /* 0.20.4 · RELATIVO A HOY, NO AL 28 (bitácora 91). Esta aserción sembraba
+     los días 1 y 28 y esperaba UN vencido: cierto del 2 al 28, falso el 29, el
+     30 y el 31 —ahí los dos están vencidos— y falso el día 1. Se cayó en
+     Actions un 29 sin que nadie tocara una línea, que es exactamente el fallo
+     que `calendario.js` existe para cazar. Ahora los días se siembran
+     RELATIVOS a hoy y la regla vale cualquier día del mes. */
+  {
+    const hoy = new Date().getDate();
+    const g2 = panel([{ comercio: 'Hoy', precio: 10000, dia: hoy, estado: 'Activa' }]
+      .concat(hoy > 1 ? [{ comercio: 'Ayer', precio: 20000, dia: hoy - 1, estado: 'Activa' }] : []));
+    const c2 = g2.api.cobrosDelMes();
+    const vencidos = c2.lista.filter(x => x.vencido).map(x => x.comercio);
+    ok('  ...y marca lo que ya pasó de fecha, sea el día que sea',
+       vencidos.join() === (hoy > 1 ? 'Ayer' : ''), 'día ' + hoy + ' → ' + (vencidos.join() || 'ninguno'));
+    ok('  ...y «por cobrar» es exactamente lo que todavía no vence',
+       c2.porCobrar === 10000, String(c2.porCobrar));
+  }
   ok('  ...sin tocar plata: cobrar de verdad no lo hace este archivo',
      !/MailApp|sendEmail/.test(String(g.api.cobrosDelMes)));
 }

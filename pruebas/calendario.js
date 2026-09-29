@@ -87,6 +87,34 @@ CALENDARIO.forEach(function (bateria) {
                   : corridas + ' días del ' + ANO + ', todos iguales');
 });
 
+/* ── EL DÍA DEL MES, PARA EL PANEL (0.20.4 · bitácora 91) ───────────────────
+   `panel.js` no compara contra el mes pasado —no entra en la lista de arriba—,
+   pero sí mira el DÍA: los cobros marcan lo vencido con `dia < hoy`. Una
+   siembra con días fijos solo pasa en la franja del mes en que el sembrador
+   la escribió, y se cae en Actions un 29 cualquiera sin que nadie toque nada.
+   Con diez días de dos meses basta: los bordes son el 1, el 28 y los que solo
+   existen en meses largos. */
+{
+  const DEL_MES = [1, 2, 15, 27, 28, 29, 30, 31];
+  const malos = [];
+  let corridas = 0;
+  [0, 6].forEach(function (m) {                    // enero (31) y julio (31)
+    DEL_MES.forEach(function (d) {
+      const f = new Date(ANO, m, d, 14, 30);
+      if (f.getMonth() !== m) return;
+      corridas++;
+      const r = correr('panel.js', f);
+      if (!r.ok) malos.push(f.toISOString().slice(0, 10) + '  ' + r.detalle +
+                            (r.fallas && r.fallas.length ? '\n        ' + r.fallas[0] : ''));
+    });
+  });
+  ok('PANEL.JS da el mismo marcador cualquier día del mes',
+     malos.length === 0,
+     malos.length ? corridas + ' días probados, ' + malos.length + ' en rojo:\n     ' +
+                    malos.slice(0, 4).join('\n     ')
+                  : corridas + ' días, incluidos el 1, el 28 y los de mes largo');
+}
+
 /* ── NO SOLO QUÉ DÍA: TAMBIÉN A QUÉ HORA Y EN QUÉ HUSO ──────────────────────
    Lo de arriba mueve el DÍA y deja el huso quieto. Eso deja fuera una familia
    entera de fallos, y el 18 de septiembre de 2026 se cobró dos aserciones de
