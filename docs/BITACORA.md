@@ -2542,6 +2542,20 @@ con `publicacion.sh` como todo lo demás: en la semilla, todo; en una tienda, la
 tienda viva. **Lo prueban** 4 aserciones de `montaje.js`, con el horneado
 completo de verdad y su control negativo.
 
+**105 · La flota se detuvo en una tienda que nadie usa.** Con la 0.22.2
+publicada, `flota › actualizar` sin «solo esta tienda» tomó primero
+`prueba-panel` —una tienda de prueba abandonada, todavía en la 0.15.0, que había
+vuelto a aparecer en GitHub—, su montaje falló, y como debe ser «las siguientes
+no se tocan»: prueba1, la que sí importaba, se quedó sin versión. No es un error
+del producto: para eso son los anillos. Pero la lista no tenía forma de decir
+«esta tienda existe y no entra en los repartos», y el mensaje no decía cómo
+seguir. Ahora el anillo admite `"fuera"`: la tienda sigue en `flota.json` y en el
+estado, pero ni `actualizar` ni `flujos` la tocan hasta que se le devuelva un
+número; `prueba-panel` quedó así, con una nota. Y cuando la flota se detiene,
+nombra las que quedaron sin tocar y los dos caminos: «solo esta tienda» o
+`"anillo": "fuera"`. **Lo prueban** 4 aserciones de `flota/pruebas.mjs`, con su
+control negativo (volver `prueba-panel` al anillo 2 la pone roja).
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

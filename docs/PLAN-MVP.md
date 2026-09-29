@@ -1619,6 +1619,14 @@ número de pedido de M5 solo depende de una decisión, no de la infraestructura.
 
 ---
 
+### Flota · Una tienda puede estar fuera del reparto
+
+Sin versión de semilla: es de `tiendas`. `"anillo": "fuera"` en `flota.json` deja
+una tienda en la lista y en el estado, fuera de `actualizar` y `flujos`.
+`prueba-panel` (0.15.0, abandonada) quedó fuera: era la primera del anillo 2 y
+su montaje fallido dejaba sin versión a prueba1. Al detenerse, la flota dice
+cómo seguir. Bitácora 105.
+
 ## 6 · Los tres presupuestos
 
 Tres números, con su guardia, para que dentro de un año se pueda decir si esto
