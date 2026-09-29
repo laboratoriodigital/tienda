@@ -1,317 +1,185 @@
-# Traspaso — la semilla nueva de tienda
+# Traspaso — la Tienda Panel
 
-_18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda` ·
-carpeta `D:\CoWork\tienda`._
+_Al 29 de septiembre de 2026 · semilla en la **0.22.3**. Repositorio
+`laboratoriodigital/tienda`._
 
-**Léeme primero si abres una sesión nueva.** Esto es todo el contexto que hace
-falta para seguir. Después, en este orden: `PLAN-MVP.md` (qué hay que
-construir), `ROADMAP.md` (qué viene después), `CONTRATOS.md` (lo que no se puede
-romper) y `BITACORA.md` (por qué el código es raro donde es raro).
+**Léeme primero si recibes el proyecto o abres una sesión nueva.** Aquí está el
+mapa: qué hay, dónde vive cada cosa y cómo empezar. Lo demás está enlazado; no
+se repite aquí.
 
 ---
 
 ## 1 · Dónde estamos, en un párrafo
 
-Este repositorio es **la semilla de la segunda versión de la tienda virtual**.
-El producto se llama **tienda**. Nació como copia de la semilla de la línea
-anterior en su versión 3.0.0, con sus defectos dentro.
+Este repositorio es **la semilla de la Tienda Panel**: una tienda en línea para
+comercios pequeños, con la hoja de Google como base de datos, un panel web para
+el comercio y WhatsApp o Bold para cobrar. Costo de infraestructura: **$0 al
+mes**. Nació el 18 de septiembre de 2026 como copia de la semilla de la línea
+anterior (`organico` 3.0.0) y va por la **0.22.3**; el MVP saldrá como 1.0.0.
+Está construido —M0 a M5 y el panel completo—, **se actualiza solo** desde la
+0.14.0 y tiene su **flota** en `laboratoriodigital/tiendas`. Lo que falta antes
+de la 1.0.0 es comprobarlo en tiendas de verdad. Dónde va cada hito:
+`PLAN-MVP.md` › *Dónde estamos*.
 
-El repositorio arranca en **0.1.0** y el MVP sale como **1.0.0**. El MVP
-empezó siendo **M0 a M3**; el 21 de septiembre el dueño le sumó **M3.5 · Cobrar
-en línea**, **M4 · El tablero** y **M5 · El rastreo del pedido**. La
-actualización automática de la flota (M6) sigue **fuera**, y es la entrega 1.1.
+---
 
-**Dónde va el trabajo (21 de septiembre de 2026):**
+## 2 · Los repositorios
 
-| Hito | Estado |
+| Repositorio | Qué es | Versión |
+|---|---|---|
+| `laboratoriodigital/tienda` | **Esta semilla** (Tienda Panel). También es una tienda: la de Laboratorio Digital, `tienda.laboratorio-digital.com` | `package.json` |
+| `laboratoriodigital/tiendas` | **El servicio**: `alta` y `conectar` de tiendas nuevas, la **flota** (estado, actualizar por anillos, entregar flujos) y el flujo `panel`. Los secretos poderosos viven solo ahí | — |
+| Una por comercio (hoy, `prueba1`) | Las **tiendas hijas**: nacen de una etiqueta de esta semilla y se actualizan solas | la de la etiqueta que traen |
+| `laboratoriodigital/organico` | La **Tienda Básica** (solo la hoja), 3.x, con su tienda Cinnamon Beauty. Otra línea: se actualiza por pull request desde la flota. **Fuera de esta documentación** | 3.x |
+
+Qué tiendas hay y en qué anillo: `tiendas/flota.json`. Qué versión tiene cada
+una y qué contesta publicada: `tiendas/ESTADO.md` (lo escribe `flota › estado`
+los lunes).
+
+Todos son **privados**. Consecuencia que manda sobre muchas decisiones: los
+minutos de Actions se pagan (`presupuesto.json`).
+
+---
+
+## 3 · Qué es cada pieza, y de quién es la cuenta
+
+| Pieza | Qué es | Cuenta |
+|---|---|---|
+| `publicar/` | La tienda: `index.html`, `admin.html` (el panel), `pedido.html`, el catálogo horneado y las fotos. Cloudflare Workers la sirve | Una de Cloudflare, nuestra, para todas |
+| La hoja de Google | La base de datos: catálogo, configuración, pedidos, cupones, envíos | **Una cuenta de Google por tienda** |
+| `maestro.gs` | El backend, en un proyecto de Apps Script suelto (no unido a la hoja) | La misma de la tienda |
+| El stub | Unas líneas pegadas en la hoja: solo dibujan el menú. Lo genera `A1_generarStub()` | La misma |
+| Las fotos | Originales en el Drive de esa cuenta; publicadas en `publicar/fotos` | La misma |
+| `panel.gs` | La hoja *Panel de tiendas*: el operador ve todas las tiendas y sus cifras | La del operador |
+| El repositorio | Uno por tienda | GitHub, nuestra |
+
+Google se reparte (cada tienda gasta sus propios límites); Cloudflare y GitHub
+se centralizan.
+
+**Cómo funciona una venta:** el comprador arma el carrito, el maestro recalcula
+el total con los precios de la hoja y sella el pedido, se abre WhatsApp con el
+mensaje armado (o se paga con Bold), el comercio marca **Pagado** y el
+inventario baja solo.
+
+**El catálogo no se lee en vivo:** se hornea. «Publicar ahora» (panel o menú)
+dispara el flujo `fotos`, que aplica la hoja, baja las fotos, hornea, corre la
+compuerta y publica en `main`; Cloudflare despliega.
+
+---
+
+## 4 · Dónde está cada cosa, en esta semilla
+
+| Ruta | Qué hay |
 |---|---|
-| **M0** · La semilla limpia y determinista | **Cerrado.** Las nueve historias, con su evidencia en `PLAN-MVP.md` |
-| **M1** · Rendimiento y cuota | **Cerrado entero.** Los dos criterios de panel de B-2 los cerró D-5 |
-| **M2** · La tienda para todo producto | **Cerrado** el 21 de septiembre: C-1, C-1b (inventario y fotos por combinación), C-2, C-3 (envío gratis anunciado, horario, tienda cerrada, pedido mínimo) y C-4 |
-| **M3** · El panel del comerciante | **Cerrado** el 21 de septiembre: D-1 a D-7. Entra, edita productos, fotos y stock por combinación, cambia pedidos, edita la configuración, publica, deja registro de todo, y la guía de una página ya explica el panel |
-| **M3.5** · Cobrar en línea | **Hecho** el 21 de septiembre con Bold (decisión 12): `cobro_modo` en la hoja elige WhatsApp o Pasarela. Falta la prueba con las llaves reales de pruebas en una tienda publicada (`docs/PAGOS-BOLD.md`) |
-| **M3 bis** · El panel alcanza para todo | **Hecho** el 21 de septiembre (0.9.0, decisión 14): dos pantallas, Ventas y Tienda; toda la configuración, zonas de envío y cupones desde el panel; lo que mueve la plata pide la clave otra vez; aviso rojo si la pasarela no está lista. La hoja sigue funcionando igual |
-| **M5** · El rastreo | **Hecho** el 21 de septiembre (0.10.0, decisión 15): el comprador sigue su pedido con `pedido.html?n=…&s=…`, que va en su mensaje de WhatsApp o en la pantalla del pago; la hoja guarda solo la huella del secreto; el panel crea enlaces nuevos |
-| **0.11.0** · del ROADMAP | **Hecho** el 21 de septiembre: recuperar la clave por correo (2.3), «Avísame cuando llegue» sin datos del comprador (4.1, decisión 16), columnas del catálogo (4.4), dominio propio `tienda.laboratorio-digital.com` (4.5, decisión 17) e indicador de carga al entrar al panel |
-| **0.12.0** · la prueba real | **Hecho** el 21 de septiembre: el rastreo de un pago en línea llega aunque Bold devuelva a otra pestaña o navegador; filtros de pedidos al instante; ajustes sin parpadeo; mensajes de espera; el Registro dice quién aprobó el pago |
-| **0.12.1** · publicar dos veces | **Hecho** el 22 de septiembre: un «Publicar» que llega después de otro que ya publicó lo mismo sale en verde con «Ya estaba publicado» (bitácora 63) |
-| **0.13.0** · colaborador, vista previa, flota | **Hecho** el 22 de septiembre: un colaborador con menos permisos (decisión 18); «Vista previa» junto a Publicar; la flota v1 en `tiendas` con Orgánico y Cinnamon conectadas (decisión 19) |
-| **0.14.0** · dos productos, actualización sola, alta | **Hecho** el 22 de septiembre: Básica y Panel separadas (decisión 20); la tienda se actualiza sola desde su montaje, pedida desde el panel, el menú o la flota, con vuelta atrás (decisión 21); el alta en `tiendas` |
-| **0.15.0** · alta mínima, aspecto | **Hecho** el 22 de septiembre: `alta` y `conectar` de tres campos (clonan la etiqueta, sin plantilla); panel del comercio y panel de la flota más sobrios |
-| **0.20.0** · salir al aire | **Hecho** el 22 de septiembre: acabado de la tienda sin tipografías de fuera (bitácora 84); *Revisión de tu tienda* en el panel con el diagnóstico ampliado (85); el portal usa la dirección que dice la tienda (83); `flota` publica su panel en Cloudflare (86) |
-| **0.19.0** · medición y documentación | **Hecho** el 22 de septiembre: Google Analytics 4 opcional con una sola costura (`medir()`, decisión 23); `RUNBOOK-TECNICO.md`, `FUNCIONALIDADES.md` y `ARQUITECTURA.md` completos, con guardias que los mantienen ciertos |
-| **0.18.1** · enlaces del portal, documentación | **Hecho** el 22 de septiembre: el repositorio se normaliza al leer la hoja (bitácora 79); `DESPLIEGUE.md` abre con el camino normal y el roadmap queda al día (bitácora 80) |
-| **0.18.0** · volver atrás, el portal | **Hecho** el 22 de septiembre: el stub dice en qué hoja está pegado (bitácora 76); restaurar datos (A5/A6), sitio y versión (flujo `restaurar`); el portal en el menú de la hoja de administración |
-| **0.17.0** · HOJA_ID, hoja de administración | **Hecho** el 22 de septiembre: `HOJA_ID` también en las propiedades (la versión implementada ya no se queda sin hoja); `conectar` registra la tienda en el *Panel de tiendas*; fuera `tienda-nueva.yml` |
-| **0.16.0** · secretos sembrados, fotos | **Hecho** el 22 de septiembre: `conectar` siembra también el permiso de GitHub del maestro (a mano solo `CLASPRC`); fotos con dominio propio: las dos maneras, comprobadas (decisión 22) |
-| **M4** · El tablero | **Hecho** el 21 de septiembre (decisión 13): pestaña **Tablero** en el panel, con ventas mes a mes, embudo, lo más vendido, ciudades e inventario en SVG escrito a mano, cada gráfica con su tabla, una petición por visita y los mismos números que la pestaña Tablero de la hoja |
-
-Los números de M1, que son los que deciden si cabe una tienda más:
-
-- El flujo `fotos` pasó de **seis arranques diarios a uno**, y el diario no
-  publica: mira y avisa. Era el 84 % de los minutos de una tienda.
-- De **siete peticiones fijas al maestro a cuatro**, y las cuatro a la vez.
-- Las fotos van en tandas de cuatro, y **una rota ya no impide publicar las
-  demás** —antes, doce fotos con una corrupta publicaban cero—.
-- Cada corrida deja su tabla de tiempos y un `tiempos.json`, y hay un guardia
-  contra `presupuesto.json` que falla si algo tarda más del doble de lo previsto.
-
-**Medido en producción el 19 de septiembre de 2026**, en corridas del flujo
-real con la hoja real: el montaje que antes tardaba **3 min 08 s** corrió en
-**46 segundos** sin cambios que publicar, y en **2 min 19 s** con el horneado
-entero por delante. Los dos, holgadamente dentro del presupuesto de
-`presupuesto.json`.
-
-**El MVP está construido** (M0 a M5, más el panel completo de la 0.9.0). Queda solo M6 para la 1.1. Lo que queda antes de llamarlo 1.0.0
-no es código nuevo, es comprobarlo en una tienda de verdad:
-
-1. **La prueba de Bold** con las llaves de pruebas en una tienda publicada
-   (`docs/PAGOS-BOLD.md`, «Probarlo»).
-2. **Una tienda de ropa real con variantes**: llenar `Inventario por variante`,
-   vender una combinación y ver que baja esa. Nada de C-1b se ha probado
-   todavía contra Google de verdad.
-3. **El registro de cambios en una hoja real**: comprobar que el correo de
-   quien edita llega (`e.user` depende del tipo de cuenta de Google) y que la
-   protección con aviso aparece.
-
-**El cobro en línea está hecho pero no probado contra Bold de verdad**: las
-pruebas usan un Bold de mentira que contesta lo que contesta el real. Antes de
-cobrarle a nadie hay que hacer la prueba de `docs/PAGOS-BOLD.md` con las llaves
-de pruebas en una tienda publicada.
-
-El `publicar/404.html` con la marca de la línea anterior quedó resuelto el 21 de
-septiembre (bitácora 55).
-
-**El montaje con la casilla del maestro fallaba siempre** hasta la versión
-2026-09-21-3: horneaba el index con la versión que contestaba el maestro antes
-de publicarse (bitácora 56). Arreglado; y si el maestro vivo no es el del
-repositorio, el montaje ahora se para al principio y dice qué casilla marcar.
+| `maestro.gs` | El backend. `VERSION` (la del contrato con la página) y `VERSION_TIENDA` (= `package.json`) |
+| `panel.gs` | La hoja de administración. Se publica con Actions › **panel** en `tiendas` |
+| `plantilla/` | El código de la página: `index.html`, `admin.html`, `pedido.html`, `404.html`. `publicar/` se hornea de aquí más la hoja |
+| `publicar/` | Lo que se despliega. En una tienda, lo escribe el horneado; a mano no se toca |
+| `montar/` | Las herramientas: hornear (`preparar-index`, `catalogo-estatico`, `traer-fotos`, `sembrar-*`), publicar el maestro (`publicar-maestro`), actualizarse (`actualizar-semilla`, `semilla`), volver atrás (`volver-atras`) |
+| `pruebas/` | Las baterías. `todas.sh` las corre todas; `publicacion.sh` decide qué corre al publicar; `tienda-viva.js` es la compuerta de una tienda |
+| `.github/workflows/` | `montaje`, `fotos`, `pruebas`, `restaurar` (van a las tiendas) y `release` (solo la semilla) |
+| `semilla.json` | Qué archivos son de la semilla (`propios`) y cuáles retiró (`retirados`) |
+| `presupuesto.json` | El presupuesto de tiempo y de minutos de Actions, que vigilan los flujos |
+| `docs/` | Ver §8 |
 
 ---
 
-## 2 · Qué es el producto
+## 5 · Cómo se mueve una versión
 
-Una tienda en línea para comercios pequeños colombianos, con **costo de
-infraestructura de $0 al mes**. Cada comercio tiene lo suyo, separado de los
-demás:
+`package.json` sube → push a `main` → `pruebas` en verde → Actions ›
+**release** corta `vX.Y.Z` (y pone al día el maestro de la propia semilla) →
+cada tienda la pide: `flota › actualizar`, su `montaje` con `semilla`, o el
+botón del panel o del menú. La tienda se trae los archivos, publica su maestro,
+rehornea, pasa la compuerta de la tienda viva y publica; si algo falla, queda
+como estaba. Sus **flujos** los entrega la flota.
 
-| Pieza | Qué es | De quién es la cuenta |
-|---|---|---|
-| `publicar/index.html` | La tienda. Una página estática, servida por Cloudflare Workers | Una sola cuenta nuestra, para todas |
-| La hoja de Google | La base de datos: catálogo, configuración, pedidos, cupones, envíos | **Una cuenta de Google por tienda**, creada por el operador |
-| `maestro.gs` | El backend, en un proyecto de Apps Script **suelto** (no unido a la hoja) | La misma cuenta de esa tienda |
-| El stub | 46 líneas pegadas dentro de la hoja. Solo dibuja el menú | La misma |
-| Las fotos | Originales en el Drive de esa cuenta; publicadas como WebP en el repositorio | La misma |
-| El repositorio | Uno por tienda, creado a partir de esta plantilla. **Privado** | Nuestra |
-| WhatsApp | Donde se cierra la venta y se entrega la llave de pago | Del comercio |
-
-**Google se reparte** (una cuenta por tienda, para que cada una gaste sus
-propios límites gratuitos). **Cloudflare y GitHub se centralizan.** No es una
-inconsistencia: son límites de naturaleza distinta.
-
-**Cómo funciona una venta:** el comprador arma el carrito en la página, el
-servidor recalcula el total con los precios de la hoja y sella el pedido, se
-abre WhatsApp con el mensaje armado, el comercio confirma y manda la llave de
-pago por la respuesta automática del chat, el comprador transfiere, el comercio
-marca *Pagado* en la hoja y el inventario baja solo.
-
-**Cómo se actualiza la tienda:** el catálogo **no se lee en vivo**. Se hornea y
-se publica: el comerciante aprieta un botón y un flujo de GitHub escribe el
-`<head>`, baja las fotos del Drive, hornea el catálogo, escribe el catálogo de
-respaldo dentro de la página, corre las baterías y empuja. Cloudflare despliega.
+El detalle, con el porqué de cada paso: **`ACTUALIZAR-UNA-TIENDA.md`**. Cortar
+una versión: **`CONTRIBUIR.md`**.
 
 ---
 
-## 3 · Qué cambia en esta línea
+## 6 · Las credenciales, y la regla que no se negocia
 
-Siete decisiones del 18 de septiembre de 2026. Están en `PLAN-MVP.md` §0 con su
-razonamiento; aquí en corto:
-
-1. **Semilla y tiendas privadas.** La semilla se hará pública cuando el dueño
-   llegue al umbral que está midiendo; las tiendas, nunca. **Consecuencia que
-   manda sobre todo lo demás: en privado los minutos de Actions se pagan.**
-2. **El único pull request manual es el de la semilla.** En las tiendas todo
-   fusiona solo — catálogo, fotos, `index.html` y maestro—, y a cambio hace
-   falta verificación automática después de publicar y vuelta atrás automática.
-3. **Proyecto aparte** de la línea vieja.
-4. **Ni rastro del comercio anterior en el código.** Todo desde la hoja.
-5. **El comerciante administra desde una página web**, no desde la hoja. La hoja
-   sigue siendo la base de datos, deja de ser la interfaz. En el MVP entra el
-   **panel de gestión**; el tablero gráfico y el rastreo del pedido son la 1.1.
-6. **Autoría al pie**: *Powered by Laboratorio Digital*, con enlace y con
-   interruptor para quitarla.
-7. **MVP antes que ambición.** El plan grande existe; se recortó a lo mínimo
-   vendible y el resto está en el `ROADMAP.md`.
-8. **El producto se llama «tienda»**, empieza en `0.1.0` y el MVP sale como
-   `1.0.0`.
-9. **Sin datos básicos de empresa no se publica.** Razón social, NIT o cédula,
-   dirección, ciudad y al menos un canal de contacto pasan de *avisan* a
-   *bloquean*: un texto legal sin responsable no vale nada.
-10. **El MVP son M0 a M3**, y lo que se sacó está en el `ROADMAP.md` con su
-    orden ya decidido —tablero, rastreo, flota— y sus condiciones escritas.
+- Las **llaves de Bold** y el **`GITHUB_TOKEN`** del maestro viven **solo** en
+  las propiedades del script de Apps Script. Nunca en la hoja, el repositorio,
+  los secretos de GitHub de la tienda ni el panel.
+- La clave y la sesión del panel viajan **solo por POST**, nunca en la
+  dirección. Los tokens no se imprimen nunca (los flujos los tapan).
+- Cada secreto, dónde vive y quién lo pone: `ARQUITECTURA.md` (tabla de
+  credenciales) y `DESPLIEGUE.md` › *Secretos, tokens y llaves*.
 
 ---
 
-## 4 · El estado real del código, sin adornos
+## 7 · Cómo empezar
 
-Ocho hallazgos de la medición del 18 de septiembre. Los cinco primeros eran el
-hito M0 y **están cerrados**; el 8 se cerró en M1 (B-7). Quedan vivos el **6**
-(B-3) y el **7** (B-4). Se dejan escritos enteros porque explican por qué el
-código es como es donde todavía lo es:
+1. **Leer, en este orden:** este archivo; `PLAN-MVP.md` › *Dónde estamos*;
+   `ARQUITECTURA.md`; `CONTRATOS.md` (lo que no se puede romper); las últimas
+   entradas de `BITACORA.md` (por qué el código es raro donde es raro).
+2. **Correr las baterías antes de tocar nada**, para tener el verde de partida:
 
-1. **`publicar/index.html` es fuente y producto a la vez.** No hay plantilla
-   separada: las herramientas reemplazan bloques marcados dentro del archivo que
-   se publica. Mientras siga así, actualizar una tienda es fusionar.
-2. **Quedan datos del comercio anterior donde nadie los hornea**: el pie, el
-   bloque `EMPRESA` (una ciudad y un teléfono reales), el `wa.me` del botón
-   flotante, `404.html`, `compartir.jpg` y el `name` de `wrangler.jsonc`. En
-   tiempo de ejecución se tapan; el archivo publicado los lleva dentro.
-3. **Los textos legales hablan de tomates.** El derecho de retracto nombra tres
-   variedades de tomate y «recoger en la finca». Cualquier comercio que publique
-   con esta plantilla firma eso ante sus compradores. Es lo más caro de los
-   ocho.
-4. **`SCRIPT_VERSION` sale del maestro publicado, no del repositorio.** El
-   `index.html` y el maestro no se pueden actualizar por separado: si el index
-   va por delante, la tienda avisa desajuste de versión y deja de sellar
-   pedidos.
-5. **El horneado no es determinista**: fecha del día dentro del catálogo de
-   respaldo (cambia al cruzar la medianoche UTC aunque nada cambie), marca de
-   tiempo en el catálogo, claves sin ordenar, y `package-lock.json` ignorado —
-   así que la versión de la librería que convierte las fotos puede cambiar sola.
-6. **Al maestro se le pregunta tres veces lo mismo** por corrida. Con el
-   arranque en frío de Apps Script (documentado en 40 s o más), eso está en el
-   camino crítico.
-7. **Las fotos se bajan y se convierten en serie**, y los cuatro tamaños de cada
-   foto también.
-8. **`limites.js` levanta un navegador y no está en la lista de `todas.sh`**: no
-   corre nunca.
+   ```
+   cd pruebas && npm install && ./todas.sh
+   ```
 
-Y uno de política, que reordena el plan: **el cron de cuatro horas del flujo de
-publicación se lleva el 84 % de los minutos de Actions**. Con repositorios
-privados, eso hace que la cuarta tienda no quepa en el plan gratuito. El MVP lo
-sustituye por publicación a demanda más una red de seguridad diaria: de ~535 a
-~100 minutos al mes por tienda.
+   (o `npm test` desde la raíz). Necesita Chromium de Playwright; si ya está en
+   otra carpeta, `PLAYWRIGHT_BROWSERS_PATH=<carpeta>`. La salida entera de cada
+   batería queda en `pruebas/.salida/`. Cómo se trabaja y se corta una versión:
+   `CONTRIBUIR.md`.
+3. **Mirar la flota:** `tiendas/ESTADO.md`, o Actions › **flota** › `estado`.
+4. **Montar una tienda:** `RUNBOOK-TECNICO.md` (el paso a paso) y
+   `DESPLIEGUE.md` (el mapa y el porqué).
+
+**Las reglas de la casa**, aprendidas caras:
+
+- **Reproducir antes de diagnosticar.** Una causa que no se reprodujo no es la
+  causa (bitácoras 99 y 104).
+- **Patrón 2:** lo que no se actualiza en el mismo movimiento que el código
+  miente después. Vale para la documentación.
+- **Un control negativo se ve en rojo** antes de dar por buena una batería.
+- **Nada que dependa de ser la semilla decide si una tienda publica**
+  (bitácora 102).
+- **Un arreglo en el flujo o en el actualizador llega una versión tarde**: la
+  lógica que tiene que valer ya va en `pruebas/` (ver
+  `ACTUALIZAR-UNA-TIENDA.md`).
+- **Ningún comercio va escrito en el código**; todo sale de su pestaña
+  `Configuración`.
+- **Campo nuevo, al final y opcional**: el maestro lee por posición.
+- **Nunca una implementación nueva de Apps Script**: estrena URL y deja la
+  tienda muda.
 
 ---
 
-## 5 · Las reglas que no se vuelven a discutir
+## 8 · Qué documento manda para qué
 
-- **Ningún comercio va escrito en el código.** Todo sale de la pestaña
-  `Configuración` de su hoja.
-- **Nada de la tienda se escribe a mano en `publicar/`.** Todo lo suyo lo pone
-  el horneado. El día que alguien meta ahí un valor a mano, el siguiente
-  horneado lo borra sin decir nada.
-- **La llave de pago no va en la página ni en el repositorio.** Se entrega por
-  la respuesta automática de WhatsApp. Hay tres filtros distintos que la quitan,
-  a propósito.
-- **La tienda no guarda nombre, celular ni dirección del comprador.** Viven solo
-  en la conversación de WhatsApp. La hoja guarda qué se pidió y la ciudad.
-- **Nunca una implementación nueva de Apps Script.** Siempre: Gestionar
-  implementaciones → lápiz → Versión: Nueva. Una implementación nueva estrena
-  URL y deja la tienda muda.
-- **Campo nuevo, al final y opcional.** El maestro lee por posición, no por
-  nombre de encabezado: insertar una columna en medio descuadra todo en
-  silencio.
-- **Una cifra que no se puede leer no vale cero.** `$9.000` escrito en una celda
-  no es «gratis»: es ilegible, y se reporta con su celda.
-- **Fallo abierto en el catálogo, fallo cerrado en los cupones.** Si la hoja no
-  contesta, la tienda sirve su catálogo de respaldo; un cupón sin validar no se
-  aplica.
-- **Una batería que no distingue el fallo del acierto no sirve.** Antes de dar
-  por buena una comprobación, hay que verla fallar con el defecto puesto.
+| Documento | Para qué |
+|---|---|
+| `PLAN-MVP.md` | Qué se construye, hito por hito, y dónde estamos |
+| `ROADMAP.md` | Qué viene después del MVP |
+| `ARQUITECTURA.md` | Qué vive dónde y por qué; credenciales |
+| `CONTRATOS.md` | El contrato de datos. **Normativo** |
+| `DECISIONES.md` | Decisiones con su condición de disparo |
+| `BITACORA.md` | Lo que se rompió y su lección. Historia: no se reescribe |
+| `DESPLIEGUE.md` | El mapa del despliegue, de punta a punta |
+| `RUNBOOK-TECNICO.md` | El paso a paso del técnico, e incidentes |
+| `ACTUALIZAR-UNA-TIENDA.md` | Llevar una tienda a la versión nueva |
+| `ANTES-DE-SALIR.md` | Lo que se mira antes del primer comprador real |
+| `FUNCIONALIDADES.md` | Todo lo que hace el producto |
+| `GUIA-COMERCIANTE.md` | La página que se le entrega al comercio (y `manuales/Guia-de-una-pagina.html`, imprimible) |
+| `PAGOS-BOLD.md` | Cobrar en línea con Bold, y cómo probarlo |
+| `EVALUACION-stub-automatico.md` | Por qué el stub se pega a mano |
+
+Un documento redundante no se marca como viejo: **se borra** (patrón 23).
 
 ---
 
-## 6 · Cómo se trabaja
+## 9 · Lo que queda abierto
 
-```
-banco de la nube            →   puente de dispositivo      →   GitHub
-(/home/claude/…)                (D:\CoWork\tienda)             (lo empuja el operador)
-se edita y se prueba aquí       aquí quedan los archivos       nadie más
-```
-
-1. Los cambios se hacen y se prueban en el banco de la nube.
-2. **Todas las baterías en verde**: `cd pruebas && ./todas.sh`.
-3. Se aplican en `D:\CoWork\tienda` por el puente.
-4. **El push lo hace el operador.** Ni el banco ni el puente empujan a GitHub.
-
-**Cuatro trampas del puente, y las cuatro se repiten en cada sesión:**
-
-- Después de un commit en la máquina del operador quedan archivos `.git/*.lock`
-  que el puente no puede borrar hasta pedir permiso de borrado.
-- **`.github/` está protegido** para escritura remota: los flujos se editan con
-  un script desde el intérprete del puente, no copiando archivos.
-- El banco de la nube no trae el navegador que pide Playwright. Hay uno en
-  `/opt/pw-browsers` y se enlaza con `PLAYWRIGHT_BROWSERS_PATH`.
-- El puente se cae y vuelve solo. Si una llamada falla por «no hay dispositivo»,
-  no es la máquina del operador: es el enlace, y vuelve.
-
-**Las baterías** corren sobre el código real, no sobre una copia: `pruebas/gas.js`
-emula Apps Script y Sheets y **carga `maestro.gs` tal cual**. `pruebas/arnes.mjs`
-escribe un `index.html` de pruebas con el catálogo de la hoja emulada, para que
-el archivo y la hoja que se prueban sean del mismo comercio.
-
----
-
-## 7 · Qué documento manda para qué
-
-| Documento | Para qué | Estado |
-|---|---|---|
-| **`PLAN-MVP.md`** | Qué hay que construir ahora, con historias y criterios | Nuevo, vigente |
-| **`ROADMAP.md`** | Qué se construye y en qué orden, incluido lo que queda fuera del MVP | Nuevo, vigente |
-| **`CONTRATOS.md`** | El contrato de datos. **Normativo**: dice qué NO se puede hacer | Heredado, vigente |
-| **`ARQUITECTURA.md`** | Qué vive dónde y por qué | Heredado. **Describe la línea vieja**: hay que actualizarlo a medida que M0-M6 cambien las cosas |
-| **`BITACORA.md`** | Todo lo que se rompió y la lección que dejó. 23 patrones | Heredado. Es historia y se lee como historia; no se reescribe |
-| **`DESPLIEGUE.md`** | Cómo se monta una tienda, de punta a punta | Heredado. **Quedará desactualizado con el panel web**: se rehace en M3 |
-| **`DECISIONES.md`** | Decisiones con su condición de disparo y su contrapartida | Heredado + dos nuevas de esta sesión |
-| **`GUIA-COMERCIANTE.md`** | La página que se le imprime al comercio | Heredado. **Se rehace en M3** para explicar el panel, no la hoja |
-| **`EVALUACION-stub-automatico.md`** | Por qué el stub se pega a mano, y las dos salidas posibles | Heredado, vigente |
-| **`ACTUALIZAR-UNA-TIENDA.md`** | Poner al día una tienda a mano | Heredado y **vigente más tiempo del previsto**: la actualización automática (S3) salió del MVP, así que esto es el procedimiento real hasta la 1.1 |
-| **`ANTES-DE-SALIR.md`** | Lo que falta mirar antes del primer comprador real | Heredado, vigente |
-
-**Regla de esta casa, aprendida cara (patrón 23):** un documento redundante no
-se marca como viejo, **se borra**. Si aparecen dos guías contando lo mismo, se
-rescata lo vivo de una y se elimina.
-
----
-
-## 8 · Lo primero que hay que hacer
-
-En este orden, y sin saltarse el primero:
-
-1. **Leer `PLAN-MVP.md` entero.** Son 40 KB y contestan casi todo lo que la
-   sesión nueva va a preguntar.
-2. **Confirmar el presupuesto de minutos de Actions** en Settings → Billing de
-   la cuenta de GitHub. Es el único número del plan que depende de un tercero, y
-   decide si el hito M1 es urgente o solo conveniente.
-3. **Seguir por B-4 y después B-3**, que es lo que queda de M1. B-4 está
-   acotada a `montar/traer-fotos.mjs` y se puede probar en el banco; B-3 toca el
-   protocolo con el maestro y conviene hacerla con tiempo y con los tiempos de
-   `tiempos.json` de varias corridas delante, que para eso se midieron.
-4. **Correr las baterías antes de tocar nada**, para tener el verde de partida
-   (hoy, 1519/1519):
-   `cd pruebas && PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers ./todas.sh`
-   La salida entera de cada batería queda en `pruebas/.salida/`, que es donde se
-   lee el fallo que el marcador solo resume.
-
----
-
-## 9 · Decisiones
-
-**Cerradas el 18 de septiembre de 2026.** En `DECISIONES.md`: el bloqueo por
-datos de empresa (09) y el nombre y la versión (10). En `PLAN-MVP.md` §8: el
-alcance —el MVP son **M0 a M3**— y el aplazamiento del tablero, el rastreo y la
-flota automática a la entrega 1.1.
-
-**Abiertas.** Ninguna bloquea el MVP:
-
-1. **El precio de quitar la marca de autoría**, y el de una funcionalidad a
-   medida. Que exista antes de la primera petición de un cliente.
-2. **Qué se le promete al comerciante sobre las actualizaciones automáticas.**
-   Se contesta cuando llegue S3: hasta entonces las tiendas se ponen al día a
-   mano y no hay promesa que romper.
-3. **Cuándo se hace pública la semilla.** Depende del umbral de consumo que el
-   dueño está midiendo. No bloquea nada del MVP.
-
-Cuando se contesten, van a `DECISIONES.md` con su disparador y su contrapartida,
-y se quitan de aquí.
+- **La 1.0.0**: comprobar en tiendas de verdad lo construido —el cobro con
+  Bold con llaves de pruebas en una tienda publicada (`PAGOS-BOLD.md`), una
+  tienda con variantes vendiendo por combinación, el registro de cambios en una
+  hoja real—. Qué se cerró ya, en `PLAN-MVP.md`.
+- **Lo de `ANTES-DE-SALIR.md`**, por cada tienda que salga al aire.
+- **El archivado de la hoja**: `Pedidos` y `Validaciones` solo crecen.
+- **Decisiones abiertas**: el precio de quitar la autoría; qué se le promete al
+  comercio sobre las actualizaciones; cuándo se hace pública la semilla. Van a
+  `DECISIONES.md` cuando se contesten.

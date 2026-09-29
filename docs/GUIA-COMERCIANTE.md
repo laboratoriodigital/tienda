@@ -9,12 +9,12 @@ _Imprímela y déjala al lado del computador. Casi todo se hace desde tu panel._
 **Tu tienda no lee la hoja en vivo.** Lleva dentro una copia de tu catálogo, y
 por eso abre rápido. Esa copia se rehace **cuando tú publicas**.
 
-> Cambias algo en tu panel → **Publicar** (la barra de arriba del panel) →
-> unos minutos → la tienda lo muestra.
+> Cambias algo en tu panel → **Publicar ahora** (la barra de arriba del
+> panel) → unos minutos → la tienda lo muestra.
 
 Guardar **no** publica. La barra de arriba te dice si tienes cambios sin
-publicar. Si trabajas en la hoja, el botón es menú › **Publicar ahora**. Cada
-mañana se revisa sola y te avisa si quedó algo sin publicar.
+publicar, también los que hiciste en la hoja. Si trabajas en la hoja, el botón
+es menú › **Publicar ahora**. Si algo no cuadra, no se publica nada.
 
 ---
 
@@ -43,18 +43,22 @@ arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 aparece **Stock por combinación**; las fotos de un color se suben eligiendo
 «Foto de color: Rosa») y debajo **todos los ajustes** de tu hoja, por
 secciones: tu tienda, la venta, el cobro, la portada, los textos, los colores,
-Google, datos legales, el correo del día y **Avanzado** (no lo toques si no
-sabes para qué). También las **zonas de envío** y los **cupones**. Cambiar el
-WhatsApp o los datos de pago **pide tu clave otra vez**.
+Google y WhatsApp, datos legales, el correo del día y **Avanzado** (no lo toques
+si no sabes para qué). También las **zonas de envío** y los **cupones**. Cambiar
+el WhatsApp o los datos de pago **pide tu clave otra vez**.
 
-Todo lo que cambias queda en la pestaña **Registro** de la hoja: quién, cuándo,
-y cómo estaba antes.
+**Tu logo** (Tienda › Tu tienda › *Logo*, o la fila `logo` de Configuración):
+súbelo a tu carpeta de fotos del Drive y escribe su nombre tal cual (`logo.png`).
+Sale en la barra de arriba junto al nombre y, si no pones otro *Ícono de la
+pestaña*, también ahí. Vacío = el signo con tus colores. Se ve al publicar.
 
-**Vista previa** (junto a Publicar) abre tu tienda con lo guardado, publicado
-o no; ahí no se pide. **Otra persona en el panel** (al final de Tienda) le da
-usuario y clave a quien te ayuda: lleva productos, pedidos, envíos, cupones y
-publica; de los ajustes solo ve la vitrina y si se cobra por WhatsApp o
-pasarela. Lo suyo queda a su nombre en el Registro; puedes quitarle el acceso.
+Todo lo que cambias queda en la pestaña **Registro** de la hoja: quién,
+cuándo y cómo estaba antes. **Vista previa** (junto a Publicar) abre tu tienda
+con lo guardado, publicado o no. **Otra persona en el panel** (al final de
+Tienda) le da usuario y clave a quien te ayuda: lleva productos, pedidos,
+envíos, cupones y publica; de los ajustes solo ve la vitrina y el modo de cobro.
+Puedes quitarle el acceso. Solo para ti, al final de Tienda: **Revisión de tu
+tienda** (el Diagnóstico) y **Versión de tu tienda** › **Actualizar ahora**.
 
 ---
 
@@ -69,7 +73,7 @@ pasarela. Lo suyo queda a su nombre en el Registro; puedes quitarle el acceso.
 | **Clave del panel** | Te da una clave nueva para entrar a tu panel. Se ve **una sola vez** |
 | **Diagnóstico** | Revisa todo y dice qué está mal y **dónde** |
 | **Ayuda** | Las preguntas de siempre, contestadas |
-| **Actualizar a la última versión** | Trae la versión nueva de tu tienda, la prueba y la publica (10 a 20 min) |
+| **Actualizar a la última versión** | Trae la versión nueva, la prueba y solo entonces la publica (10 a 20 min; si algo falla, queda como estaba) |
 
 Si el menú no se ve, recarga la página de la hoja.
 
@@ -91,6 +95,3 @@ Si el menú no se ve, recarga la página de la hoja.
 - **No borrar filas de Pedidos ni del Registro.** Son tu historial.
 - **No escribir en Tablero ni en Más vendidos:** se reescriben solas.
 - **No tocar el código** (Extensiones → Apps Script).
-
-<sub>**Para quien entrega la tienda:** si explicar esto toma más de 30 minutos,
-el hallazgo es de diseño, no del comerciante. Anótalo.</sub>

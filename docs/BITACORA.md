@@ -15,6 +15,173 @@ después vea que las decisiones raras del código tienen una cicatriz detrás.
 
 ---
 
+## Lo aprendido
+
+Lo que se repitió, destilado de toda la bitácora. Es la lista viva: cuando una
+entrada nueva confirma un patrón, se añade su número; cuando enseña uno nuevo,
+se abre el siguiente id. Cómo juntar esto con las bitácoras
+de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
+
+- **Los ids no cambian nunca.** P1–P8 son los «patrón 1» a «patrón 8» de
+  siempre, con el mismo número, porque el código y los documentos los citan
+  así. De P9 en adelante son nuevos. «P9» no es la entrada 9: una entrada se
+  cita como «bitácora N».
+- **Entradas** son los números de la bitácora. Las primeras no tienen número:
+  se citan por su sección y el principio de su título.
+- **Lo impide hoy** es lo que falla en rojo si el patrón vuelve: una batería,
+  una aserción o una pieza del código, comprobada al escribir esto
+  (29-sep-2026). Si no hay nada, se dice.
+
+### P1 · El fallo que funciona es el caro
+- **Regla:** lo que cae a un respaldo, a un valor de fábrica o a un «no pasa nada» tiene que gritar; si no, el respaldo se vuelve el estado normal.
+- **Entradas:** 1, 17, 31, 36, 73, 81; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
+- **Lo impide hoy:** `pruebas/todas.sh` cuenta como rota la batería que no arranca; `montar/preparar-index.mjs` se niega a hornear una clave vacía o entre corchetes; `montar/publicar-maestro.mjs` repone `HOJA_ID` antes de subir.
+
+### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
+- **Regla:** una sola fuente, y lo demás se deriva de ella. Si no se puede, una aserción ata las dos copias. Vale igual para una lista, un número, un documento, un comentario o una justificación.
+- **Entradas:** 2, 9, 18, 26, 29, 33, 41, 52, 80, 82, 83, 99, 100; Críticos: *Y el mismo agujero seguía intacto en el flujo de Actions*, *El guardia dejaba pasar el catálogo…*; Medios: *El runbook hablaba de dos campos…*; Menores: *«758 aserciones»…*.
+- **Lo impide hoy:** `PUBLICA` escrita una vez en `montaje.yml` y `fotos.yml`, y `pruebas/montaje.js` la compara con lo que escribe cada herramienta (99); `semilla.json` es la única lista de lo que es de la semilla; `pruebas/esquema.js` ata `CONTRATOS.md` al código; `pruebas/montaje.js` exige que todo secreto de un flujo esté en `ARQUITECTURA.md` (82).
+
+### P3 · Windows
+- **Regla:** lo que corre en la máquina del operador corre en Windows, y una prueba en Linux no lo ve.
+- **Entradas:** 3, 25; Graves: *Publicar el maestro no corría en Windows*, *«Falta clasp» con clasp instalado*, *Dos herramientas se cargaban, no ejecutaban nada…*.
+- **Lo impide hoy:** nada automático: ningún flujo corre en Windows. Lo mitigan las herramientas en Node, `pathToFileURL` y la salida en `pruebas/.salida/`.
+
+### P4 · Una prueba que solo sabe ver la primera tienda no prueba el producto
+- **Regla:** ninguna prueba del producto nombra a un comercio real; se prueba con un comercio de prueba y, además, con OTRO.
+- **Entradas:** 4, 11, 12, 14, 55, 93, 102; Medios: *Cinco baterías daban por hecho que la tienda se llamaba «Orgánico»*.
+- **Lo impide hoy:** `pruebas/marca.js` con la lista única `terminos-prohibidos.json`; `pruebas/respaldo.js` monta un comercio que no es el de la plantilla; `pruebas/tiendita.js` hornea otro comercio.
+
+### P5 · Una comprobación que da lo mismo con el defecto y sin él no comprueba nada
+- **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio; si distingue, preguntar qué distingue de verdad. Toda aserción nueva se ve en rojo con su defecto puesto (control negativo) antes de darla por buena.
+- **Entradas:** 5, 10, 11, 15, 19, 33, 34, 39, 46, 53, 60; Graves: *Y la comprobación que di era la misma trampa de siempre*.
+- **Lo impide hoy:** la regla del control negativo en `CONTRIBUIR.md`; canarios como «ESTA BATERÍA DISTINGUE» en `pruebas/respaldo.js`. Ninguna batería comprueba que las demás tengan su control.
+
+### P6 · Lo que se escribe para los que vienen después deja fuera al primero
+- **Regla:** la tienda cero —la semilla— también es una tienda: lo que se hace para «las demás» se corre contra ella.
+- **Entradas:** 6, 106; Graves: *El repositorio semilla nunca pasó por su propio runbook*.
+- **Lo impide hoy:** `release.yml` pone al día el maestro de la propia semilla (0.22.3), vigilado por `pruebas/montaje.js`.
+
+### P7 · Una caché convierte un chequeo en un recuerdo
+- **Regla:** un instrumento lee la fuente, no la caché; una caché guarda respuestas, no fracasos; y lo que cambia dentro de la corrida la invalida.
+- **Entradas:** 7, 30, 56.
+- **Lo impide hoy:** el sondeo caduca a los diez minutos (`montar/tienda.mjs`) y `montar/publicar-maestro.mjs` lo tira al publicar (`olvidarSondeo()`), probado en `pruebas/montaje.js`.
+
+### P8 · El reloj es una entrada que nadie declara
+- **Regla:** fecha, hora y huso se mueven en la prueba que dice cubrir el reloj; los meses se restan con `getMonth()`; lo que no puede existir ese día se salta diciéndolo; los tiempos se informan, no se afirman.
+- **Entradas:** 8, 13, 27, 29, 91.
+- **Lo impide hoy:** `pruebas/calendario.js`, que corre las baterías de calendario fingiendo días de un año bisiesto y con otro huso (`TZ`).
+
+### P9 · Reproducir antes de diagnosticar
+- **Regla:** ningún diagnóstico se da por bueno sin reproducir el fallo (emulador, repositorio de juguete, tiendita). Un error se lee por lo que dice, y cuatro arreglos que fallan igual son una sola hipótesis equivocada.
+- **Entradas:** 25, 50, 56, 92, 99, 104, 106; Críticos: *El acta se congela antes de que llegue el último sello*; Graves: *El maestro se inventaba su propia dirección*; las cinco *Afirmaciones mías que resultaron falsas*.
+- **Lo impide hoy:** nada automático. Es regla de la casa, escrita en `RUNBOOK-TECNICO.md`.
+
+### P10 · El que se actualiza a sí mismo corre su versión vieja
+- **Regla:** un arreglo en el auto-actualizador llega una versión tarde. Lo que decide si una tienda publica vive en lo que la actualización escribe antes de usarlo (`pruebas/`), y lo que la tienda no puede entregarse se lo entrega otro: la flota.
+- **Entradas:** 90, 92, 95, 101, 102, 103.
+- **Lo impide hoy:** `pruebas/publicacion.sh` elige la compuerta y llega con la actualización antes de correr; `flota/flujos.mjs` (en `tiendas`) entrega los flujos.
+
+### P11 · Lo que depende de SER la semilla no puede decidir si una tienda publica
+- **Regla:** la compuerta de una tienda solo mira invariantes sobre lo horneado con SUS datos; lo que solo es cierto en la semilla se comprueba allí y en una tienda se salta diciéndolo.
+- **Entradas:** 13, 93, 95, 102, 104.
+- **Lo impide hoy:** `pruebas/tienda-viva.js`, elegida por `pruebas/publicacion.sh` con `donde.js` (`esSemilla()`); `pruebas/tiendita.js` corre la compuerta sin lo que `alta` no hereda y con otro comercio.
+
+### P12 · El permiso que se comprueba es el que se usa, y ninguno opcional va en el camino crítico
+- **Regla:** un token se prueba antes de sembrarlo y con la acción que va a hacer. `actions/checkout` deja una cabecera `extraheader` con el `GITHUB_TOKEN` que gana a cualquier token puesto en la URL del push, y el `GITHUB_TOKEN` no puede escribir `.github/workflows`.
+- **Entradas:** 68, 87, 89, 92, 96, 97, 101, 102, 103.
+- **Lo impide hoy:** los flujos de una tienda los entrega la flota con `FLOTA_TOKEN` por la API de contenidos, y la tienda los saca de su commit (103, `pruebas/actualizar.js`, `pruebas/tiendita.js`); `flota/pruebas.mjs` exige comprobar antes de sembrar (96); `pruebas/permiso.js` pregunta por los flujos, no por el repositorio (97).
+
+### P13 · Un secreto no viaja por donde queda escrito
+- **Regla:** llaves y tokens viven solo en las propiedades del script (y en los secretos de GitHub donde toca); nunca en la hoja, el repositorio, una dirección (solo POST), un pantallazo ni un resumen. Lo mismo, los datos del comprador.
+- **Entradas:** 37, 46; Críticos: *La llave de pago estaba en el repositorio*, *Un token de GitHub clásico y el token de una tienda salieron en pantallazos*.
+- **Lo impide hoy:** `pruebas/admin.js` revisa cada petición y exige que ni la clave ni el testigo vayan en una dirección; `pruebas/pagoweb.js` busca los datos del comprador en lo guardado; `flota/pruebas.mjs` exige que `PANEL_CLASPRC` no se imprima.
+
+### P14 · Los fallos silenciosos del lenguaje y del shell
+- **Regla:** una tubería sin `pipefail`, un `try/catch` que protege, dos funciones con el mismo nombre, una constante que nace `undefined` o una comparación que nunca coincide no fallan: siguen. Cada clase se ata con una aserción de clase, no de la línea que la destapó.
+- **Entradas:** 36, 42, 51, 58; Graves: *Dos herramientas se cargaban, no ejecutaban nada, y salían con código 0*; Medios: *Una tubería `| tee` sin `pipefail`…*, *Una función `pesos()` duplicada*.
+- **Lo impide hoy:** `pruebas/montaje.js` exige `pipefail` en toda tubería con `tee`; `pruebas/esquema.js`: ninguna función del maestro se declara dos veces y ninguna constante nace con `undefined`; la guardia de puertas del maestro falla cerrada (36).
+
+### P15 · Un aviso tiene que llegar a donde alguien mira, y nombrar la causa
+- **Regla:** el aviso va donde está la persona —el resumen de la corrida, arriba del panel—, dice qué pasó en ESTA corrida y qué hacer. Un paso que corre `always()` después de un desastre, o un error de git al final, cuenta su pena y no la del desastre.
+- **Entradas:** 20, 21, 44, 50, 57, 63, 87, 91, 92, 99, 105.
+- **Lo impide hoy:** la ficha común con que abren los resúmenes de los flujos de los dos repositorios, vigilada por `pruebas/montaje.js` (91).
+
+### P16 · Un flujo que nunca ha corrido de verdad no está probado
+- **Regla:** una guarda que nunca vio su caso está redactada, no comprobada; una aserción sobre el texto de un flujo no dice que funcione. Se corre de punta a punta, con sus secretos o con un repositorio de juguete, antes de llamarlo camino normal. Y leer el código para documentarlo es una prueba.
+- **Entradas:** 19, 22, 24, 27, 69, 70, 103, 106; Críticos: *Y el mismo agujero seguía intacto en el flujo de Actions*.
+- **Lo impide hoy:** repositorios de juguete con git de verdad en `pruebas/restaurar.js`, `pruebas/montaje.js` y `pruebas/tiendita.js`; `flota/pruebas.mjs` exige que `panel` le entregue a clasp su credencial (106). Nada obliga a que un flujo nuevo tenga su prueba de punta a punta.
+
+### P17 · El instrumento también miente
+- **Regla:** un emulador o un doble que simplifica una propiedad que el código real promete miente el día que alguien depende de ella; se implementa de verdad antes de apoyarse en él. Y lo que se prueba junto —la página y la hoja emulada— tiene que ser del mismo comercio.
+- **Entradas:** 14, 24, 35, 39, 43, 48, 59.
+- **Lo impide hoy:** `pruebas/gas.js` usa el crypto de Node (con los bytes con signo, como Google), un `getUuid` aleatorio y un `LockService` que sabe si la llave está tomada.
+
+### P18 · Un documento no lanza una excepción cuando miente
+- **Regla:** un procedimiento, un documento; el redundante se borra, no se marca. Lo que un documento o un comentario afirma del código lo ata una aserción, y «esto lo comprueba X» se verifica abriendo X.
+- **Entradas:** 23, 26, 52, 80, 82, 96; Graves: *El documento mandaba a sacar el stub de donde no sale*; *Afirmaciones mías que resultaron falsas* 3 y 4.
+- **Lo impide hoy:** las guardias de documentación de `pruebas/montaje.js` (secretos en `ARQUITECTURA.md`, funciones y flujos que nombra el runbook, de dónde sale el stub); `pruebas/esquema.js` con `CONTRATOS.md`; `flota/pruebas.mjs` lee el orden real de `conectar` (96).
+
+### P19 · Un rojo que no significa nada enseña a no mirar los rojos
+- **Regla:** una guarda con falsos positivos, un motivo que ya se fue, un tope fijo, un intermitente o una X que nadie va a aprobar se arreglan o se quitan. Darlas por buenas siempre y darlas por molestas siempre son el mismo error.
+- **Entradas:** 12, 17, 26, 27, 28, 36, 43.
+- **Lo impide hoy:** nada general. Casos sueltos: el tope del stub crece con las opciones (`pruebas/menu.js`), y `pruebas.yml` se salta los pull requests del bot.
+
+### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
+- **Regla:** se prueba desde quien mira —el comprador, el comerciante que no entra a GitHub, el rastreador que no ejecuta JavaScript—, no desde el estado interno.
+- **Entradas:** 17, 31, 34, 57, 78, 85, 88; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
+- **Lo impide hoy:** las baterías de navegador miran la pantalla, no las listas internas (34, `pruebas/hoja.js`); el SEO se hornea y lo revisa `pruebas/seo.js` (31).
+
+---
+
+## Cómo escribir una entrada
+
+Las buenas entradas ya traen estos campos, en prosa y en este orden. Escritas
+así se leen como una historia y se pueden extraer igual.
+
+| Campo | Qué lleva | Cómo se reconoce |
+|---|---|---|
+| Número y título | El siguiente número libre y el síntoma o la lección en una frase | `**NN · Título.**` al empezar el párrafo |
+| Qué pasó | Cuándo, en qué tienda o flujo, qué se estaba haciendo | Primeras frases |
+| Síntoma literal | El mensaje tal cual salió, sin arreglarlo | Entre «…» o en un bloque de código |
+| Causa raíz | Por qué pasó, no solo dónde | Prosa |
+| Cómo se reprodujo | Emulador, repositorio de juguete, tiendita… o «sin reproducir», dicho | Prosa |
+| Arreglo | Qué cambió, y por qué así y no de otra forma | Prosa |
+| Qué lo prueba | Batería y número de aserciones, y su control negativo: qué defecto se puso y se vio en rojo | `**Lo prueba(n)**` |
+| La regla | La lección que sirve fuera de este caso, si la hay | `La regla:` y en negrita |
+| Ficha | Autoría, severidad, patrones, versión y fecha | Última línea, con el formato de abajo |
+
+La ficha es una sola línea al final, siempre igual:
+
+```
+*Ficha:* *(mío)* · 🟠 Grave · P6, P9 · 0.22.3 · 2026-09-29
+```
+
+- **Autoría:** *(mío)* —lo rompió o lo afirmó quien escribe esta bitácora, el
+  asistente—, *(tuyo)* —el dueño—, *(compartido)* o *(del terreno)* —no fue
+  culpa de nadie: la plataforma—.
+- **Severidad:** la de la tabla de arriba: 🔴 Crítico, 🟠 Grave, 🟡 Medio, ⚪
+  Menor. Es un campo, no un sitio: las entradas numeradas van todas juntas y
+  en orden.
+- **Patrones:** los ids de «Lo aprendido». Si la entrada enseña uno nuevo, se
+  abre el siguiente id allí, con su regla y lo que lo impide.
+- **Versión y fecha:** la versión que trae el arreglo y el día, en AAAA-MM-DD.
+
+Y cuatro reglas para no romper lo que ya está:
+
+1. **Una entrada nueva va al final de «Entradas numeradas»**, con el siguiente
+   número. Los números no se reutilizan ni se renumeran: el código y los
+   documentos citan «bitácora N».
+2. **Lo escrito no se reescribe.** Si una entrada afirma algo del presente que
+   dejó de ser cierto, se le añade al final una nota corta *(Hoy: …)*; si algo
+   la continuó, *(Después: …)*, con el número de la entrada que lo cuenta.
+3. **Se cita el síntoma, no la interpretación.** El mensaje literal es lo que
+   buscará quien lo vuelva a ver.
+4. **Sin control negativo no hay «lo prueba».** Si la aserción no se vio en
+   rojo, se dice.
+
+---
+
 ## 🔴 Críticos
 
 **El maestro publicado se quedaba sin su hoja.** `maestro.gs` lleva
@@ -75,10 +242,6 @@ regenerarse y dos baterías estaban verdes contra una tienda que ya no existía
 —con URLs de Netlify y cupones en el archivo—. → Se regenera en cada corrida.
 De las cuatro aserciones que fallaron al descongelarla, **se corrigieron las
 aserciones, no el código**, con la razón escrita en cada una. *(mío)*
-
----
-
-## 🔴 Críticos (sigue)
 
 **«¿Cambió algo?» no veía los archivos nuevos, y tiró un despliegue a la basura
 en verde.** El montaje horneó `catalogo.json` por primera vez y el paso que
@@ -218,6 +381,8 @@ detecta la versión instalada y se usan los de esa. *(del terreno)*
 Actions to create and approve pull requests*, el flujo corre entero, funciona, y
 muere al abrir el pull request. → Está en el runbook, y el alta la marca sola.
 *(del terreno)*
+*(Hoy: `RUNBOOK.md` ya no existe; lo cuenta `DESPLIEGUE.md`, y `alta` la sigue
+marcando sola.)*
 
 **El documento mandaba a sacar el stub de donde no sale.** `ACTUALIZAR-UNA-TIENDA.md` y `SPRINT-0.md` decían «Menú de la hoja → *Generar configuración* → copiar el stub». Esa opción produce los dos bloques del `index.html`, que es otra cosa. Seguiste la instrucción, pegaste lo que no era, y Apps Script contestó **«no hay cambios que guardar»**: el menú se quedó viejo sin una sola señal de error. → Los dos documentos mandan ahora a ejecutar `generarStub` en el editor del **maestro**, dicen cómo se reconoce el stub bueno (`var NEGOCIO = '…';`) y qué significa que no haya cambios que guardar. Una aserción recorre `/docs` y falla si algún documento vuelve a juntar «stub» con «Generar configuración». *(mío)*
 
@@ -321,7 +486,7 @@ conviene que quede por qué.
 | **De vuelta a la hoja** | | Un formulario era más frágil que una hoja de cálculo, que es lo que este producto ya sabe hacer bien |
 | Dos flujos: `montaje` y `maestro` | Uno solo, con el orden fijo | Dispararlos en el orden equivocado es fácil y silencioso: publicar el maestro después de escribir la página deja la tienda avisando que la hoja responde otra versión |
 | El alta dentro de la plantilla | Un repositorio de servicio | Pedir el nombre de un repositorio nuevo desde dentro del que ya es el nuevo no tiene sentido, y el token que crea repositorios no puede vivir en algo de lo que se sacan copias |
-| El alta, aparcada | | Cada vuelta cuesta crear un repositorio de verdad para descubrir que un campo se llenó distinto. Con dos tiendas, a mano cuesta menos |
+| El alta, aparcada | *(Hoy: el alta vive en `tiendas` › `alta` y `conectar`; bitácora 69 y 70.)* | Cada vuelta cuesta crear un repositorio de verdad para descubrir que un campo se llenó distinto. Con dos tiendas, a mano cuesta menos |
 | «Orgánico» como nombre del producto | Orgánico es **un comercio** | Ningún nombre de comercio puede estar escrito en el código, ni siquiera en el menú de la hoja |
 | Montar la tienda dos ya | Estabilizar la semilla primero | Montar contra una semilla que todavía se mueve es probar dos cosas a la vez sin saber cuál falló |
 | Reiniciar en 1.0.0 | Saltar a 2.0.0 | Una versión menor que la anterior rompe el orden, y la regla del proyecto pedía mayor: una tienda vieja tiene que tocar la hoja y el maestro |
@@ -347,6 +512,9 @@ conviene que quede por qué.
 
 Si hay algo que llevarse de todo lo anterior, es esto.
 
+*(Hoy la lista viva es «Lo aprendido», arriba: estos ocho son P1 a P8, con el
+mismo número.)*
+
 **1 · El fallo que funciona es el caro.** Los diez críticos tienen algo en
 común: **ninguno falló**. El maestro sin hoja servía un inventario de respaldo;
 el celular de fábrica entregaba los pedidos a alguien; la batería rota sumaba
@@ -366,12 +534,6 @@ resolverse: correr las baterías también en Windows está ofrecido y no aceptad
 **4 · Una prueba que solo sabe ver la primera tienda no prueba el producto.**
 El producto es una tienda por comercio. Cinco baterías comparaban contra el
 nombre de la primera; se descubrió montando la segunda, que es tarde.
-
-**6 · Lo que solo cubre a los que vienen después, deja fuera al primero.** La
-prueba que solo conocía la primera tienda no veía la segunda; el runbook que
-solo describe tiendas nuevas no cubre la primera. Es el mismo hueco por los dos
-lados: **lo que se escribe para "los demás" se olvida de quien ya estaba**, y
-quien ya estaba es donde se prueba todo.
 
 **5 · Una comprobación mal elegida es peor que ninguna.** Tres veces, y las
 tres las propuse yo.
@@ -402,6 +564,12 @@ La regla, en dos partes:
 > que nombre solo `script.google.com` está incompleta. Este proyecto ya lo sabía
 > donde importaba: la CSP del `<head>` nombra los dos en `connect-src`. Lo que
 > faltaba era saberlo también al escribir una prueba.
+
+**6 · Lo que solo cubre a los que vienen después, deja fuera al primero.** La
+prueba que solo conocía la primera tienda no veía la segunda; el runbook que
+solo describe tiendas nuevas no cubre la primera. Es el mismo hueco por los dos
+lados: **lo que se escribe para "los demás" se olvida de quien ya estaba**, y
+quien ya estaba es donde se prueba todo.
 
 ---
 
@@ -470,6 +638,13 @@ veían corriéndolo otro día.
 
 ---
 
+## Entradas numeradas
+
+Desde la 9, una entrada por fallo o por decisión, en orden. El número es su
+identificador: otras entradas, el código y los documentos las citan como
+«bitácora N», así que no se renumera nunca. Las nuevas van al final, con la
+plantilla de «Cómo escribir una entrada».
+
 **9 · Dos cosas que hay que actualizar, y solo una tiene dueño.** El 14 de
 septiembre de 2026, montando la tienda dos, todo estaba al día y la tienda
 seguía abriendo con tomates.
@@ -489,6 +664,8 @@ La regla: **si actualizar algo son dos cosas, la segunda se olvida.** No se
 arregla escribiéndola mejor en el documento — se arregla haciendo que sea una
 sola. Ahora el montaje se trae la página de la última versión de la semilla
 antes de escribir encima lo de esa tienda, y el paso manual desapareció.
+*(Hoy: ese paso se retiró al día siguiente —entrada 16—; la página llega con
+`plantilla/`, que es de la semilla y viaja con cada actualización.)*
 
 Y el corolario que conviene tener a mano al diseñar: **se puede reemplazar
 entero lo que se genera entero.** Ese archivo se podía tirar y volver a traer
@@ -1463,6 +1640,7 @@ fijo convierte cada opción nueva en un rojo que no significa nada, y **un rojo
 que no significa nada enseña a subir el número sin mirar**. El tope pasó a ser
 «64 más una por opción», que es lo que de verdad se quería vigilar: el stub
 creciendo por cualquier otra razón.
+*(Hoy: 58 más dos por opción, en `pruebas/menu.js`; bitácora 68.)*
 
 
 ---
@@ -1873,6 +2051,8 @@ corrida—. Dos detalles que cazaron las pruebas: el contenido de una sección
 `<details>` cerrada no tiene `innerText` (hay que leer `textContent`), y el
 tope de líneas del stub contaba una por opción cuando cada una cuesta dos.
 **Lo prueba** `actualizar.js` (36), con repositorios de juguete de punta a punta.
+*(Hoy: lo de `SEMILLA_TOKEN` no funcionó ni una vez —bitácora 103—; los flujos
+de una tienda los entrega la flota.)*
 
 **69 · El alta, desde el repositorio de servicio.** `tiendas` › alta › crear
 hace lo que GitHub deja hacer desde ahí y deja escrito, con los datos de esa
@@ -1983,6 +2163,8 @@ tocar nada se guarda una copia, porque restaurar mal también es perder. La
 única pieza nueva fue una línea en `actualizar-semilla.mjs`: pedir una versión
 exacta ahora permite bajar, porque negarse ahí dejaba una tienda rota sin más
 salida que editarle los archivos. **Lo prueba** `restaurar.js` (21).
+*(Después: el sitio no volvía nunca —«Ya estaba así» siempre— hasta la 0.22.3;
+bitácora 106.)*
 
 **78 · «Aún no veo por dónde acceder».** El panel de tiendas eran tres pestañas
 y las acciones vivían en la pestaña Actions de otro repositorio: para mirar una
@@ -2010,6 +2192,19 @@ dice en ámbar en vez de fabricar un enlace roto. La fila de ejemplo que deja
 `laboratoriodigital/[repositorio]`. Y si la flota no se llama `tiendas`, se
 fija en las propiedades del panel (`REPO_FLOTA`). **Lo prueban** 5 aserciones
 de `paneltiendas.js`.
+
+**80 · La documentación que se quedó en el camino viejo.** El mapa de
+despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
+a punta en una tienda de verdad» —ya había montado dos— y presentaba los
+dieciséis pasos manuales como el procedimiento de referencia; el roadmap tenía
+en PENSADO o SIGUIENTE cosas hechas hacía dos versiones (3.3, 5.1), un número
+3.10 repetido y los puntos de la fase 3 en desorden. Es el patrón 2 otra vez,
+en documentación: la que no se actualiza en el mismo movimiento que el código
+no miente enseguida, miente después. Ahora `DESPLIEGUE.md` abre con el camino
+normal —qué hace `alta`, qué es de Google, qué hace `conectar`, y qué queda
+corriendo solo después—, los pasos numerados están marcados con ⚙ cuando los
+hace un flujo, y el roadmap dice al principio de la fase 3 qué está hecho y qué
+sigue, en orden.
 
 **81 · Medir sin quedar atados (decisión 23).** Faltaba lo obvio: nadie sabía
 cuánta gente entra a una tienda. Se pedía «lo más sencillo posible», y lo más
@@ -2267,6 +2462,8 @@ la tienda volvería a arrastrarlo en la corrida siguiente. Y una aserción cierr
 el círculo: la semilla no puede retirar nada que todavía entregue. **Lo prueban**
 4 aserciones de `actualizar.js`, con el control negativo —dejar borrar
 `publicar/`— visto en rojo.
+*(Después: el borrado ocurría en el disco de la corrida y no entraba en el
+commit de `montaje`; bitácora 106.)*
 
 **95 · Rompí sola la regla que acababa de escribir, y por eso ahora hay una
 tiendita.** Tercera corrida seguida de la misma tanda, tercer rojo del mismo
@@ -2375,6 +2572,8 @@ Lo único distinto entre los dos casos es la hoja: el maestro lleva el id de la
 suya horneado porque puede vivir suelto, y el panel está pegado a la suya y la
 abre con `getActive()`. Dos secretos nuevos, solo en `tiendas`:
 `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`.
+*(Después: `panel` nunca le entregaba `PANEL_CLASPRC` a clasp, así que no
+había podido subir nada; bitácora 106.)*
 
 En la misma tanda, `flota` › actualizar se detuvo en seco: «**prueba-panel**: no
 pude leer su versión — 404. Me detengo aquí», y ninguna tienda recibió nada. El
@@ -2555,16 +2754,68 @@ número; `prueba-panel` quedó así, con una nota. Y cuando la flota se detiene,
 nombra las que quedaron sin tocar y los dos caminos: «solo esta tienda» o
 `"anillo": "fuera"`. **Lo prueban** 4 aserciones de `flota/pruebas.mjs`, con su
 control negativo (volver `prueba-panel` al anillo 2 la pone roja).
+*(Después: `prueba-panel` salió de `flota.json`, porque no aportaba nada, y la
+prueba exige ahora que no esté; bitácora 106.)*
 
-**80 · La documentación que se quedó en el camino viejo.** El mapa de
-despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
-a punta en una tienda de verdad» —ya había montado dos— y presentaba los
-dieciséis pasos manuales como el procedimiento de referencia; el roadmap tenía
-en PENSADO o SIGUIENTE cosas hechas hacía dos versiones (3.3, 5.1), un número
-3.10 repetido y los puntos de la fase 3 en desorden. Es el patrón 2 otra vez,
-en documentación: la que no se actualiza en el mismo movimiento que el código
-no miente enseguida, miente después. Ahora `DESPLIEGUE.md` abre con el camino
-normal —qué hace `alta`, qué es de Google, qué hace `conectar`, y qué queda
-corriendo solo después—, los pasos numerados están marcados con ⚙ cuando los
-hace un flujo, y el roadmap dice al principio de la fase 3 qué está hecho y qué
-sigue, en orden.
+**106 · La semilla también es una tienda, y la auditoría encontró tres flujos que
+nunca habían funcionado.** Con la 0.22.2 publicada, *Publicar ahora* en la tienda
+de la propia semilla se paró con «EL MAESTRO PUBLICADO CONTESTA LA VERSIÓN
+2026-09-22-7 Y ESTE REPOSITORIO TRAE LA 2026-09-22-8». A cada hija su
+actualización le publica el maestro nuevo; la semilla cambia por push, y a ella
+nadie se lo publicaba. La guarda de la bitácora 56 hizo su trabajo: paró antes de
+escribir nada. Es el patrón 6 otra vez —lo que se escribió para las tiendas que
+vienen después dejó fuera a la primera—. Desde la 0.22.3, `release` le pregunta
+al maestro vivo con `preparar-index.mjs --al-dia` y, si quedó atrás, dispara
+`montaje` con la casilla del maestro y PUBLICAR, que es lo que habría hecho una
+persona; por eso `release.yml` pide ahora `actions: write`. Corre aunque no haya
+nada que cortar, así que volver a correr `release` pone al día una semilla
+atrasada.
+
+Y auditando la documentación contra el código, para explicar qué hace cada
+flujo, aparecieron tres que no habían corrido nunca de verdad. `restaurar ›
+el-sitio` comparaba el árbol con el índice justo después de `git checkout
+<commit> -- publicar/`, que deja los dos iguales: decía «Ya estaba así» siempre,
+y el sitio no volvía nunca. `tiendas › panel` nunca escribía `~/.clasprc.json`,
+y clasp solo lee su credencial de ahí: tener `PANEL_CLASPRC` en el entorno no
+servía de nada. Y `montaje` borraba en disco lo que `semilla.json › retirados`
+retira (bitácora 94), pero solo indexa `publicar/`, `wrangler.jsonc` y los
+propios (`git add -A -- $PUBLICA`), así que el borrado nunca entraba en el
+commit. Además, `restaurar` corría en otro grupo de concurrencia que `montaje` y
+`fotos`, aunque los tres escriben `publicar/` en `main`. Los de git se
+reprodujeron con repositorios de juguete. `restaurar` compara ahora contra
+`HEAD` y comparte el grupo `tienda-…`; `panel` revisa el secreto con
+`revisar-clasprc.mjs` y lo escribe antes de subir; `montaje` añade a lo que
+indexa los `retirados` que git todavía conoce (un pathspec que no casa con nada
+tumbaría el `git add` entero). Y como un retirado dentro de `.github/workflows`
+—`tienda-nueva.yml`— no lo puede quitar la tienda, lo quita la flota:
+`flota/flujos.mjs` lo borra por la API con el mismo permiso con que pone los
+demás, nunca uno que la semilla todavía entrega.
+
+La misma lectura encontró mensajes que mentían por el patrón 2, en código: el
+resumen de `montaje` seguía pidiendo *Workflows* en escritura para
+`SEMILLA_TOKEN` y prometiendo los flujos «en la próxima actualización», la
+cabecera de `release` hablaba de pull requests por tienda, la de `fotos` de un
+reloj de cuatro horas, `conectar` y `alta` mandaban a sacar el token del
+Diagnóstico del menú —que no lo enseña, a propósito— y la ayuda de la hoja
+decía al comercio que marcara «Confirmado», un estado que ya se llama
+«Pagado». Corregidos en la misma versión.
+
+La lección es la de P16, y cuesta decirla: las aserciones de `restaurar` y
+de `panel` existían y estaban en verde, porque leían el texto del flujo. **Un
+flujo que nunca ha corrido con sus secretos de verdad no está probado.** Y leer
+el código para documentarlo es una prueba: los tres los encontró alguien que
+tenía que explicar qué hacen.
+
+De paso, `prueba-panel` —la tienda abandonada que la 105 dejó con `"anillo":
+"fuera"`— salió de `flota.json`: no aportaba nada, y una fila que nadie usa es
+una línea más que leer cada vez. Decisión del dueño. **Lo prueban** 3
+aserciones de `pruebas/montaje.js` (el paso de `release`) y 2 más con git de
+verdad y el trozo del flujo tal cual (los `retirados` entran en el commit), 2 de
+`pruebas/restaurar.js` —con git de verdad—, 1 de `pruebas/actualizar.js` (el
+mensaje del permiso) y 5 de `flota/pruebas.mjs` (la credencial de clasp, que
+`prueba-panel` ya no está, y la flota que retira flujos, con su ensayo), con sus
+controles negativos vistos en rojo: sin el paso de `release`, con la
+comparación vieja, sin escribir `~/.clasprc.json` y sin indexar los
+`retirados`.
+
+*Ficha:* *(mío)* · 🟠 Grave · P6, P9, P16 · 0.22.3 · 2026-09-29

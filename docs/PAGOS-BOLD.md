@@ -11,12 +11,12 @@
 | `Configuración › cobro_modo` | Qué pasa al pulsar el botón del carrito |
 |---|---|
 | **`WhatsApp`** (de fábrica) | Como siempre: se abre WhatsApp con el pedido escrito y el pago se acuerda por el chat. |
-| **`Pasarela`** | El botón dice **«Pagar $…»**. El comprador paga en la página de Bold (PSE, tarjeta, Nequi… lo que Bold ofrezca) y vuelve a la tienda. |
+| **`Pasarela`** | El botón dice **«Pagar con PSE»** (en pruebas, «Pagar con PSE - Pruebas»). El comprador paga en la página de Bold (PSE, tarjeta, Nequi… lo que Bold ofrezca) y vuelve a la tienda. |
 
 **Pedir Pasarela no basta para cobrar.** Si faltan las llaves de Bold o
 `sitio_url`, la tienda **sigue vendiendo por WhatsApp** —no se queda muda— y el
 problema se dice en tres sitios: el diagnóstico (`A2_diagnosticoCompleto`), la
-lista de alta y el panel (*Tu tienda › Cómo se cierra la venta*).
+lista de alta y el panel (*El cobro › Cómo se cierra la venta*, con el aviso en rojo).
 
 **El cambio se ve en la tienda al publicar.** La página lee el modo del catálogo
 publicado. Si en el medio alguien apaga la pasarela, la página vieja pide un
@@ -48,7 +48,9 @@ Propiedades del script*, las mismas donde vive `GITHUB_TOKEN`:
 ventana sin guardar, no quedan, y la tienda sigue por WhatsApp. Pasó en la
 primera tienda (bitácora 57). Desde la 0.9.0 el panel lo dice arriba, en rojo,
 con el nombre de la llave que falta. También se aceptan los nombres de la línea
-anterior (`BOLD_BOTON_IDENTIDAD_*`) y `_PRUEBAS` en vez de `_SANDBOX`.
+anterior (`BOLD_BOTON_IDENTIDAD_*`, `BOLD_BOTON_SECRETA_*`) y `_PRUEBAS` en vez de
+`_SANDBOX`; el nombre se busca sin mirar mayúsculas ni espacios al final
+(`llavesBold()`).
 
 **El botón** dice «Pagar con PSE» con dinero real y «Pagar con PSE - Pruebas»
 en el ambiente de pruebas.
@@ -66,8 +68,10 @@ de Bold pueden tener los mismos cuatro valores, y copiarlos no exige traducir.
 Se cargan igual en cada proyecto: compartir cuenta de Bold no es compartir
 maestro ni hoja.
 
-**Nunca en la hoja, ni en el repositorio, ni en los secretos de GitHub.** La
-hoja se comparte; las propiedades no. La secreta no sale del maestro por ninguna
+**Solo en las propiedades del script. Nunca en la hoja, ni en el repositorio,
+ni en los secretos de GitHub (de la tienda o de `tiendas`), ni en el panel.** La
+hoja se comparte; las propiedades no. Ningún flujo las lee ni las siembra:
+`conectar` no las toca, y el panel no tiene campo para ellas (decisión 14). La secreta no sale del maestro por ninguna
 puerta. La de identidad solo llega a la página dentro de un cobro ya preparado,
 que es donde Bold la pide.
 
@@ -90,11 +94,14 @@ del **Botón de pagos**, no las de la API de pagos en línea.
 4. Firma el cobro: SHA-256 de `pedido + monto + COP + llave secreta`, la
    fórmula de Bold. Anota el cobro en la pestaña `Pagos` y los datos de entrega
    en `Datos de entrega`, con el mismo número que en `Validaciones`.
-5. La página abre la pasarela de Bold con exactamente lo que firmó el maestro.
+5. La página carga `https://checkout.bold.co/library/boldPaymentButton.js` y
+   abre la pasarela (`BoldCheckout`) con exactamente lo que armó el maestro
+   (`crearCobro`).
 6. Bold devuelve al comprador a la tienda (`?pago=<token>`). **La página no se
    cree la dirección** —trae un `bold-tx-status` que cualquiera puede
    escribir—: le pregunta al maestro, y el maestro le pregunta a Bold
-   (`GET /v2/payment-voucher/<pedido>`, con la llave de identidad).
+   (`GET https://payments.api.bold.co/v2/payment-voucher/<pedido>`, con la
+   cabecera `Authorization: x-api-key <llave de identidad>`: `consultarBold`).
 7. **Aprobado y con el monto que calculó el maestro** → el pedido entra a
    `Pedidos` **ya Pagado**, con fecha de pago, proveedor y transacción. El
    inventario baja por el mismo camino que marcar Pagado a mano. Sale un correo
@@ -117,6 +124,8 @@ del **Botón de pagos**, no las de la API de pagos en línea.
 | Aprobado **tarde y sin existencias** (se vendió por otro lado mientras tanto) | El pedido se registra —la plata ya entró—, `Pagos` dice `Pagado sin existencias` y el comercio recibe un correo: conseguir las unidades o devolver el dinero desde el panel de Bold. |
 | Bold no contesta | El cobro sigue esperando; el motivo queda en `Pagos › Nota`. |
 | Sin cuota de correo | La venta se registra igual; los correos salen en la siguiente vuelta, sin volver a preguntarle a Bold ni volver a descontar. |
+| Total por debajo de $1.000 (`BOLD_MINIMO`) | No se abre la pasarela: «El pago en línea es desde $1.000». |
+| 40 cobros abiertos a la vez (`MAX_COBROS_ABIERTOS`) | No se aparta más: «Hay muchos pagos en curso», y queda en `Errores`. |
 | Doble toque en «Pagar», o reintento sin señal | Es el **mismo** cobro (número de operación): una fila, un apartado. |
 
 ## Lo que se guarda del comprador, y dónde
@@ -148,7 +157,7 @@ ambiente de pruebas Bold no manda avisos ni correos.
 
 1. Llaves de **pruebas** en las propiedades, `cobro_modo = Pasarela`,
    `cobro_ambiente = Pruebas`. Publicar.
-2. En la tienda: el botón dice **«Pagar $… · pruebas»** y el carrito avisa
+2. En la tienda: el botón dice **«Pagar con PSE - Pruebas»** y el carrito avisa
    *«Pagos en modo de pruebas»*. La pasarela muestra la etiqueta amarilla
    **Modo de pruebas**.
 3. **Aprobado:** tarjeta VISA `4111111111111111` (o PSE › *BANCO QUE APRUEBA*).
@@ -196,17 +205,21 @@ sus propias reglas escritas en el plan (M3.5):
 - **La llave de Apps Script no se anida.** Cobrar trabaja bajo llave y el acta
   de `Validaciones` se escribe con `escribirActa`, no con `sellar()`, que
   soltaría la llave del cobro a medio escribir.
-- **Nada del comprador en su navegador**, tampoco dentro del objeto que se le
-  pasa a Bold.
+- **Nada del comprador guardado en su navegador**: la copia del cobro que queda
+  en `sessionStorage` va sin `customerData` ni `billingAddress`. A la pasarela
+  sí se le pasan nombre, correo y celular —y la dirección si hay envío— para
+  que Bold no los vuelva a pedir; por eso los textos legales dicen que Bold ve
+  los datos. *(Corregido el 29-sep-2026: aquí decía que tampoco iban en el
+  objeto que se le pasa a Bold.)*
 - Los pedidos de WhatsApp siguen existiendo tal cual; no hay un modo de
   «pedido sin pagar» mezclado con la pasarela.
 
 ## Las pruebas
 
-- `pruebas/pagos.js` (maestro, 61 aserciones): firma, total del maestro, dos
+- `pruebas/pagos.js` (maestro, 67 aserciones): firma, total del maestro, dos
   compradores, aprobado, rechazado, monto distinto, PSE pendiente, vencido,
   aprobado sin existencias, Bold caído, sin cuota, producción, disparadores.
-- `pruebas/pagoweb.js` (navegador, 23): el botón, lo que le llega a Bold, la
+- `pruebas/pagoweb.js` (navegador, 26): el botón, lo que le llega a Bold, la
   vuelta con `approved` en la dirección, nada del comprador en el navegador,
   rechazado con el carrito intacto, la última unidad, los textos legales.
-- `pruebas/legal.js`: los textos con y sin pasarela.
+- `pruebas/legal.js` (20): los textos con y sin pasarela.

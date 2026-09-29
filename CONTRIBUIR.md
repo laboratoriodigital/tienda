@@ -1,7 +1,9 @@
 # Cómo se trabaja aquí
 
-GitHub Flow, sin ramas de larga vida. `main` está siempre desplegable porque
-cada push a `main` sale a producción.
+GitHub Flow, sin ramas de larga vida. En la semilla, `main` está siempre
+desplegable: cada push a `main` publica la tienda de la semilla en Cloudflare.
+Las tiendas hijas **no** viven de `main`: viven de versiones cortadas con
+`release` (abajo). Qué hay en cada carpeta: `README.md` › *Qué hay aquí*.
 
 ## El ciclo
 
@@ -11,15 +13,38 @@ git switch -c feature/frontend-buscador          # una rama por cambio
 
 # ...trabajar...
 
-./pruebas/todas.sh                               # en verde antes de seguir
+npm test                                         # todas las baterías, en verde
 git add -A
 git commit -m "feature/frontend: buscador por descripción, no solo por nombre"
 git push -u origin feature/frontend-buscador
 ```
 
-Después: abrir el pull request en GitHub, esperar la marca verde de las
-pruebas, revisar la **vista previa** que Cloudflare publica para esa rama, y
-hacer *Squash and merge*. Al fusionar, `main` se despliega solo.
+Después: abrir el pull request, esperar la marca verde de `pruebas` y hacer
+*Squash and merge*.
+
+## Las pruebas
+
+Viven en `pruebas/`, corren sobre los archivos reales —`pruebas/gas.js` emula
+Apps Script y Sheets y carga `maestro.gs` tal cual— y necesitan sus
+dependencias (Playwright y sharp) y Chromium.
+
+| Qué | Cómo |
+|---|---|
+| Todas las baterías | `npm test` desde la raíz (instala `pruebas/` y corre `pruebas/todas.sh`), o `cd pruebas && ./todas.sh` |
+| Solo algunas | `cd pruebas && BATERIAS="config.js logo.js" ./todas.sh` |
+| En serie, para depurar | `TRABAJADORES=1 ./todas.sh` (de fábrica, cuatro a la vez) |
+| Lo que corre al publicar | `cd pruebas && ./publicacion.sh`. En la semilla, todas (o las de lo publicado si `pruebas` ya pasó ese código); en una tienda, solo `tienda-viva.js` |
+| La suite entera, en cualquier sitio | `SUITE_ENTERA=1 ./publicacion.sh` |
+| Qué decidiría, sin correr nada | `SOLO_DECIDIR=1 ./publicacion.sh` |
+| La suite como si fuera una tienda | `node tiendita.js` (copia el repositorio sin lo que una tienda no hereda) |
+
+Si Chromium está en otra carpeta: `PLAYWRIGHT_BROWSERS_PATH=<carpeta>`. La
+salida entera de cada batería queda en `pruebas/.salida/`: ahí se lee el fallo
+que el marcador solo resume. Cuántas son no se escribe en ningún documento
+(una batería lo vigila): se dice «todas las baterías».
+
+Una batería nueva va en la lista de `todas.sh`, y su control negativo se ve en
+rojo antes de darla por buena.
 
 ## El mensaje
 
@@ -38,7 +63,7 @@ hacer *Squash and merge*. Al fusionar, `main` se despliega solo.
 
 | | |
 |---|---|
-| `frontend` | `publicar/` — la tienda. |
+| `frontend` | `plantilla/` y `publicar/` — la tienda y el panel. |
 | `backend` | `maestro.gs` — el Apps Script. |
 | `bd` | La estructura de la hoja: pestañas, columnas, claves de Configuración. |
 
@@ -53,28 +78,33 @@ Si de verdad es uno solo, el ámbito es el que manda el cambio.
 
 ## Cortar una versión
 
-`main` despliega la tienda de referencia. Los clientes no viven de `main`:
-viven de versiones con nombre, y cada uno se mueve cuando alguien aprueba su
-pull request. Por eso no hay rama `develop`: la separación entre "lo último" y
-"lo que corre en los clientes" la da la etiqueta, no una rama paralela que
-después hay que mantener sincronizada.
+La separación entre «lo último» y «lo que corre en las tiendas» la da la
+etiqueta, no una rama paralela. Por eso no hay `develop`.
 
-1. En la rama del cambio, sube `version` en `package.json`.
-   Parche `1.0.1` si nada cambió para el cliente · menor `1.1.0` si hay algo
-   nuevo · mayor `2.0.0` si una tienda vieja necesita tocar la hoja o el
+1. En la rama del cambio, sube `version` en `package.json` **y**
+   `VERSION_TIENDA` en `maestro.gs` al mismo número (una batería exige que
+   coincidan). Parche `0.22.4` si nada cambió para el comercio · menor `0.23.0`
+   si hay algo nuevo · mayor si una tienda vieja tiene que tocar la hoja o el
    maestro para seguir funcionando.
-2. Fusiona a `main`.
-3. Actions > **release** > Run workflow.
+2. Fusiona a `main` y espera `pruebas` en verde.
+3. Actions › **release** › Run workflow.
 
-Eso comprueba que el push de ese commit pasó `pruebas` en verde (no las repite), crea la etiqueta `v1.1.0` y publica la versión con
-`index.html`, `maestro.gs` y `publicar.tar.gz` colgados. Falla a propósito si
-la versión ya existe: se sube en `package.json` o no se corta.
+`release` solo corre en la semilla. No repite las pruebas: le pregunta a GitHub
+si la corrida de `pruebas` del push de ese commit salió verde (espera hasta
+cinco minutos si todavía corre) y, si no, no corta nada. Crea la etiqueta
+`vX.Y.Z` y la publicación con `index.html`, `maestro.gs`, `panel.gs` y
+`publicar.tar.gz`. Si la etiqueta ya existe en ese mismo commit, no hace nada y
+sale en verde; si existe en otro commit, falla: sube la versión.
 
-Cada repositorio de cliente pide la última así, sin credenciales:
+Al final (0.22.3) le pregunta al maestro vivo de la semilla si es el de ese
+commit y, si quedó atrás, dispara `montaje` con `maestro` y `PUBLICAR`: la
+semilla también es una tienda, y su maestro no lo publica ninguna
+actualización. Necesita los secretos `MAESTRO_URL` y `MAESTRO_TOKEN` de la
+semilla; sin ellos lo dice y no lo comprueba.
 
-```
-https://github.com/laboratoriodigital/organico/releases/latest/download/index.html
-```
+Las tiendas se traen la etiqueta cuando la piden —la flota, su `montaje` con
+`semilla`, o el botón del panel o del menú—, cada una a su ritmo. Cómo:
+`docs/ACTUALIZAR-UNA-TIENDA.md`.
 
 ## Un cambio urgente en producción
 
@@ -87,32 +117,40 @@ git push -u origin hotfix/frontend-total-mal
 ```
 
 Igual pasa por pull request. La diferencia del `hotfix` es la prioridad de la
-revisión, no saltarse el proceso: `main` va directo a los clientes.
+revisión, no saltarse el proceso. Y a las tiendas no llega hasta que se corta
+la versión y se reparte.
 
 ## Reglas de despliegue, siempre
 
 - **Nada al backend un viernes después de mediodía ni en fecha comercial
   alta.** Un error se nota mejor un martes en la mañana que un sábado.
-- **Todo cambio de `maestro.gs` arranca en la tienda cero y espera una hora**
-  antes de tocar cualquier otra.
+- **Una versión nueva se reparte por anillos**: primero el 0, y se mira antes
+  de seguir. La flota se detiene sola en la primera tienda que falla.
 - **Prohibido renombrar o reordenar columnas de la hoja.** Solo agregar al
   final — el maestro lee por posición, no por nombre.
 - **Un cambio de esquema nunca en un paso**: primero la versión que acepta las
   dos formas, después la migración, y solo entonces se retira el soporte
   viejo.
+- **Lo que decide si una tienda publica va en `pruebas/`, no en un flujo ni en
+  el actualizador**: esos corren la versión vieja de la tienda y un arreglo en
+  ellos llega una versión tarde (`docs/ACTUALIZAR-UNA-TIENDA.md`).
 
 ## Ojo con esto
 
 - **La versión del contrato.** `VERSION` en `maestro.gs` y `SCRIPT_VERSION` en
-  `index.html` tienen que coincidir. Ya no se copia a mano: `npm run index` la
-  escribe desde el maestro, y `version.js` comprueba que una tienda hablando
+  la página tienen que coincidir. No se copia a mano: el horneado la escribe
+  desde el maestro publicado, y `version.js` comprueba que una tienda hablando
   con un maestro viejo lo diga en vez de sellar pedidos mentirosos.
 - **La versión del producto.** Si el pull request toca `maestro.gs`, `panel.gs`
-  o `publicar/index.html`, tiene que subir `version` en `package.json`. Lo
-  exige el flujo de pruebas y falla si no. No es burocracia: sin eso una mejora
-  sale al aire y el panel sigue mostrando a todas las tiendas "al día".
-- **Publicar el Apps Script es aparte.** Fusionar a `main` despliega la tienda,
-  no el maestro. El maestro se publica con `npm run maestro`, que actualiza la
-  implementación que ya existe y por eso no cambia la URL.
+  o `publicar/index.html`, `pruebas` exige que suba `version` en
+  `package.json`. Un cambio que solo toca `plantilla/` o `montar/` no lo exige,
+  pero si tiene que llegar a las tiendas necesita versión igual.
+- **Publicar el Apps Script es aparte de fusionar.** Fusionar a `main`
+  despliega la página de la semilla, no su maestro: lo pone al día `release`
+  (arriba), o `montaje` con `maestro` + `PUBLICAR`, o `npm run maestro` en el
+  equipo. Los tres actualizan la implementación que ya existe: la URL no
+  cambia. En una hija, lo publica su actualización.
+- **`panel.gs`** se publica desde `tiendas` › Actions › **panel**.
 - **Nada de secretos.** Llaves de pago, ID de hojas y tokens no entran al
-  repositorio, ni siquiera en un comentario.
+  repositorio, ni siquiera en un comentario. Las llaves de Bold y el
+  `GITHUB_TOKEN` del maestro viven solo en las propiedades del script.

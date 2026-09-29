@@ -1,23 +1,203 @@
 # Actualizar una tienda que ya está montada
 
+_Vigente a la 0.22.3 (29 de septiembre de 2026). Tienda Panel: semilla
+`laboratoriodigital/tienda`. La Tienda Básica (`organico`) se actualiza por
+pull request desde la flota y no se cuenta aquí._
+
 Cada tienda tiene su propio repositorio y su propio ritmo. Una versión nueva de
-la plantilla **no le llega sola a nadie**: se pide.
+la semilla **no le llega sola a nadie**: se pide. Pero pedirla es un botón, y
+todo lo demás lo hace la propia tienda.
 
-Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
-**Versión**. Cómo saber cuál es la última: la etiqueta más nueva en
-`laboratoriodigital/organico/releases`.
+Qué versión tiene cada una: `tiendas` › [`ESTADO.md`](https://github.com/laboratoriodigital/tiendas/blob/main/ESTADO.md)
+(o la columna **Versión** de la hoja *Panel de tiendas*). Cuál es la última: la
+etiqueta `vX.Y.Z` más nueva de `laboratoriodigital/tienda`.
 
-## Qué hay que tocar, según qué cambió
+## El camino de hoy, de punta a punta
 
-| Cambió | Qué hay que hacer en esa tienda |
-|---|---|
-| `publicar/index.html` | **Nada a mano.** Lo trae el flujo **montaje** de la última versión de la semilla, y le escribe encima lo de esa tienda. Pull request, fusionar |
-| `maestro.gs` | Publicar el maestro: flujo **maestro**, o `npm run maestro`. **Nunca una implementación nueva** |
-| El stub de la hoja | **En el editor del MAESTRO**, ejecutar `generarStub` y copiar lo que imprima el registro. Ver abajo |
-| `panel.gs` | Solo en tu hoja de panel, no en la de ningún cliente |
-| La pestaña Configuración | Volver a ejecutar `instalar()`: agrega las claves nuevas y **no toca ningún valor escrito** |
-| Las columnas de una pestaña | Lo mismo: `instalar()` las agrega **al final**. Nunca renombra ni reordena — es R2 del contrato |
-| `publicar/catalogo.json` | No se trae a mano: lo hornea el flujo **montaje** desde la hoja de esa tienda |
+**1. Cortar la versión, en la semilla.** Subir `version` en `package.json`,
+fusionar a `main`, esperar `pruebas` en verde y correr Actions › **release**.
+Solo se puede traer lo que `release` cortó. Al final, `release` le pregunta al
+maestro vivo de la semilla (`montar/preparar-index.mjs --al-dia`) y, si quedó
+atrás, dispara el `montaje` de la semilla con `maestro` y `PUBLICAR`: la semilla
+también es una tienda, y su maestro no lo publica ninguna actualización. El
+detalle, en `CONTRIBUIR.md`.
+
+**2. Pedirla.** Tres puertas, un solo mecanismo: todas disparan el flujo
+**`montaje`** de la tienda con `semilla: true`.
+
+| Quién | Dónde | Qué versión |
+|---|---|---|
+| El operador, para toda la línea | `tiendas` › Actions › **flota** › `actualizar` (línea `tienda`, hasta el anillo, versión, *ensayo*, «solo esta tienda») | La escrita, o la última |
+| El operador, una tienda | Repositorio de la tienda › Actions › **montaje** › marcar `semilla` (y `version` si no es la última) | La escrita, o la última |
+| El comercio | Panel › Tienda › *Versión de tu tienda* › **Actualizar ahora** (solo el dueño), o menú de la hoja › **Actualizar a la última versión** | La última |
+
+Las dos del comercio necesitan `Configuración › repositorio` y el permiso
+`GITHUB_TOKEN` en las propiedades del script del maestro (lo pone `conectar`).
+
+**La flota, por anillos.** Va de menor a mayor anillo (`flota.json`: 0 pruebas,
+1 primeras, 2 el resto), dispara el montaje de cada tienda, **espera a que
+termine**, y **se detiene en la primera que falla**: las siguientes no se tocan
+y el resumen dice cuáles quedaron y cómo seguir. Una tienda con
+`"anillo": "fuera"` (o sin número) sigue en la lista y en el estado, pero ningún
+reparto la toca. Una cuyo repositorio contesta 404 se salta y se sigue. Las
+semillas no se actualizan nunca. De fábrica corre en **ensayo**: dice qué haría
+y no toca nada.
+
+**3. Lo que hace el montaje con `semilla`**, en este orden, y sin commit hasta
+el final:
+
+1. `montar/actualizar-semilla.mjs` clona la semilla (con `SEMILLA_TOKEN` si es
+   privada), elige la etiqueta pedida o la última, y si la tienda ya está ahí
+   termina diciendo «Nada que traer».
+2. Escribe los archivos de la semilla sobre la tienda (abajo, *Qué cambia*) y
+   pone en `package.json` la versión nueva.
+3. Si la versión trae un `maestro.gs` distinto, **lo publica sin pedir
+   `PUBLICAR`**: quien pidió actualizar ya lo pidió. Necesita los secretos
+   `CLASPRC`, `SCRIPT_ID` y `HOJA_ID`; si falta alguno, se para y no publica
+   nada. Actualiza la implementación que ya existe: la URL no cambia.
+4. Rehornea desde la hoja —`<head>`, panel, imagen para compartir, fotos,
+   catálogo, respaldo, SEO, nombre del Worker— con las herramientas **nuevas**.
+5. Corre la compuerta (abajo) sobre lo horneado.
+6. Publica **directo en `main`**, aunque se haya pedido `con-pull-request`. Si
+   `main` está protegida, deja un pull request. Cloudflare despliega solo.
+
+Tarda entre 10 y 20 minutos; el flujo tiene 50 de techo. La tienda sigue
+vendiendo mientras tanto.
+
+## Qué cambia en la tienda, y qué no
+
+**Cambia lo que la semilla declara suyo**: la lista `propios` de
+[`semilla.json`](../semilla.json) —el código, `montar/`, `pruebas/`, `docs/`,
+los flujos, `package.json`, `semilla.json` mismo y `publicar/_headers`—. La
+lista la dice la versión **nueva**, así que una versión puede sumar un archivo.
+Archivo por archivo manda la regla de las tres versiones (`montar/semilla.mjs`):
+
+| La tienda… | La semilla… | Qué pasa |
+|---|---|---|
+| no lo tocó | lo cambió | se sobrescribe |
+| lo cambió | no lo cambió | se respeta |
+| lo cambió | también lo cambió | **no se toca**, y el resumen lo lista |
+| no lo tiene | lo trae | se agrega |
+| (la semilla no tiene la etiqueta de la versión de la tienda) | | **no se toca** lo distinto, y se lista |
+
+**Se borra lo que la semilla retiró**: la lista `retirados` de la versión nueva
+(hoy, `servicio` y `.github/workflows/tienda-nueva.yml`). Solo rutas relativas
+de dentro de la tienda; nunca `publicar/`, `.git` ni la raíz. El resumen dice
+qué se retiró.
+
+**No se toca:**
+
+- **Los datos del comercio.** Catálogo, pedidos, configuración, fotos
+  originales: viven en su hoja y su Drive, que son de Google. La actualización
+  solo los lee para hornear.
+- **`publicar/`**, salvo `publicar/_headers` (las cabeceras y la política de
+  seguridad, iguales en todas). Lo demás de `publicar/` lo rehornea la misma
+  corrida desde la hoja de esa tienda.
+- `wrangler.jsonc` y `README.md`: son de la tienda.
+- **Sus flujos** (`.github/workflows`): los entrega la flota (abajo).
+
+## La compuerta: la tienda viva
+
+Lo que decide si una tienda publica es **`pruebas/tienda-viva.js`**, no la suite
+de la semilla. Lo elige `pruebas/publicacion.sh`: en una tienda
+(`pruebas/donde.js` › `esSemilla()` falso) corre la tienda viva; en la semilla,
+todas las baterías. `SUITE_ENTERA=1` fuerza todas en cualquier sitio.
+
+El código de una tienda actualizada es el de una etiqueta que `release` no
+corta sin la suite entera en verde. Lo que sí puede romperse es lo que se
+hornea con **sus** datos, y eso es lo que mira, solo con invariantes:
+
+- existen `index.html`, `catalogo.json` y `404.html`;
+- la página sabe a qué maestro preguntar, espera la **misma** versión de
+  maestro que hay en el repositorio, y su política de seguridad la deja
+  hablarle;
+- el catálogo se lee, cada producto tiene identificador, nombre y precio, y
+  ningún identificador se repite;
+- el respaldo se lee, lleva los mismos productos que el catálogo y es de la
+  misma tienda;
+- la página abre en un navegador, pinta los productos de **esa** tienda y no da
+  un solo error de JavaScript.
+
+Una foto que la hoja nombra y no está publicada **avisa y no detiene**: es dato
+del comercio. Si algo falla, no se publica nada (ver *Volver atrás*).
+
+## Los flujos los entrega la flota
+
+Una tienda **no puede** escribir sus propios `.github/workflows`: el push de su
+montaje va con el `GITHUB_TOKEN` de Actions, que no puede tocar flujos nunca, y
+`actions/checkout` deja en `.git/config` una cabecera con ese permiso que gana
+a cualquier otro token puesto en la URL (bitácora 103). Por eso la
+actualización **nunca** mete flujos en el commit de la tienda —los saca
+`publicacion.sh` y el paso «¿Cambió algo?»— y el resumen los lista como
+pendientes.
+
+Los pone la flota, con `FLOTA_TOKEN`, por la API de contenidos y solo los que
+cambian (`tiendas/flota/flujos.mjs`):
+
+- **`flota › actualizar`** los entrega sola después de cada tienda que se
+  actualizó bien;
+- **`flota › flujos`** los entrega a mano: para una tienda actualizada desde su
+  panel o su menú, o para rescatar una que se quedó con flujos viejos.
+
+Se entregan los flujos que `propios` nombra (`montaje`, `fotos`, `pruebas`,
+`restaurar`). `release` no es de las tiendas.
+
+## Volver atrás
+
+- **Solo, si la actualización falla.** Nada llega a `main`. Si el maestro nuevo
+  ya se había publicado, el paso «Volver atrás el maestro» vuelve a publicar el
+  de antes: la tienda queda como estaba, y lo dice.
+- **A una versión anterior, a mano.** Repositorio de la tienda › Actions ›
+  **`restaurar`** › `la-version` (vacío = la anterior, o una `vX.Y.Z`) ›
+  escribir `RESTAURAR`. Le pide a `montaje` esa versión con `semilla`: una
+  versión escrita se trae aunque sea anterior. Pasa por la misma compuerta.
+- **El sitio de antes**: `restaurar` › `el-sitio` publica `publicar/` de un
+  commit anterior como un commit nuevo (desde la 0.22.3 de verdad: antes decía
+  siempre «Ya estaba así»). Comparte cola con `montaje` y `fotos`: no se pisan.
+- **Los datos de la hoja**: `A5_respaldos()` y `A6_restaurarDatos()` en el
+  editor del maestro. Son de Google, no de GitHub.
+
+El detalle, en `DESPLIEGUE.md` › *Volver atrás*; el paso a paso del operador, en `RUNBOOK-TECNICO.md`.
+
+## Por qué un arreglo del actualizador llega una versión tarde
+
+La tienda se actualiza **con su versión vieja**. El flujo que corre es el
+`montaje.yml` que la tienda ya tiene (el nuevo lo entrega la flota **después**),
+y `montar/actualizar-semilla.mjs` y `montar/semilla.mjs` se ejecutan **antes**
+de ser reemplazados. Un arreglo en cualquiera de esos tres solo actúa en la
+actualización **siguiente**; y si la versión vieja es la que bloquea, la nueva
+no llega sola (bitácora 102, causa 2).
+
+Lo que corre **después** del paso de la semilla ya es de la versión nueva:
+`pruebas/` y las herramientas de `montar/` que hornean. Por eso la lógica que
+decide si se publica vive en `pruebas/publicacion.sh` y `pruebas/tienda-viva.js`,
+y no en el flujo: la actualización las escribe antes de que corra la compuerta,
+y una tienda con el flujo viejo ya usa la compuerta nueva en la misma corrida.
+Regla para quien toca la semilla: **una decisión que tenga que valer ya, no se
+escribe en el flujo ni en el actualizador.**
+
+Si una tienda se atasca por su flujo viejo: `flota › flujos` para esa tienda, y
+volver a pedir la actualización.
+
+## Lo que sigue siendo a mano
+
+| Cuándo | Qué | Dónde |
+|---|---|---|
+| La versión cambia el **menú de la hoja** | Repegar el stub: `A1_generarStub` **en el editor del MAESTRO**, ya publicado el nuevo; copiar lo que imprime el registro y pegarlo en la hoja | Ver *v2.0.0*, abajo |
+| La versión agrega **claves de Configuración o columnas** | `A0_instalar()`: las agrega **al final** y no pisa ningún valor escrito (R2 del contrato) | Editor del maestro |
+| Cambió `panel.gs` | Actions › **panel** en `tiendas` (secretos `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`) | Hoja *Panel de tiendas* |
+| Una tienda sin `CLASPRC` | Ponerlo, una vez: sin él no se puede publicar un maestro nuevo | Secretos de la tienda |
+
+**Nunca una implementación nueva del maestro**: estrena URL y deja la tienda
+muda. Qué pide cada versión, en las secciones de abajo.
+
+---
+
+## Lo que pidió a mano cada versión
+
+Cada sección cuenta lo que pedía esa versión cuando salió. Los caminos que
+nombran —pegar `panel.gs` a mano, `SEMILLA_TOKEN` para traer flujos, el pull
+request de la flota— pueden haber cambiado después: lo vigente está arriba.
 
 ---
 
@@ -213,39 +393,31 @@ abre un pull request en cada una. Ver su README.
 
 No son el mismo problema y conviene no mezclarlos.
 
-**Una tienda NUEVA no trae ni copia nada.** Se crea un repositorio **a partir
-de esta plantilla** —el botón de GitHub, o el flujo *tienda nueva* de
-`laboratoriodigital/tiendas`— y nace con todo dentro, `publicar/index.html`
-incluido. Su primer `montaje` le escribe encima lo suyo: el `<head>`, las cinco
-constantes, la paleta, el catálogo horneado y el catálogo de respaldo. Desde ese
-momento es su tienda.
+**Una tienda NUEVA** la crea `tiendas` › Actions › **alta**: clona la última
+versión publicada de la semilla, la limpia de lo que es de otra tienda y la
+agrega a `flota.json`; después **`conectar`** le pone sus secretos y dispara su
+primer `montaje`, que le escribe encima lo suyo desde la hoja. El camino entero,
+en `RUNBOOK-TECNICO.md` y `DESPLIEGUE.md`. Lo que esté bien en la última
+versión llega a toda tienda que nazca de ella; y lo que esté mal, también.
 
-Lo que eso implica, y es la regla que manda hoy: **lo que esté bien en la
-plantilla llega solo a todas las tiendas que se creen desde ella.** Y lo que
-esté mal, también.
+**Una tienda YA CREADA** no se mueve sola: se pide la actualización, como dice
+*El camino de hoy*, arriba. Desde la 0.14.0 eso ya no es trabajo a mano.
 
-**Una tienda YA CREADA no se mueve sola**, y ponerla al día sigue siendo el
-trabajo manual de la tabla de arriba. Automatizarlo es el **4.18** del roadmap,
-y no está hecho: hace falta decidir antes cómo lee una tienda el repositorio de
-la semilla —un secreto de organización, o hacer pública la semilla— y eso es una
-decisión de negocio, no de código.
-
-> Se intentó de un tirón en la 2.12.0 y se retiró en la 2.13.0: el flujo
-> `montaje` bajaba la página de la última versión publicada. Funcionaba en el
-> papel y falló en el primero real, porque las versiones de la semilla no son
-> públicas. Lo caro no fue el código: fue que **resolvió un problema que esta
-> etapa del proyecto no tiene** —hoy solo hay tiendas nuevas— y a cambio metió
-> un camino más que se puede caer. Está anotado en la bitácora.
+> *Historia de la línea anterior.* En Orgánico se intentó de un tirón en la
+> 2.12.0 y se retiró en la 2.13.0: el flujo `montaje` bajaba la página de la
+> última versión publicada, y falló en el primero real porque las versiones de
+> la semilla no eran públicas. En esta línea lo resuelve `SEMILLA_TOKEN`, que el
+> alta copia a cada tienda para leer la semilla privada.
 
 ---
 
-## Antes de nada: `git pull --rebase`
+## Si trabajas en el repositorio de una tienda: `git pull --rebase`
 
-**El repositorio se escribe solo.** `montaje` y `fotos` hacen commits desde
-GitHub —el `index.html` regenerado desde la hoja, el `catalogo.json` horneado,
-las fotos convertidas— y esos commits **nunca pasaron por tu máquina**. Cuando
-fusionas ese pull request, `origin/main` avanza y tu copia local se queda atrás
-sin enterarse.
+**El repositorio se escribe solo.** `montaje`, `fotos`, `restaurar` y la flota
+hacen commits desde GitHub —el `index.html` regenerado desde la hoja, el
+`catalogo.json` horneado, las fotos convertidas, la versión nueva, los flujos—
+y esos commits **nunca pasaron por tu máquina**. `origin/main` avanza y tu
+copia local se queda atrás sin enterarse.
 
 Entonces el `git push` siguiente falla así:
 
@@ -271,6 +443,15 @@ mano.
 > **La costumbre que ahorra el susto:** `git pull --rebase` **antes de empezar**
 > a trabajar, no solo antes de empujar. Rebasar cuatro commits recién hechos es
 > gratis; rebasar veinte, no.
+
+---
+
+# Historial de la línea anterior (Orgánico 2.x)
+
+Lo que sigue es de la semilla vieja, de la que nació esta. Se deja porque
+explica el stub y el orden de publicación, que no cambiaron. Sus flujos
+(`maestro`, el pull request del montaje) y sus enlaces a
+`laboratoriodigital/organico` son de esa línea, no de esta.
 
 ---
 

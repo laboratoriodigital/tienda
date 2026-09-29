@@ -13,10 +13,12 @@ Google y su copia del `index.html`. Eso, que es lo que lo hace barato, es
 también lo que hace que un cambio de esquema no se parezca en nada al de un
 sistema con una sola base de datos.
 
-No hay una migración que se corra una vez. Hay N hojas que se actualizan cuando
-su dueño abre el editor y pega el código nuevo —cosa que puede pasar hoy, en un
-mes, o nunca—. Mientras tanto conviven versiones distintas del mismo esquema, y
-las dos tienen que funcionar.
+No hay una migración que se corra una vez. Hay N maestros que cambian de
+versión cuando su tienda se actualiza —la pide el dueño desde su panel, la
+reparte la flota por anillos, o nadie la pide: hoy, en un mes, o nunca—, N
+stubs que solo cambian cuando alguien los vuelve a pegar, y N páginas horneadas
+contra el maestro que tenían al publicarse. Mientras tanto conviven versiones
+distintas del mismo esquema, y todas tienen que funcionar.
 
 Y hay algo peor: **una hoja de cálculo no tiene errores de compilación.** Si una
 columna cambia de nombre, nada se rompe con estrépito. La lectura devuelve
@@ -49,20 +51,25 @@ hojas. Un campo nuevo obligatorio es una tienda rota que todavía no lo sabe.
 ## 3. Quién lee qué
 
 ```
-   Hoja del comercio          Maestro (standalone)        Vitrina (index.html)
-   ─────────────────          ────────────────────        ────────────────────
-   Catálogo        ──┐
-   Configuración   ──┤
-   Envíos          ──┼──►  ?a=catalogo   ──────────────►  productos, envios, config
-   Cupones         ──┘     ?a=validar    ◄──────────────  el carrito, a sellar
-   Pedidos         ◄──     ?a=registrar  ◄──────────────  el pedido confirmado
-   Validaciones    ◄──
-   Más vendidos    ◄──     ?a=identidad  ──────────────►  el montaje
-   Tablero         ◄──     ?a=bloques    ──────────────►  el montaje
-   Errores         ◄──     ?a=panel      ──────────────►  el panel de tiendas
+   Hoja del comercio       Maestro (standalone, /exec)           Quién pregunta
+   ─────────────────       ───────────────────────────           ──────────────
+   Catálogo        ──┐     ?a=bloques · identidad · fotos · foto ──►  el montaje (horneado en
+   Configuración   ──┤     ?a=sembrar · permiso                  ◄──  publicar/: catalogo.json,
+   Envíos          ──┤                                                el <head>, el respaldo)
+   Cupones         ──┤     ?a=catalogo  ──────────────────────►  la vitrina, solo si no hay
+   Inventario por  ──┘                                            catalogo.json, y ?vista
+     variante              ?a=validar · registrar · pago_*  ◄──  la vitrina (index.html)
+   Pedidos         ◄──     seguimiento                      ◄──  pedido.html
+   Validaciones    ◄──     productos · pedidos · configuración…◄──  el panel del comerciante
+   Pagos · Datos   ◄──       (POST, con testigo)                    (admin.html)
+     de entrega            ?a=menu                          ◄──  el stub de la hoja
+   Registro · Avísame ◄──  ?a=panel                         ──►  el Panel de tiendas
+   Más vendidos · Tablero · Errores ◄── (los escribe el propio maestro)
 ```
 
-La vitrina **nunca** escribe en la hoja, y la hoja **nunca** llama a la vitrina.
+La vitrina lee primero el `catalogo.json` que hornea el montaje; la puerta
+`catalogo` es su segundo recurso y la de la vista previa. La vitrina **nunca**
+escribe en la hoja, y la hoja **nunca** llama a la vitrina.
 Todo pasa por las puertas del maestro, y por eso son ellas —no las pestañas— el
 contrato que de verdad hay que cuidar: una tienda sin actualizar sigue leyendo
 los nombres viejos desde un servidor nuevo.
@@ -381,17 +388,18 @@ comprador, y **no sale por ninguna puerta** —tampoco por el panel—.
 
 ## 5. Las claves de `Configuración`
 
-Son 45. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
+Son 54. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
 **todas pueden estar vacías**: una tienda a medio configurar tiene que seguir
 sirviendo lo que sí sabe.
 
 `instalar()` se puede volver a correr cuando se quiera. Agrega las claves que
-falten al final y **no toca ningún valor escrito**. Por eso el orden importa
-tanto como los nombres: la escritura ubica la fila por posición justamente para
-no pisar lo que el comerciante puso.
+falten **al final** de la pestaña y **no toca ningún valor escrito**. Se leen y
+se escriben **por nombre** (la columna `Clave`), no por posición: por eso una
+hoja vieja, con las claves nuevas abajo, funciona igual que una recién
+instalada. Lo que no se puede tocar es el nombre.
 
 
-| Grupo | Claves, en el orden en que están en la hoja |
+| Grupo | Claves, por tema (en una hoja nueva salen en el orden de la semilla de `instalar()`; en una vieja, las que faltaban quedan al final) |
 |---|---|
 | **La identidad del comercio** | `negocio` · `whatsapp` · `logo` · `favicon` |
 | **La portada** | `portada_titulo` · `portada_texto` · `portada_puntos` |
@@ -470,10 +478,22 @@ contrario es que una errata deje la puerta de par en par sin que se note.
 
 | Guardia | Quién pasa | Puertas |
 |---|---|---|
-| `publica` | cualquiera | `version` · `catalogo` · `validar` · `registrar` · `entrar` |
-| `montaje` | el token de despliegue (`?t=`) | `panel` · `identidad` · `bloques` · `sembrar` · `fotos` · `foto` |
+| `publica` | cualquiera | `version` · `catalogo` · `validar` · `registrar` · `entrar`\* · `pago_crear`\* · `pago_estado` · `seguimiento`\* · `recuperar_pedir`\* · `recuperar_confirmar`\* · `avisame` |
+| `montaje` | el token de despliegue (`t`) | `panel` · `identidad` · `bloques` · `sembrar` · `fotos` · `foto` · `permiso`\* |
 | `menu` | el token del stub. Se guarda a sí misma, porque además distingue el token viejo del nuevo para la migración | `menu` |
-| `panel` | el testigo del comerciante (`k`), ocho horas, de esta tienda | `sesion` · `productos` · `guardar_producto` · `activar_producto` · `borrar_producto` · `subir_foto` · `pedidos` · `estado_pedido` · `configuracion` · `guardar_configuracion` · `publicacion` · `publicar` |
+| `panel` | el testigo del comerciante (`k`), ocho horas, de esta tienda. Las marcadas † además **solo el dueño** (`soloDueno`) | `sesion` · `productos` · `guardar_producto` · `activar_producto` · `borrar_producto` · `subir_foto` · `pedidos` · `estado_pedido` · `configuracion` · `guardar_configuracion` · `publicacion` · `publicar` · `guardar_combinaciones` · `tablero` · `guardar_envio` · `guardar_cupon` · `enlace_seguimiento` · `avisame_hecho` · `colaborador`† · `actualizacion`† · `actualizar`† · `diagnostico`† — **todas solo por POST** |
+
+\* Solo por POST. La tabla viva es `PUERTAS`, en el maestro; `pruebas/esquema.js`
+congela sus nombres, así que una puerta nueva no aparece sin pasar por
+`--congelar`.
+
+**El token de montaje viaja en la dirección.** Las puertas de guardia
+`montaje` se llaman por GET con `t=<token>` —así las llaman `montar/`,
+`flota/conectar.mjs` y el Panel de tiendas—, salvo `permiso`, que es solo POST
+porque además lleva un token de GitHub. Es un riesgo conocido y aceptado hoy:
+ese token queda en los registros de acceso de Google, y por eso lo que abre
+está acotado (leer configuración y cifras, listar y bajar fotos de SU carpeta,
+sembrar claves vacías) y se rota con `A3_rotarToken()` (`ARQUITECTURA.md` §6d).
 
 `entrar` es pública porque es la que **entrega** las credenciales: no se puede
 pedir el testigo para pedir el testigo. Lo que la protege es el límite de
@@ -519,9 +539,40 @@ enlaces compartidos.
 
 **`?a=catalogo`** — `ok`, `productos`, `envios`, `config`, `ilegibles`, `version`, `esquema`, `generado`
 
-**`?a=identidad`** — `ok`, `version`, `scriptId`, `hojaId`, `url`, `hojaOk`, `hoja`, `negocio`, `repositorio`
+**`?a=validar`** — pide `items`, `cupon`, `envio`, `sub` y, para escribir el
+acta, `sellar=1` y `pedido`. Contesta `ok`, `sub`, `descuento`, `envio`,
+`total`, `cerrada`, `faltaMinimo`, `envioNombre`, `cupon`, `avisos`, `items`,
+`ilegibles`, `envioTarifa`, `recortado`, `cobrable` (y `ref` si se selló), más
+`version`, `esquema`, `generado`. Sin líneas válidas: `ok: false`, `error`,
+`recortado`, `avisos`.
 
-**`?a=bloques`** — `ok`, `version`, `head`, `valores`, `scriptId`, `negocio`, `hoja`, `hojaId`, `alta`
+**`?a=registrar`** — pide `pedido` (el número que fijó la página), `items`,
+`cupon`, `envio`, `ciudad`, `sub` y opcionales `seg` y `tarde`. Vuelve a
+validar, escribe las líneas en `Pedidos` en estado *Nuevo* y cierra el acta de
+`Validaciones`. Contesta `ok`, `lineas`; un número ya registrado, `ok: true`,
+`duplicado: true`; más `version`, `esquema`, `generado`.
+
+**`?a=identidad`** — `ok`, `version`, `scriptId`, `hojaId`, `url`, `hojaOk`, `hoja`, `negocio`, `repositorio` (y `problema` si no abre su hoja)
+
+**`?a=bloques`** — `ok`, `version`, `head`, `valores`, `scriptId`, `negocio`, `hoja`, `hojaId`, `alta`, `colores` (`principal`, `secundario`, `alterno`, `ilegibles`)
+
+**`?a=sembrar`** (montaje) — acepta solo `negocio`, `whatsapp`, `sitio_url`,
+`fotos_origen`, `fotos_drive`, `respaldo_carpeta`, `correo_resumen`,
+`fotos_webp` y `repositorio` (0.15.0, al final), y `forzar=si`. Escribe solo
+donde la celda está vacía o de fábrica, salvo `forzar`; deduce `fotos_origen`
+de `sitio_url` y `fotos_webp` de `fotos_drive`. Contesta `ok`, `version`,
+`escritos`, `iguales`, `respetados`, `faltan`. La usa `conectar`.
+
+**`?a=fotos`** (montaje) — contesta `ok`, `version`, `archivos` (`id`,
+`nombre`, `bytes`, `modificado`, solo imágenes de la carpeta `fotos_drive`) y
+`usadas` (los nombres que nombran el catálogo, el `logo` y el `favicon`).
+
+**`?a=foto`** (montaje) — pide `id`. Solo un archivo de ESA carpeta, imagen, de
+hasta 8 MB. Contesta `ok`, `nombre`, `tipo`, `bytes`, `contenido` (base64).
+
+**`?a=menu`** (guardia `menu`) — la llama el stub por GET con `f` (la opción),
+`t` (el token del menú), `s` (la versión del stub) y `h` (0.18.0, el ID de la
+hoja donde está pegado).
 
 **`?a=entrar`** — `ok`, `error` · y cuando entra: `ok`, `testigo`, `usuario`, `vence`
 
@@ -675,7 +726,11 @@ escribe `conectar` desde el repositorio de servicio.
 **`permiso`** (0.16.0 · 3.4; 0.20.2: comprueba el guardado, montaje, **solo POST**) — pide `t` (token de
 montaje), `tk` (un token de GitHub: `github_pat_…` o `ghp_…`) y opcional
 `forzar: 'si'`. Lo guarda como `GITHUB_TOKEN` en las propiedades del script si
-no había uno (o si se fuerza). Contesta `ok`, `puesto`, `yaEstaba`; nunca el token.
+no había uno, si se fuerza, o si el guardado **ya no sirve** —se comprueba
+listando los flujos del repositorio de la tienda (`/actions/workflows`), que
+exige *Actions*— (0.20.2 y 0.21.0). Contesta `ok`, `puesto`, `yaEstaba` y,
+según el caso, `mismo` (era el mismo token), `servia` y `reemplazado`; nunca el
+token.
 
 **`HOJA_ID` en las propiedades** (0.17.0): `A0_instalar` la guarda; si la
 constante llega vacía (versión implementada de antes), el maestro la lee de ahí.
@@ -685,10 +740,12 @@ La constante, si está, manda.
 `{ a: 'registrar_tienda', clave, comercio, repo, sitio, producto, servicio,
 token }`. `clave` = `CLAVE_ALTA` de las propiedades de esa hoja (menú › *Clave
 para el alta*). Valida `repo` (`dueño/nombre`) y `servicio` (`/exec`). Si el
-repositorio ya está, cambia solo sitio, servicio, token (columnas 10–12) y
-producto (16); si no, agrega la fila *En montaje*. Contesta `ok`, `fila`,
-`nueva`. Acepta además `anillo` (0.20.1). La pestaña Tiendas suma al final las
-columnas **Producto** (0.17.0) y **Anillo** (0.20.1), en ese orden (R1).
+repositorio ya está, cambia solo sitio, servicio, token (columnas 10–12),
+producto (16) y anillo (17), cada uno solo si viene; si no, agrega la fila
+*En montaje*. Contesta `ok`, `fila`, `nueva`. Acepta además `anillo` (0.20.1).
+La pestaña Tiendas suma al final las columnas **Producto** (0.17.0) y
+**Anillo** (0.20.1), en ese orden (R1). El `token` que viaja aquí es el de
+montaje de la tienda, no uno de GitHub.
 
 **El stub dice en qué hoja está pegado** (0.18.0): `?a=menu` lleva, además de
 `f`, `t` y `s`, la clave **`h`** — el ID de la hoja donde corre el stub. El
@@ -715,11 +772,39 @@ más que el testigo. Contesta `ok`, `texto` (el informe completo, **sin el token
 de montaje**) y `resumen`: una lista de `{estado, n, titulo}` con `OK`,
 `REVISAR` o `PROBLEMA` por punto.
 
-**`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla) y
-`propios` (rutas; las que acaban en `/` son carpetas). Lo leen
-`montar/actualizar-semilla.mjs` y la flota. **`montaje`** suma al final las
-entradas `semilla` (booleana) y `version`; con la semilla, las salidas del paso
-son `cambio`, `maestro`, `desde`, `hasta`.
+**`semilla.json`** (raíz): `producto`, `linea`, `repositorio` (la semilla),
+`propios` (rutas; las que acaban en `/` son carpetas) y `retirados` (0.20.7:
+rutas que la actualización borra en la tienda; nunca `publicar/` ni `.git`).
+Manda el de la versión NUEVA. Lo leen `montar/actualizar-semilla.mjs`,
+`pruebas/donde.js` (`repositorio`: ¿esto es la semilla?) y la flota
+(`flota/flujos.mjs`: los flujos que entrega son los propios bajo
+`.github/workflows/`). Las salidas del paso de la semilla en `montaje` son
+`cambio`, `maestro`, `desde`, `hasta`.
+
+**Las entradas de los flujos** son contrato igual que las puertas: el maestro,
+la flota, `conectar`, `restaurar` y `release` disparan flujos de una tienda por
+nombre de archivo y de entrada, y un maestro viejo sigue mandando las que
+conocía. Mismas reglas: solo se agrega al final, nada se renombra, toda
+entrada nueva es opcional.
+
+| Flujo (tienda) | Entradas, en orden | Quién las manda |
+|---|---|---|
+| `montaje.yml` | `que` (`todo` · `solo-la-hoja` · `solo-las-fotos`), `maestro` (booleana), `confirmar` (`PUBLICAR`), `aprobacion` (`automatica` · `con-pull-request`), `sin_guardia`, `semilla` (0.14.0), `version` | el maestro (*Actualizar*: `semilla: 'true'`, `que: 'todo'`, en `ref: main`), `conectar` (`que=todo`), `flota` › `actualizar` (`semilla=true`, `que=todo`, `version`), `restaurar` (`semilla=true`, `version`, `que=todo`), `release` en la semilla (`maestro=true`, `confirmar=PUBLICAR`, `que=todo`) |
+| `fotos.yml` | `aprobacion`, `sin_guardia` | el maestro (*Publicar ahora* / `publicar`), sin entradas |
+| `restaurar.yml` | `que` (`el-sitio` · `la-version`), `hasta`, `confirmar` (`RESTAURAR`) | una persona |
+| `release.yml` · `pruebas.yml` | ninguna | una persona · push y pull request |
+
+| Flujo (`tiendas`) | Entradas |
+|---|---|
+| `alta.yml` | `nombre`, `comercio`, `producto` (`tienda` · `organico`) |
+| `conectar.yml` | `nombre`, `maestro_url`, `maestro_token`, `forzar_permiso` |
+| `flota.yml` | `accion` (`estado` · `actualizar` · `flujos`), `linea`, `anillo` (`0` · `1` · `2`), `version`, `ensayo`, `tienda`, `sin_base` |
+| `panel.yml` | `version` |
+
+**`flota.json`** (en `tiendas`): `lineas` (por línea: `producto`, `modo`
+—`montaje` o `pull-request`—, `semilla` y, en `pull-request`, `propios`) y
+`tiendas` (`nombre`, `repo`, `linea`, `anillo` —un número, o `"fuera"`—,
+`sitio`, `conserva` opcional —rutas que la línea `pull-request` no toca en esa tienda— y `semilla: true` en las semillas). Nada secreto va ahí.
 
 **La vista previa** (0.13.0 · 2.5): `index.html?vista` pide el catálogo a la
 puerta pública `catalogo` en vez de a `catalogo.json`, pone `noindex`, no deja
@@ -816,7 +901,7 @@ la toca. `publicacion` la compara con el `generado` servido.
 
 Y dentro de `?a=catalogo`:
 
-**cada producto** — `id`, `nombre`, `formato`, `categoria`, `precio`, `stock`, `descripcion`, `imagenes`, `destacado`, `activo`, `referencia`, `precioAntes`, `umbralBajo`
+**cada producto** — `id`, `nombre`, `formato`, `categoria`, `precio`, `stock`, `descripcion`, `imagenes`, `destacado`, `activo`, `referencia`, `precioAntes`, `umbralBajo`, `variantes` (C-1) y, con inventario por combinación, `skus` (C-1b)
 
 **cada envio** — `id`, `nombre`, `valor`
 
@@ -834,13 +919,12 @@ pública— y el carrito lo necesita para bloquear a tiempo. Por `?a=catalogo`
 llega como número y en `catalogo.json` como texto, porque el horneado pasa toda
 la configuración por `String()`: **quien lo lea tiene que convertirlo.**
 
-> **Un campo publicado que nadie consume es una promesa a medias.** `?a=validar`
-> devuelve `envioNombre` —el nombre del envío **según la hoja**— y
-> `publicar/index.html` no lo lee: escribe el nombre que ella tenía y el valor
-> que trajo el sello. Cuando la hoja no reconoce el envío contesta `valor: 0` y
-> `nombre: 'Por confirmar'` a propósito, y ese aviso se pierde. Sale como **S1-8**.
-> Vale como regla: al agregar un campo, decir **quién lo lee**; si nadie, no se
-> agrega.
+> **Un campo publicado que nadie consume es una promesa a medias.** Pasó con
+> `envioNombre` de `?a=validar` —el nombre del envío **según la hoja**, que es
+> `Por confirmar` cuando la hoja no reconoce la zona—: durante un tiempo la
+> página no lo leía (**S1-8**). Hoy sí: con un sello vigente, el nombre del
+> envío que va en el mensaje es el de la hoja. Vale como regla: al agregar un
+> campo, decir **quién lo lee**; si nadie, no se agrega.
 
 ---
 
@@ -853,8 +937,13 @@ compara contra la foto congelada en `pruebas/esquema.json`.
 - Agregar al final: pasa, y la batería **anuncia** qué se agregó.
 - Renombrar, mover o quitar: **falla**, con el antes y el después.
 - Una pestaña que desaparece: falla.
-- Y comprueba que **este documento** nombre las nueve pestañas, todas sus
-  columnas y todas las claves. Si el código cambia y el documento no, no pasa.
+- Las respuestas fotografiadas de las puertas (`version`, `catalogo`,
+  `identidad`, `bloques`, `panel`, `entrar`, `sesion`, `seguimiento`,
+  `tablero`, `configuracion`), los campos de cada producto y cada envío, y los
+  **nombres de todas las puertas** de `PUERTAS`.
+- Y comprueba que **este documento** nombre todas las pestañas que crea
+  `instalar()`, todas sus columnas y todas las claves. Si el código cambia y el
+  documento no, no pasa.
 
 Cuando un cambio de esquema es deliberado y cumple las reglas:
 
@@ -871,7 +960,9 @@ solo no es un contrato.
 
 ## 8. La versión del esquema
 
-Cada puerta publica ahora tres cosas más:
+Las puertas públicas de la tienda —`catalogo`, `validar`, `registrar`,
+`pago_crear`, `pago_estado`— publican además tres cosas (las de montaje y del
+panel llevan solo `version`, o nada):
 
 | Campo | Qué es |
 |---|---|

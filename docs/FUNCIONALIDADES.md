@@ -1,6 +1,6 @@
 # Todo lo que hace esta tienda
 
-Inventario completo de funcionalidades de la **Tienda Panel** (`0.19.0`), por
+Inventario completo de funcionalidades de la **Tienda Panel** (`0.22.3`), por
 categoría y sin dejar ninguna fuera. Si algo existe en el producto, está en
 esta lista; si no está aquí, no existe todavía —y entonces vive en
 `ROADMAP.md`—.
@@ -21,18 +21,22 @@ Cómo leer las marcas:
   se ve sale de `publicar/catalogo.json`, publicado en cada montaje.
 - **Catálogo de respaldo dentro del archivo**: si hasta eso fallara, la página
   pinta el último catálogo conocido en lugar de una tienda vacía.
-- **Búsqueda** por nombre, formato, categoría y referencia.
+- **Búsqueda** por nombre, descripción y categoría.
 - **Categorías** como filtro, tomadas de la columna Categoría del catálogo.
 - **Orden del catálogo**: el de entrada lo decide el comercio
   (`orden_catalogo`: destacados primero, como en la hoja, precio ascendente o
   descendente, alfabético) y el comprador puede reordenar por precio.
 - **Paginación** que se adapta a cuántos productos por fila hay
-  (`catalogo_columnas`: 3, 4 o 5 en computador; 1 o 2 en celular).
-- **Ficha del producto** con galería, descripción, formato, referencia y
-  precio anterior tachado cuando lo hay.
+  (`catalogo_columnas`: 3, 4 o 5 en computador; una columna en celular y dos
+  en tableta).
+- **Precio anterior tachado** en la tarjeta, cuando lo hay y es mayor.
+- **Ficha del producto** con galería, formato y categoría, precio,
+  disponibilidad, descripción, variantes y **Compartir este producto**.
+- **Enlace por producto** (`?p=…`): abre la tienda con esa ficha abierta.
 - **Destacados** (columna Destacado) primero, si así se configuró.
-- **Agotados y umbral bajo**: lo agotado no se puede pedir y se marca; el
-  umbral bajo avisa «quedan pocos» sin decir cuántos.
+- **Agotados y umbral bajo**: lo agotado no se puede pedir y se marca; por
+  debajo del umbral del producto (columna Umbral bajo) dice «Últimas N
+  unidades», de la combinación elegida si el stock va por variante.
 - **Variantes** (`f_variantes`): talla, color o lo que el comercio defina, con
   **stock por combinación** y elección obligatoria antes de agregar.
 - **Fotos en tres tamaños** (160/600/900) servidas en WebP cuando existen
@@ -40,8 +44,11 @@ Cómo leer las marcas:
   (`fotos_cdn`), o tal cual si no hay nada de eso.
 - **Marca y colores** de la hoja: color principal, secundario y alterno,
   título de portada, texto, puntos de portada y descripción al pie.
-- **Icono de la tienda**: el que ponga `favicon`, o uno dibujado con los
-  colores de la marca.
+- **Logo del comercio** (`logo`, 0.21.0): el nombre de una foto de la carpeta
+  de Drive o una dirección completa. Va en la barra en lugar del signo; el
+  nombre del comercio sigue escrito. Si el archivo no llega, vuelve el signo.
+- **Icono de la pestaña**: el que ponga `favicon`; si no hay, el logo; si
+  tampoco, un marcador con los colores de la marca.
 - **Horario** visible, y **tienda abierta o cerrada** (`tienda_abierta`,
   `tienda_cerrada_mensaje`): cerrada se puede mirar, no pedir.
 - **Vista previa** (`?vista`): la tienda con lo que todavía no se ha publicado,
@@ -63,7 +70,8 @@ Cómo leer las marcas:
   **validados contra la hoja** (si la hoja no contesta, no hay descuento).
 - **Total sellado por la hoja**: el maestro devuelve el total verificado y la
   página deja de advertir «calculado por la página».
-- **Datos de entrega** mínimos: nombre, teléfono, dirección y notas.
+- **Datos de entrega** mínimos: nombre, celular, ciudad, dirección y notas;
+  y el correo, solo cuando se paga en línea (ahí llega la confirmación).
 - **Envío del pedido por WhatsApp** con el mensaje armado y el número de
   pedido incluido.
 - **Registro del pedido en la hoja** antes de abrir WhatsApp, con descuento de
@@ -95,7 +103,8 @@ Cómo leer las marcas:
 
 ## 4. El panel del comercio (`admin.html`) · Comercio
 
-Dos pantallas, con usuario y clave propios de esa tienda.
+Dos pestañas, **Ventas** y **Tienda**, con usuario y clave propios de esa
+tienda.
 
 **Ventas**
 
@@ -109,23 +118,32 @@ Dos pantallas, con usuario y clave propios de esa tienda.
 
 **Tienda**
 
-- **Productos**: crear, editar, activar/desactivar y borrar; precio, precio
-  anterior, stock, umbral, categoría, formato, referencia, descripción,
+- **Productos**: buscar por nombre o código, filtrar por categoría, crear,
+  editar, activar/desactivar y borrar (va a la Papelera de la hoja); precio,
+  precio anterior, stock, umbral, categoría, formato, referencia, descripción,
   destacado y variantes.
 - **Fotos**: subirlas desde el panel al Drive de la tienda.
 - **Stock por combinación** de variantes.
-- **Ajustes de tu tienda**: todo lo que antes solo se cambiaba en la hoja,
-  agrupado (Tu tienda · La venta · El cobro · La portada · Los textos · Los
-  colores · Google y WhatsApp · Datos legales · El correo del día · Avanzado),
-  con validación por campo y aviso de qué está mal.
+- **Ajustes de tu tienda**: todo lo que antes solo se cambiaba en la hoja
+  salvo `correo_ultimo` y `panel_usuario`, agrupado (Tu tienda · La venta · El
+  cobro · La portada · Los textos · Los colores · Google y WhatsApp · Datos
+  legales · El correo del día · Avanzado), con validación por campo y aviso de
+  qué está mal. El WhatsApp, el ambiente del cobro y los datos de
+  transferencia piden la clave otra vez. Entre ellos, **el logo y el icono**
+  (Tu tienda).
 - **Zonas de envío** y **cupones**, con alta, edición y baja.
 - **Otra persona en el panel** (2.2): el dueño crea un **colaborador** con
-  menos permisos —gestiona la tienda entera, no toca repositorios, llaves, NIT,
-  correos ni el ambiente de pagos, que es siempre producción—.
-- **Publicar ahora**: pone en la calle lo que está en la hoja.
+  menos permisos —productos, fotos, pedidos, envíos, cupones y publicar; en
+  ajustes, solo la vitrina (textos, colores, portada, logo) y el modo de cobro;
+  nada del WhatsApp, los datos de pago, los datos legales, los correos, el
+  ambiente del cobro ni lo técnico—. El maestro lo filtra, no la página.
+- **Publicar ahora**: dispara el flujo `fotos` de la tienda, que pone en la
+  calle lo que está en la hoja. El panel dice si hay cambios sin publicar y
+  cuándo se publicó por última vez.
 - **Vista previa** antes de publicar (2.5).
-- **Versión de tu tienda**: dice en qué versión está y **actualiza sola** a la
-  última publicada de la semilla.
+- **Versión de tu tienda** (solo el dueño): dice en qué versión está y, con
+  **Actualizar ahora**, trae la última publicada de la semilla (dispara el
+  `montaje` de la tienda con `semilla`).
 - **Recuperar la clave** (2.3) con un código al correo de la tienda, sin pasar
   por el operador.
 - **Revisión de tu tienda** (0.20.0): el diagnóstico completo desde el panel,
@@ -141,7 +159,7 @@ Dos pantallas, con usuario y clave propios de esa tienda.
 - **Menú propio** con el nombre del comercio y ocho opciones:
   *Publicar ahora* · *Ver mi tienda* · *Actualizar tablero e inventario* ·
   *Enviarme el resumen ahora* · *Clave del panel* · *Diagnóstico* · *Ayuda* ·
-  *Actualizar a la última versión*.
+  *Actualizar a la última versión* (la misma actualización que el panel).
 - **Validaciones**: la pestaña que dice qué celda está mal y por qué.
 - **Registro de cambios**: quién cambió qué y cuándo, en las pestañas que
   importan.
@@ -155,29 +173,51 @@ Dos pantallas, con usuario y clave propios de esa tienda.
 ## 6. Publicación y operación · Operador
 
 - **Montaje completo** en un solo flujo: versión de la semilla, maestro,
-  `<head>`, catálogo, respaldo, SEO, fotos, **todas las baterías** y publicación
-  en `main`.
-- **Publicación desde el panel o el menú** de la hoja, sin tocar GitHub.
+  `<head>`, catálogo, respaldo, SEO, fotos, la guardia y publicación en
+  `main`. La guardia la elige `pruebas/publicacion.sh`: en una tienda,
+  `tienda-viva.js` (invariantes sobre lo horneado con SUS datos y la página
+  abierta en un navegador, 0.22.0); en la semilla, la suite entera.
+- **Publicación desde el panel o el menú** de la hoja, sin tocar GitHub
+  (flujo `fotos`). Lo que mira si hay novedades aplica la hoja sobre lo
+  publicado; lo que publica parte de la plantilla (0.22.2).
 - **Actualización sola** de la tienda a una versión publicada de la semilla,
-  con vuelta atrás del maestro si algo falla.
+  con vuelta atrás del maestro si algo falla; `semilla.json` dice qué archivos
+  son de la semilla (`propios`) y qué se borra en la tienda (`retirados`).
+- **La semilla pone al día su propio maestro** (0.22.3): al cortar una versión,
+  `release` pregunta al maestro vivo y, si quedó atrás, dispara el `montaje`
+  de la semilla con la casilla del maestro y `PUBLICAR`.
 - **Flota** (`tiendas`): estado de todas las tiendas y actualización por
-  anillos, que se detiene si una falla.
+  anillos, que se detiene si una falla; `"anillo": "fuera"` saca una tienda
+  del reparto y la que da 404 se salta. **Los flujos de cada tienda los entrega
+  la flota** (`flota › actualizar` tras cada tienda buena, `flota › flujos` a
+  mano, 0.22.1), y desde la 0.22.3 también quita los que la semilla retiró.
+- **`panel.gs` se publica con un flujo** (`tiendas › panel`, 0.21.1), con los
+  secretos `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`. Todavía no ha corrido con ellos
+  puestos.
 - **Alta de una tienda** en un flujo de tres campos, y **conectar** en otros
   tres.
-- **Portal de administración**: todas las tiendas con sus cifras y sus enlaces,
-  desde el menú de la hoja de administración.
+- **Portal de administración** (`panel.gs`, la hoja *Panel de tiendas*): todas
+  las tiendas con sus cifras y sus enlaces, desde su menú › *Abrir el portal*,
+  que no consulta a ninguna tienda. El mismo menú actualiza las cifras de
+  todas, manda el resumen, lista los cobros del mes y trae las ejecuciones de
+  GitHub.
 - **Registro automático** de cada tienda nueva en esa hoja.
 - **Respaldo semanal** de la hoja a una carpeta de Drive del administrador, con
   ocho copias y poda automática.
 - **Restauración** por pestañas desde el maestro (`A5_respaldos`,
   `A6_restaurarDatos`), con copia previa.
-- **Volver atrás** del sitio o de la versión con el flujo `restaurar`.
+- **Volver atrás** del sitio o de la versión con el flujo `restaurar`
+  (`el-sitio` trae `publicar/` de un commit anterior como un commit nuevo;
+  `la-version` se lo pide a `montaje`). `el-sitio` publica de verdad desde la
+  0.22.3: antes decía «Ya estaba así» siempre.
 - **Diagnóstico** en la hoja y en el maestro: qué falta para que la tienda esté
   terminada, qué versión corre, y los datos para conectar.
 - **Comprobación de las fotos con dominio propio** (decisión 22): el montaje
   dice si Cloudflare de verdad las está transformando.
-- **Presupuestos vigilados**: tiempo de publicación, minutos de Actions y
-  ejecuciones de Apps Script.
+- **Presupuesto de tiempo vigilado** en `fotos`, `montaje` y `pruebas`
+  (`presupuesto.json`, `montar/tiempos.mjs`): avisa por encima del objetivo y falla por encima del
+  doble. El techo de minutos de Actions al mes se recuerda en cada resumen,
+  pero ninguna corrida lo comprueba.
 
 ## 7. SEO y compartir · Comprador y buscadores
 
@@ -212,8 +252,12 @@ Dos pantallas, con usuario y clave propios de esa tienda.
   aserción, cabeceras de Cloudflare (HSTS, `frame-ancestors`, `nosniff`,
   `Permissions-Policy`) y ni un solo dato de negocio en la hoja del cliente.
 - **Números de pedido no adivinables** y consulta que no revela si existen.
-- **Sin datos del comprador** más allá del pedido: ni analítica propia, ni
-  perfilado, ni terceros.
+- **Sin datos del comprador** más allá del pedido: por WhatsApp la hoja no
+  guarda su nombre ni su celular (del pedido, solo la ciudad); cobrando en línea, sus datos de entrega quedan en la
+  pestaña *Datos de entrega*, que no sale por ninguna puerta. Ni perfilado, ni
+  terceros, salvo Google Analytics si el comercio pone `analytics_id`.
+- **Riesgo conocido**: el token de montaje todavía viaja como `t=` en
+  peticiones GET del montaje al maestro (`PLAN-MVP.md` §7).
 
 ## 10. Lo que se prueba solo · Operador
 
@@ -225,6 +269,8 @@ Dos pantallas, con usuario y clave propios de esa tienda.
   o en las claves obliga a pasar por `--congelar`, y eso se ve en el diff.
 - **Determinismo del horneado**: el mismo origen produce el mismo archivo.
 - **Presupuesto de tiempo** con guardia en cada corrida.
+- **La tiendita** (`pruebas/tiendita.js`): prueba el repositorio como si fuera
+  una tienda, con la guardia de publicación y los datos de otro comercio.
 
 ---
 

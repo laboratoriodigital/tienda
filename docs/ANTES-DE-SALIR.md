@@ -1,217 +1,169 @@
 # Antes de salir al aire
 
-Lo que hay que resolver o al menos mirar de frente antes de que un comprador
-real ponga su dirección en la página. Está ordenado por lo que más duele si
-sale mal, no por lo que más trabajo cuesta.
+Lo que hay que mirar antes de que un comprador real ponga su dirección en la
+página de **una tienda**. Primero lo que el sistema comprueba solo —para saber
+dónde mirar cuando se queja—, después lo que sigue siendo tuyo. Está ordenado
+por lo que más duele si sale mal, no por lo que más trabajo cuesta.
+
+_Vigente a la 0.22.3 (29 de septiembre de 2026)._
 
 ---
 
-## Bloquean el lanzamiento
+## Lo que se comprueba solo
 
-> **Estado al 15 de septiembre de 2026.** De los cinco, quedan **dos y medio**:
->
-> | | |
-> |---|---|
-> | 0 · La semilla corriendo lo que se copia | **resuelto** (2.15.1) |
-> | 1 · La respuesta automática de WhatsApp | **comprobada** donde se hizo el punto 4. Por tienda |
-> | 2 · Qué pasa si Apps Script no contesta al enviar | **abierto** — hay que provocarlo |
-> | 3 · Los datos legales, y que un abogado mire el machote | **abierto** |
-> | 4 · Un pedido de punta a punta con un teléfono real | **resuelto** (3.0.0) |
->
-> Los dos que quedan no son código. El 2 es una prueba de media hora; el 3 es
-> una conversación con un abogado antes de cobrarle a un tercero.
+### 1 · ¿Está terminada? — `LISTA_DE_ALTA`, en `maestro.gs`
 
-**0. Orgánico tiene que estar corriendo la versión que se va a copiar.**
-   [RESUELTO · 2.15.1 · 15 de septiembre de 2026]
+La pregunta «¿está esta tienda terminada?» no se lleva en la cabeza: la contesta
+el **Diagnóstico** en su punto 2 (*«¿Está terminada esta tienda?»*), la
+*Revisión de tu tienda* del panel, y la hoja *Panel de tiendas* para todas a la
+vez, en la columna **Sin terminar**. Un valor entre corchetes cuenta como vacío.
 
-Orgánico no es una tienda más: es la semilla. Mientras esté desplegada con una
-versión anterior a la de la plantilla, cada tienda nueva nace de un archivo que
-nadie ha visto funcionar.
+- **Bloquean** —el `montaje` **se niega** a escribir el `index.html` y dice
+  cuál falta y por qué—: `negocio`, `whatsapp`, `sitio_url`, `pago_llave`
+  (salvo si se cobra por pasarela), y los datos del responsable de los datos
+  personales: `empresa_razon`, `empresa_nit`, `empresa_direccion`,
+  `empresa_ciudad` y al menos uno de `empresa_correo` o `empresa_tel`
+  (decisión 09: un texto legal sin responsable no obliga a nadie).
+- **Avisan** —salen en el resumen del montaje, el Diagnóstico y el panel, y
+  **no** bloquean—: `pago_titular`, `pago_entidad`, `repositorio`,
+  `correo_resumen`, `sitio_titulo`, `sitio_descripcion`, `respaldo_carpeta`;
+  `cobro_modo` si se pidió pasarela y no está lista (la tienda sigue por
+  WhatsApp), y `cobro_ambiente` si la pasarela sigue en **Pruebas**.
 
-Cerrado, y no por acuerdo sino por medición: **las tres tiendas corren la
-2.15.1 y su código de plantilla es idéntico al de la semilla, archivo por
-archivo.** En la misma versión se cortó el release, se montó Cinnamon Beauty y
-se publicó desde la hoja en LA MIGUERIA — los tres caminos, los tres verdes.
+Cuando todo está lleno, el Diagnóstico dice «OK las N claves del alta están
+llenas».
 
-> **Esta es la primera versión publicable.** No significa que esté todo: los
-> puntos 1 a 4 de esta lista siguen abiertos, y son los que deciden si un
-> comprador real puede pagar. Significa otra cosa, que hasta hoy no era cierta:
-> **la plantilla se puede clonar y la tienda que sale de ahí funciona sin que
-> nadie la toque a mano.** Lo que queda por delante ya no es construir el
-> producto: es comprobarlo con una persona que compra.
+### 2 · Que se publique la tienda correcta — `montaje.yml`
 
-**1. La respuesta automática de WhatsApp, configurada.**   [POR TIENDA]
-La llave de pago sale de la página a propósito: se entrega solo por el chat. Si
-la respuesta automática no está puesta, el comprador termina el pedido y **no
-tiene cómo pagar**. Es el único paso donde el diseño de seguridad se convierte
-en un agujero funcional si se olvida. WhatsApp Business > Herramientas para la
-empresa > Mensaje de ausencia. La plantilla del texto está en `DESPLIEGUE.md`,
-paso 14.
+Antes de hornear nada, el montaje comprueba, y se para si no:
 
-**2. Qué pasa si Apps Script no responde justo al enviar el pedido.**
-Hay que provocarlo, no suponerlo: apagar la implementación un minuto y hacer un
-pedido. Lo que **no** puede pasar es que el cliente se quede sin poder mandar
-el WhatsApp. Que el pedido no quede registrado en la hoja es recuperable —el
-mensaje llega igual y el comercio lo atiende—; que el botón no haga nada es una
-venta perdida y un cliente que no vuelve.
+- que existan los secretos `MAESTRO_URL` y `MAESTRO_TOKEN`;
+- que el sitio de Cloudflare tenga **nombre propio** en `wrangler.jsonc`
+  (`montar/revisar-worker.mjs`): dos tiendas con el mismo nombre son el mismo
+  Worker y una pisa a la otra;
+- que la hoja sea **la de esta tienda** (`montar/misma-tienda.mjs`, contra
+  `Configuración › repositorio`);
+- que el maestro vivo sea **el del repositorio** (`montar/preparar-index.mjs`):
+  si no, no hornea y dice qué casilla marcar.
 
-**3. Los datos legales de la empresa, llenos.**
-Las claves `empresa_*` de la hoja alimentan los textos de tratamiento de datos.
-La tienda pide nombre, celular y dirección: eso es tratamiento de datos
-personales, y en Colombia lo regula la Ley 1581 de 2012. Los textos están
-escritos, pero **no somos abogados**: antes de vender el servicio a terceros
-conviene que un abogado revise una vez el machote, y que quede claro por
-contrato quién es el responsable del tratamiento —el comercio, no nosotros.
+Si las fotos van por Cloudflare, dice en el resumen si la zona de verdad
+transforma (`montar/revisar-fotos-cdn.mjs`). Avisa; no tumba la corrida.
 
-**4. Una prueba completa con un teléfono de verdad.**
-   [RESUELTO · 3.0.0 · 15 de septiembre de 2026]
+### 3 · Que lo horneado funcione — `pruebas/tienda-viva.js`
 
-Pedido → WhatsApp → respuesta automática → transferencia → confirmar en la hoja
-→ el stock baja. De punta a punta, con un celular que no sea el del comercio.
+La compuerta de toda publicación de una tienda (`montaje` y *Publicar ahora*):
+la página habla con **su** maestro y en su misma versión, el catálogo y el
+respaldo se leen y coinciden, y la página abre en un navegador con los productos
+de esa tienda y sin errores. Si falla, no se publica nada. La lista completa, en
+`ACTUALIZAR-UNA-TIENDA.md` › *La compuerta*.
 
-Hecha, y salió bien. Todo lo que estaba probado en automático eran las piezas;
-esto probó la costura, que es lo único que ninguna batería puede probar.
+### 4 · Lo que ya está resuelto por diseño
 
-> **Y arrastra el punto 1, pero solo para esa tienda.** La respuesta automática
-> de WhatsApp estaba en medio de esa cadena: si hubiera faltado, el comprador se
-> habría quedado sin llave de pago y la prueba habría parado ahí. Así que en la
-> tienda donde se hizo, el punto 1 está comprobado — **no en las otras**. Es
-> configuración de la cuenta de WhatsApp Business de cada comercio, no del
-> producto: hay que mirarlo una vez por tienda, y mirarlo de verdad, no darlo
-> por puesto.
+- La llave de pago no está en la página ni en el repositorio: se entrega por la
+  respuesta automática de WhatsApp.
+- Las llaves de Bold y el `GITHUB_TOKEN` viven **solo** en las propiedades del
+  script del maestro: ni en la hoja, ni en el repositorio, ni en los secretos de
+  GitHub de la tienda, ni en el panel.
+- La hoja guarda **qué** se pidió, no **quién** lo pidió.
+- El total lo recalcula y lo sella el maestro con los precios de la hoja.
+- Si la hoja no contesta, la tienda pinta el catálogo de respaldo que lleva
+  dentro: **degrada, no se cae**.
+
+---
+
+## Lo que sigue siendo tuyo, una vez por tienda
+
+Nada de esto lo puede ver el sistema. Saber que `pago_llave` está llena no dice
+si el mensaje sale.
+
+- [ ] **La respuesta automática de WhatsApp**, con el texto de pago. Si falta,
+      el comprador termina el pedido y **no tiene cómo pagar**: es el único
+      sitio donde el diseño de seguridad se vuelve un agujero si se olvida.
+      WhatsApp Business › Herramientas para la empresa › Mensaje de ausencia. El
+      texto, en `DESPLIEGUE.md` › paso 14. Es de la cuenta de cada comercio: se
+      mira en cada tienda, de verdad, no se da por puesto.
+- [ ] **Un pedido de punta a punta con un teléfono que no sea el del
+      comercio**: pedido → WhatsApp → respuesta automática → transferencia →
+      **Pagado** en la hoja o el panel → el stock baja. Las baterías prueban las
+      piezas; esto prueba la costura.
+- [ ] **Si cobra en línea**: la prueba de `PAGOS-BOLD.md` con las llaves de
+      pruebas en la tienda publicada, y después `cobro_ambiente` en
+      **Producción**. En pruebas, una tarjeta de prueba «paga» y descuenta
+      inventario.
+- [ ] **Qué pasa si Apps Script no contesta justo al enviar el pedido.** Hay que
+      provocarlo, no suponerlo: apagar la implementación un minuto y hacer un
+      pedido. Lo que **no** puede pasar es que el comprador se quede sin poder
+      mandar el WhatsApp.
+- [ ] **Los datos legales, revisados por un abogado una vez.** Las claves
+      `empresa_*` alimentan los textos de tratamiento de datos (Ley 1581 de
+      2012). Los textos están escritos, pero no somos abogados: antes de
+      venderle el servicio a un tercero, que alguien revise el machote y que
+      quede por contrato que el responsable del tratamiento es el comercio.
+- [ ] **El respaldo**: la carpeta de `respaldo_carpeta` compartida con la cuenta
+      de la tienda, con permiso de editor. Sin eso no hay copia semanal
+      (`A4_respaldoAhora()` en el maestro la prueba sin esperar al domingo).
+- [ ] **La clave del panel**: `panel_usuario` en Configuración y menú de la
+      hoja › **Clave del panel**. Se ve una sola vez: se entrega en persona.
 
 ---
 
 ## El techo real, y cómo se ve cuando se toca
 
-**5. Cada visitante que carga el catálogo gasta una ejecución de Apps Script.**
-El panel muestra, por tienda, cuántas lecturas del catálogo lleva el día. El
-tope de 30 simultáneas Google no lo expone —no hay forma de preguntar cuántas
-van—, así que se mira la carga, que sí se mide, y avisa antes de llegar.
-El límite que no se compra con dinero son **30 ejecuciones simultáneas por
-cuenta de Google** (ver `ARQUITECTURA.md`). Con una cuenta por tienda eso es
-holgadísimo para un comercio pequeño, pero conviene saber cómo se ve cuando se
-acerca: la tienda tarda en cargar el catálogo y cae al inventario de respaldo
-que ya viene dentro del `index.html`. Es decir, **degrada, no se cae** — pero
-muestra precios y stock viejos.
-
-Vale la pena medirlo antes de la primera campaña con tráfico: si el comercio va
+**Las ejecuciones de Apps Script.** El límite que no se compra con dinero son
+**30 ejecuciones simultáneas por cuenta de Google** (ver `ARQUITECTURA.md`). La
+vitrina ya no gasta una por visita —lee el catálogo horneado—, pero el pedido,
+el panel y el cupón sí. Con una cuenta por tienda es holgado para un comercio
+pequeño. Cuando se acerca, la tienda tarda y cae al catálogo de respaldo: precios
+y stock de la última publicación. La hoja *Panel de tiendas* muestra por tienda
+las **Lecturas hoy**; el tope simultáneo Google no lo expone. Si el comercio va
 a mandar el enlace a mil personas a la misma hora, esa es la hora en que se
-prueba. Si algún día molesta, la salida no es pagar Workspace —ese límite no
-sube— sino publicar el catálogo como archivo estático y dejar Apps Script solo
-para registrar el pedido.
+prueba.
 
-**6. La hoja crece y nadie la poda.**
-`Pedidos` y `Validaciones` solo crecen. Google Sheets corta a los diez millones
-de celdas; mucho antes de eso la hoja se vuelve lenta de abrir. Falta una
-función de archivado. No bloquea el lanzamiento de la primera tienda, pero sí
-la número diez.
+**La hoja crece y nadie la poda.** `Pedidos` y `Validaciones` solo crecen.
+Google Sheets corta a los diez millones de celdas, y mucho antes la hoja se
+vuelve lenta de abrir. Falta una función de archivado. No bloquea la primera
+tienda; sí la décima.
 
-**7. La hoja es la base de datos.**  [RESUELTO]
-Copia semanal a la carpeta del administrador, los domingos a las 2 de la
-mañana, con `makeCopy` —que Drive resuelve de su lado, sin pasar un byte por el
-script— y ocho copias de retención. Requiere un paso manual por tienda: que el
-administrador comparta `backup_tiendas` con la cuenta de esa tienda, con
-permiso de editor. El panel muestra la fecha del último respaldo por tienda y
-el correo de la mañana avisa si alguna se quedó atrás.
-
----
-
-## Automatización: lo que falta para que montar una tienda sea rápido
-
-La premisa del negocio es que desplegar sea rápido y barato. Hoy el montaje
-tiene estos pasos manuales, en orden de cuánto tiempo cuestan:
-
-| Paso | Hoy | Se puede automatizar |
-|---|---|---|
-| Crear la cuenta de Google y la hoja | A mano | No del todo: Google no deja crear cuentas por programa |
-| Pegar `maestro.gs` y publicarlo | `npm run maestro` | **Hecho** |
-| Pegar el stub en la hoja | A mano | No: hay que estar dentro de la hoja |
-| Pegar el bloque `<head>` en el index | `npm run index` | **Hecho** |
-| Crear el repositorio y configurarlo | Flujo **tienda nueva** | **Hecho** — sin probar todavía contra una tienda real |
-| Conectar el Worker en Cloudflare | A mano | No: ese diálogo es del navegador |
-| Llenar la configuración de la hoja | Flujo **montaje**, seis campos | **Hecho** |
-| Pasar las fotos de Drive a `publicar/fotos` | `npm run fotos:drive` | **Hecho** |
-
-**El cronómetro ya se corrió, con la tienda tres: 30 minutos.**   [MEDIDO]
-
-| Paso | Reloj |
-|---|---|
-| GitHub: repositorio, secretos, token, correr los flujos | **15 min** |
-| Hoja, proyecto de Apps Script, pegar el maestro, implementar | 8 min |
-| Llenar la información en la hoja | 5 min |
-| `clasp login` | 2 min |
-
-**La mitad se va en GitHub**, copiando cinco secretos de un sitio a otro — y
-cuatro de los cinco los sabe el maestro y ya salen juntos del Diagnóstico. Esa
-es la automatización que se paga sola primero, y no ninguna de las de la tabla
-de arriba. Está en el roadmap como **4.24**, aplazada a propósito hasta la
-quinta tienda: con tres, el ahorro no paga la superficie de fallo.
-
-**Lo que ese número NO incluye, y hay que decirlo para que no se use mal**:
-crear la cuenta de Google, las fotos del comercio, la respuesta automática de
-WhatsApp, y la prueba de punta a punta con un teléfono real. Antes de ponerle
-precio al servicio hay que medir un despliegue **con** esas cuatro cosas —
-serán las que separen «montado» de «vendiendo».
+**La hoja es la base de datos.** Copia semanal los domingos a las 2 de la
+mañana, con `makeCopy`, y ocho copias de retención, a la carpeta de
+`respaldo_carpeta`. El panel muestra la fecha del último respaldo por tienda.
 
 ---
 
 ## Operación
 
-**8. Qué nos avisa si una tienda se cae.**
-Hoy, el correo del panel: una vez al día, a las 7. Para un comercio pequeño
-está bien. Si eso se queda corto, la respuesta barata no es un servicio de
-monitoreo sino subir la frecuencia del panel.
+**Qué nos avisa si una tienda se cae.** El correo diario de la hoja *Panel de
+tiendas*, a las 7. Para un comercio pequeño alcanza.
 
-**9. Cómo se vuelve atrás.**
-Un release malo no llega solo a nadie: cada tienda se actualiza por un pull
-request que alguien aprueba. La tienda de referencia sí despliega desde `main`,
-y ahí la vuelta atrás es el historial de despliegues de Cloudflare. Conviene
-haberlo hecho una vez **antes** de necesitarlo.
+**Cómo se vuelve atrás.** Una actualización que falla no publica nada, y si ya
+había publicado el maestro nuevo, vuelve a poner el de antes sola. A mano: el
+flujo `restaurar` de la tienda (`el-sitio` o `la-version`) y, para los datos,
+`A5_respaldos()` y `A6_restaurarDatos()` en el maestro. Detalle en
+`ACTUALIZAR-UNA-TIENDA.md` › *Volver atrás*. Conviene haberlo hecho una vez
+**antes** de necesitarlo.
 
-**10. El dominio.**
-`algo.workers.dev` funciona, pero el comprador del comercio lo lee y desconfía,
-y sin dominio propio no sirven las transformaciones de imagen de Cloudflare. Un
-dominio nuestro alcanza para todas las tiendas como subdominios, y "dominio
-propio del comercio" es una buena línea para separar planes.
+**El dominio.** `algo.workers.dev` funciona, pero el comprador lo lee y
+desconfía, y sin dominio propio no sirven las transformaciones de imagen de
+Cloudflare. Un dominio nuestro alcanza para todas las tiendas como subdominios
+(`DESPLIEGUE.md` › *Dominio propio*).
 
 ---
 
-## Lo que ya está resuelto y no hay que volver a mirar
+## Lo que montar una tienda todavía pide a mano
 
-- La llave de pago no está en la página ni en el repositorio.
-- La hoja guarda **qué** se pidió, no **quién** lo pidió.
-- El total lo confirma el comercio; el que calcula la página es referencia.
-- Las fotos nunca quedan en blanco, pase lo que pase con el proveedor.
-- Ningún cambio llega a producción sin **todas** las baterías en verde.
+Con `alta` y `conectar` (en `tiendas`), lo que queda a mano es lo que no se
+puede hacer desde fuera (el paso a paso, en `RUNBOOK-TECNICO.md`):
 
----
+| Paso | Por qué a mano |
+|---|---|
+| La cuenta de Google, la hoja, el proyecto del maestro, `A0_instalar()` y la implementación | Google no deja crear cuentas por programa |
+| Pegar el stub en la hoja | Hay que estar dentro de la hoja |
+| El secreto `CLASPRC` de la tienda | Es la credencial de Google de esa cuenta |
+| Conectar el repositorio en Cloudflare | Ese diálogo es del navegador; va después del primer montaje verde |
+| Las fotos del comercio y la respuesta automática de WhatsApp | Son del comercio |
 
-## Y ahora se comprueba solo
-
-Desde la 2.9.0 la pregunta «¿está esta tienda terminada?» **no se lleva en la
-cabeza**: la contesta el Diagnóstico en su punto 2, y el panel la muestra para
-todas las tiendas a la vez en la columna **Sin terminar**.
-
-Dieciséis claves, en dos niveles:
-
-- **Rompen la venta** —`negocio`, `whatsapp`, `sitio_url`, `pago_llave`—: el
-  flujo `montaje` **se niega** a escribir el `index.html`. Sin llave de pago, el
-  comprador termina el pedido y no tiene cómo pagar.
-> **En la línea nueva esto cambia:** los datos que identifican al vendedor
-> **bloquean** la publicación (decisión 09). Aquí siguen avisando.
-
-- **Dejan la tienda a medias** —los `empresa_*`, `pago_titular`, `pago_entidad`,
-  `repositorio`, `correo_resumen`, `respaldo_carpeta`, `sitio_titulo`,
-  `sitio_descripcion`—: salen en el registro del montaje y en el panel, y **no**
-  bloquean. Publicar sin descripción es feo, no roto.
-
-**Lo que esto NO puede comprobar, y sigue siendo tuyo:**
-
-1. Que la **respuesta automática de WhatsApp** esté puesta con el texto de pago.
-   El sistema sabe que `pago_llave` está llena; no sabe si el mensaje sale.
-2. Que un **abogado** haya mirado el machote de tratamiento de datos.
-3. La **prueba de punta a punta con un teléfono de verdad**: pedido → WhatsApp →
-   respuesta automática → transferencia → **Pagado** en la hoja → el stock baja.
-
-Los tres siguen en la lista de arriba, y siguen bloqueando el lanzamiento.
+> *Historia.* En la línea anterior (Orgánico) esta lista cerró el 15 de
+> septiembre de 2026 con la 2.15.1 corriendo idéntica en las tres tiendas y la
+> prueba de punta a punta hecha en la 3.0.0. Aquel cronómetro —30 minutos por
+> tienda, la mitad copiando secretos en GitHub— es lo que `conectar` vino a
+> quitar.

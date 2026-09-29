@@ -6,7 +6,49 @@ disparo no se puede ejecutar —nadie sabe cuándo— y una sin contrapartida se
 como si fuera gratis, y entonces se aplica antes de tiempo.
 
 El porqué del diseño de hoy está en `ARQUITECTURA.md`. Esto es lo que va a
-cambiar, y cuándo.
+cambiar, y cuándo — y lo que ya cambió.
+
+**Cómo se lee.** Cada decisión es historia: cuenta lo que se sabía el día en
+que se escribió, y no se reescribe. Lo que sí se mantiene al día es su línea
+**Vigencia**, que dice si SIGUE VIGENTE, si la REEMPLAZÓ otra (y cuál), o qué
+parte de ella. Una decisión nueva que deja vieja a otra se anota en las dos.
+
+### Vigencia a hoy
+
+Revisada contra el código de la 0.22.3 el 29 de septiembre de 2026.
+
+| # | Decisión | Vigencia |
+|---|---|---|
+| 01 | Catálogo estático | VIGENTE · ejecutada |
+| 02 | Telemetría por empuje | VIGENTE · sin ejecutar (condición no cumplida) |
+| 03 | El cascarón en la hoja | VIGENTE |
+| 04 | Pedido no registrado, en el navegador | VIGENTE · ejecutada |
+| 05 | Dato, interruptor o ranura | VIGENTE en la regla; el «desvío declarado» lo reemplazó la **19** |
+| 06 | Sobrescribir y rehornear | VIGENTE la regla; el mecanismo lo reemplazaron la **19** y la **21** |
+| 07 | Sin pull request en las tiendas | VIGENTE · ejecutada en parte; la compuerta es la **26** |
+| 08 | Publicar a demanda, red diaria | VIGENTE · ejecutada |
+| 09 | Datos de la empresa bloquean | VIGENTE · ejecutada |
+| 10 | Se llama «tienda», desde 0.1.0 | VIGENTE |
+| 11 | Stock por variante | VIGENTE · ejecutada |
+| 12 | Bold | VIGENTE |
+| 13 | Tablero dentro del panel | VIGENTE |
+| 14 | Todo en el panel; lo de la plata pide clave | VIGENTE |
+| 15 | Rastreo con secreto aparte | VIGENTE |
+| 16 | «Avísame» por WhatsApp | VIGENTE |
+| 17 | Dominio propio | VIGENTE |
+| 18 | Un colaborador | VIGENTE |
+| 19 | Tres versiones; líneas separadas | VIGENTE la regla; «una persona fusiona» lo reemplazó la **21** |
+| 20 | Dos productos | VIGENTE |
+| 21 | La tienda se actualiza sola | VIGENTE; dos partes reemplazadas por la **26** y la **27** |
+| 22 | Fotos: las dos maneras | VIGENTE |
+| 23 | Google Analytics y `medir()` | VIGENTE |
+| 24 | El logo en la barra | VIGENTE |
+| 25 | `panel.gs` se publica por flujo | VIGENTE |
+| 26 | La compuerta de una tienda es la tienda viva | VIGENTE |
+| 27 | Los flujos de una tienda los entrega la flota | VIGENTE |
+| 28 | El que mira aplica la hoja sobre lo publicado | VIGENTE |
+| 29 | Una tienda puede quedar fuera del reparto | VIGENTE |
+| 30 | La semilla también es una tienda | VIGENTE |
 
 ---
 
@@ -16,10 +58,15 @@ cambiar, y cuándo.
 **Revisada:** 8 de septiembre de 2026 · **Actualizada:** 16 de septiembre de
 2026
 
+**Vigencia:** VIGENTE, ejecutada. El catálogo se hornea en
+`publicar/catalogo.json` y el respaldo dentro del `index.html`.
+
 > **Actualización.** Esta decisión ya se ejecutó: el catálogo se sirve
 > **estático** desde Cloudflare, horneado por `montar/catalogo-estatico.mjs` y
-> `montar/sembrar-respaldo.mjs`, y se actualiza con el botón **Publicar
-> ahora** de la hoja o solo cada 4 horas (flujo `fotos`) — no en cada visita.
+> `montar/sembrar-respaldo.mjs`, y se actualiza con **Publicar ahora**, desde
+> la hoja o desde el panel (flujo `fotos`) — no en cada visita. *(Corregido el
+> 29-sep-2026: aquí decía «o solo cada 4 horas». Desde B-2 —decisión 08— el
+> reloj corre una vez al día y solo avisa; no publica.)*
 > Lo que sigue abajo describe el razonamiento que llevó ahí y por qué no hizo
 > falta esperar al umbral de tráfico; para el comportamiento de hoy, ver
 > `ARQUITECTURA.md` §6 y §10, y `GUIA-COMERCIANTE.md`.
@@ -97,6 +144,10 @@ no en días, y es más ensamblaje que desarrollo.
 **Estado:** ADOPTADA, con la consulta bajo demanda conservada ·
 **Escrita:** 6 de septiembre de 2026 · **Revisada:** 8 de septiembre de 2026
 
+**Vigencia:** VIGENTE, sin ejecutar: la condición no se ha cumplido. El panel
+sigue consultando (`panel.gs` › `consultar()`, con `fetchAll`) y ninguna tienda
+empuja su resumen.
+
 ### Qué hace hoy
 
 El panel llama a cada tienda con `UrlFetchApp.fetchAll` y trae su resumen. Para
@@ -157,6 +208,12 @@ Tres cosas, y la primera es la seria:
 
 **Estado:** cerrada, con evidencia · **Medida:** 6 de septiembre de 2026
 
+**Vigencia:** VIGENTE. El stub se sigue generando en el maestro
+(`A1_generarStub`) y pegando a mano. El hueco del token ya se cerró: el stub
+lleva su propio token (`tokenMenu()`, propiedad `TOKEN_MENU`), distinto del de
+montaje. Automatizar el pegado está evaluado y sin hacer:
+`EVALUACION-stub-automatico.md`.
+
 ### Qué se quería
 
 Que el comerciante **no pueda leer la lógica de negocio**. Un editor de la hoja
@@ -204,6 +261,10 @@ cliente. Está en `ACTUALIZAR-UNA-TIENDA.md`.
 ---
 
 ## 04 · El pedido que no se registra se guarda en el navegador del comprador
+
+**Vigencia:** VIGENTE, ejecutada. La bandeja está en `plantilla/index.html`
+(cada acceso a `localStorage` entre `try/catch`); el panel la cuenta en la
+columna **Rescatados**. *(La decisión no lleva fecha en el original.)*
 
 ### Qué hace hoy
 
@@ -273,6 +334,13 @@ tienda que se olvida.
 **Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18 de
 septiembre de 2026
 
+**Vigencia:** VIGENTE como regla, construida en parte. Los niveles **dato** e
+**interruptor** están en uso (`f_variantes`, `f_rastreo`, `f_avisame`,
+`f_autoria`). La **ranura** (`tienda/extension.js`) no se construyó: ninguna
+tienda la ha pedido. El **desvío declarado** con `semilla.lock` no existe: lo
+REEMPLAZÓ la comparación a tres versiones de la **19** (`montar/semilla.mjs`),
+que respeta lo que solo cambió la tienda y dice lo que no toca.
+
 ### Qué hace hoy
 
 Nada, porque todavía no ha pasado. Ninguna de las tres tiendas tiene código
@@ -319,6 +387,13 @@ Se paga para que todas las tiendas corran exactamente el mismo archivo.
 **Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18 de
 septiembre de 2026
 
+**Vigencia:** la regla —sobrescribir y rehornear, nunca fusionar— SIGUE
+VIGENTE. El mecanismo lo REEMPLAZARON la **19** y la **21**: no hay
+`semilla.lock`; la base de la comparación es la etiqueta de la semilla de la
+que salió la tienda, y cuando la tienda y la semilla cambiaron el mismo archivo
+no se toca y se dice (no hay «parar y avisar»). Lo hace
+`montar/actualizar-semilla.mjs` dentro del `montaje` de la tienda.
+
 ### Qué hace hoy
 
 Poner al día una tienda es copiar archivos a mano. El primer intento de
@@ -364,6 +439,16 @@ es exactamente donde viven los conflictos que nadie resuelve.
 **Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18
 de septiembre de 2026 · **Sustituye** la decisión anterior de publicar el
 maestro con una persona delante
+
+**Vigencia:** VIGENTE, ejecutada en parte. Las tiendas fusionan solas
+(`montaje` › `aprobacion: automatica` de fábrica; `con-pull-request` queda
+como opción). Si algo falla después de publicar un maestro traído por la
+semilla, el paso «Volver atrás el maestro» publica el de antes. El reparto es
+por anillos (`tiendas/flota.json`; ver la **29**). La comprobación antes de
+publicar ya no son las baterías completas: es la tienda viva (**26**).
+**No existe** todavía la verificación *después* de publicar contra la tienda
+en producción (qué versión contesta). Publicar el maestro a mano sigue pidiendo
+la casilla y `PUBLICAR`.
 
 ### Qué hace hoy
 
@@ -419,6 +504,11 @@ comprobaciones que no se cansan.
 **Estado:** PROPUESTA · pendiente de aprobar el plan del MVP · **Escrita:** 18
 de septiembre de 2026
 
+**Vigencia:** VIGENTE, ejecutada (B-2). `fotos` corre por reloj una vez al día
+(`17 6 * * *`, 6:17 UTC), solo mira y avisa; publica cuando alguien lo pide
+(«Publicar ahora», desde la hoja o el panel). Los minutos los mide
+`montar/tiempos.mjs` contra `presupuesto.json`.
+
 ### Qué hace hoy
 
 El flujo de publicación corre **cada cuatro horas** en cada tienda, para cazar
@@ -458,6 +548,9 @@ publicar. Si el panel se retrasara, esta decisión se retrasa con él.
 ## 09 · Sin los datos básicos de la empresa, la tienda no se publica
 
 **Estado:** DECIDIDA el 18 de septiembre de 2026 · entra con el hito M0
+
+**Vigencia:** VIGENTE, ejecutada: `LISTA_DE_ALTA` en `maestro.gs` marca las
+cinco claves `empresa_*` (con el par correo/teléfono) como `bloquea: true`.
 
 ### Qué hace hoy
 
@@ -502,6 +595,9 @@ pruebas del operador, con los datos del operador.
 
 **Estado:** DECIDIDA el 18 de septiembre de 2026
 
+**Vigencia:** VIGENTE. La semilla va en la 0.22.3 (`package.json`); la 1.0.0
+no ha salido. La lista de términos vive en `terminos-prohibidos.json`.
+
 ### Qué hace hoy
 
 El código nombra al primer comercio como si fuera el producto, y el repositorio
@@ -539,6 +635,9 @@ Es más barato que lo contrario.
 **Estado:** DECIDIDA el 21 de septiembre de 2026, por el dueño del producto.
 **Reemplaza** lo que C-1 dejó decidido —«el stock es del producto»— y se hace
 en C-1b.
+
+**Vigencia:** VIGENTE, ejecutada: la pestaña `Inventario por variante` existe
+(`H_INVENTARIO_VARIANTE` en `maestro.gs`).
 
 ### Qué hace hoy
 
@@ -591,6 +690,10 @@ mano y porque todo lo que ya lee esa columna sigue funcionando sin tocarlo.
 **Estado:** CERRADA el 21 de septiembre de 2026: **Bold, Botón de pagos**.
 Abierta el mismo día con la entrada de M3.5 al MVP.
 
+**Vigencia:** VIGENTE. El adaptador sigue siendo `crearCobro` y
+`consultarBold`; el aviso de Bold sigue sin usarse. Cómo funciona hoy:
+`PAGOS-BOLD.md`.
+
 ### Qué hacía
 
 No se cobraba en línea. El pedido salía por WhatsApp, el comerciante confirmaba
@@ -640,6 +743,8 @@ la lista de alta vigila.
 
 **Estado:** CERRADA el 21 de septiembre de 2026, con la entrada de M4 al MVP.
 
+**Vigencia:** VIGENTE.
+
 ### Qué hacía
 
 El comerciante leía sus números en la pestaña Tablero de la hoja. El
@@ -681,6 +786,8 @@ mandarle el enlace a alguien. Y el panel crece unas 180 líneas.
 **Estado:** CERRADA el 21 de septiembre de 2026 (0.9.0). Deshace una parte de
 D-4.
 
+**Vigencia:** VIGENTE (`claveOtraVez()` en `maestro.gs`).
+
 ### Qué hacía
 
 D-4 dejaba fuera del panel las claves «técnicas» —la dirección del sitio, las
@@ -721,6 +828,8 @@ tienda desde Avanzado; queda en el Registro y la hoja lo deshace.
 
 **Estado:** CERRADA el 21 de septiembre de 2026, con M5.
 
+**Vigencia:** VIGENTE.
+
 ### Qué hacía
 
 No había rastreo. El `ROADMAP.md` pedía, antes de abrirlo, que el número de
@@ -756,6 +865,8 @@ comprador lo pierde, el comerciante crea uno nuevo y el viejo deja de servir.
 ## 16 · «Avísame cuando llegue», por WhatsApp y sin guardar a nadie
 
 **Estado:** CERRADA el 21 de septiembre de 2026 (0.11.0).
+
+**Vigencia:** VIGENTE.
 
 ### Qué hacía
 
@@ -793,6 +904,8 @@ muchas veces desde navegadores distintos: es una señal, no una lista.
 **Estado:** CERRADA el 21 de septiembre de 2026 (0.11.0). Dominio:
 `laboratorio-digital.com`; la tienda de pruebas es `tienda.laboratorio-digital.com`.
 
+**Vigencia:** VIGENTE (`dominio` en `tiendas/flota.json`).
+
 ### Qué hacía
 
 Cada tienda vivía en `<nombre>.<cuenta>.workers.dev`.
@@ -826,6 +939,8 @@ Cloudflare y `sitio_url` bien escrito.
 ## 18 · Una segunda persona: el colaborador, con los permisos en el maestro
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.13.0).
+
+**Vigencia:** VIGENTE.
 
 ### Qué hacía
 
@@ -867,6 +982,12 @@ colaborador hasta que alguien decide agregarla a `CLAVES_DEL_COLABORADOR`.
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (S3, versión 1, en `laboratoriodigital/tiendas`).
 
+**Vigencia:** la regla de las tres versiones SIGUE VIGENTE
+(`montar/semilla.mjs` en la semilla; la misma tabla en la flota). «Una persona
+fusiona y corre el montaje» quedó REEMPLAZADO por la **21** en la línea
+`tienda`; la línea `organico` sigue en modo pull request y queda fuera de este
+registro.
+
 ### Qué hacía
 
 Actualizar una tienda era copiar a mano archivos de la semilla. Nadie sabía
@@ -906,6 +1027,9 @@ vive solo en `tiendas`, de grano fino y con vencimiento.
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.14.0). Reemplaza el
 «migrar las tiendas 3.x» de la decisión 19.
 
+**Vigencia:** VIGENTE. (Lo de «`tienda` todavía no tiene hijas» era cierto ese
+día; hoy tiene a `prueba1` en `tiendas/flota.json`.)
+
 ### Qué hacía
 
 Se trataba la línea 3.x (`organico`) como una versión vieja de esta, y a
@@ -939,6 +1063,17 @@ Dos semillas que mantener, y los arreglos comunes hay que llevarlos a las dos.
 ## 21 · La tienda se actualiza sola, desde su propio montaje
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.14.0). Completa la 19.
+
+**Vigencia:** VIGENTE en lo central: la tienda se actualiza sola con su
+`montaje` (entrada `semilla`) y `montar/actualizar-semilla.mjs`. Dos partes
+quedaron REEMPLAZADAS:
+
+- «corre TODAS las baterías» → en una tienda la compuerta es la tienda viva
+  (**26**, 0.22.0);
+- «para traer los flujos, la tienda lleva `SEMILLA_TOKEN`» → los flujos los
+  entrega la flota (**27**, 0.22.1). `SEMILLA_TOKEN` sigue sirviendo para leer
+  la semilla privada, y la contrapartida de un token que escribe flujos en cada
+  tienda ya no se paga.
 
 ### Qué hacía
 
@@ -976,6 +1111,8 @@ montaje más largas (todas las baterías).
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.16.0).
 
+**Vigencia:** VIGENTE (clave `fotos_cdn`, en Avanzado).
+
 ### Qué hacía
 
 El montaje hace tres tamaños WebP de cada foto y el sitio los sirve. Desde la
@@ -1011,6 +1148,8 @@ tamaños, aunque casi no se usen.
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.19.0).
 
+**Vigencia:** VIGENTE.
+
 ### Qué se decidió
 
 La tienda mide con **Google Analytics 4** cuando la hoja pone `analytics_id`, y
@@ -1045,6 +1184,291 @@ Mientras la medición sea de Google, los datos de comportamiento del comprador
 son de Google, y la tienda que mide necesita decirlo en su política de
 privacidad. Por eso vacío es el valor de fábrica: una tienda que no mide no
 tiene nada que declarar.
+
+---
+
+## 24 · El logo va en la barra, sirve de icono, y el nombre se queda
+
+**Estado:** CERRADA en la 0.21.0 (M7 · bitácora 98), por el dueño del
+producto. **Vigencia:** VIGENTE.
+
+### Qué hacía
+
+La clave `logo` solo aceptaba una URL de Cloudinary. El comercio que subía su
+logo al Drive —la misma carpeta de sus fotos— no tenía cómo usarlo.
+
+### El límite real
+
+No es dónde está el archivo: es cuántos sitios lo piden. Un logo en la barra,
+otro en la portada, otro en el pie y un icono aparte son cuatro cosas que se
+quedan viejas por separado, y cada imagen de más es una petición y una página
+que se mueve al cargar.
+
+### La decisión
+
+`logo` se nombra como una foto del catálogo —el archivo de la carpeta o una
+dirección completa— y lo resuelve `urlFoto()`. Va **solo en la barra**,
+reemplazando al signo dibujado (`#marcaSigno`). El nombre del comercio sigue
+escrito al lado y el logo lleva `alt` vacío: lo que nombra la tienda para Google
+y para un lector de pantalla es texto. El `<h1>` de la portada no cambia. El
+**mismo archivo** es el icono de la pestaña si `favicon` está vacío; sin los
+dos, un marcador dibujado. Si el archivo no llega, vuelve el signo. Cuenta como
+foto usada (el montaje avisa por nombre si falta) y va en el respaldo. Lo
+prueba `pruebas/logo.js` (21).
+
+### Condición de disparo
+
+Revisar si un comercio pide el logo en la portada o en el pie.
+
+### Contrapartida
+
+Un logo alargado sirve mal de icono cuadrado: para eso queda la clave
+`favicon`, que manda cuando existe. Y el logo no reemplaza al nombre: quien
+quiera solo la imagen no puede.
+
+---
+
+## 25 · `panel.gs` se publica con un flujo, y con la misma herramienta que el maestro
+
+**Estado:** CERRADA en la 0.21.1 (3.11b · bitácora 100). **Vigencia:** VIGENTE.
+
+### Qué hacía
+
+Cada versión, alguien abría `panel.gs`, lo copiaba y lo pegaba en el Apps
+Script de la hoja de administración. Era el último copiar y pegar del
+despliegue.
+
+### El límite real
+
+No era técnico: es el mismo trabajo que el montaje ya hace con el maestro de
+cada tienda —`clasp push` y actualizar la implementación— sobre otro proyecto.
+Una copia de la herramienta en `tiendas` sería la misma regla en dos sitios
+(patrón 2).
+
+### La decisión
+
+`montar/publicar-maestro.mjs` sube el archivo que le digan (`ARCHIVO`). El
+flujo `panel` de `tiendas` clona la semilla en la versión pedida (entrada
+`version`; vacío = la última etiqueta) y la llama con `ARCHIVO=panel.gs`. La
+única diferencia es la hoja: el maestro lleva `HOJA_ID` horneado; el panel está
+pegado a su hoja y la abre con `getActive()`.
+
+### Condición de disparo
+
+Cada versión que cambie `panel.gs`: se corre `panel` a mano. Nada lo dispara
+solo.
+
+### Contrapartida
+
+Dos secretos nuevos, solo en `tiendas`: `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`,
+que es una credencial de Google de la cuenta dueña de esa hoja. La primera
+implementación de la aplicación web se sigue creando a mano, una vez.
+
+---
+
+## 26 · En una tienda, lo que decide si se publica es la tienda viva
+
+**Estado:** CERRADA en la 0.22.0 (C-15 · bitácora 102). **Vigencia:** VIGENTE.
+**Reemplaza** el «corre TODAS las baterías» de la **21**, y es la comprobación
+previa de la **07**.
+
+### Qué hacía
+
+Al actualizarse, cada tienda corría la suite entera de la semilla —unas 2.480
+aserciones escritas con los datos de muestra de la semilla, en el repositorio
+de la semilla— contra SUS datos y SU repositorio.
+
+### El límite real
+
+Cada suposición de «ser la semilla» era un bloqueo esperando turno: pasó cinco
+veces seguidas (bitácoras 90, 93, 94, 95 y 102). Y no protegía de nada: el
+código de una tienda actualizada es el de una etiqueta que `release` no corta
+sin la suite completa en verde. Lo que sí se puede romper en una tienda es lo
+que se hornea con sus datos.
+
+### La decisión
+
+En una tienda, la compuerta es `pruebas/tienda-viva.js` (12 aserciones): solo
+invariantes sobre los archivos reales de `publicar/` —la página sabe a qué
+maestro preguntar y espera su misma versión, su política la deja hablar con él,
+el catálogo se lee y no repite identificadores, el respaldo es del mismo
+catálogo— y un humo con navegador que abre la página y pinta los productos de
+esa tienda sin errores. Ni un nombre, ni un color, ni un producto escritos.
+
+La decisión vive en `pruebas/publicacion.sh` (`donde.js` › `esSemilla()`), no
+en el flujo: la actualización escribe `pruebas/` **antes** de correr la
+compuerta, así que una tienda con el flujo viejo ya usa la nueva en la misma
+corrida. En la semilla se sigue corriendo todo. `pruebas/tiendita.js` corre la
+misma compuerta con los datos de otro comercio.
+
+### Condición de disparo
+
+Si una tienda publica algo roto que una invariante habría visto, la invariante
+se añade a `tienda-viva.js`, no a la suite.
+
+### Contrapartida
+
+La tienda ya no prueba el código, solo lo horneado: confía en que la etiqueta
+salió en verde. Una etiqueta cortada a mano, sin `release`, pasaría sin
+probarse.
+
+---
+
+## 27 · Los flujos de una tienda los entrega la flota
+
+**Estado:** CERRADA en la 0.22.1 (C-16 · bitácora 103). **Vigencia:** VIGENTE.
+**Reemplaza** el «la tienda lleva `SEMILLA_TOKEN` para traer los flujos» de
+la **21**.
+
+### Qué hacía
+
+El montaje de la tienda intentaba empujar sus `.github/workflows` con
+`SEMILLA_TOKEN` metido en la URL del push.
+
+### El límite real
+
+Eso no funcionó nunca. `actions/checkout` deja en `.git/config` una cabecera
+de autorización con el `GITHUB_TOKEN`, y git la manda en cada petición gane
+quien gane en la URL. El `GITHUB_TOKEN` no puede escribir flujos, así que un
+commit con flujos se rechaza entero, y como el arreglo viajaba justo en esos
+flujos, la tienda no podía salir sola de ahí.
+
+### La decisión
+
+Una tienda no publica nunca sus flujos: los saca de su commit
+`publicacion.sh` (que llega antes de correr) y el paso «¿Cambió algo?». Los
+entrega `tiendas/flota/flujos.mjs` con `FLOTA_TOKEN`, por la API de contenidos
+y solo los que cambian. `flota › actualizar` lo hace sola después de cada
+tienda que se actualiza bien; `flota › flujos` lo hace a mano, y es también el
+rescate de una tienda atascada.
+
+### Condición de disparo
+
+Ninguna pendiente. Se revisa si GitHub cambia lo que el `GITHUB_TOKEN` puede
+escribir.
+
+### Contrapartida
+
+Los flujos de una tienda llegan un paso después que el resto de la versión, y
+solo si los entrega la flota: una tienda actualizada desde su propio panel o
+menú no los recibe hasta la próxima `flota › actualizar` o `flota › flujos`.
+`FLOTA_TOKEN` concentra el permiso de escribir flujos en todas.
+
+---
+
+## 28 · El que mira aplica la hoja sobre lo publicado
+
+**Estado:** CERRADA en la 0.22.2 (C-17 · bitácora 104). **Vigencia:** VIGENTE.
+
+### Qué hacía
+
+En `fotos` («Publicar ahora»), el paso que MIRA horneaba la configuración desde
+la plantilla y la comparaba con `publicar/index.html`.
+
+### El límite real
+
+Lo publicado lleva además lo que escriben después `sembrar-respaldo` y
+`sembrar-seo`. Así que salía distinto **siempre**, el que publica no encontraba
+nada que publicar y la corrida moría con «Nada que publicar pese a haber
+detectado novedades».
+
+### La decisión
+
+El que mira aplica la hoja **sobre lo publicado** (`baseParaRevisar` en
+`montar/preparar-index.mjs`, `--revisar`): si nada cambió sale idéntico, y si
+cambió algo sale distinto justo en eso. El que publica sigue partiendo de la
+plantilla, que es por donde llega el código nuevo de la semilla. En la misma
+versión, `pruebas.yml` también decide con `publicacion.sh`.
+
+### Condición de disparo
+
+Ninguna pendiente.
+
+### Contrapartida
+
+Mirar y publicar parten de bases distintas a propósito. Si una herramienta
+nueva escribe en `index.html` después del horneado, hay que comprobar que
+aplicar la hoja sobre lo publicado siga saliendo idéntico.
+
+---
+
+## 29 · Una tienda puede quedar fuera del reparto
+
+**Estado:** CERRADA en `tiendas`, sin versión de semilla (bitácora 105).
+**Vigencia:** VIGENTE.
+
+### Qué hacía
+
+La flota reparte por anillos y se detiene en la primera tienda que falla.
+Desde la 0.21.1 (bitácora 100) una tienda cuyo repositorio da 404 se salta y se
+dice.
+
+### El límite real
+
+`prueba-panel`, una tienda de prueba abandonada en la 0.15.0, volvió a
+aparecer en GitHub. Su montaje falló y, como debe ser, las siguientes no se
+tocaron: `prueba1` se quedó sin versión. La lista no tenía cómo decir «esta
+existe y no entra en los repartos».
+
+### La decisión
+
+En `flota.json`, `"anillo": "fuera"` deja la tienda en la lista y en el estado,
+y ni `actualizar` ni `flujos` la tocan hasta que se le devuelva un número. Al
+detenerse, la flota nombra las que quedaron sin tocar y los dos caminos: «solo
+esta tienda» o `"anillo": "fuera"`.
+
+`prueba-panel` quedó primero fuera y después se **sacó de `flota.json`**: no
+aportaba nada, y el dueño borra su repositorio.
+
+### Condición de disparo
+
+Una tienda que existe y no debe recibir versiones (abandonada, en pausa, en
+pruebas propias).
+
+### Contrapartida
+
+Una tienda fuera se queda atrás sin ruido: el estado la sigue mostrando, pero
+nadie la actualiza hasta que alguien le devuelva su anillo.
+
+---
+
+## 30 · La semilla también es una tienda
+
+**Estado:** CERRADA en la 0.22.3 (bitácora 106). **Vigencia:** VIGENTE.
+
+### Qué hacía
+
+A una hija, su actualización le publica el maestro nuevo. La semilla cambia
+por push y nadie le publicaba el suyo: su tienda viva se quedaba en el maestro
+anterior hasta que «Publicar ahora» chocaba con la guarda de versión.
+
+### El límite real
+
+Publicar un maestro es un camino con su candado —la casilla y `PUBLICAR` en
+`montaje`, `clasp`, la implementación que no estrena URL—. Un segundo camino
+dentro de `release` sería otra copia de lo mismo (patrón 2).
+
+### La decisión
+
+`release` pregunta al maestro vivo de la semilla
+(`montar/preparar-index.mjs --al-dia`, que solo lee y dice `repo`, `viva` y
+`desalineado`). Si quedó atrás, **no publica él**: dispara `montaje` con
+`maestro=true` y `confirmar=PUBLICAR`, lo mismo que haría una persona. Corre
+también cuando no hay versión nueva que cortar, así que volver a correr
+`release` pone al día una semilla atrasada. Por eso `release` pide
+`actions: write`.
+
+### Condición de disparo
+
+Ninguna pendiente. Si faltan `MAESTRO_URL` y `MAESTRO_TOKEN` en la semilla, o
+el maestro no contesta, no se comprueba y el resumen dice qué hacer a mano.
+
+### Contrapartida
+
+`release` puede disparar una publicación del maestro de la semilla sin que
+nadie marque la casilla en ese momento: el candado de `PUBLICAR` lo pone el
+flujo, no una persona. Vale solo para la semilla y solo cuando su maestro vivo
+no es el del commit.
 
 ---
 

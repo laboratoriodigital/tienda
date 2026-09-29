@@ -4,6 +4,24 @@ _10 de septiembre de 2026. Sobre una propuesta externa de tres archivos:
 `arquitecturadespliegue.md`, `ActionActualizacionmenu.yml`,
 `funcionactualizarmenu.js`._
 
+> **HISTORIA. Evaluación resuelta; no se reescribe.** Revisada contra el
+> código de la 0.22.3 el 29 de septiembre de 2026. Se escribió en la línea
+> anterior del producto: las versiones que cita (2.3.0 a 2.7.2) y los
+> «sprints» son de esa numeración.
+>
+> **Qué se decidió.** Ninguna de las dos propuestas se adoptó tal cual. Se hizo
+> el paso previo (§7): el stub declara su versión (`var STUB` en la plantilla
+> que imprime `A1_generarStub`) y el panel de tiendas la muestra en la columna
+> **Stub en la hoja** (`panel.gs`). Automatizar el pegado (puntos 6, 8 y 9)
+> **no se hizo**: es el punto 3.5 de `ROADMAP.md`, en PENSADO, y bajó de
+> prioridad porque el panel web pasó a ser el camino principal del comercio.
+>
+> **Cómo está hoy.** El stub se genera en el maestro (`A1_generarStub`) y se
+> pega a mano. No hay llamada a `projects.updateContent`, ni ranuras fijas, ni
+> panel lateral: el `onOpen` dibuja una opción por acción (`accion0`…). El
+> stub lleva su propio token (`tokenMenu()`), no el de montaje. Cuándo hay que
+> repegarlo: `ACTUALIZAR-UNA-TIENDA.md`.
+
 **Veredicto: la idea es real y va al roadmap. La implementación propuesta no se
 puede usar, y su argumento central es falso.**
 
