@@ -122,12 +122,22 @@ const publicada = fs.readFileSync('../publicar/index.html', 'utf8');
      'un icono roto se ve peor que ninguno');
 });
 ok('  ...y el tamaño lo fija la hoja de estilo, así que la barra no se mueve',
-   /\.marca img\{height:\d+px;width:auto;max-width:\d+px/.test(pagina));
-/* 0.22.5 · bitácora 108: a 22 px no se entendía. */
-const alto = +((pagina.match(/\.marca img\{height:(\d+)px/) || [])[1] || 0);
-const barra = +((pagina.match(/\.barra-int\{[^}]*height:(\d+)px/) || [])[1] || 0);
-ok('  ...a un tamaño que se lee (al menos 36 px de alto) y que cabe en la barra',
-   alto >= 36 && barra > 0 && alto <= barra - 12, 'logo ' + alto + ' px · barra ' + barra + ' px');
+   /\.marca img\{height:var\(--logo-alto\);width:auto;max-width:var\(--logo-ancho\)/.test(pagina));
+/* 0.23.0 · bitácora 109: el alto lo elige la hoja (logo_tamano), 40, 80 o 120,
+   80 de fábrica, y la barra crece con él en vez de cortarlo. */
+const px = (sel, v) => +((pagina.match(new RegExp(sel.replace(/[[\]().*+?^$|]/g, '\\$&') + '\\{[^}]*--' + v + ':(\\d+)px')) || [])[1] || 0);
+const fabrica = px(':root', 'logo-alto'), chico = px('html[data-logo="40"]', 'logo-alto'),
+      grande = px('html[data-logo="120"]', 'logo-alto');
+ok('EL ALTO DEL LOGO sale de la hoja: 40, 80 (de fábrica) o 120',
+   chico === 40 && fabrica === 80 && grande === 120, chico + ' · ' + fabrica + ' · ' + grande);
+ok('  ...y en el celular baja, sin pasar de un tercio de lo que se ve de la pantalla',
+   px('html[data-logo="120"]', 'logo-alto-movil') > 0 && px('html[data-logo="120"]', 'logo-alto-movil') <= 72 &&
+   /@media\(max-width:480px\)\{\.marca img\{height:var\(--logo-alto-movil\)/.test(pagina));
+ok('  ...y la barra crece con él: alto mínimo, no fijo',
+   /\.barra-int\{[^}]*min-height:62px/.test(pagina) && !/\.barra-int\{[^}]*[^-]height:62px/.test(pagina));
+ok('  ...y lo que no sea 40, 80 o 120 —vacío, una hoja vieja, «grande»— es 80',
+   /const altoLogo = String\(v\("logo_tamano"\) \|\| ""\)\.trim\(\);/.test(pagina) &&
+   /\["40", "80", "120"\]\.indexOf\(altoLogo\) !== -1 \? altoLogo : "80"/.test(pagina));
 ok('  ...y sin el recorte cuadrado de las derivadas: un logo alargado se ve entero',
    /FOTOS\.webp && uso !== "entera" \? conTamano/.test(pagina));
 

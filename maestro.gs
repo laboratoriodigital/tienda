@@ -336,7 +336,7 @@ function leerTestigo(testigo) {
      un permiso: sería un adorno.
    ══════════════════════════════════════════════════════════════════════════ */
 var CLAVES_DEL_COLABORADOR = [
-  'horario', 'tienda_abierta', 'tienda_cerrada_mensaje', 'logo', 'favicon',
+  'horario', 'tienda_abierta', 'tienda_cerrada_mensaje', 'logo', 'favicon', 'logo_tamano',
   'portada_titulo', 'portada_texto', 'portada_puntos', 'catalogo_columnas',
   'pie_descripcion', 'como_compras',
   'color_principal', 'color_secundario', 'color_alterno',
@@ -1251,7 +1251,10 @@ var CLAVES_DEL_PANEL = [
      Google y no pone una sola cookie: es el valor de fábrica y es el que hace
      que una tienda sin política de cookies siga siendo legal. */
   { clave: 'analytics_id',         grupo: 'Google y WhatsApp', tipo: 'medicion',
-    rotulo: 'Google Analytics 4 (G-…)' }
+    rotulo: 'Google Analytics 4 (G-…)' },
+  /* 0.23.0 · AL FINAL (R1). El orden en el panel lo da el grupo, no esta lista. */
+  { clave: 'logo_tamano',          grupo: 'Tu tienda',  tipo: 'opcion', rotulo: 'Tamaño del logo en la barra (alto, en píxeles)',
+    opciones: ['40', '80', '120'] }
 ];
 
 /* EL ORDEN EN QUE SE ENSEÑAN LOS GRUPOS. La lista de arriba solo crece al
@@ -1555,6 +1558,16 @@ function versionDeValor(v) {
 
 function atenderConfiguracion(p) {
   var colab = esColaborador(p);
+  /* 0.23.0 · UNA CLAVE NUEVA APARECE SOLA (bitácora 109). El panel solo enseña
+     las claves que ya están en la pestaña, y hasta aquí solo instalar() las
+     agregaba: cada opción nueva de una versión pedía correr A0_instalar en el
+     editor de cada tienda, a mano. Ahora, al abrir Ajustes, se agregan las que
+     falten —con su valor de fábrica y SIN tocar ninguna que exista—, que es
+     exactamente lo que hace instalar() con una hoja vieja. */
+  try {
+    var hc = elLibro().getSheetByName(H_CONFIG);
+    if (hc && hc.getLastRow() >= 2) agregarClavesQueFaltan(hc, semillaDeConfiguracion());
+  } catch (e) { /* si no se pudo, el panel enseña las que hay, como siempre */ }
   var cfg = filasDeConfiguracion();
   var fila = {};
   cfg.filas.forEach(function (f, i) { fila[String(f[0]).trim()] = i; });
@@ -1829,7 +1842,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.22.5';
+var VERSION_TIENDA = '0.23.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -4877,7 +4890,10 @@ function semillaDeConfiguracion() {
 
       /* AL FINAL (R1). La medición, apagada de fábrica: una tienda que no mide
          no carga nada de Google, no pone cookies y no necesita banner. */
-      ['analytics_id',      '', 'Google Analytics 4: el identificador G-XXXXXXXXXX de tu flujo de datos web (analytics.google.com › Administrar › Flujos de datos › Web). Vacío = la tienda NO carga nada de Google y no pone cookies de medición. Al ponerlo, la tienda mide visitas, agregar al carrito, pedidos enviados y pagos: hay que publicar para que tome efecto, y hay que avisarlo en la política de privacidad']
+      ['analytics_id',      '', 'Google Analytics 4: el identificador G-XXXXXXXXXX de tu flujo de datos web (analytics.google.com › Administrar › Flujos de datos › Web). Vacío = la tienda NO carga nada de Google y no pone cookies de medición. Al ponerlo, la tienda mide visitas, agregar al carrito, pedidos enviados y pagos: hay que publicar para que tome efecto, y hay que avisarlo en la política de privacidad'],
+
+      /* AL FINAL (R1). 0.23.0: el alto del logo en la barra (bitácora 109). */
+      ['logo_tamano',       '80', 'El alto de tu logo en la barra de arriba, en píxeles: 40, 80 o 120. La barra crece con él. En el celular se ve un poco más chico para no tapar la pantalla. Hay que publicar para verlo']
   ];
 }
 

@@ -25,9 +25,9 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 > rompió a `BITACORA.md`, lo que quedó fuera al `ROADMAP.md`, y este archivo se
 > borra.
 
-## Dónde estamos · 29 de septiembre de 2026 · 0.22.5
+## Dónde estamos · 29 de septiembre de 2026 · 0.23.0
 
-- **La semilla va en la 0.22.5** (`package.json` y `VERSION_TIENDA`). Los
+- **La semilla va en la 0.23.0** (`package.json` y `VERSION_TIENDA`). Los
   hitos del MVP están cerrados —M0 a M5, con M3.5 y M3 bis (tabla al principio
   de §5)—; la etiqueta 1.0.0 todavía no se ha cortado.
 - **La flota que se actualiza sola (M6) también está hecha**, aunque salió del
@@ -491,7 +491,7 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 | M6 · La flota se actualiza sola | Hecho fuera del MVP (S3 del `ROADMAP.md`) | 0.13.0 y 0.14.0 |
 
 Lo que vino después, versión por versión, está en las secciones 0.11.0 a
-0.22.5 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
+0.23.0 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
 
 **El MVP son siete hitos —M3 bis reabrió M3—, y este fue el orden:**
 
@@ -1728,6 +1728,16 @@ próxima.*
       un tope, y entero (sin el recorte cuadrado de las derivadas webp).
 - [ ] `test.js` («Mínimo no alcanzado muestra aviso») falla a veces con toda
       la suite en paralelo y pasa sola: una espera que depende de la carga.
+
+### 0.23.0 · El tamaño del logo lo elige la hoja
+
+**C-21 · `logo_tamano`, y claves nuevas sin `A0_instalar`**  · 1 pt · ✅ (decisión 31, bitácora 109)
+- [x] `logo_tamano` en Configuración y en el panel (*Tu tienda*): 40, 80 (de
+      fábrica) o 120 px de alto; en el celular 34, 52 o 68. La barra crece con
+      el logo. Lo puede cambiar el colaborador.
+- [x] Al abrir Ajustes, el panel agrega las claves que le falten a la hoja
+      (valor de fábrica, al final, sin tocar nada escrito): ninguna opción nueva
+      vuelve a pedir `A0_instalar` en cada tienda.
 
 ---
 

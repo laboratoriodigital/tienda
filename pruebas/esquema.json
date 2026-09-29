@@ -201,7 +201,8 @@
     "f_rastreo",
     "f_avisame",
     "catalogo_columnas",
-    "analytics_id"
+    "analytics_id",
+    "logo_tamano"
   ],
   "nombresDePuertas": [
     "version",
@@ -243,7 +244,8 @@
     "colaborador",
     "actualizacion",
     "actualizar",
-    "permiso"
+    "permiso",
+    "diagnostico"
   ],
   "puertas": {
     "version": [

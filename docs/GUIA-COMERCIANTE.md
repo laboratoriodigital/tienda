@@ -47,11 +47,11 @@ Google y WhatsApp, datos legales, el correo del día y **Avanzado** (no lo toque
 si no sabes para qué). También las **zonas de envío** y los **cupones**. Cambiar
 el WhatsApp o los datos de pago **pide tu clave otra vez**.
 
-**Tu logo** (Tienda › Tu tienda › *Logo*, o la fila `logo` de Configuración):
-súbelo a tu carpeta de fotos del Drive y escribe su nombre tal cual (`logo.png`;
-un PNG con fondo transparente es lo que mejor queda).
-Sale en la barra de arriba junto al nombre y, si no pones otro *Ícono de la
-pestaña*, también ahí. Vacío = el signo con tus colores. Se ve al publicar.
+**Tu logo** (Tienda › Tu tienda › *Logo*): súbelo a tu carpeta de fotos del
+Drive y escribe su nombre tal cual (`logo.png`; mejor un PNG con fondo
+transparente). Sale en la barra de arriba junto al nombre y, si no pones otro
+*Ícono de la pestaña*, también ahí. Vacío = el signo con tus colores. *Tamaño
+del logo*: 40, 80 o 120 (alto en píxeles; de fábrica, 80). Se ve al publicar.
 
 Todo lo que cambias queda en la pestaña **Registro** de la hoja: quién,
 cuándo y cómo estaba antes. **Vista previa** (junto a Publicar) abre tu tienda

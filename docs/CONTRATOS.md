@@ -393,7 +393,9 @@ Son 54. Ninguna es opcional para el maestro —`instalar()` las crea todas—, p
 sirviendo lo que sí sabe.
 
 `instalar()` se puede volver a correr cuando se quiera. Agrega las claves que
-falten **al final** de la pestaña y **no toca ningún valor escrito**. Se leen y
+falten **al final** de la pestaña y **no toca ningún valor escrito**. Desde la
+0.23.0 hace lo mismo, solo, la puerta `configuracion` del panel al abrir
+Ajustes: una opción nueva aparece sin correr `A0_instalar` en cada tienda. Se leen y
 se escriben **por nombre** (la columna `Clave`), no por posición: por eso una
 hoja vieja, con las claves nuevas abajo, funciona igual que una recién
 instalada. Lo que no se puede tocar es el nombre.
@@ -421,6 +423,7 @@ instalada. Lo que no se puede tocar es el nombre.
 | **Vender más (0.11.0)** | `f_avisame` — `Sí` de fábrica (vacío también): en lo agotado sale «Avísame cuando llegue». `catalogo_columnas` — `3` (de fábrica), `4` o `5` productos por fila en pantalla ancha; cualquier otra cosa se lee como 3. Con 4 la paginación va de 24 en 24 |
 | **Cómo se cierra la venta (M3.5)** | `cobro_modo` — `WhatsApp` (de fábrica, como siempre) o `Pasarela` (paga en línea con Bold). `cobro_ambiente` — `Pruebas` o `Producción`. **Las llaves de Bold no van aquí**: van en las propiedades del script (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`). Pedir Pasarela sin sus llaves, o sin `sitio_url`, deja la tienda en WhatsApp y el diagnóstico lo dice |
 | **La medición (0.19.0)** | `analytics_id` — el identificador de Google Analytics 4 de esa tienda (`G-XXXXXXXXXX`). **Vacío de fábrica**, y vacío significa que la página no carga nada de Google, no pone cookies de medición y su política de seguridad ni siquiera nombra a `googletagmanager.com`. Con un valor válido, el montaje hornea el fragmento oficial de GA4 en el `<head>` y añade a la CSP de ESA tienda `https://www.googletagmanager.com`, `https://*.google-analytics.com` y `https://*.analytics.google.com`. Un valor que no sea `G-…` (un `UA-…` o un `GTM-…`) no se hornea y el panel dice por qué. Los eventos los manda la función `medir()` de la página: `agregar_al_carrito`, `enviar_pedido` y `pagar_en_linea` |
+| **El logo en la barra (0.23.0)** | `logo_tamano` — el alto del logo en píxeles: `40`, `80` (de fábrica) o `120`. Cualquier otro valor, o una hoja sin la clave, se lee como `80`. La barra crece con él; en el celular baja a 34, 52 o 68 px. Lo puede cambiar el colaborador |
 | **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
 **`orden_catalogo` (C-4).** Uno de estos cinco, escrito tal cual —se lee sin

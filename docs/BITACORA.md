@@ -129,7 +129,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
 - **Regla:** se prueba desde quien mira —el comprador, el comerciante que no entra a GitHub, el rastreador que no ejecuta JavaScript—, no desde el estado interno.
-- **Entradas:** 17, 31, 34, 57, 78, 85, 88; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
+- **Entradas:** 17, 31, 34, 57, 78, 85, 88, 109; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
 - **Lo impide hoy:** las baterías de navegador miran la pantalla, no las listas internas (34, `pruebas/hoja.js`); el SEO se hornea y lo revisa `pruebas/seo.js` (31).
 
 ---
@@ -2881,3 +2881,31 @@ sin el arreglo; y 3 de `pruebas/logo.js` (tamaño legible que cabe en la barra,
 sin recorte).
 
 *Ficha:* *(mío)* · 🔴 Crítico · P1, P5 · 0.22.5 · 2026-09-29
+
+**109 · Cada opción nueva costaba un paso a mano en cada tienda.** El dueño
+pidió el logo al doble y preguntó si elegir 40, 80 o 120 desde la hoja era
+costoso. El código es poco —una clave `opcion` como `catalogo_columnas`, una
+variable de CSS y una barra que crezca—. Lo caro estaba en otra parte: el panel
+solo enseña las claves que la pestaña Configuración ya tiene, y solo
+`instalar()` las agregaba. Cada clave nueva habría pedido abrir el editor de
+Apps Script de cada tienda y correr `A0_instalar`, que es justo el tipo de paso
+que esta automatización existe para quitar (la 0.11.0 ya lo pedía para
+`catalogo_columnas`, y nadie lo había contado como costo). Ahora la puerta
+`configuracion`, al abrir Ajustes, agrega las que falten con su valor de
+fábrica y sin tocar ninguna escrita —lo mismo que hace `instalar()` con una hoja
+vieja—, y la página lee una clave ausente como su valor de fábrica. Así
+`logo_tamano` (40, 80 de fábrica, 120; en el celular 34, 52 o 68) llega a todas
+sin tocar ningún editor.
+
+De paso, `medicion.js` exigía que `analytics_id` fuera la ÚLTIMA clave de la
+hoja: se puso roja con la primera clave nueva. Lo que R1 pide es que cada clave
+entre al final *cuando nace*, no que sea la última para siempre.
+
+**Lo prueban** 4 aserciones de `pruebas/panelconfig.js` (la clave nace en 80;
+en una hoja vieja aparece sola al abrir Ajustes, sin tocar lo escrito, y se
+guarda), en rojo sin el arreglo; 4 de `pruebas/logo.js`; y 4 de
+`pruebas/config.js` que MIDEN el logo en el navegador (40/80/120, la barra lo
+contiene, «grande» se lee 80, el celular baja), probadas sobre un index
+horneado con la plantilla nueva; con el publicado viejo se saltan y lo dicen.
+
+*Ficha:* *(mío)* · 🟡 Medio · P20 · 0.23.0 · 2026-09-29

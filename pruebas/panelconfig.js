@@ -175,6 +175,28 @@ const poner = (g, clave, v) => {
        String(valor(g, 'pie_descripcion')).charAt(0) === "'", String(valor(g, 'pie_descripcion')));
   }
 
+  // ═══ 0.23.0 · Una clave nueva aparece sola (bitácora 109) ═══
+  {
+    const { g, k } = conSesion();
+    const h = g.hojas.get('Configuración');
+    const fila = g.filas('Configuración').findIndex(f => String(f[0]) === 'logo_tamano') + 1;
+    ok('LA CLAVE logo_tamano nace con la tienda, en 80', fila > 1 && String(valor(g, 'logo_tamano')) === '80',
+       String(valor(g, 'logo_tamano')));
+    // Una hoja de antes de la 0.23.0: sin la clave, y con un valor propio en otra.
+    if (fila > 1) h.deleteRows(fila, 1);
+    poner(g, 'negocio', 'Mi Tienda Vieja');
+    const r = post(g, { a: 'configuracion', k });
+    const c = (r.claves || []).find(x => x.clave === 'logo_tamano');
+    ok('  ...y en una hoja vieja aparece sola al abrir Ajustes, sin correr A0_instalar',
+       !!c && c.grupo === 'Tu tienda' && JSON.stringify(c.opciones) === '["40","80","120"]' && String(c.valor) === '80',
+       c ? JSON.stringify({ valor: c.valor, opciones: c.opciones }) : 'no salió');
+    ok('  ...sin tocar lo que el comercio ya había escrito',
+       valor(g, 'negocio') === 'Mi Tienda Vieja');
+    const v = c ? c.version : '';
+    post(g, { a: 'guardar_configuracion', k, op: op(), cambios: { logo_tamano: '120' }, versiones: { logo_tamano: v } });
+    ok('  ...y se guarda como cualquier otra', String(valor(g, 'logo_tamano')) === '120', String(valor(g, 'logo_tamano')));
+  }
+
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
   process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

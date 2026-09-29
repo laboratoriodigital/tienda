@@ -217,6 +217,45 @@ const cfg = async (clave, valor) => {
      comercios distintos. */
   await fetch(U + '/__modo?m=ok');
 
+  /* ═══ 0.23.0 · EL ALTO DEL LOGO, DESDE LA HOJA (bitácora 109) ═══
+     Medido en el navegador, no leído en el CSS: 40, 80 o 120 en computador,
+     más chico en el celular, y la barra lo contiene. Un index publicado antes
+     de la 0.23.0 no lo sabe hacer: ahí se salta y se dice, hasta el montaje. */
+  const pagina = await (await fetch(U)).text();
+  if (!/v\("logo_tamano"\)/.test(pagina)) {
+    console.log('  SALTA | el alto del logo: este index.html es anterior a la 0.23.0.\n' +
+                '          Llega con el siguiente montaje.');
+  } else {
+    const medir = async () => p.evaluate(() => {
+      const m = document.querySelector('.marca');
+      let i = m.querySelector('img[data-prueba]');
+      if (!i) { i = document.createElement('img'); i.dataset.prueba = '1';
+        i.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'/%3E"; m.prepend(i); }
+      return { img: Math.round(i.getBoundingClientRect().height),
+               barra: Math.round(document.querySelector('.barra-int').getBoundingClientRect().height),
+               dato: document.documentElement.dataset.logo };
+    });
+    const medidas = {};
+    for (const [ancho, t] of [[1280, '40'], [1280, '80'], [1280, '120'], [1280, 'grande'], [375, '80'], [375, '120']]) {
+      await p.setViewportSize({ width: ancho, height: 812 });
+      await cfg('logo_tamano', t);
+      await p.goto(U); await catalogoListo(p);
+      medidas[ancho + ':' + t] = await medir();
+    }
+    const d = medidas;
+    ok('EL ALTO DEL LOGO sale de la hoja: 40, 80 o 120 en computador',
+       d['1280:40'].img === 40 && d['1280:80'].img === 80 && d['1280:120'].img === 120,
+       [40, 80, 120].map(x => x + '→' + d['1280:' + x].img).join(' · '));
+    ok('  ...y la barra lo contiene, con aire',
+       ['40', '80', '120'].every(x => d['1280:' + x].barra >= d['1280:' + x].img + 12),
+       ['40', '80', '120'].map(x => 'barra ' + d['1280:' + x].barra).join(' · '));
+    ok('  ...y lo que no es 40, 80 ni 120 se lee como 80', d['1280:grande'].img === 80, 'grande→' + d['1280:grande'].img);
+    ok('  ...y en el celular baja: 80→52, 120→68',
+       d['375:80'].img === 52 && d['375:120'].img === 68, d['375:80'].img + ' · ' + d['375:120'].img);
+    await cfg('logo_tamano', '80');
+    await p.setViewportSize({ width: 375, height: 812 });
+  }
+
   ok('Sin errores de JavaScript', errores.length === 0, errores[0] || '');
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);

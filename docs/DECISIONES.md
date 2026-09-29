@@ -49,6 +49,7 @@ Revisada contra el código de la 0.22.3 el 29 de septiembre de 2026.
 | 28 | El que mira aplica la hoja sobre lo publicado | VIGENTE |
 | 29 | Una tienda puede quedar fuera del reparto | VIGENTE |
 | 30 | La semilla también es una tienda | VIGENTE |
+| 31 | Una clave nueva de Configuración aparece sola | VIGENTE |
 
 ---
 
@@ -1469,6 +1470,41 @@ el maestro no contesta, no se comprueba y el resumen dice qué hacer a mano.
 nadie marque la casilla en ese momento: el candado de `PUBLICAR` lo pone el
 flujo, no una persona. Vale solo para la semilla y solo cuando su maestro vivo
 no es el del commit.
+
+---
+
+## 31 · Una clave nueva de Configuración aparece sola
+
+**Estado:** CERRADA en la 0.23.0 (bitácora 109). **Vigencia:** VIGENTE.
+
+### Qué hacía
+
+El panel solo enseña las claves que ya están en la pestaña Configuración, y
+solo `instalar()` agregaba las que faltaban. Cada opción nueva de una versión
+—`logo_tamano`, la primera tras decidirlo— pedía correr `A0_instalar` en el
+editor de Apps Script de cada tienda, a mano.
+
+### El límite real
+
+Una hoja no se migra: hay N hojas, en N cuentas. Lo único seguro es lo que ya
+hace `instalar()` con una hoja vieja —agregar al final, con el valor de
+fábrica, sin tocar ninguna que exista (R1)—.
+
+### La decisión
+
+La puerta `configuracion` del panel, al abrir Ajustes, llama a
+`agregarClavesQueFaltan` con la semilla de configuración. Si no puede, enseña
+las que hay, como antes. La página lee cualquier clave que falte como su valor
+de fábrica, así que la tienda funciona igual aunque nadie abra el panel.
+
+### Condición de disparo
+
+Ninguna pendiente.
+
+### Contrapartida
+
+Abrir Ajustes puede escribir en la hoja (filas nuevas al final). Es la misma
+escritura que `instalar()`, idempotente, y solo aparece una vez por clave.
 
 ---
 

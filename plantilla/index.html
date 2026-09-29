@@ -89,14 +89,19 @@ a{color:inherit}
   position:sticky;top:0;z-index:60;background:var(--blanco);
   border-bottom:1px solid var(--linea);
 }
-.barra-int{display:flex;align-items:center;justify-content:space-between;height:62px}
+/* 0.23.0 · La barra crece con el logo (logo_tamano): min-height y no height. */
+.barra-int{display:flex;align-items:center;justify-content:space-between;min-height:62px;padding:8px 0;gap:12px}
 .marca{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.035em;font-size:1.28rem}
 .marca svg{width:22px;height:22px;flex:none}
-/* 0.22.5 · El logo se lee (bitácora 108). A 22 px, como el signo dibujado, no
-   se entendía. Alto fijo —la barra no salta cuando llega— y ancho libre hasta
-   un tope, para que un logo alargado no se encoja a un sello. */
-.marca img{height:40px;width:auto;max-width:170px;flex:none;object-fit:contain}
-@media(max-width:480px){.marca img{height:34px;max-width:130px}}
+/* 0.22.5 · El logo se lee (bitácora 108). Alto fijo —la barra no salta cuando
+   llega— y ancho libre hasta un tope, para que un logo alargado no se encoja a
+   un sello. 0.23.0 · el alto lo elige la hoja (logo_tamano: 40, 80 o 120; de
+   fábrica 80) y en el celular baja para no tapar la pantalla (bitácora 109). */
+:root{--logo-alto:80px;--logo-ancho:240px;--logo-alto-movil:52px;--logo-ancho-movil:150px}
+html[data-logo="40"]{--logo-alto:40px;--logo-ancho:170px;--logo-alto-movil:34px;--logo-ancho-movil:130px}
+html[data-logo="120"]{--logo-alto:120px;--logo-ancho:320px;--logo-alto-movil:68px;--logo-ancho-movil:170px}
+.marca img{height:var(--logo-alto);width:auto;max-width:var(--logo-ancho);flex:none;object-fit:contain}
+@media(max-width:480px){.marca img{height:var(--logo-alto-movil);max-width:var(--logo-ancho-movil)}}
 .btn-carrito{
   display:flex;align-items:center;gap:8px;background:var(--negro);color:var(--blanco);
   padding:9px 16px;border-radius:var(--radio);font-weight:600;font-size:.9rem;
@@ -961,6 +966,10 @@ function aplicarConfiguracion(c){
   // escrito ahí mismo. El tamaño lo fija la hoja de estilo (.marca img), así
   // que la barra no se mueve cuando la imagen llega.
   const logo = v("logo");
+  /* 0.23.0 · el alto del logo, de la hoja: 40, 80 o 120. Cualquier otra cosa
+     —vacío, una hoja vieja sin la clave, un «grande» escrito a mano— es 80. */
+  const altoLogo = String(v("logo_tamano") || "").trim();
+  try { document.documentElement.dataset.logo = ["40", "80", "120"].indexOf(altoLogo) !== -1 ? altoLogo : "80"; } catch(e){}
   const signo = $("#marcaSigno");
   const fuente = logo ? urlFoto(logo, "entera") : "";
   if(fuente && signo){

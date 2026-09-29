@@ -38,7 +38,11 @@ const head = () => { console.log = () => {}; const r = g.api.generarConfiguracio
 
 ok('LA CLAVE existe en la hoja de fábrica, vacía y al final (R1)',
    g.filas('Configuración').some(f => String(f[0]).trim() === 'analytics_id' && !String(f[1] || '').trim()) &&
-   String(g.filas('Configuración')[g.filas('Configuración').length - 1][0]).trim() === 'analytics_id');
+   /* «Al final» cuando nació (0.19.0): justo detrás de la última que había.
+      Lo que venga después es de versiones posteriores (0.23.0: logo_tamano),
+      y también va al final: R1 se cumple igual. */
+   (() => { const c = g.filas('Configuración').map(f => String(f[0]).trim());
+            return c.indexOf('analytics_id') === c.indexOf('catalogo_columnas') + 1; })());
 
 const sinMedir = head();
 ok('SIN analytics_id la tienda no carga NADA de Google',
