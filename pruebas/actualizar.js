@@ -22,6 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execFileSync } = require('child_process');
+const { esSemilla: corroEnLaSemilla } = require('./donde.js');   // `esSemilla` ya es otra cosa más abajo
 const T = [];
 const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 const j = r => JSON.parse(r._texto);
@@ -198,10 +199,24 @@ function red(t, o) {
        r5.noRetirados.join(' · '));
     ok('  ...y retirar algo, aunque no se escriba nada más, ya es un cambio que se publica',
        r5.cambia === true, 'si no, la tienda vuelve a arrastrarlo en la corrida siguiente');
-    ok('  ...y la semilla no retira nada que todavía entregue',
-       (semilla.retirados || []).length > 0 &&
-       semilla.retirados.every(r => !fs.existsSync(path.join('..', r))),
-       (semilla.retirados || []).join(', '));
+    /* 0.20.8 · SOLO EN LA SEMILLA (bitácora 95). Esta aserción pregunta si la
+       SEMILLA sigue entregando algo que dice haber retirado. Dentro de una
+       tienda la misma línea pregunta otra cosa —si la tienda todavía arrastra
+       el resto viejo— y la respuesta es que sí: lo arrastra hasta que la
+       actualización SIGUIENTE lo borre, porque la que corre es la herramienta
+       que la tienda ya tenía, no la que acaba de llegar. Escrita sin guarda,
+       bloqueaba justo la publicación que trae el arreglo: la regla de la
+       bitácora 93, rota por mí en la tanda siguiente. */
+    if (!corroEnLaSemilla()) {
+      console.log('  SALTA | «la semilla no retira nada que todavía entregue»: aquí eso');
+      console.log('          pregunta otra cosa. Lo que quede de una versión vieja lo borra');
+      console.log('          la actualización siguiente, con la herramienta que acaba de llegar.');
+    } else {
+      ok('  ...y la semilla no retira nada que todavía entregue',
+         (semilla.retirados || []).length > 0 &&
+         semilla.retirados.every(r => !fs.existsSync(path.join('..', r))),
+         (semilla.retirados || []).join(', '));
+    }
   }
 
   ok('SIN PERMISO PARA FLUJOS, se trae lo demás y los flujos quedan pendientes, dichos',
@@ -255,7 +270,15 @@ function red(t, o) {
        puedeFlujos({ SEMILLA_TOKEN: 'x', FLUJOS: 'no' }) === false && puedeFlujos({ FLUJOS: 'si' }) === true);
   }
 
-  await enLaPagina();
+  /* La parte de navegador necesita el servidor que le levanta `todas.sh`. La
+     tiendita (bitácora 95) corre esta batería por los archivos, sin servidor:
+     se salta diciéndolo, que es mejor que una batería que se cae por el motivo
+     equivocado. */
+  if (process.env.SIN_NAVEGADOR) {
+    console.log('  SALTA | la parte de navegador: esta corrida es por los archivos (la tiendita).');
+  } else {
+    await enLaPagina();
+  }
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
   process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

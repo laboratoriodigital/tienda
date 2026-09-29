@@ -1532,6 +1532,15 @@ agotado.
 - [x] Retirar cuenta como cambio: si no, la tienda lo arrastra otra vez.
 - [x] La semilla no retira nada que todavía entregue.
 
+### 0.20.8 · La tiendita: probar como tienda, aquí
+
+**C-12 · Quien vigila la regla de la bitácora 93**  · 1 pt · ✅ (bitácora 95)
+- [x] `pruebas/tiendita.js`: copia del repositorio sin lo que `alta` no hereda, con
+      un resto de una versión vieja dentro, y las baterías de archivos corridas ahí.
+- [x] Las dos aserciones que hablaban de la semilla, guardadas (`esSemilla()`).
+- [x] Escrito: el que se actualiza a sí mismo ejecuta la versión anterior de sí
+      mismo, así que lo retirado se limpia una versión más tarde.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

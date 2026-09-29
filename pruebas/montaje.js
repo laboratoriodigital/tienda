@@ -1343,10 +1343,22 @@ const configurar = (g, clave, valor) => {
      cada uno, con sus aserciones allá (flota/pruebas.mjs). Aquí se comprueba
      que no vuelva: ni como flujo de la semilla (cada tienda lo heredaría) ni
      como copia que se separe de la de tiendas. */
-  ok('EL ALTA VIEJA NO EXISTE: ni en la semilla ni como copia para tiendas',
-     !fs.existsSync('../.github/workflows/tienda-nueva.yml') &&
-     !fs.existsSync('../servicio/tienda-nueva.yml'),
-     'el alta vive en laboratoriodigital/tiendas: alta + conectar');
+  /* 0.20.8 · ESTO HABLA DE LA SEMILLA (bitácora 95). Dentro de una tienda la
+     misma línea pregunta otra cosa: si esa tienda todavía arrastra la carpeta
+     de cuando nació. Y la respuesta es que sí hasta que la actualización
+     siguiente la borre —la que corre es la herramienta que la tienda ya tenía,
+     no la que acaba de llegar—, así que sin guarda esto bloqueaba justo la
+     publicación que lleva la limpieza. */
+  if (!esSemilla()) {
+    console.log('  SALTA | «el alta vieja no existe»: eso se comprueba en la semilla.');
+    console.log('          Si esta tienda todavía arrastra `servicio/`, se lo lleva la');
+    console.log('          actualización siguiente (semilla.json › retirados).');
+  } else {
+    ok('EL ALTA VIEJA NO EXISTE: ni en la semilla ni como copia para tiendas',
+       !fs.existsSync('../.github/workflows/tienda-nueva.yml') &&
+       !fs.existsSync('../servicio/tienda-nueva.yml'),
+       'el alta vive en laboratoriodigital/tiendas: alta + conectar');
+  }
 
   /* CUANDO NO SE PUEDE PUBLICAR, HAY QUE DECIR POR QUÉ. GitHub contesta con un
      error de permisos en una anotación al pie, y para verla hay que saber que

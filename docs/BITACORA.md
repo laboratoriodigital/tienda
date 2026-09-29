@@ -2268,6 +2268,30 @@ el círculo: la semilla no puede retirar nada que todavía entregue. **Lo prueba
 4 aserciones de `actualizar.js`, con el control negativo —dejar borrar
 `publicar/`— visto en rojo.
 
+**95 · Rompí sola la regla que acababa de escribir, y por eso ahora hay una
+tiendita.** Tercera corrida seguida de la misma tanda, tercer rojo del mismo
+tipo: una aserción cierta aquí y falsa dentro de la tienda. Esta vez la había
+escrito yo en la entrada anterior —«la semilla no retira nada que todavía
+entregue»—, que dentro de una tienda pregunta otra cosa: si esa tienda todavía
+arrastra el resto viejo. Y sí lo arrastra, porque la actualización que borra lo
+retirado es la que acaba de llegar, no la que corrió: **el que se actualiza a sí
+mismo siempre ejecuta la versión anterior de sí mismo**, así que la limpieza
+llega una versión más tarde. Escrita sin guarda, esa aserción bloqueaba justo la
+publicación que lleva el arreglo. Lo mismo pasaba con «el alta vieja no existe»,
+que también habla de la semilla.
+
+Las dos se guardaron, pero lo que importa no es eso. La regla ya estaba escrita
+—bitácora 93, con su aserción y todo— y aun así se rompió dos entradas después,
+lo que quiere decir que no bastaba con escribirla. Ahora hay quien la vigile:
+`pruebas/tiendita.js` arma una copia de este repositorio SIN lo que `alta` no
+hereda, le mete de propina un resto de una versión vieja —lo que se encontró en
+la primera tienda de verdad— y corre ahí las baterías que leen archivos del
+repositorio. Tarda tres segundos y reproduce en el equipo lo que antes solo se
+veía en la tienda de un cliente, veinte minutos y un montaje después. La primera
+vez que se corrió encontró exactamente los dos rojos que la tienda estaba
+enseñando en ese momento. **Lo prueban** ella misma, sus cinco aserciones, y las
+dos guardas que la hicieron falta.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los
