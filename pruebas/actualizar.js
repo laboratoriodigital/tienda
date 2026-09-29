@@ -58,8 +58,19 @@ function red(t, o) {
   ok('LA VERSIÓN DEL MAESTRO es la del package.json', (maestro.match(/var VERSION_TIENDA = '([^']+)'/) || [])[1] === paquete.version,
      (maestro.match(/var VERSION_TIENDA = '([^']+)'/) || [])[1] + ' / ' + paquete.version);
   ok('  ...y su semilla es la de semilla.json', (maestro.match(/var SEMILLA_REPO = '([^']+)'/) || [])[1] === semilla.repositorio);
+  /* 0.20.6 · UNA EXCEPCIÓN, Y EXPLÍCITA (bitácora 93). `publicar/` es lo que
+     hornea cada tienda desde SU hoja y por eso no se sincroniza… salvo
+     `publicar/_headers`, que no sale de la hoja de nadie: son las cabeceras y la
+     política de seguridad de Cloudflare, iguales en todas las tiendas. Al no
+     viajar, una tienda nacida en la 0.16 servía la CSP de la 0.16 para siempre —y
+     la aserción de las tres copias se caía dentro de ella, que es como se
+     descubrió. */
   ok('SEMILLA.JSON no se adueña de lo que es de cada tienda', !semilla.propios.some(p =>
-     p === 'publicar/' || p.startsWith('publicar/') || p === 'wrangler.jsonc' || p === 'README.md' || p === '.github/workflows/release.yml' || p === '.github/'));
+     p === 'publicar/' || (p.startsWith('publicar/') && p !== 'publicar/_headers') ||
+     p === 'wrangler.jsonc' || p === 'README.md' || p === '.github/workflows/release.yml' || p === '.github/'));
+  ok('  ...y las cabeceras, que son de la semilla y no de la hoja, sí viajan',
+     semilla.propios.includes('publicar/_headers'),
+     'sin esto, la política de seguridad de una tienda se queda en la versión en que nació');
   const faltan = semilla.propios.filter(p => !fs.existsSync(path.join('..', p)));
   ok('  ...y todo lo que nombra existe', faltan.length === 0, faltan.join(', '));
   ok('  ...y se nombra a sí mismo: le llega a la tienda con cada versión', semilla.propios.includes('semilla.json'));

@@ -2215,6 +2215,37 @@ que corre `always()` después de un desastre cuenta su propia pena, no la del
 desastre. **Lo prueban** 6 aserciones de `actualizar.js` y 1 de `montaje.js`,
 todas vistas en rojo antes de darlas por buenas.
 
+**93 · La suite daba por hecho que corría en la semilla.** Con el permiso ya
+arreglado, la primera tienda se actualizó de verdad —0.16.0 → 0.20.4, 28
+archivos sobrescritos y 8 nuevos— y entonces se cayó en el paso siguiente: cinco
+baterías en rojo dentro de la tienda, y sin ese verde no se publica. Ninguna de
+las cinco estaba mirando un fallo del producto. `montaje.js` abría
+`.github/workflows/release.yml`, que `alta` no le hereda a ninguna tienda porque
+una tienda no corta versiones: ENOENT, batería entera caída y de paso
+`calendario.js`, que la corre con el reloj falseado. `exif.js` pedía
+`chonto-1.jpg`, una foto de muestra que tampoco se hereda. El control negativo de
+`respaldo.js` exigía encontrar palabras del comercio de la plantilla en
+`publicar/index.html`, que en una tienda es la tienda del comercio: se caía por
+tener razón. Y `medicion.js` comparaba las tres copias de la política de
+seguridad contra un `publicar/_headers` de la 0.16, porque ese archivo no viajaba
+nunca.
+
+Lo que enseña es una asimetría que no habíamos escrito: **estas baterías corren en
+dos sitios** —aquí, y dentro de cada tienda antes de publicar— y estaban escritas
+mirando solo uno. Una aserción cierta aquí y falsa allá no protege: bloquea. Y el
+motivo que queda escrito en el resumen de la tienda es «batería en rojo», que no
+es el motivo. Ahora lo que depende de SER la semilla se comprueba solo aquí y en
+una tienda se salta diciéndolo (patrón 8, regla 2); la foto del manifiesto sale de
+la carpeta y no de una lista escrita a mano; el control negativo del respaldo
+escribe un TERCER comercio en el mismo archivo, así que no depende de qué
+repositorio sea; `publicar/_headers` pasa a ser de la semilla —la única excepción
+dentro de `publicar/`, y dicha— para que la política de seguridad deje de
+quedarse en la versión en que nació la tienda; y una aserción nueva recorre las
+baterías y exige que nadie abra a ciegas un archivo que una tienda no tiene.
+**Lo prueban** 3 aserciones nuevas de `montaje.js` y 1 de `actualizar.js`, más una
+tienda de juguete —sin lo que `alta` no hereda— donde la suite se corrió entera
+antes de dar esto por bueno.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los

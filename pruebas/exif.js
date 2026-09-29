@@ -92,23 +92,42 @@ async function fotoConGps() {
   const { medidasEnDisco, ANCHOS: ANCHOS_CAT } =
     await import('../montar/catalogo-estatico.mjs');
 
+  /* 0.20.6 · LA FOTO SALE DE LA CARPETA, no de una lista escrita aquí
+     (bitácora 93). Decía `chonto-1.jpg`, que son las fotos de muestra de la
+     semilla: `alta` no se las hereda a ninguna tienda, así que dentro de una
+     tienda esta aserción se caía por buscar una foto que allá no tiene por qué
+     estar. Lo que se prueba es que el manifiesto CUADRE CON EL DISCO —aquí con
+     las de muestra, en una tienda con las del comercio—, y si no hay ninguna
+     foto con sus derivadas, se dice y se salta. */
+  const carpeta = fs.existsSync('../publicar/fotos') ? fs.readdirSync('../publicar/fotos') : [];
+  const conDerivadas = carpeta
+    .filter(f => /\.(jpe?g|png|webp)$/i.test(f) && !/-\d+\.webp$/i.test(f))
+    .filter(f => ANCHOS_CAT.every(a => carpeta.indexOf(f.replace(/\.[^.]+$/, '') + '-' + a + '.webp') !== -1));
+
   const mapa = await medidasEnDisco([
-    { id: 'real',    imagenes: ['chonto-1.jpg', 'chonto-2.jpg'] },
+    { id: 'real',    imagenes: conDerivadas.slice(0, 1) },
     { id: 'ajeno',   imagenes: ['https://res.cloudinary.com/x/foto.jpg'] },
     { id: 'sinfoto', imagenes: ['no-existe.jpg'] }
   ], '../publicar/fotos');
 
-  ok('EL MANIFIESTO lista las medidas que SÍ están en la carpeta',
-     JSON.stringify(mapa['chonto-1.jpg']) === JSON.stringify(ANCHOS_CAT),
-     JSON.stringify(mapa['chonto-1.jpg']));
-  ok('  ...y no promete la que no está', !mapa['no-existe.jpg'],
-     'prometer un archivo que no existe es el 404 de siempre, con más pasos');
-  ok('  ...ni derivadas de una foto que sirve otro',
-     !mapa['https://res.cloudinary.com/x/foto.jpg'],
-     'una URL completa en la hoja se sirve tal cual');
-  ok('  ...y las medidas del manifiesto son las que se generan',
-     JSON.stringify(ANCHOS_CAT) === JSON.stringify(ANCHOS),
-     'genera ' + JSON.stringify(ANCHOS) + ' · lista ' + JSON.stringify(ANCHOS_CAT));
+  if (!conDerivadas.length) {
+    console.log('  SALTA | el manifiesto: en esta copia no hay ninguna foto con sus tres');
+    console.log('          derivadas en publicar/fotos, así que no hay nada que cuadrar.');
+    console.log('          (Una tienda recién nacida está así hasta su primer montaje.)');
+  } else {
+    const base = conDerivadas[0];
+    ok('EL MANIFIESTO lista las medidas que SÍ están en la carpeta',
+       JSON.stringify(mapa[base]) === JSON.stringify(ANCHOS_CAT),
+       base + ' → ' + JSON.stringify(mapa[base]));
+    ok('  ...y no promete la que no está', !mapa['no-existe.jpg'],
+       'prometer un archivo que no existe es el 404 de siempre, con más pasos');
+    ok('  ...ni derivadas de una foto que sirve otro',
+       !mapa['https://res.cloudinary.com/x/foto.jpg'],
+       'una URL completa en la hoja se sirve tal cual');
+    ok('  ...y las medidas del manifiesto son las que se generan',
+       JSON.stringify(ANCHOS_CAT) === JSON.stringify(ANCHOS),
+       'genera ' + JSON.stringify(ANCHOS) + ' · lista ' + JSON.stringify(ANCHOS_CAT));
+  }
 
   /* ═══ B-4 · LAS FOTOS, EN TANDAS Y SIN QUE UNA SE LLEVE A LAS DEMÁS ═══
      Se prueba `enTandas` directamente, que es donde vive la regla, y no a

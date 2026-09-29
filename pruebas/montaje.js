@@ -18,6 +18,7 @@ const { hornear } = require('../montar/catalogo-estatico.mjs');
 const { veredicto } = require('../montar/misma-tienda.mjs');
 const respaldo = require('../montar/sembrar-respaldo.mjs');
 const fs = require('fs');
+const { esSemilla } = require('./donde.js');
 const cp = require('node:child_process');
 const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
 
@@ -1016,7 +1017,15 @@ const configurar = (g, clave, valor) => {
      nada no es un error —no hay nada que cortar—; lo que sí lo es, y hay que
      distinguirlo, es que la etiqueta exista apuntando a OTRO commit: ahí el
      código cambió y la versión no. */
-  {
+  /* 0.20.6 · `release` NO VIAJA A LAS TIENDAS (bitácora 93): `alta` no se lo
+     hereda, porque una tienda no corta versiones. Esta batería corre TAMBIÉN
+     dentro de la tienda —`montaje` la corre antes de publicar— y leer ahí un
+     archivo que no existe tumbaba la batería entera con un ENOENT: la tienda
+     no publicaba y el motivo que se leía era «batería en rojo». */
+  if (!fs.existsSync('../.github/workflows/release.yml')) {
+    console.log('  SALTA | el flujo `release` no viaja a las tiendas (`alta` no se lo hereda):');
+    console.log('          una tienda no corta versiones, así que aquí no hay nada que comprobar.');
+  } else {
     const rel = yml('release.yml');
     ok('EL RELEASE distingue "ya está hecho" de "te faltó subir la versión"',
        /ya está publicada, y es exactamente este commit/.test(rel) &&
@@ -2599,9 +2608,11 @@ const configurar = (g, clave, valor) => {
     const p = pasos(t).filter(x => /GITHUB_STEP_SUMMARY/.test(x.t))[0];
     return !p || p.nombre !== 'Qué es esta corrida';
   });
+  /* El número no se escribe: una tienda tiene cuatro flujos (no hereda
+     `release`) y exigir cinco la dejaba en rojo por no ser la semilla. */
   ok('LA FICHA es lo PRIMERO que cualquier flujo escribe en el resumen',
-     flujos.length >= 5 && sinFicha.length === 0,
-     sinFicha.map(x => x.f).join(', ') || flujos.length + ' flujos');
+     flujos.length >= 4 && sinFicha.length === 0,
+     sinFicha.map(x => x.f).join(', ') || flujos.map(x => x.f).join(', '));
 
   /* Qué es, sobre qué, cómo está y quién lo pidió: sin las cuatro cosas la
      ficha es un título. */
@@ -2659,6 +2670,49 @@ const configurar = (g, clave, valor) => {
      /echo "### Todo en verde ·\$total"/.test(pr) &&
      !/grep -E "\^ FALLA\|\^  TOTAL/.test(pr),
      'en verde, una línea; en rojo, el marcador y las fallas');
+}
+
+/* ═══ 27e. LO QUE UNA TIENDA NO TIENE NO PUEDE TUMBAR SU SUITE
+       (0.20.6 · bitácora 93) ═══
+   Las baterías corren TAMBIÉN dentro de la tienda: `montaje` las corre sobre lo
+   recién horneado y de su verde depende que se publique. Pero una tienda no
+   tiene todo lo que hay aquí —`alta` no le hereda `release.yml`, ni el catálogo,
+   ni las fotos de muestra, ni el `publicar/index.html` de la plantilla—, y una
+   batería que abra uno de esos archivos a ciegas se cae con ENOENT, tumba la
+   corrida entera y deja a la tienda sin publicar con el motivo equivocado
+   escrito en el resumen: «batería en rojo». Pasó al actualizar la primera
+   tienda de la 0.16.0 a la 0.20.4, con cinco baterías a la vez.
+
+   Así que quien lea uno de esos archivos tiene que preguntar antes si está
+   —`existsSync`— o comprobar dónde corre —`esSemilla()`—, y saltarse DICIÉNDOLO
+   (patrón 8, regla 2). Lo que no puede es dar por hecho que esto es la semilla. */
+{
+  const NO_HEREDA = ['.github/workflows/release.yml', 'publicar/catalogo.json',
+                     'publicar/fotos', 'publicar/sitemap.xml', 'publicar/compartir.jpg',
+                     'ESTADO.md', 'tienda.json'];
+  const baterias = fs.readdirSync('.')
+    .filter(n => /\.js$/.test(n) && /Resultado: /.test(fs.readFileSync(n, 'utf8')));
+  const aCiegas = [];
+  baterias.forEach(n => {
+    const t = fs.readFileSync(n, 'utf8');
+    const protegida = /existsSync|esSemilla/.test(t);
+    NO_HEREDA.forEach(r => {
+      if (t.indexOf("'../" + r) !== -1 && !protegida) aCiegas.push(n + ' › ' + r);
+    });
+  });
+  ok('NINGUNA BATERÍA abre a ciegas un archivo que una tienda no tiene',
+     aCiegas.length === 0, aCiegas.join(' · ') ||
+     baterias.length + ' baterías, ' + NO_HEREDA.length + ' archivos que no se heredan');
+
+  /* Y el que contesta dónde corre es uno solo, el mismo que mira la
+     actualización: dos maneras de contestar la misma pregunta se contradicen el
+     día que una cambia (patrón 2). */
+  ok('  ...y «dónde corro» se contesta en un solo sitio',
+     esSemilla({ GITHUB_REPOSITORY: 'laboratoriodigital/tienda' }) === true &&
+     esSemilla({ GITHUB_REPOSITORY: 'laboratoriodigital/prueba1' }) === false &&
+     esSemilla({}) === true &&
+     JSON.parse(fs.readFileSync('../semilla.json', 'utf8')).repositorio === 'laboratoriodigital/tienda',
+     'sin GITHUB_REPOSITORY —en el equipo de alguien— esto es la semilla');
 }
 
 /* ═══ 28. LAS QUE SE EJECUTAN A MANO, ENCONTRABLES ═══
@@ -3672,7 +3726,9 @@ const configurar = (g, clave, valor) => {
    Y cuando fallaba, el mensaje mandaba al sitio equivocado: «sube `version` en
    package.json». En una tienda ese consejo es falso. Pasó dos veces.
    ══════════════════════════════════════════════════════════════════════════ */
-{
+if (!fs.existsSync('../.github/workflows/release.yml')) {
+  console.log('  SALTA | `release` no viaja a las tiendas: aquí no hay ninguna versión que cortar.');
+} else {
   const rel = fs.readFileSync('../.github/workflows/release.yml', 'utf8');
 
   ok('`release` se niega a correr fuera de la semilla',

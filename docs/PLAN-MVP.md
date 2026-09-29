@@ -1515,6 +1515,15 @@ agotado.
       flujos se quedan atrás, la tienda se publica igual.
 - [x] La herramienta solo escribe flujos que después se puedan empujar (`FLUJOS`).
 
+### 0.20.6 · La suite corre en dos sitios, y lo sabe
+
+**C-10 · Baterías que también son de la tienda**  · 2 pt · ✅ (bitácora 93)
+- [x] Lo que depende de ser la semilla se salta en una tienda, DICIÉNDOLO.
+- [x] El manifiesto de fotos se comprueba contra la carpeta, no contra una lista.
+- [x] El control negativo del respaldo no depende del repositorio.
+- [x] `publicar/_headers` viaja con la semilla: la única excepción en `publicar/`.
+- [x] Aserción nueva: ninguna batería abre a ciegas un archivo que una tienda no tiene.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

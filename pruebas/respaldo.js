@@ -180,40 +180,49 @@ const DE_ORGANICO = /Orgánico|Tomate chonto|Tomate cherry|Sofrito|Rionegro|5730
      !DE_ORGANICO.test(texto),
      (texto.match(DE_ORGANICO) || ['ninguna'])[0]);
 
-  /* Y LA PRUEBA DE QUE ESTA BATERÍA DISTINGUE ALGO. Con el respaldo sin
-     escribir —el archivo tal como sale de la plantilla— lo de arriba tiene que
-     FALLAR. Una comprobación que pasa en los dos casos no comprueba nada, y es
-     el error que ya nos costó dos tardes.
+  /* Y LA PRUEBA DE QUE ESTA BATERÍA DISTINGUE ALGO: el MISMO archivo, con otro
+     respaldo escrito, tiene que pintar al otro comercio. Si lo que sale fuera
+     siempre lo mismo, esto no estaría mirando nada.
 
-     POR QUÉ ESTO YA NO SE ARMA CON `html` (la variable de arriba, la de
-     `./index.html`): `todas.sh` corre `arnes.mjs` sobre ese mismo archivo
-     ANTES de que esta batería lo lea —para que las otras diez baterías
-     conduzcan una tienda coherente, ver arnes.mjs—, y arnes.mjs hace exactamente
-     lo mismo que hace este archivo con OTRA: le escribe respaldo.aplicar()
-     encima, con el catálogo y la CONFIG_SEMILLA de la hoja emulada. Para
-     cuando llega aquí, `html` YA NO ES «el archivo tal como sale de la
-     plantilla»: ya tiene un respaldo escrito -el de Panadería La Espiga, no
-     el de Orgánico-, y por eso lo de arriba dejó de caerse con `html` como
-     base: no es que el arreglo haya dejado de hacer falta, es que el
-     negativo dejó de ser negativo. El archivo que SÍ sigue siendo «tal como
-     sale de la plantilla», porque nada en esta corrida lo toca antes, es
-     `publicar/index.html` en el repositorio. */
-  const sinArreglo = fs.readFileSync('../publicar/index.html', 'utf8')
+     0.20.6 · ANTES ESTO LEÍA `publicar/index.html` del repositorio, contando con
+     que ahí seguía el respaldo de la plantilla —el de Orgánico— y exigiendo que
+     apareciera. Eso es cierto en la semilla y FALSO en cualquier tienda, donde
+     ese archivo es la tienda del comercio y no tiene ni una palabra de la
+     plantilla: el control negativo se caía por tener razón, y con él la corrida
+     que iba a publicar la actualización (bitácora 93). Ahora el negativo no
+     depende de qué repositorio sea: se escribe un TERCER comercio y se mira
+     quién sale. */
+  const TERCERA = {
+    productos: [
+      { id: 'tornillo', nombre: 'Tornillo hexagonal 3/8', formato: 'Caja x100',
+        categoria: 'Ferretería', precio: 19000, stock: 7,
+        descripcion: 'Acero galvanizado.', imagenes: [] }
+    ],
+    envios: [{ id: 'bodega', nombre: 'Recoger en la bodega', valor: 0 }],
+    config: {
+      negocio: 'Ferretería El Perno', whatsapp: '573001112233',
+      portada_titulo: 'Todo para el taller', pie_descripcion: 'Ferretería industrial',
+      color_principal: '#2F5D50', color_secundario: '#C8A951', color_alterno: '#1B3A33',
+      empresa_ciudad: 'Medellín, Antioquia', empresa_tel: '300 111 2233'
+    }
+  };
+  const otroRespaldo = respaldo.aplicar(html, TERCERA, '2026-09-29').html
     .replace(/const SCRIPT_URL = "[^"]*";/, 'const SCRIPT_URL = "";');
   const s2 = http.createServer((req, res) => {
     if (req.url.indexOf('/catalogo.json') === 0) { res.writeHead(404); return res.end('no'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(sinArreglo);
+    res.end(otroRespaldo);
   });
   await new Promise(r => s2.listen(0, r));
   const puerto2 = s2.address().port;
   const p2 = await ctx.newPage();
   await p2.goto('http://localhost:' + puerto2 + '/');
   await p2.waitForSelector('.rejilla .tarjeta');
-  const delaPlantilla = await p2.locator('body').innerText();
-  ok('ESTA BATERÍA DISTINGUE: con el respaldo sin escribir, esto se cae',
-     DE_ORGANICO.test(delaPlantilla),
-     'si dejara de caerse, es que ya no está mirando nada');
+  const elTercero = await p2.locator('body').innerText();
+  ok('ESTA BATERÍA DISTINGUE: con OTRO respaldo escrito, la página pinta al otro',
+     /Tornillo hexagonal/.test(elTercero) && /Ferretería El Perno/.test(elTercero) &&
+     !/Labial mate|Brocha de polvos|Cinnamon Beauty/.test(elTercero),
+     'si saliera siempre lo mismo, es que no está mirando el respaldo');
 
   ok('Sin errores de JavaScript', errores.length === 0, errores[0] || '');
 
