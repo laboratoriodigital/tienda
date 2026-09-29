@@ -48,7 +48,8 @@ si no sabes para qué). También las **zonas de envío** y los **cupones**. Camb
 el WhatsApp o los datos de pago **pide tu clave otra vez**.
 
 **Tu logo** (Tienda › Tu tienda › *Logo*, o la fila `logo` de Configuración):
-súbelo a tu carpeta de fotos del Drive y escribe su nombre tal cual (`logo.png`).
+súbelo a tu carpeta de fotos del Drive y escribe su nombre tal cual (`logo.png`;
+un PNG con fondo transparente es lo que mejor queda).
 Sale en la barra de arriba junto al nombre y, si no pones otro *Ícono de la
 pestaña*, también ahí. Vacío = el signo con tus colores. Se ve al publicar.
 

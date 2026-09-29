@@ -34,7 +34,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P1 · El fallo que funciona es el caro
 - **Regla:** lo que cae a un respaldo, a un valor de fábrica o a un «no pasa nada» tiene que gritar; si no, el respaldo se vuelve el estado normal.
-- **Entradas:** 1, 17, 31, 36, 73, 81; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
+- **Entradas:** 1, 17, 31, 36, 73, 81, 108; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
 - **Lo impide hoy:** `pruebas/todas.sh` cuenta como rota la batería que no arranca; `montar/preparar-index.mjs` se niega a hornear una clave vacía o entre corchetes; `montar/publicar-maestro.mjs` repone `HOJA_ID` antes de subir.
 
 ### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
@@ -54,7 +54,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P5 · Una comprobación que da lo mismo con el defecto y sin él no comprueba nada
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio; si distingue, preguntar qué distingue de verdad. Toda aserción nueva se ve en rojo con su defecto puesto (control negativo) antes de darla por buena.
-- **Entradas:** 5, 10, 11, 15, 19, 33, 34, 39, 46, 53, 60; Graves: *Y la comprobación que di era la misma trampa de siempre*.
+- **Entradas:** 5, 10, 11, 15, 19, 33, 34, 39, 46, 53, 60, 108; Graves: *Y la comprobación que di era la misma trampa de siempre*.
 - **Lo impide hoy:** la regla del control negativo en `CONTRIBUIR.md`; canarios como «ESTA BATERÍA DISTINGUE» en `pruebas/respaldo.js`. Ninguna batería comprueba que las demás tengan su control.
 
 ### P6 · Lo que se escribe para los que vienen después deja fuera al primero
@@ -2853,3 +2853,31 @@ lento que se repite), en rojo sin el arreglo; y `config.js` corrido con el icono
 cambiado a una foto que existe (verde) y a una que no (rojo).
 
 *Ficha:* *(mío)* · 🟠 Grave · P4, P9, P15 · 0.22.4 · 2026-09-29
+
+**108 · Toda foto que no fuera `.jpg` se publicaba con otro nombre.** Con la
+0.22.4 en verde quedaron dos síntomas que parecían distintos: en la semilla, el
+logo `tienda-virtual.png` del Drive no llegó a `publicar/fotos/` y hubo que
+subirlo a mano para que el montaje pasara; en prueba1, la foto del producto
+—mismo nombre que en el Drive, en `.png`— no cargaba. Mirando la tienda viva:
+`catalogo.json` nombraba `tienda-virtual.png`, el manifiesto de medidas tenía
+sus tres derivadas webp (200), y `fotos/tienda-virtual.png` daba 404. La causa,
+una línea de `traer-fotos.mjs › convertir`: el respaldo «con el nombre lógico»
+se escribía siempre como `${raiz}.jpg`, en JPEG. Para una `.jpg` coincidía; para
+una `.png` o una `.jpeg`, la tienda pedía un archivo que no existía, y un logo
+con transparencia se habría vuelto negro alrededor. `exif.js` lo probaba solo
+con `origen.jpg`: el único caso en que el defecto no se ve (P5).
+
+Ahora el respaldo lleva el nombre exacto de la hoja y el formato de su
+extensión (PNG conserva la transparencia), y `novedades` vuelve a bajar lo que
+el registro da por publicado pero no está en disco: las tiendas afectadas se
+curan solas en su siguiente montaje, sin tocar el Drive. De paso, lo que pidió
+el dueño al verlo: el logo de la barra iba a 22 px, el tamaño del signo, y no
+se entendía; ahora va a 40 px de alto (34 en el celular), con ancho libre hasta
+un tope y sin el recorte cuadrado de las derivadas.
+
+**Lo prueban** 4 aserciones de `pruebas/exif.js` con conversiones de verdad
+(una `.png` con transparencia, una `.JPEG`, y el registro que miente), en rojo
+sin el arreglo; y 3 de `pruebas/logo.js` (tamaño legible que cabe en la barra,
+sin recorte).
+
+*Ficha:* *(mío)* · 🔴 Crítico · P1, P5 · 0.22.5 · 2026-09-29

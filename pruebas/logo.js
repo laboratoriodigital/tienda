@@ -107,7 +107,10 @@ const pagina = fs.readFileSync('../plantilla/index.html', 'utf8');
 const publicada = fs.readFileSync('../publicar/index.html', 'utf8');
 [['plantilla', pagina], ['publicada', publicada]].forEach(([cual, t]) => {
   ok('LA PÁGINA (' + cual + ') resuelve el logo como una foto más: por nombre o por URL',
-     /const fuente = logo \? urlFoto\(logo, "miniatura"\) : "";/.test(t) &&
+     /* 0.22.5: "entera" (sin el recorte cuadrado de las derivadas). La
+        publicada se pone al día en el siguiente montaje: las dos valen. */
+     (cual === 'plantilla' ? /const fuente = logo \? urlFoto\(logo, "entera"\) : "";/
+                           : /const fuente = logo \? urlFoto\(logo, "(entera|miniatura)"\) : "";/).test(t) &&
      !/res\.cloudinary\.com\//.test(t.split('const logo = v("logo")')[1].slice(0, 400)),
      'antes solo se aceptaba Cloudinary');
   ok('  ...reemplaza al SIGNO y deja el nombre escrito (' + cual + ')',
@@ -119,7 +122,14 @@ const publicada = fs.readFileSync('../publicar/index.html', 'utf8');
      'un icono roto se ve peor que ninguno');
 });
 ok('  ...y el tamaño lo fija la hoja de estilo, así que la barra no se mueve',
-   /\.marca svg,\.marca img\{width:22px;height:22px/.test(pagina));
+   /\.marca img\{height:\d+px;width:auto;max-width:\d+px/.test(pagina));
+/* 0.22.5 · bitácora 108: a 22 px no se entendía. */
+const alto = +((pagina.match(/\.marca img\{height:(\d+)px/) || [])[1] || 0);
+const barra = +((pagina.match(/\.barra-int\{[^}]*height:(\d+)px/) || [])[1] || 0);
+ok('  ...a un tamaño que se lee (al menos 36 px de alto) y que cabe en la barra',
+   alto >= 36 && barra > 0 && alto <= barra - 12, 'logo ' + alto + ' px · barra ' + barra + ' px');
+ok('  ...y sin el recorte cuadrado de las derivadas: un logo alargado se ve entero',
+   /FOTOS\.webp && uso !== "entera" \? conTamano/.test(pagina));
 
 /* ── Sin red ────────────────────────────────────────────────────────────── */
 const respaldo = require('../montar/sembrar-respaldo.mjs');

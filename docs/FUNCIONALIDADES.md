@@ -1,6 +1,6 @@
 # Todo lo que hace esta tienda
 
-Inventario completo de funcionalidades de la **Tienda Panel** (`0.22.4`), por
+Inventario completo de funcionalidades de la **Tienda Panel** (`0.22.5`), por
 categoría y sin dejar ninguna fuera. Si algo existe en el producto, está en
 esta lista; si no está aquí, no existe todavía —y entonces vive en
 `ROADMAP.md`—.
@@ -47,6 +47,8 @@ Cómo leer las marcas:
 - **Logo del comercio** (`logo`, 0.21.0): el nombre de una foto de la carpeta
   de Drive o una dirección completa. Va en la barra en lugar del signo; el
   nombre del comercio sigue escrito. Si el archivo no llega, vuelve el signo.
+  Desde la 0.22.5 a 40 px de alto (34 en el celular), entero —sin el recorte
+  cuadrado de las derivadas— y en su formato: un PNG conserva su transparencia.
 - **Icono de la pestaña**: el que ponga `favicon`; si no hay, el logo; si
   tampoco, un marcador con los colores de la marca.
 - **Horario** visible, y **tienda abierta o cerrada** (`tienda_abierta`,

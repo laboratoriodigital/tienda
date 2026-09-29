@@ -25,9 +25,9 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 > rompió a `BITACORA.md`, lo que quedó fuera al `ROADMAP.md`, y este archivo se
 > borra.
 
-## Dónde estamos · 29 de septiembre de 2026 · 0.22.4
+## Dónde estamos · 29 de septiembre de 2026 · 0.22.5
 
-- **La semilla va en la 0.22.4** (`package.json` y `VERSION_TIENDA`). Los
+- **La semilla va en la 0.22.5** (`package.json` y `VERSION_TIENDA`). Los
   hitos del MVP están cerrados —M0 a M5, con M3.5 y M3 bis (tabla al principio
   de §5)—; la etiqueta 1.0.0 todavía no se ha cortado.
 - **La flota que se actualiza sola (M6) también está hecha**, aunque salió del
@@ -491,7 +491,7 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 | M6 · La flota se actualiza sola | Hecho fuera del MVP (S3 del `ROADMAP.md`) | 0.13.0 y 0.14.0 |
 
 Lo que vino después, versión por versión, está en las secciones 0.11.0 a
-0.22.4 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
+0.22.5 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
 
 **El MVP son siete hitos —M3 bis reabrió M3—, y este fue el orden:**
 
@@ -1713,6 +1713,21 @@ próxima.*
 - [x] `alMaestro` (`montar/tienda.mjs`) reintenta un 404 que llega tras más
       de 15 s —la redirección de Google que caduca—, y el mensaje ya no manda a
       revisar el acceso cuando el 404 fue lento.
+
+### 0.22.5 · Las fotos PNG, y un logo que se lee
+
+**C-20 · Lo que se vio en prueba1 y en la semilla**  · 1 pt · ✅ (bitácora 108)
+- [x] `traer-fotos.mjs › convertir` publica el respaldo con el nombre y el
+      formato exactos de la hoja: `logo.png` sale `logo.png` (con su
+      transparencia), no `logo.jpg`. Antes, toda foto que no fuera `.jpg` daba
+      404 en la tienda.
+- [x] `novedades` vuelve a bajar lo que el registro da por publicado y no está
+      en `publicar/fotos/`: las tiendas ya afectadas se curan solas en su
+      siguiente montaje o *Publicar ahora*.
+- [x] El logo de la barra: 40 px de alto (34 en el celular), ancho libre hasta
+      un tope, y entero (sin el recorte cuadrado de las derivadas webp).
+- [ ] `test.js` («Mínimo no alcanzado muestra aviso») falla a veces con toda
+      la suite en paralelo y pasa sola: una espera que depende de la carga.
 
 ---
 

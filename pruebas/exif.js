@@ -129,6 +129,37 @@ async function fotoConGps() {
        'genera ' + JSON.stringify(ANCHOS) + ' · lista ' + JSON.stringify(ANCHOS_CAT));
   }
 
+  /* ═══ 0.22.5 · EL RESPALDO CONSERVA SU NOMBRE Y SU FORMATO (bitácora 108) ═══
+     `logo.png` salía como `logo.jpg`: la tienda pide lo que dice la hoja y
+     recibía un 404 —el producto sin foto, el icono de la pestaña roto—, y un
+     logo con fondo transparente se volvía negro alrededor. */
+  {
+    const png = path.join(tmp, 'logo.png');
+    await sharp({ create: { width: 500, height: 200, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+      .composite([{ input: Buffer.from('<svg width="300" height="100"><rect width="300" height="100" fill="#c00"/></svg>'), top: 50, left: 100 }])
+      .png().toFile(png);
+    const dPng = path.join(tmp, 'con-png'); fs.mkdirSync(dPng);
+    await convertir(sharp, png, 'logo.png', dPng);
+    const hay = fs.readdirSync(dPng).sort();
+    ok('UNA FOTO .png se publica con SU nombre: logo.png, no logo.jpg',
+       hay.includes('logo.png') && !hay.includes('logo.jpg'), hay.join(', '));
+    const mp = fs.existsSync(path.join(dPng, 'logo.png')) ? await sharp(path.join(dPng, 'logo.png')).metadata() : {};
+    ok('  ...en PNG de verdad y con su transparencia', mp.format === 'png' && mp.hasAlpha === true,
+       (mp.format || '(no existe)') + ' · alpha ' + mp.hasAlpha);
+    const dJpeg = path.join(tmp, 'con-jpeg'); fs.mkdirSync(dJpeg);
+    await convertir(sharp, entrada, 'Foto Uno.JPEG', dJpeg);
+    ok('  ...y una .JPEG también, con su nombre exacto',
+       fs.readdirSync(dJpeg).includes('Foto Uno.JPEG'), fs.readdirSync(dJpeg).join(', '));
+
+    const { novedades } = await import('../montar/traer-fotos.mjs');
+    const reg = { 'logo.png': { id: 'a', modificado: 't', bytes: 1 } };
+    const drive = [{ nombre: 'logo.png', id: 'a', modificado: 't', bytes: 1 }];
+    ok('  ...y la que el registro da por publicada pero NO está en disco se vuelve a bajar sola',
+       novedades(drive, reg, () => false).nuevas.length === 1 &&
+       novedades(drive, reg, () => true).nuevas.length === 0,
+       'así se curan solas las tiendas que ya tienen el .jpg equivocado');
+  }
+
   /* ═══ B-4 · LAS FOTOS, EN TANDAS Y SIN QUE UNA SE LLEVE A LAS DEMÁS ═══
      Se prueba `enTandas` directamente, que es donde vive la regla, y no a
      través de main(): probarlo ahí exigiría un maestro falso y un Drive falso,

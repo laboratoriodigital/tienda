@@ -18,6 +18,7 @@
  * originales/ no existe.
  */
 import { readFile, writeFile, mkdir, readdir, unlink } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { laTienda, alMaestro } from './tienda.mjs';
@@ -44,10 +45,15 @@ async function leerRegistro() {
 /* Qué hay que bajar: lo que no está, y lo que en Drive es más nuevo que la
    última vez que se convirtió. Comparar por fecha y no por tamaño porque el
    comercio puede reemplazar una foto por otra que pese casi igual. */
-function novedades(archivos, registro) {
+/* 0.22.5 · Y LO QUE EL REGISTRO DA POR PUBLICADO PERO NO ESTÁ (bitácora 108).
+   Hasta la 0.22.4 el respaldo de una foto `.png` salía como `.jpg`: el registro
+   la daba por hecha y la tienda pedía un archivo que no existía. Con `existe`,
+   la siguiente corrida lo nota sola y la vuelve a bajar; sirve igual para una
+   foto que alguien borró a mano del repositorio. */
+function novedades(archivos, registro, existe = () => true) {
   const nuevas = archivos.filter(a => {
     const r = registro[a.nombre];
-    return !r || r.id !== a.id || r.modificado !== a.modificado;
+    return !r || r.id !== a.id || r.modificado !== a.modificado || !existe(a.nombre);
   });
   const enDrive = new Set(archivos.map(a => a.nombre));
   const borradas = Object.keys(registro).filter(n => !enDrive.has(n));
@@ -80,17 +86,30 @@ async function convertir(sharp, ruta, nombre, destino = PUBLICADAS) {
       .then(info => ({ ancho, size: info.size }));
   });
 
-  // El respaldo con el nombre lógico, que es el que va en la hoja.
-  const respaldo = sharp(ruta).rotate()
-    .resize(Math.min(900, meta.width || 900), null, { withoutEnlargement: true })
-    .jpeg({ quality: CALIDAD, mozjpeg: true })
-    .toFile(join(destino, `${raiz}.jpg`));
+  /* El respaldo con el nombre lógico, que es el que va en la hoja: EXACTO, con
+     su extensión, y en su formato. 0.22.5 · bitácora 108: salía siempre como
+     `${raiz}.jpg`, así que `logo.png` se publicaba como `logo.jpg` —sin su
+     transparencia— y la tienda, que pide lo que dice la hoja, recibía un 404:
+     el producto sin foto, el icono de la pestaña roto. */
+  const respaldo = enSuFormato(sharp(ruta).rotate()
+    .resize(Math.min(900, meta.width || 900), null, { withoutEnlargement: true }), nombre)
+    .toFile(join(destino, basename(nombre)));
 
   const hechas = await Promise.all([...derivadas, respaldo]);
   const pesos = hechas.slice(0, ANCHOS.length).map(d => `${d.ancho}:${kb(d.size)}`);
   const salida = hechas.reduce((s, d) => s + d.size, 0);
 
   return { pesos, salida };
+}
+
+/* El formato del respaldo sale de la extensión del nombre lógico. PNG conserva
+   la transparencia, que en un logo es casi siempre lo que hay alrededor. */
+export function enSuFormato(img, nombre) {
+  const ext = extname(nombre).toLowerCase();
+  if (ext === '.png')  return img.png({ compressionLevel: 9, adaptiveFiltering: true });
+  if (ext === '.webp') return img.webp({ quality: CALIDAD });
+  if (ext === '.avif') return img.avif({ quality: CALIDAD });
+  return img.jpeg({ quality: CALIDAD, mozjpeg: true });
 }
 
 /* B-4 · LA REGLA DE LAS TANDAS, EN UN SOLO SITIO Y COMPROBABLE.
@@ -147,7 +166,8 @@ async function main() {
   const tienda = await laTienda();
   const { archivos, usadas = [] } = await alMaestro(tienda, 'fotos');
   const registro = await leerRegistro();
-  const { nuevas, borradas } = novedades(archivos, registro);
+  const { nuevas, borradas } = novedades(archivos, registro,
+                                        n => existsSync(join(PUBLICADAS, basename(n))));
 
   console.log(`${archivos.length} foto(s) en el Drive del comercio.`);
 
@@ -249,6 +269,12 @@ async function main() {
       await writeFile(ruta, Buffer.from(foto.contenido, 'base64'));
 
       const { pesos, salida } = await convertir(sharp, ruta, a.nombre);
+      /* El `.jpg` que dejaban las versiones anteriores para una foto que no lo
+         es: se quita, salvo que otra foto de la hoja se llame justo así. */
+      const viejo = basename(a.nombre, extname(a.nombre)) + '.jpg';
+      if (viejo !== a.nombre && !registro[viejo] && !archivos.some(x => x.nombre === viejo)) {
+        await unlink(join(PUBLICADAS, viejo)).catch(() => {});
+      }
       registro[a.nombre] = { id: a.id, modificado: a.modificado, bytes: a.bytes };
       console.log(`  + ${a.nombre.padEnd(26)} ${kb(a.bytes).padStart(8)}  ->  ${pesos.join('  ')}` +
                   `   (${kb(salida)})`);

@@ -91,7 +91,12 @@ a{color:inherit}
 }
 .barra-int{display:flex;align-items:center;justify-content:space-between;height:62px}
 .marca{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.035em;font-size:1.28rem}
-.marca svg,.marca img{width:22px;height:22px;flex:none;object-fit:contain}
+.marca svg{width:22px;height:22px;flex:none}
+/* 0.22.5 · El logo se lee (bitácora 108). A 22 px, como el signo dibujado, no
+   se entendía. Alto fijo —la barra no salta cuando llega— y ancho libre hasta
+   un tope, para que un logo alargado no se encoja a un sello. */
+.marca img{height:40px;width:auto;max-width:170px;flex:none;object-fit:contain}
+@media(max-width:480px){.marca img{height:34px;max-width:130px}}
 .btn-carrito{
   display:flex;align-items:center;gap:8px;background:var(--negro);color:var(--blanco);
   padding:9px 16px;border-radius:var(--radio);font-weight:600;font-size:.9rem;
@@ -957,7 +962,7 @@ function aplicarConfiguracion(c){
   // que la barra no se mueve cuando la imagen llega.
   const logo = v("logo");
   const signo = $("#marcaSigno");
-  const fuente = logo ? urlFoto(logo, "miniatura") : "";
+  const fuente = logo ? urlFoto(logo, "entera") : "";
   if(fuente && signo){
     const img = document.createElement("img");
     img.src = fuente;
@@ -1421,7 +1426,9 @@ function urlFoto(nombre, uso){
 
   const plantilla = String(FOTOS.cdn || "").trim();
   if(!plantilla || !cdnPermitido(plantilla)){
-    return origen + "/" + (FOTOS.webp ? conTamano(ruta, ANCHOS[uso] || 600) : ruta);
+    // "entera": sin recortar. Las derivadas webp son CUADRADAS (recorte al
+    // centro de interés): para un logo alargado se come la mitad (0.22.5).
+    return origen + "/" + (FOTOS.webp && uso !== "entera" ? conTamano(ruta, ANCHOS[uso] || 600) : ruta);
   }
 
   return plantilla
