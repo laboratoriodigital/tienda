@@ -25,9 +25,9 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 > rompió a `BITACORA.md`, lo que quedó fuera al `ROADMAP.md`, y este archivo se
 > borra.
 
-## Dónde estamos · 29 de septiembre de 2026 · 0.22.3
+## Dónde estamos · 29 de septiembre de 2026 · 0.22.4
 
-- **La semilla va en la 0.22.3** (`package.json` y `VERSION_TIENDA`). Los
+- **La semilla va en la 0.22.4** (`package.json` y `VERSION_TIENDA`). Los
   hitos del MVP están cerrados —M0 a M5, con M3.5 y M3 bis (tabla al principio
   de §5)—; la etiqueta 1.0.0 todavía no se ha cortado.
 - **La flota que se actualiza sola (M6) también está hecha**, aunque salió del
@@ -491,7 +491,7 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 | M6 · La flota se actualiza sola | Hecho fuera del MVP (S3 del `ROADMAP.md`) | 0.13.0 y 0.14.0 |
 
 Lo que vino después, versión por versión, está en las secciones 0.11.0 a
-0.22.3 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
+0.22.4 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
 
 **El MVP son siete hitos —M3 bis reabrió M3—, y este fue el orden:**
 
@@ -1703,6 +1703,16 @@ próxima.*
       `montaje`, las cabeceras de `release` y `fotos`, dónde sacar el token en
       `conectar`/`alta`, y «Confirmado» → «Pagado» en la ayuda de la hoja.
 - [x] `prueba-panel` fuera de `flota.json` (ver la sección de arriba).
+
+### 0.22.4 · La semilla con su propio logo, y un 404 que no era el acceso
+
+**C-19 · Lo que salió al correr la 0.22.3 en la semilla**  · 1 pt · ✅ (bitácora 107)
+- [x] `config.js` sabe ver el icono de la pestaña cuando es una foto de la
+      tienda (`fotos/<archivo>`, publicado) o una dirección, además del
+      dibujado. En rojo en la semilla desde que su hoja tuvo logo.
+- [x] `alMaestro` (`montar/tienda.mjs`) reintenta un 404 que llega tras más
+      de 15 s —la redirección de Google que caduca—, y el mensaje ya no manda a
+      revisar el acceso cuando el 404 fue lento.
 
 ---
 

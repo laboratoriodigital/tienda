@@ -89,6 +89,14 @@ export const SIN_REINTENTO = ['sembrar'];
    vistazo, y no estaba en ninguna parte. */
 const RUIDOSA_DESDE = 5000;
 
+/* 0.22.4 · bitácora 107. Un 404 que llega rápido es de la implementación
+   (acceso, URL); uno que llega tras esperar es casi siempre la redirección a
+   script.googleusercontent.com, que caduca. Se reintenta, con pausa. */
+export const LENTO_404 = Number(process.env.LENTO_404_MS || 15000);   // la variable, solo para las pruebas
+export const esRedireccionCaducada = tardo => tardo >= LENTO_404;
+const REINTENTOS_404 = 3;
+const ESPERA_404 = Number(process.env.ESPERA_404_MS || 10000);
+
 /* Las tres decisiones del plantón, sueltas y probables de verdad. Estaban
    metidas dentro de `alMaestro`, que necesita un servidor y noventa segundos
    para ejercitarse; así una batería puede preguntar por la política sin
@@ -194,16 +202,31 @@ export async function alMaestro({ url, token }, accion, extra = {}) {
 
   const q = new URLSearchParams({ a: accion, t: token, ...extra });
   const tope = topeDe(accion);
-  let r;
+  let r, tardo = 0;
   for (let intento = 1; ; intento++) {
     const arranque = Date.now();
     try {
       r = await fetch(url + '?' + q, { redirect: 'follow',
                                        signal: AbortSignal.timeout(tope) });
-      const tardo = Date.now() - arranque;
+      tardo = Date.now() - arranque;
       if (tardo >= RUIDOSA_DESDE) {
         console.log('  · «' + accion + '» contestó en ' + Math.round(tardo / 1000) +
                     ' s' + (intento > 1 ? ' (intento ' + intento + ')' : '') + '.');
+      }
+      /* 0.22.4 · UN 404 TRAS UNA ESPERA LARGA SE REINTENTA (bitácora 107).
+         Apps Script entrega la respuesta desde script.googleusercontent.com
+         por una redirección que caduca: si el script tarda —frío, recién
+         publicado—, el 404 llega de esa redirección y no de la implementación.
+         Pasó en la semilla: «identidad contestó en 41 s» y 404, y el montaje
+         murió mandando a revisar un acceso que estaba bien. Una LECTURA se
+         vuelve a pedir; la siguiente, con el script ya caliente, contesta. */
+      if (r.status === 404 && seReintenta(accion) && esRedireccionCaducada(tardo) &&
+          intento < REINTENTOS_404) {
+        console.log('  · «' + accion + '» devolvió 404 tras ' + Math.round(tardo / 1000) +
+                    ' s: con una respuesta lenta es la redirección de Google que caduca, ' +
+                    'no el acceso. Reintento ' + (intento + 1) + ' de ' + REINTENTOS_404 + '…');
+        await new Promise(listo => setTimeout(listo, ESPERA_404));
+        continue;
       }
       break;
     } catch (e) {
@@ -229,6 +252,7 @@ export async function alMaestro({ url, token }, accion, extra = {}) {
        El técnico se fue a mirar una implementación que estaba bien.
        Así que el diagnóstico solo se ofrece cuando no está ya descartado. */
     const yaContesto = RESPONDIO.has(url);
+    const lento = esRedireccionCaducada(tardo);
     throw new Error(
       'El maestro respondió 404 a «' + accion + '»' +
       (extra.id ? ' (id ' + extra.id + ')' : '') + '.\n\n' +
@@ -243,6 +267,14 @@ export async function alMaestro({ url, token }, accion, extra = {}) {
           '  · O lo que se pidió ya no está: una foto borrada del Drive que la\n' +
           '    hoja todavía nombra.\n\n' +
           'Mira la pestaña Errores de la hoja y las Ejecuciones del proyecto.'
+        : lento
+        ? 'Tardó ' + Math.round(tardo / 1000) + ' s en contestar ese 404' +
+          (seReintenta(accion) ? ', también al reintentar' : '') + '. Con acceso\n' +
+          '«Solo yo» Google contesta en un segundo con su pantalla de inicio de\n' +
+          'sesión: un 404 tras una espera larga es la redirección de\n' +
+          'script.googleusercontent.com, que CADUCA cuando el script está frío o\n' +
+          'recién publicado. Vuelve a correr en unos minutos. Si se repite, mira las\n' +
+          'Ejecuciones del proyecto: algo lo está haciendo lento.'
         : 'Ninguna acción ha contestado todavía en esta corrida, así que lo\n' +
           'primero a descartar es el acceso de la implementación:\n' +
           'Implementar > Gestionar implementaciones > lápiz > Quién tiene\n' +

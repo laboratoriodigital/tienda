@@ -4126,6 +4126,41 @@ if (!fs.existsSync('../.github/workflows/release.yml')) {
   }
 }
 
+/* ═══ 27l. UN 404 LENTO ES LA REDIRECCIÓN, NO EL ACCESO (0.22.4 · bitácora 107) ═══
+   Con un servidor de verdad: `alMaestro` contra un maestro que tarda y
+   contesta 404, como hizo Google en la semilla tras un `release`. */
+{
+  const { execFileSync } = require('child_process');
+  const correr = (plan) => {
+    const codigo = `
+      import http from 'node:http';
+      const plan = ${JSON.stringify(plan)}; let n = 0;
+      const srv = http.createServer((q, r) => { const p = plan[Math.min(n++, plan.length - 1)];
+        setTimeout(() => { r.writeHead(p.s, { 'content-type': 'application/json' }); r.end(p.s === 200 ? '{"ok":true,"negocio":"x"}' : 'no'); }, p.ms); });
+      await new Promise(l => srv.listen(0, l));
+      const { alMaestro } = await import(${JSON.stringify(require('path').resolve('../montar/tienda.mjs'))});
+      let salida;
+      try { const d = await alMaestro({ url: 'http://127.0.0.1:' + srv.address().port + '/exec', token: 't' }, 'identidad');
+            salida = { ok: d.ok, pedidas: n }; }
+      catch (e) { salida = { error: e.message, pedidas: n }; }
+      srv.close(); console.log(JSON.stringify(salida));`;
+    const out = execFileSync(process.execPath, ['--input-type=module', '-e', codigo],
+      { env: Object.assign({}, process.env, { LENTO_404_MS: '150', ESPERA_404_MS: '10', SONDEO: '/tmp/no-hay-sondeo.json' }),
+        stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim().split('\n').pop();
+    return JSON.parse(out);
+  };
+  const a = correr([{ s: 404, ms: 250 }, { s: 200, ms: 0 }]);
+  ok('UN 404 QUE LLEGA TRAS ESPERAR se reintenta, y la lectura sigue: es la redirección que caduca, no el acceso',
+     a.ok === true && a.pedidas === 2, JSON.stringify(a));
+  const b = correr([{ s: 404, ms: 0 }]);
+  ok('  ...pero uno RÁPIDO no se reintenta y sigue mandando a mirar el acceso',
+     b.pedidas === 1 && /Ninguna acción ha contestado todavía/.test(b.error || ''), JSON.stringify(b).slice(0, 120));
+  const c = correr([{ s: 404, ms: 250 }]);
+  ok('  ...y si el lento se repite, el mensaje dice cuánto tardó y NO manda a revisar el acceso',
+     c.pedidas === 3 && /Tardó \d+ s/.test(c.error || '') && !/Ninguna acción/.test(c.error || ''),
+     JSON.stringify(c).slice(0, 140));
+}
+
 /* ═══ 27k. LO QUE LA SEMILLA RETIRÓ ENTRA EN EL COMMIT (0.22.3 · bitácora 106) ═══
    La actualización borraba los `retirados` del disco, pero `montaje` solo
    indexaba publicar/, wrangler y los propios: el borrado no llegaba nunca al

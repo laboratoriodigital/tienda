@@ -39,12 +39,6 @@ const cfg = async (clave, valor) => {
     const l = document.querySelector('link[rel="icon"]');
     return l ? decodeURIComponent(l.getAttribute('href')) : '';
   });
-  ok('La pestaña del navegador dibuja un icono propio',
-     /^data:image\/svg\+xml,<svg/.test(icono) && /circle/.test(icono),
-     icono.slice(0, 46));
-  ok('  ...dibujado dentro del propio archivo, sin pedir nada al servidor',
-     icono.indexOf('http') === -1 || icono.indexOf('http') > 30,
-     'no hay petición extra');
   /* LOS COLORES DE LA MARCA, NO LOS DE ORGÁNICO.
      Esta aserción exigía `#D0211C` y `#1B5E3A` a pelo. Pasaba desde siempre
      porque la única tienda montada usaba los colores de fábrica — y se puso
@@ -62,13 +56,35 @@ const cfg = async (clave, valor) => {
     const m = document.querySelector('meta[name="theme-color"]');
     return m ? m.getAttribute('content') : '';
   });
-  const delIcono = (icono.match(/fill='(#[0-9A-Fa-f]{6})'/) || [])[1] || '';
-  ok('  ...con los colores de ESTA tienda, no con los de la primera',
-     /^#[0-9A-Fa-f]{6}$/.test(tema) && delIcono.toUpperCase() === tema.toUpperCase(),
-     'icono ' + (delIcono || '(ninguno)') + ' · theme-color ' + (tema || '(ninguno)'));
-  ok('  ...y el segundo color también es un color de verdad',
-     /stroke='(#[0-9A-Fa-f]{6})'/.test(icono),
-     'si no es un hex de seis dígitos, la página lo tira sin avisar');
+  /* 0.22.4 · EL ICONO PUEDE SER UNA FOTO DE LA TIENDA (bitácora 107). Desde la
+     0.21.0 `favicon` —o, si falta, `logo`— manda sobre el marcador dibujado:
+     un nombre de archivo sale como `fotos/<nombre>` y una dirección, tal cual.
+     Esto solo sabía ver el dibujado, y se puso rojo en la semilla el día que
+     su hoja tuvo logo: el patrón 4, otra vez en la batería que lo cuenta. */
+  const esFoto = /^fotos\/[^/?#]+\.(png|jpe?g|webp|gif|svg|ico)$/i.test(icono);
+  const esDireccion = /^https:\/\/[^\s"'<>]+$/i.test(icono);
+  if (esFoto || esDireccion) {
+    const fsx = require('fs'), px = require('path');
+    ok('La pestaña del navegador lleva el icono propio de ESTA tienda',
+       esDireccion || fsx.existsSync(px.join(__dirname, '..', 'publicar', icono)),
+       icono + (esFoto ? ' (tiene que estar publicado en publicar/fotos/)' : ''));
+    ok('  ...y el color de la barra del navegador es un color de verdad',
+       /^#[0-9A-Fa-f]{6}$/.test(tema), 'theme-color ' + (tema || '(ninguno)'));
+  } else {
+    ok('La pestaña del navegador dibuja un icono propio',
+       /^data:image\/svg\+xml,<svg/.test(icono) && /circle/.test(icono),
+       icono.slice(0, 46));
+    ok('  ...dibujado dentro del propio archivo, sin pedir nada al servidor',
+       icono.indexOf('http') === -1 || icono.indexOf('http') > 30,
+       'no hay petición extra');
+    const delIcono = (icono.match(/fill='(#[0-9A-Fa-f]{6})'/) || [])[1] || '';
+    ok('  ...con los colores de ESTA tienda, no con los de la primera',
+       /^#[0-9A-Fa-f]{6}$/.test(tema) && delIcono.toUpperCase() === tema.toUpperCase(),
+       'icono ' + (delIcono || '(ninguno)') + ' · theme-color ' + (tema || '(ninguno)'));
+    ok('  ...y el segundo color también es un color de verdad',
+       /stroke='(#[0-9A-Fa-f]{6})'/.test(icono),
+       'si no es un hex de seis dígitos, la página lo tira sin avisar');
+  }
   ok('  ...y también para la pantalla de inicio del celular',
      await p.evaluate(() => !!document.querySelector('link[rel="apple-touch-icon"]')));
 

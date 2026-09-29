@@ -49,7 +49,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P4 · Una prueba que solo sabe ver la primera tienda no prueba el producto
 - **Regla:** ninguna prueba del producto nombra a un comercio real; se prueba con un comercio de prueba y, además, con OTRO.
-- **Entradas:** 4, 11, 12, 14, 55, 93, 102; Medios: *Cinco baterías daban por hecho que la tienda se llamaba «Orgánico»*.
+- **Entradas:** 4, 11, 12, 14, 55, 93, 102, 107; Medios: *Cinco baterías daban por hecho que la tienda se llamaba «Orgánico»*.
 - **Lo impide hoy:** `pruebas/marca.js` con la lista única `terminos-prohibidos.json`; `pruebas/respaldo.js` monta un comercio que no es el de la plantilla; `pruebas/tiendita.js` hornea otro comercio.
 
 ### P5 · Una comprobación que da lo mismo con el defecto y sin él no comprueba nada
@@ -74,7 +74,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P9 · Reproducir antes de diagnosticar
 - **Regla:** ningún diagnóstico se da por bueno sin reproducir el fallo (emulador, repositorio de juguete, tiendita). Un error se lee por lo que dice, y cuatro arreglos que fallan igual son una sola hipótesis equivocada.
-- **Entradas:** 25, 50, 56, 92, 99, 104, 106; Críticos: *El acta se congela antes de que llegue el último sello*; Graves: *El maestro se inventaba su propia dirección*; las cinco *Afirmaciones mías que resultaron falsas*.
+- **Entradas:** 25, 50, 56, 92, 99, 104, 106, 107; Críticos: *El acta se congela antes de que llegue el último sello*; Graves: *El maestro se inventaba su propia dirección*; las cinco *Afirmaciones mías que resultaron falsas*.
 - **Lo impide hoy:** nada automático. Es regla de la casa, escrita en `RUNBOOK-TECNICO.md`.
 
 ### P10 · El que se actualiza a sí mismo corre su versión vieja
@@ -104,7 +104,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P15 · Un aviso tiene que llegar a donde alguien mira, y nombrar la causa
 - **Regla:** el aviso va donde está la persona —el resumen de la corrida, arriba del panel—, dice qué pasó en ESTA corrida y qué hacer. Un paso que corre `always()` después de un desastre, o un error de git al final, cuenta su pena y no la del desastre.
-- **Entradas:** 20, 21, 44, 50, 57, 63, 87, 91, 92, 99, 105.
+- **Entradas:** 20, 21, 44, 50, 57, 63, 87, 91, 92, 99, 105, 107.
 - **Lo impide hoy:** la ficha común con que abren los resúmenes de los flujos de los dos repositorios, vigilada por `pruebas/montaje.js` (91).
 
 ### P16 · Un flujo que nunca ha corrido de verdad no está probado
@@ -2819,3 +2819,37 @@ comparación vieja, sin escribir `~/.clasprc.json` y sin indexar los
 `retirados`.
 
 *Ficha:* *(mío)* · 🟠 Grave · P6, P9, P16 · 0.22.3 · 2026-09-29
+
+**107 · La 0.22.3, corrida en la semilla: una batería que solo veía la primera
+tienda, y un 404 que no era el acceso.** El `release` de la 0.22.3 hizo lo que
+debía: vio el maestro de la semilla atrás y disparó su `montaje`. Ese montaje
+murió en «¿Esta hoja es la de esta tienda?» con ««identidad» contestó en 41 s»
+y justo después «El maestro respondió 404 a «identidad»… lo primero a descartar
+es el acceso de la implementación». El acceso estaba bien: otro montaje minutos
+después pasó ese paso. Apps Script entrega la respuesta desde
+`script.googleusercontent.com` por una redirección que caduca; si el script
+tarda —y 41 s es tardar—, el 404 es de esa redirección. El mensaje ya conocía
+esa causa (bitácora del 404 en UNA acción), pero solo la ofrecía si otra acción
+había contestado en el mismo proceso, y el sondeo corre en otro. Ahora
+`alMaestro` reintenta un 404 que llega tras más de 15 s, dos veces y con pausa,
+y si se repite dice cuánto tardó en vez de mandar a mirar el acceso. No lo
+reproduje contra Google —no se deja—: se reprodujo la forma, con un servidor
+que tarda y contesta 404.
+
+El montaje a mano, con la casilla del maestro, llegó más lejos y murió en las
+baterías: `config.js` 22/25, «La pestaña del navegador dibuja un icono propio
+-> fotos/tienda-virtual.png». Desde la 0.21.0 `favicon` —o el `logo`— manda
+sobre el icono dibujado, y la hoja de la semilla ya tenía logo; la batería solo
+sabía ver el dibujo. Es el patrón 4 en la misma batería que dice combatirlo: en
+las tiendas no se vio porque su compuerta es la tienda viva (102), pero la
+semilla corre la suite entera sobre SU index horneado con SU hoja. Ahora
+`config.js` acepta las tres formas que produce `iconoDeLaTienda` —dibujo,
+`fotos/<archivo>` que tiene que estar publicado, y `https://`— y en las tres
+exige un `theme-color` de verdad.
+
+**Lo prueban** 3 aserciones nuevas en `pruebas/montaje.js` con un servidor
+HTTP de verdad (404 lento que se recupera, 404 rápido que no se reintenta, 404
+lento que se repite), en rojo sin el arreglo; y `config.js` corrido con el icono
+cambiado a una foto que existe (verde) y a una que no (rojo).
+
+*Ficha:* *(mío)* · 🟠 Grave · P4, P9, P15 · 0.22.4 · 2026-09-29

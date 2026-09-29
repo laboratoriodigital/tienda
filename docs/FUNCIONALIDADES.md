@@ -1,6 +1,6 @@
 # Todo lo que hace esta tienda
 
-Inventario completo de funcionalidades de la **Tienda Panel** (`0.22.3`), por
+Inventario completo de funcionalidades de la **Tienda Panel** (`0.22.4`), por
 categoría y sin dejar ninguna fuera. Si algo existe en el producto, está en
 esta lista; si no está aquí, no existe todavía —y entonces vive en
 `ROADMAP.md`—.
