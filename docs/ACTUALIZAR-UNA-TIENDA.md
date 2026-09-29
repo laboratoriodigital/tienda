@@ -87,7 +87,9 @@ Cómo saber qué versión tiene cada una: en el panel de tiendas, columna
    etiqueta y no lo necesita (bitácora 70).
 4. **Opcional, `SEMILLA_TOKEN`** en cada tienda Panel (de grano fino: la semilla
    en lectura; la tienda con *Contents* y *Workflows* en escritura). Sin él la
-   tienda se actualiza igual, pero sin traer los flujos.
+   tienda se actualiza igual, pero sin traer los flujos. Y si lo tiene pero no la
+   incluye a ella, tampoco pasa nada desde la 0.20.5: el montaje lo comprueba, lo
+   dice en el resumen y trae todo menos los flujos (bitácora 92).
 5. **Desde la 0.14.0, las próximas versiones llegan solas**: Panel › Tienda ›
    *Versión de tu tienda* › Actualizar, el menú de la hoja, o la flota. Si una
    versión pide `A0_instalar()`, está escrito aquí.

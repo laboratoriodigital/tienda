@@ -183,7 +183,37 @@ function red(t, o) {
   ok('  ...y si algo falla después de publicar el maestro, vuelve al de antes', i('Volver atrás el maestro') > i('Publicar en main') &&
      /if: failure\(\) && steps\.publicado\.outcome == 'success' && steps\.semilla\.outputs\.maestro == 'si'/.test(flujo) &&
      /git show "\$\{\{ github\.sha \}\}:maestro\.gs" > maestro\.gs/.test(flujo));
-  ok('  ...y con SEMILLA_TOKEN puede empujar flujos', /token: \$\{\{ secrets\.SEMILLA_TOKEN \|\| github\.token \}\}/.test(flujo));
+  /* 0.20.5 · EL PERMISO DE LA SEMILLA, DONDE DE VERDAD HACE FALTA (bitácora 92).
+     Aquí se exigía lo contrario: que el `checkout` se hiciera con
+     `secrets.SEMILLA_TOKEN || github.token`, para que el empujón final pudiera
+     llevar flujos. Un permiso de grano fino acotado a la semilla —lo normal—
+     hace que ESE primer paso muera con 403 y que la tienda no pueda ni bajarse
+     a sí misma: la corrida entera se salta y el único error visible es el del
+     cronómetro, que no tiene nada que ver. Se baja con el permiso propio, se
+     pregunta si el de la semilla alcanza, y se usa al empujar. */
+  ok('  ...y el CHECKOUT se hace con el permiso propio de la tienda, no con el de la semilla',
+     !/- uses: actions\/checkout[\s\S]{0,200}?token: \$\{\{ secrets\./.test(flujo),
+     'un permiso que no alcanza tumbaba el primer paso y con él la corrida entera');
+  ok('  ...se PREGUNTA si el permiso de la semilla alcanza a esta tienda, antes de contar con él',
+     /id: permiso/.test(flujo) && /api\.github\.com\/repos\/\$GITHUB_REPOSITORY/.test(flujo) &&
+     /flujos=\$flujos" >> "\$GITHUB_OUTPUT"/.test(flujo));
+  ok('  ...y si no alcanza, dice qué ampliar en vez de dejar un 403 suelto',
+     /Repository access/.test(flujo) && /Workflows/.test(flujo) && /Read and write/.test(flujo));
+  ok('  ...la respuesta viaja a la herramienta, que solo escribe flujos si se pueden empujar',
+     /FLUJOS: \$\{\{ steps\.permiso\.outputs\.flujos \}\}/.test(flujo) &&
+     /excluir: puedeFlujos\(\)/.test(fs.readFileSync('../montar/actualizar-semilla.mjs', 'utf8')));
+  ok('  ...y el empujón usa el de la semilla cuando sirve, y el propio cuando no',
+     /empujar\(\) \{/.test(flujo) && /x-access-token:\$\{SEMILLA_TOKEN\}/.test(flujo) &&
+     /git push --quiet origin "HEAD:\$1"/.test(flujo) &&
+     !/git push (--quiet )?(-u )?origin HEAD:(main|"\$rama")/.test(flujo),
+     'un permiso corto deja los flujos atrás; no puede dejar la tienda sin publicar');
+
+  {
+    const { puedeFlujos } = await import(path.resolve('../montar/actualizar-semilla.mjs'));
+    ok('PUEDE-FLUJOS: manda lo que contestó GitHub, y si nadie preguntó, que el permiso exista',
+       puedeFlujos({}) === false && puedeFlujos({ SEMILLA_TOKEN: 'x' }) === true &&
+       puedeFlujos({ SEMILLA_TOKEN: 'x', FLUJOS: 'no' }) === false && puedeFlujos({ FLUJOS: 'si' }) === true);
+  }
 
   await enLaPagina();
   console.log(T.join('\n'));

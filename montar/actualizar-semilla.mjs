@@ -50,6 +50,13 @@ export function principal(dir = process.cwd()) {
   return r;
 }
 
+/* Si el flujo ya preguntó, manda su respuesta; si no (una corrida vieja, o
+   correrlo a mano), vale lo de antes: el permiso existe, se supone que sirve. */
+export function puedeFlujos(env = process.env) {
+  if (env.FLUJOS) return env.FLUJOS === 'si';
+  return !!(env.SEMILLA_TOKEN || env.SEMILLA_ORIGEN);
+}
+
 function trabajar(dir) {
   const conf = JSON.parse(readFileSync(join(dir, 'semilla.json'), 'utf8'));
   const aqui = String(process.env.GITHUB_REPOSITORY || '').toLowerCase();
@@ -104,8 +111,12 @@ function trabajar(dir) {
     tiendaDir: dir, nuevaDir, baseDir, propios: nuevaConf.propios, version: hasta,
     sinBase: process.env.SIN_BASE === 'sobrescribir' ? 'sobrescribir' : 'dejar',
     /* Empujar un flujo necesita un permiso que el GITHUB_TOKEN de Actions no
-       tiene nunca. Sin SEMILLA_TOKEN, los flujos se quedan como están. */
-    excluir: TOKEN || ORIGEN ? [] : ['.github/workflows/']
+       tiene nunca. Sin SEMILLA_TOKEN, los flujos se quedan como están.
+       0.20.5 · Y TENERLO NO ES TENERLO ÚTIL (bitácora 92): un permiso de grano
+       fino acotado a la semilla existe aquí y no alcanza a esta tienda. El
+       flujo lo pregunta antes y lo dice en FLUJOS; escribir unos flujos que
+       después no se pueden empujar deja la publicación entera rechazada. */
+    excluir: puedeFlujos() ? [] : ['.github/workflows/']
   });
   decir(informeEnTexto({ desde, hasta, informe }));
   return Object.assign({ desde, hasta }, informe);

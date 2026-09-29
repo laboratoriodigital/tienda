@@ -2638,6 +2638,20 @@ const configurar = (g, clave, valor) => {
   ok('  ...y montaje y fotos cierran diciendo cómo queda la tienda, pase lo que pase',
      cierran.every(x => x.bien), cierran.filter(x => !x.bien).map(x => x.f).join(', ') || 'los dos');
 
+  /* 0.20.5 · NINGÚN FLUJO SE BAJA EL REPOSITORIO CON UN PERMISO AJENO
+     (bitácora 92). `montaje` hacía el checkout con `SEMILLA_TOKEN || github.token`
+     para poder empujar flujos. En una tienda cuyo permiso de grano fino solo
+     alcanzaba a la semilla, el PRIMER paso murió con 403, la corrida entera se
+     saltó y lo único visible al final fue un error del cronómetro que no tenía
+     nada que ver: dos horas para encontrar un permiso mal puesto. Un permiso
+     ajeno se comprueba y se usa donde hace falta; nunca en el paso del que
+     cuelga todo lo demás. */
+  const conPermisoAjeno = flujos.filter(({ t }) =>
+    /- uses: actions\/checkout[\s\S]{0,300}?token: \$\{\{ secrets\./.test(t));
+  ok('  ...y ningún flujo se baja el repositorio con un permiso que puede no alcanzarlo',
+     conPermisoAjeno.length === 0,
+     conPermisoAjeno.map(x => x.f).join(', ') || 'todos con el permiso propio de la tienda');
+
   /* Y el marcador de las baterías, una sola vez: en el encabezado. El volcado
      solo aparece cuando hay algo roto que mirar. */
   const pr = flujos.filter(x => x.f === 'pruebas.yml')[0].t;
@@ -3469,9 +3483,13 @@ const configurar = (g, clave, valor) => {
      roja sobre un montaje que salió perfecto. Pasó en el primer montaje de este
      repositorio. `fotos` ya lo había aprendido; este flujo no recibió el
      arreglo (patrón 2). */
-  const PUSH = 'git push --quiet origin HEAD:main';
+  /* 0.20.5 · El empujón a main pasa por `empujar`, que elige el permiso que
+     sirve (bitácora 92); lo que se comprueba aquí es el orden, y el orden lo
+     marca la LLAMADA, no dónde esté escrita la función. */
+  const PUSH = 'empujar main';
   ok('EL MONTAJE publica solo, directo en main, como `fotos`',
-     mont.includes(PUSH) && /inputs\.aprobacion != 'con-pull-request'/.test(mont),
+     mont.includes(PUSH) && /git push --quiet origin "HEAD:\$1"/.test(mont) &&
+     /inputs\.aprobacion != 'con-pull-request'/.test(mont),
      'el comerciante no espera a que alguien mire');
   ok('  ...sin abrir un pull request que nadie pidió',
      !/create-pull-request/.test(mont),

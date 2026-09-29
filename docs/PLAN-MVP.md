@@ -1505,6 +1505,16 @@ agotado.
       0.20.3).
 - [x] Baterías en los dos repositorios, cada una sobre sus propios flujos.
 
+### 0.20.5 · Un permiso opcional no puede estar en el camino crítico
+
+**C-9 · El checkout de la tienda**  · 1 pt · ✅ (bitácora 92)
+- [x] `montaje` se baja el repositorio con el permiso propio de la tienda.
+- [x] Pregunta si `SEMILLA_TOKEN` alcanza a ESTA tienda antes de contar con él, y
+      si no, dice qué ampliar en vez de morir con un 403.
+- [x] El empujón usa el de la semilla cuando sirve y el propio cuando no: los
+      flujos se quedan atrás, la tienda se publica igual.
+- [x] La herramienta solo escribe flujos que después se puedan empujar (`FLUJOS`).
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

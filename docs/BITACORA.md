@@ -2185,6 +2185,36 @@ aserciones nuevas de `panel.js` y 1 de `calendario.js`, 5 de `montaje.js` y 4 de
 la flota; y las tres que vigilan la forma del resumen se vieron en rojo antes de
 darlas por buenas.
 
+**92 · El permiso de la semilla tumbó el primer paso, y el error que se veía era
+otro.** La tienda de prueba no conseguía actualizarse: cada montaje terminaba en
+rojo con `Cannot find module montar/tiempos.mjs`, el fallo de la bitácora 90, que
+ya estaba arreglado. No era eso. Arriba del todo, fuera de la pantalla, el
+`checkout` moría con **403 · Write access to repository not granted**: TODOS los
+pasos siguientes quedaban saltados y el único que llegaba a correr era el del
+cronómetro, que lleva `always()` y se caía por un archivo que la actualización
+—la que nunca llegó a correr— era justo la encargada de traer. El error visible
+era el síntoma del síntoma.
+
+La causa: `montaje` se bajaba el repositorio con `SEMILLA_TOKEN || github.token`.
+Ese permiso se copia a cada tienda para poder empujar sus `.github/workflows`, que
+el `GITHUB_TOKEN` de Actions no puede escribir nunca; pero es de grano fino y el
+de esta flota estaba acotado a la semilla. Un permiso pensado para UNA cosa
+—empujar flujos— colgado del paso del que cuelga todo lo demás: si no alcanza,
+la tienda no puede ni bajarse a sí misma, y encima no puede recibir el arreglo,
+porque el arreglo viaja dentro de la actualización que no corre.
+
+Tres cambios. El `checkout` vuelve al permiso propio de la tienda, que siempre
+alcanza. El flujo PREGUNTA una vez si el de la semilla llega hasta aquí
+(`GET /repos/…`) y, si no, lo dice en el resumen con lo que hay que ampliar
+—*Repository access*, *Contents* y *Workflows* en escritura— en vez de dejar un
+403 suelto. Y el empujón elige: con el de la semilla cuando sirve, con el propio
+cuando no, así que un permiso corto deja los flujos una versión atrás pero no
+deja la tienda sin publicar lo demás. La lección es la de siempre, en su versión
+más cara: **un permiso opcional no puede estar en el camino crítico**, y un paso
+que corre `always()` después de un desastre cuenta su propia pena, no la del
+desastre. **Lo prueban** 6 aserciones de `actualizar.js` y 1 de `montaje.js`,
+todas vistas en rojo antes de darlas por buenas.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los
