@@ -35,8 +35,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tienda.laboratorio-digital.com/">
 <meta name="theme-color" content="#666666">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='40' r='23' fill='%23666666'/%3E%3Cpath d='M32 17V7' stroke='%23BF9000' stroke-width='5.5' stroke-linecap='round'/%3E%3Cpath d='M32 18c-5-6-13-5-16-2 3 4 9 6 14 4 5 3 11 2 15-3-3-3-10-4-13 1z' fill='%23BF9000'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='40' r='23' fill='%23666666'/%3E%3Cpath d='M32 17V7' stroke='%23BF9000' stroke-width='5.5' stroke-linecap='round'/%3E%3Cpath d='M32 18c-5-6-13-5-16-2 3 4 9 6 14 4 5 3 11 2 15-3-3-3-10-4-13 1z' fill='%23BF9000'/%3E%3C/svg%3E">
+<link rel="icon" href="fotos/tienda-virtual.png">
+<link rel="apple-touch-icon" href="fotos/tienda-virtual.png">
 <!-- ═══ FIN DE LA CONFIGURACIÓN ═══ -->
 <!-- ═══ DATOS ESTRUCTURADOS ═══
      Los hornea montar/sembrar-seo.mjs desde publicar/catalogo.json.
@@ -814,7 +814,7 @@ let EMPRESA = {
    excepción — no se puede inventar QUÉ producto es perecedero por él. */
 let EXCEPCIONES_RETRACTO = [];
 
-/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-22-7 ═══
+/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-22-8 ═══
    Lo que la página pinta ANTES de que conteste nadie, y lo único que le
    queda si no contesta nadie. Sale de la hoja de ESTA tienda: lo repone
    `montar/sembrar-respaldo.mjs` desde el catalogo.json que hornea el mismo
@@ -822,6 +822,7 @@ let EXCEPCIONES_RETRACTO = [];
    No se edita a mano: la opción del menú que lo generaba se derogó en el
    Sprint 5. Si hay que rehacerlo, se corre el flujo montaje. */
 const CONFIG_SEMILLA = {
+  "analytics_id": "",
   "autoria_url": "https://laboratorio-digital.com",
   "catalogo_columnas": "4",
   "cobro": "pasarela",
@@ -835,7 +836,7 @@ const CONFIG_SEMILLA = {
   "correo_hora": "7",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_siempre": "No",
-  "correo_ultimo": "Tue Sep 22 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "empresa_ciudad": "Medellín",
   "empresa_correo": "laboratoriodigital.la@gmail.com",
   "empresa_direccion": "Tienda Virtual - Colombia",
@@ -854,7 +855,7 @@ const CONFIG_SEMILLA = {
   "fotos_webp": "Sí",
   "horario": "",
   "legal_actualizado": "Fri Sep 18 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
-  "logo": "",
+  "logo": "tienda-virtual.png",
   "negocio": "TIENDA",
   "orden_catalogo": "Precio: de menor a mayor",
   "panel_usuario": "sebas",

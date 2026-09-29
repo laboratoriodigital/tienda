@@ -1,7 +1,7 @@
 {
  "esquema": 1,
- "version": "2026-09-22-7",
- "generado": "2026-09-23T02:34:38.144Z",
+ "version": "2026-09-22-8",
+ "generado": "2026-09-29T19:53:55.841Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -73,7 +73,7 @@
  "config": {
   "negocio": "TIENDA",
   "whatsapp": "573008610480",
-  "logo": "",
+  "logo": "tienda-virtual.png",
   "portada_titulo": "TU TIENDA, SIEMPRE EN LÍNEA",
   "portada_texto": "Tu tienda Virtual",
   "portada_puntos": "Producto de la semana|Entregas a todo el país|Pides y confirmas por WhatsApp",
@@ -95,7 +95,7 @@
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_hora": "7",
   "correo_siempre": "No",
-  "correo_ultimo": "Tue Sep 22 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "fotos_origen": "",
   "fotos_cdn": "",
   "respaldo_carpeta": "https://drive.google.com/drive/folders/1VVXb4WTKB4tYk7EuWkluHHirQYlNhhc8?usp=sharing",
@@ -119,6 +119,7 @@
   "f_rastreo": "Sí",
   "f_avisame": "Sí",
   "catalogo_columnas": "4",
+  "analytics_id": "",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""
