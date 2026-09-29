@@ -10,5 +10,10 @@
     "package.json", "package-lock.json", "CONTRIBUIR.md", "semilla.json",
     "preparar-fotos.mjs", "presupuesto.json", "terminos-prohibidos.json", ".gitattributes", ".gitignore",
     "publicar/_headers"
+  ],
+  "_retirados": "Lo que la semilla QUITÓ y las tiendas nacidas antes siguen cargando. La actualización lo borra allá y lo dice. Solo rutas de aquí, relativas, y nunca `publicar/`, `.git` ni la hoja de nadie. Se comprueba que ninguna exista ya en la semilla: no se retira lo que todavía se entrega.",
+  "retirados": [
+    "servicio",
+    ".github/workflows/tienda-nueva.yml"
   ]
 }

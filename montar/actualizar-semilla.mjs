@@ -116,7 +116,9 @@ function trabajar(dir) {
        fino acotado a la semilla existe aquí y no alcanza a esta tienda. El
        flujo lo pregunta antes y lo dice en FLUJOS; escribir unos flujos que
        después no se pueden empujar deja la publicación entera rechazada. */
-    excluir: puedeFlujos() ? [] : ['.github/workflows/']
+    excluir: puedeFlujos() ? [] : ['.github/workflows/'],
+    /* Lo que la versión nueva declara retirado: lo dice ELLA, no la tienda. */
+    retirados: nuevaConf.retirados || []
   });
   decir(informeEnTexto({ desde, hasta, informe }));
   return Object.assign({ desde, hasta }, informe);

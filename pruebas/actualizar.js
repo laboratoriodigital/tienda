@@ -169,13 +169,42 @@ function red(t, o) {
     ok('EN LA SEMILLA MISMA no se trae nada', esSemilla.o.cambio === 'no' && /ES la semilla/.test(esSemilla.log));
     const pedida = correr(tiendaDir, { VERSION: '9.9.9' });
     ok('UNA VERSIÓN QUE NO EXISTE no se inventa: falla y lo dice', /FALLÓ/.test(pedida.log) && /no tiene la versión v9\.9\.9/.test(pedida.log));
-    const { aplicar } = await import(path.resolve('../montar/semilla.mjs'));
+    const { aplicar, informeEnTexto } = await import(path.resolve('../montar/semilla.mjs'));
     const t2 = fs.mkdtempSync(path.join(os.tmpdir(), 'semilla-t2-'));
     escribir(t2, { '.github/workflows/montaje.yml': 'flujo 1', 'maestro.gs': 'm1' });
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'semilla-b-')); escribir(base, { '.github/workflows/montaje.yml': 'flujo 1', 'maestro.gs': 'm1' });
     const nueva = fs.mkdtempSync(path.join(os.tmpdir(), 'semilla-n-')); escribir(nueva, { '.github/workflows/montaje.yml': 'flujo 2', 'maestro.gs': 'm2' });
     const inf = aplicar({ tiendaDir: t2, nuevaDir: nueva, baseDir: base, propios: conf.propios, excluir: ['.github/workflows/'] });
-    ok('SIN PERMISO PARA FLUJOS, se trae lo demás y los flujos quedan pendientes, dichos',
+    /* 0.20.7 · LO QUE LA SEMILLA RETIRÓ, SE RETIRA (bitácora 94). Actualizar
+     escribía y nunca borraba: `servicio/` —el alta vieja, quitada en la 0.17—
+     seguía en toda tienda nacida antes, y hacía fallar dentro de ella la
+     batería que comprueba que esa alta no vuelva. Borrar es lo único que no se
+     deshace, así que la lista es explícita y acotada. */
+  {
+    const t5 = fs.mkdtempSync(path.join(os.tmpdir(), 'semilla-t5-'));
+    escribir(t5, { 'maestro.gs': 'm1', 'servicio/tienda-nueva.yml': 'el alta vieja',
+                   'publicar/index.html': 'MI TIENDA', '.git/HEAD': 'ref: main' });
+    const n5 = fs.mkdtempSync(path.join(os.tmpdir(), 'semilla-n5-')); escribir(n5, { 'maestro.gs': 'm2' });
+    const r5 = aplicar({ tiendaDir: t5, nuevaDir: n5, baseDir: null, propios: ['maestro.gs'],
+                         sinBase: 'sobrescribir',
+                         retirados: ['servicio', 'publicar', '../fuera', '.git', '/etc', ''] });
+    const hay = r => fs.existsSync(path.join(t5, r));
+    ok('LO QUE LA SEMILLA RETIRÓ se borra en la tienda, y se dice',
+       !hay('servicio') && r5.retirados.join() === 'servicio' &&
+       /Se retiró lo que la semilla ya no entrega/.test(informeEnTexto({ desde: '0.16.0', hasta: 'v9.9.9', informe: r5 })));
+    ok('  ...y lo que no se puede borrar no se borra: publicar/, .git, fuera de la tienda',
+       hay('publicar/index.html') && hay('.git/HEAD') &&
+       ['publicar', '../fuera', '.git', '/etc', ''].every(x => r5.noRetirados.indexOf(x) !== -1),
+       r5.noRetirados.join(' · '));
+    ok('  ...y retirar algo, aunque no se escriba nada más, ya es un cambio que se publica',
+       r5.cambia === true, 'si no, la tienda vuelve a arrastrarlo en la corrida siguiente');
+    ok('  ...y la semilla no retira nada que todavía entregue',
+       (semilla.retirados || []).length > 0 &&
+       semilla.retirados.every(r => !fs.existsSync(path.join('..', r))),
+       (semilla.retirados || []).join(', '));
+  }
+
+  ok('SIN PERMISO PARA FLUJOS, se trae lo demás y los flujos quedan pendientes, dichos',
        fs.readFileSync(path.join(t2, 'maestro.gs'), 'utf8') === 'm2' && fs.readFileSync(path.join(t2, '.github/workflows/montaje.yml'), 'utf8') === 'flujo 1' &&
        inf.pendientes.includes('.github/workflows/montaje.yml'));
   }

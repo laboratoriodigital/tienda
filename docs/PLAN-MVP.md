@@ -1524,6 +1524,14 @@ agotado.
 - [x] `publicar/_headers` viaja con la semilla: la única excepción en `publicar/`.
 - [x] Aserción nueva: ninguna batería abre a ciegas un archivo que una tienda no tiene.
 
+### 0.20.7 · Lo que la semilla retira, se retira
+
+**C-11 · Actualizar también quita**  · 1 pt · ✅ (bitácora 94)
+- [x] `semilla.json` declara `retirados`; la actualización los borra en la tienda.
+- [x] Acotado: nada de `publicar/`, `.git`, rutas absolutas ni `..`; lo rechazado se nombra.
+- [x] Retirar cuenta como cambio: si no, la tienda lo arrastra otra vez.
+- [x] La semilla no retira nada que todavía entregue.
+
 ### Lo que sigue después del MVP
 
 **M6 · La flota que se actualiza sola.** Diseñada y **fuera de esta entrega**

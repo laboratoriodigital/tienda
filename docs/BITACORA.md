@@ -2246,6 +2246,28 @@ baterías y exige que nadie abra a ciegas un archivo que una tienda no tiene.
 tienda de juguete —sin lo que `alta` no hereda— donde la suite se corrió entera
 antes de dar esto por bueno.
 
+**94 · Actualizar escribía y nunca borraba.** Con las baterías ya arregladas, la
+tienda de prueba llegó más lejos y se paró en una sola aserción: «el alta vieja no
+existe». Y tenía razón: ahí estaba `servicio/`, el flujo de alta que la semilla
+retiró en la 0.17.0, vivo dentro de una tienda nacida en la 0.16. La razón es que
+la actualización solo sabía escribir: recorre los archivos de la versión NUEVA y
+decide cuál copiar, así que lo que la semilla quitó no se quita en ninguna
+parte — vive para siempre en cada tienda anterior. Casi siempre eso es basura
+inofensiva; esta vez era basura que hacía fallar una batería DENTRO de la tienda
+y, con ella, la publicación entera.
+
+Ahora la versión nueva declara en su `semilla.json` qué retira, y la
+actualización lo borra allá y lo dice en el resumen. La lista viaja con la
+semilla y no con la tienda —una regla, un sitio— y va acotada, porque borrar es
+lo único que no se puede deshacer: rutas relativas de dentro de la tienda, sin
+`..`, sin raíz absoluta, y nunca `publicar/` —lo que el comercio publica— ni
+`.git`. Lo que no encaja no se toca y sale nombrado en el informe. Un detalle que
+importa: retirar algo cuenta como cambio aunque no se escriba ningún archivo, o
+la tienda volvería a arrastrarlo en la corrida siguiente. Y una aserción cierra
+el círculo: la semilla no puede retirar nada que todavía entregue. **Lo prueban**
+4 aserciones de `actualizar.js`, con el control negativo —dejar borrar
+`publicar/`— visto en rojo.
+
 **80 · La documentación que se quedó en el camino viejo.** El mapa de
 despliegue seguía diciendo que el camino corto «todavía no ha corrido de punta
 a punta en una tienda de verdad» —ya había montado dos— y presentaba los
