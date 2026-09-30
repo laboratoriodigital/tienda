@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-22-8",
- "generado": "2026-09-30T04:00:41.926Z",
+ "generado": "2026-09-30T06:11:14.525Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -100,6 +100,7 @@
   "sitio_titulo": "Tu tienda en línea - Ya!",
   "sitio_descripcion": "Tu tienda en línea - Ya!",
   "analytics_id": "",
+  "meta_pixel_id": "",
   "empresa_razon": "TIENDA",
   "empresa_nit": "1111111111",
   "empresa_correo": "laboratoriodigital.la@gmail.com",
@@ -119,7 +120,7 @@
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
   "autoria_url": "https://tienda.laboratorio-digital.com/",
-  "correo_ultimo": "",
+  "correo_ultimo": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "panel_usuario": "sebas",
   "tope_pago": "12110000",
   "cobro": "pasarela",
