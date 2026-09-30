@@ -20,21 +20,21 @@
 <!-- ═══ CONFIGURACIÓN DE ESTA TIENDA ═══
      Generado por generarConfiguracion() en el Apps Script.
      No lo edites a mano: cambia la pestaña Configuración y vuelve a generarlo. -->
-<title>TU TIENDA VIRTUAL</title>
-<meta name="description" content="Tu tienda virtual siempre Online">
+<title>Tu tienda en línea - Ya!</title>
+<meta name="description" content="Tu tienda en línea - Ya!">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TIENDA">
 <meta property="og:locale" content="es_CO">
-<meta property="og:title" content="TU TIENDA VIRTUAL">
-<meta property="og:description" content="Tu tienda virtual siempre Online">
+<meta property="og:title" content="Tu tienda en línea - Ya!">
+<meta property="og:description" content="Tu tienda en línea - Ya!">
 <meta property="og:url" content="https://tienda.laboratorio-digital.com/">
 <meta property="og:image" content="https://tienda.laboratorio-digital.com/compartir.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="TU TIENDA VIRTUAL">
+<meta property="og:image:alt" content="Tu tienda en línea - Ya!">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tienda.laboratorio-digital.com/">
-<meta name="theme-color" content="#666666">
+<meta name="theme-color" content="#D0211C">
 <link rel="icon" href="fotos/tienda-virtual.png">
 <link rel="apple-touch-icon" href="fotos/tienda-virtual.png">
 <!-- ═══ FIN DE LA CONFIGURACIÓN ═══ -->
@@ -56,15 +56,15 @@
    "address": {
     "@type": "PostalAddress",
     "addressCountry": "CO",
-    "streetAddress": "Tienda Virtual - Colombia",
-    "addressLocality": "Medellín"
+    "streetAddress": "Medellín",
+    "addressLocality": "Colombia"
    }
   },
   {
    "@type": "WebSite",
    "url": "https://tienda.laboratorio-digital.com/",
-   "name": "TU TIENDA VIRTUAL",
-   "description": "Tu tienda virtual siempre Online",
+   "name": "Tu tienda en línea - Ya!",
+   "description": "Tu tienda en línea - Ya!",
    "publisher": {
     "@id": "https://tienda.laboratorio-digital.com/#comercio"
    }
@@ -104,9 +104,9 @@
    Paleta: la define cada tienda desde su Configuración.
    ============================================================ */
 :root{
-  --rojo:#666666;
-  --acento:#38761D;
-  --verde:#BF9000;
+  --rojo:#D0211C;
+  --acento:#34A853;
+  --verde:#1B5E3A;
   --blanco:#FFFFFF;
   --negro:#000000;
   --linea:#E4E4E4;
@@ -833,24 +833,24 @@ let EXCEPCIONES_RETRACTO = [];
    Sprint 5. Si hay que rehacerlo, se corre el flujo montaje. */
 const CONFIG_SEMILLA = {
   "analytics_id": "",
-  "autoria_url": "https://laboratorio-digital.com",
+  "autoria_url": "https://tienda.laboratorio-digital.com/",
   "catalogo_columnas": "4",
   "cobro": "pasarela",
   "cobro_ambiente": "Producción",
   "cobro_modo": "Pasarela",
   "cobro_pruebas": "",
-  "color_alterno": "#38761D",
-  "color_principal": "#666666",
-  "color_secundario": "#BF9000",
-  "como_compras": "Armas tu carrito aquí|Confirmas por WhatsApp|Pagas como acordemos por el chat|Recibes en 24 a 72 horas",
+  "color_alterno": "#34A853",
+  "color_principal": "#D0211C",
+  "color_secundario": "#1B5E3A",
+  "como_compras": "Armas tu carrito aquí|Confirmas por PSE|Haces Seguimineto del Pedido|Recibes en 24 a 72 horas",
   "correo_hora": "7",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_siempre": "No",
-  "correo_ultimo": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
-  "empresa_ciudad": "Medellín",
+  "correo_ultimo": "",
+  "empresa_ciudad": "Colombia",
   "empresa_correo": "laboratoriodigital.la@gmail.com",
-  "empresa_direccion": "Tienda Virtual - Colombia",
-  "empresa_nit": "1128472916",
+  "empresa_direccion": "Medellín",
+  "empresa_nit": "1111111111",
   "empresa_razon": "TIENDA",
   "empresa_tel": "573008610480",
   "envio_gratis_desde": "",
@@ -861,25 +861,26 @@ const CONFIG_SEMILLA = {
   "favicon": "",
   "fotos_cdn": "",
   "fotos_drive": "https://drive.google.com/drive/folders/1P8cJJDuKxs8Ylv-VZUt7Be8Z1KnZlLgV?usp=sharing",
-  "fotos_origen": "",
+  "fotos_origen": "https://tienda.laboratorio-digital.com/fotos",
   "fotos_webp": "Sí",
   "horario": "",
-  "legal_actualizado": "Fri Sep 18 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "legal_actualizado": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "logo": "tienda-virtual.png",
+  "logo_tamano": "40",
   "negocio": "TIENDA",
-  "orden_catalogo": "Precio: de menor a mayor",
+  "orden_catalogo": "Destacados primero",
   "panel_usuario": "sebas",
   "pedido_minimo": "",
-  "pie_descripcion": "Se vende de todo",
-  "portada_puntos": "Producto de la semana|Entregas a todo el país|Pides y confirmas por WhatsApp",
-  "portada_texto": "Tu tienda Virtual",
+  "pie_descripcion": "Ecommerce más barato de Colombia",
+  "portada_puntos": "Producto de la semana|Entregas a todo el país|Pides y confirmas por PSE",
+  "portada_texto": "Tu Tienda Virtual - Laboratorio Digital",
   "portada_titulo": "TU TIENDA, SIEMPRE EN LÍNEA",
   "repositorio": "laboratoriodigital/tienda",
-  "respaldo_carpeta": "https://drive.google.com/drive/folders/1VVXb4WTKB4tYk7EuWkluHHirQYlNhhc8?usp=sharing",
+  "respaldo_carpeta": "",
   "retracto_excepciones": "",
-  "sitio_descripcion": "Tu tienda virtual siempre Online",
-  "sitio_titulo": "TU TIENDA VIRTUAL",
-  "sitio_url": "https://tienda.laboratorio-digital.com",
+  "sitio_descripcion": "Tu tienda en línea - Ya!",
+  "sitio_titulo": "Tu tienda en línea - Ya!",
+  "sitio_url": "https://tienda.laboratorio-digital.com/",
   "tienda_abierta": "Sí",
   "tienda_cerrada_mensaje": "",
   "tope_pago": "12110000",
