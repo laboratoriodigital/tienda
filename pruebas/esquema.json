@@ -183,6 +183,7 @@
     "sitio_titulo",
     "sitio_descripcion",
     "analytics_id",
+    "meta_pixel_id",
     "empresa_razon",
     "empresa_nit",
     "empresa_correo",

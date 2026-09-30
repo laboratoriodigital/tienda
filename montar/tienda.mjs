@@ -200,14 +200,22 @@ export async function alMaestro({ url, token }, accion, extra = {}) {
     return guardada;
   }
 
-  const q = new URLSearchParams({ a: accion, t: token, ...extra });
+  /* 1.0.0 · EL TOKEN VA EN EL CUERPO, NUNCA EN LA DIRECCIÓN (ROADMAP 5.7,
+     bitácora 113). Una dirección queda en los registros de Google y en los de
+     cualquier intermediario; el cuerpo de un POST, no. El maestro atiende las
+     puertas de montaje por POST desde la 0.16.0 (`atenderPorPost`), así que
+     esto funciona también contra un maestro viejo mientras se actualiza.
+     Texto plano y no application/json: es lo que Apps Script recibe sin
+     preguntar antes por CORS, igual que el panel. */
+  const cuerpo = JSON.stringify({ a: accion, t: token, ...extra });
   const tope = topeDe(accion);
   let r, tardo = 0;
   for (let intento = 1; ; intento++) {
     const arranque = Date.now();
     try {
-      r = await fetch(url + '?' + q, { redirect: 'follow',
-                                       signal: AbortSignal.timeout(tope) });
+      r = await fetch(url, { method: 'POST', redirect: 'follow', body: cuerpo,
+                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                             signal: AbortSignal.timeout(tope) });
       tardo = Date.now() - arranque;
       if (tardo >= RUIDOSA_DESDE) {
         console.log('  · «' + accion + '» contestó en ' + Math.round(tardo / 1000) +

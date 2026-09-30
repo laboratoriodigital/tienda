@@ -1,7 +1,7 @@
 # Todo lo que hace esta tienda
 
-Inventario completo de funcionalidades de la **Tienda Panel** (`0.24.0`), por
-categoría y sin dejar ninguna fuera. Si algo existe en el producto, está en
+Inventario completo de funcionalidades de la **Tienda 2.0** (*Tienda Panel*,
+`1.0.0`), por categoría y sin dejar ninguna fuera. Si algo existe en el producto, está en
 esta lista; si no está aquí, no existe todavía —y entonces vive en
 `ROADMAP.md`—.
 
@@ -30,6 +30,12 @@ Cómo leer las marcas:
   (`catalogo_columnas`: 3, 4 o 5 en computador; una columna en celular y dos
   en tableta).
 - **Precio anterior tachado** en la tarjeta, cuando lo hay y es mayor.
+- **Las fotos se pasan desde la tarjeta** (1.0.0): si un producto tiene más de
+  una foto general, la tarjeta del catálogo se desliza con el dedo, con flechas
+  al pasar el ratón en computador y puntos abajo. Solo la primera foto se
+  descarga al pintar; las demás, la primera vez que alguien toca, pasa el ratón
+  o desliza esa tarjeta. Tocar la foto abre la ficha; el botón «Ver» es el
+  camino del teclado. Con una sola foto, la tarjeta es la de siempre.
 - **Ficha del producto** con galería, formato y categoría, precio,
   disponibilidad, descripción, variantes y **Compartir este producto**.
 - **Enlace por producto** (`?p=…`): abre la tienda con esa ficha abierta.
@@ -44,15 +50,16 @@ Cómo leer las marcas:
   (`fotos_cdn`), o tal cual si no hay nada de eso.
 - **Marca y colores** de la hoja: color principal, secundario y alterno,
   título de portada, texto, puntos de portada y descripción al pie.
-- - **Precio por combinación** (0.24.0): en *Inventario por variante › Precio* o
+- **Precio por combinación** (0.24.0): en *Inventario por variante › Precio* o
   en el panel, junto al stock; vacío = el precio del producto. La tarjeta dice
   «Desde» el más barato, la ficha cambia el precio con la elección, y el sello de
   la hoja cobra ese precio.
 - **Hoja ordenada** (0.24.0): Catálogo primero y en orden lógico (se lee por
   nombre de columna), Configuración por secciones, listas desplegables en todo lo
   que tiene opciones, formato mil filas por delante, obligatorios en rojo,
-  pestañas en orden y con color; se pone al día sola cada hora.
-**Logo del comercio** (`logo`, 0.21.0): el nombre de una foto de la carpeta
+  pestañas en orden y con color. Una hoja vieja la pone al día sola la revisión
+  de cada hora, una vez por versión.
+- **Logo del comercio** (`logo`, 0.21.0): el nombre de una foto de la carpeta
   de Drive o una dirección completa. Va en la barra en lugar del signo; el
   nombre del comercio sigue escrito. Si el archivo no llega, vuelve el signo.
   Entero —sin el recorte cuadrado de las derivadas— y en su formato: un PNG
@@ -205,7 +212,10 @@ tienda.
   mano, 0.22.1), y desde la 0.22.3 también quita los que la semilla retiró.
 - **`panel.gs` se publica con un flujo** (`tiendas › panel`, 0.21.1), con los
   secretos `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`. Todavía no ha corrido con ellos
-  puestos.
+  puestos: la hoja publicada es anterior a la 1.0.0 y consulta por GET (el
+  maestro la atiende y lo anota). El `panel.gs` de la 1.0.0 pregunta por POST a
+  las tiendas de la 2.0 y por GET a las **Tienda Básica** (columna *Producto*),
+  cuyo maestro no atiende puertas por POST.
 - **Alta de una tienda** en un flujo de tres campos, y **conectar** en otros
   tres.
 - **Portal de administración** (`panel.gs`, la hoja *Panel de tiendas*): todas
@@ -221,7 +231,9 @@ tienda.
 - **Volver atrás** del sitio o de la versión con el flujo `restaurar`
   (`el-sitio` trae `publicar/` de un commit anterior como un commit nuevo;
   `la-version` se lo pide a `montaje`). `el-sitio` publica de verdad desde la
-  0.22.3: antes decía «Ya estaba así» siempre.
+  0.22.3: antes decía «Ya estaba así» siempre. Volver a una versión anterior
+  a la 1.0.0 funciona sin pasos a mano: el maestro sigue atendiendo por GET a
+  las herramientas viejas.
 - **Diagnóstico** en la hoja y en el maestro: qué falta para que la tienda esté
   terminada, qué versión corre, y los datos para conectar.
 - **Comprobación de las fotos con dominio propio** (decisión 22): el montaje
@@ -261,8 +273,8 @@ tienda.
 
 - **Dos tokens distintos** por tienda: el del menú (a la vista en la hoja, solo
   abre el menú) y el de montaje (en los secretos, abre las puertas de servicio).
-- **Puertas con guardia declarada**: pública, menú, montaje o panel, y las del
-  panel **solo por POST** para que el testigo no quede en el historial.
+- **Puertas con guardia declarada**: pública, menú, montaje o panel. Las del
+  panel van **solo por POST**, para que el testigo no quede en el historial.
 - **Clave del panel como huella con sal**, nunca en claro, nunca en la hoja.
 - **Testigo de sesión firmado** por tienda, de ocho horas.
 - **Límite de intentos** y de tamaño de cuerpo en cada puerta.
@@ -274,13 +286,25 @@ tienda.
   guarda su nombre ni su celular (del pedido, solo la ciudad); cobrando en línea, sus datos de entrega quedan en la
   pestaña *Datos de entrega*, que no sale por ninguna puerta. Ni perfilado, ni
   terceros, salvo Google Analytics o el píxel de Meta si el comercio los pone.
-- **Riesgo conocido**: el token de montaje todavía viaja como `t=` en
-  peticiones GET del montaje al maestro (`PLAN-MVP.md` §7).
+- **Ningún token de montaje en una dirección** (1.0.0, ROADMAP 5.7): las
+  herramientas de `montar/`, el flujo `conectar` de `tiendas` y `panel.gs`
+  (hacia las tiendas de la 2.0) le hablan al maestro por POST, con el token en
+  el cuerpo.
+  - **El maestro sigue aceptando el GET** en las puertas de montaje, a
+    propósito: volver a una versión anterior corre las herramientas de esa
+    versión, que preguntan por GET, contra el maestro nuevo. No lo rechaza:
+    lo **anota** (propiedad `TOKEN_POR_GET`: la puerta y la fecha, nunca el
+    token) y el **Diagnóstico** dice quién sigue mandándolo así —la hoja
+    *Panel de tiendas* sin actualizar, o una herramienta anterior a la 1.0.0—.
+  - Clientes que todavía mandan un token por GET: el **stub** de cada hoja
+    (su propio token de menú, guardia `menu`; cerrarlo exige volver a pegar el
+    stub en cada hoja) y `panel.gs` cuando consulta una **Tienda Básica**
+    (hasta migrarla a la 2.0).
 
 ## 10. Lo que se prueba solo · Operador
 
-- **Más de 2.400 aserciones** sobre el código real, incluidas baterías de
-  navegador con Playwright.
+- **Baterías sobre el código real**, incluidas las de navegador con
+  Playwright. Cuántas son no se escribe (`CONTRIBUIR.md` › *Las pruebas*).
 - **Guardias con control negativo**: cada regla nueva se verifica en rojo antes
   de darla por buena.
 - **Esquema congelado** de la hoja y de las puertas: un cambio en las columnas
@@ -301,5 +325,8 @@ tienda.
   rastreadores verían la tienda, no el producto (`ARQUITECTURA.md`).
 - No **restaura pedidos** desde una copia: se restauran catálogo,
   configuración, envíos, cupones e inventario por variante (bitácora 77).
+- No pide **consentimiento de cookies** antes de cargar Google Analytics o el
+  píxel de Meta: es un riesgo legal abierto y no se construye sin la
+  confirmación de un abogado (decisión 35).
 - No hace **facturación electrónica**, ni integra transportadoras, ni tiene
   multi-idioma o multi-moneda: no está en el MVP ni en el roadmap todavía.

@@ -1,25 +1,33 @@
-# Traspaso — la Tienda Panel
+# Traspaso — la Tienda 2.0 (Tienda Panel)
 
-_Al 30 de septiembre de 2026 · semilla en la **0.25.0**. Repositorio
+_Al 30 de septiembre de 2026 · semilla en la **1.0.0**. Repositorio
 `laboratoriodigital/tienda`._
 
-**Léeme primero si recibes el proyecto o abres una sesión nueva.** Aquí está el
-mapa: qué hay, dónde vive cada cosa y cómo empezar. Lo demás está enlazado; no
-se repite aquí.
+**Léeme primero si vas a OPERAR la Tienda 2.0 o abres una sesión nueva sobre
+ella.** Aquí está el mapa: qué hay, dónde vive cada cosa y cómo empezar. Lo
+demás está enlazado; no se repite aquí.
+
+> **¿Vas a arrancar la Tienda 3.0?** Este no es tu documento. La 3.0 es un
+> proyecto nuevo, desde cero, y empieza en **[`TRASLADO-3.0.md`](TRASLADO-3.0.md)**:
+> qué hereda de esta (la bitácora, las decisiones, los patrones) y qué no.
+> «3.0» es el nombre de ese proyecto; no tiene que ver con las versiones 3.x
+> de Orgánico.
 
 ---
 
 ## 1 · Dónde estamos, en un párrafo
 
-Este repositorio es **la semilla de la Tienda Panel**: una tienda en línea para
-comercios pequeños, con la hoja de Google como base de datos, un panel web para
-el comercio y WhatsApp o Bold para cobrar. Costo de infraestructura: **$0 al
-mes**. Nació el 18 de septiembre de 2026 como copia de la semilla de la línea
-anterior (`organico` 3.0.0) y va por la **0.25.0**; el MVP saldrá como 1.0.0.
-Está construido —M0 a M5 y el panel completo—, **se actualiza solo** desde la
-0.14.0 y tiene su **flota** en `laboratoriodigital/tiendas`. Lo que falta antes
-de la 1.0.0 es comprobarlo en tiendas de verdad. Dónde va cada hito:
-`PLAN-MVP.md` › *Dónde estamos*.
+Este repositorio es **la Tienda 2.0** —el producto *Tienda Panel*— y su
+semilla: una tienda en línea para comercios pequeños, con la hoja de Google
+como base de datos, un panel web para el comercio y WhatsApp o Bold para
+cobrar. Costo de infraestructura: **$0 al mes**. Es **el caballo de batalla:
+el único producto que se administra y se vende**. Nació el 18 de septiembre de
+2026 como copia de la semilla de la línea anterior (`organico` 3.0.0) y el 30
+de septiembre cerró su MVP con la **1.0.0**: M0 a M5 y el panel completo,
+**se actualiza sola** desde la 0.14.0 y tiene su **flota** en
+`laboratoriodigital/tiendas`. Lo que la 1.0.0 trajo y cerró está en la
+bitácora 113; lo que queda abierto, en §9, y es casi todo del dueño o de
+fuera de este repositorio.
 
 ---
 
@@ -29,12 +37,20 @@ de la 1.0.0 es comprobarlo en tiendas de verdad. Dónde va cada hito:
 |---|---|---|
 | `laboratoriodigital/tienda` | **Esta semilla** (Tienda Panel). También es una tienda: la de Laboratorio Digital, `tienda.laboratorio-digital.com` | `package.json` |
 | `laboratoriodigital/tiendas` | **El servicio**: `alta` y `conectar` de tiendas nuevas, la **flota** (estado, actualizar por anillos, entregar flujos) y el flujo `panel`. Los secretos poderosos viven solo ahí | — |
-| Una por comercio (hoy, `prueba1`) | Las **tiendas hijas**: nacen de una etiqueta de esta semilla y se actualizan solas | la de la etiqueta que traen |
-| `laboratoriodigital/organico` | La **Tienda Básica** (solo la hoja), 3.x, con su tienda Cinnamon Beauty. Otra línea: se actualiza por pull request desde la flota. **Fuera de esta documentación** | 3.x |
+| Una por comercio (hoy, `prueba1`, anillo 2) | Las **tiendas hijas**: nacen de una etiqueta de esta semilla y se actualizan solas | la de la etiqueta que traen |
+| `laboratoriodigital/organico` | **Orgánico**, la **Tienda Básica** (solo la hoja), 3.x, con su cliente Cinnamon Beauty. Otra línea: se actualiza por pull request desde la flota. Queda **como está, solo con correcciones, hasta que sus clientes se migren a la Tienda 2.0** (abajo). **Fuera de esta documentación** | 3.x |
 
-Qué tiendas hay y en qué anillo: `tiendas/flota.json`. Qué versión tiene cada
-una y qué contesta publicada: `tiendas/ESTADO.md` (lo escribe `flota › estado`
-los lunes).
+Qué tiendas hay y en qué anillo: `tiendas/flota.json`. De esta línea hay dos:
+la semilla (Laboratorio Digital, `tienda.laboratorio-digital.com`) y `prueba1`;
+`prueba-panel` salió de la flota. Qué versión tiene cada una y qué contesta
+publicada: `tiendas/ESTADO.md` (lo escribe `flota › estado` los lunes).
+
+**Orgánico se migra, cliente por cliente.** Hasta el 30 de septiembre de 2026 la
+decisión 20 decía que las tiendas 3.x no se pasaban a esta línea. Cambió
+(decisión 36, que revoca la 20): la 2.0 es el único producto, así que cada
+cliente de la Básica se migra a ella cuando convenga —hoy, Cinnamon Beauty—.
+No se sincroniza código entre las dos semillas: se monta una tienda 2.0 nueva
+para ese comercio (`RUNBOOK-TECNICO.md`) y se le pasan sus datos.
 
 Todos son **privados**. Consecuencia que manda sobre muchas decisiones: los
 minutos de Actions se pagan (`presupuesto.json`).
@@ -104,7 +120,19 @@ una versión: **`CONTRIBUIR.md`**.
   las propiedades del script de Apps Script. Nunca en la hoja, el repositorio,
   los secretos de GitHub de la tienda ni el panel.
 - La clave y la sesión del panel viajan **solo por POST**, nunca en la
-  dirección. Los tokens no se imprimen nunca (los flujos los tapan).
+  dirección. Desde la 1.0.0 el token de montaje también va en el cuerpo:
+  `montar/`, el flujo `conectar` y `panel.gs` (hacia las tiendas de la 2.0) lo
+  mandan por POST. El maestro **sigue aceptando el GET** en esas puertas, a
+  propósito —volver a una versión anterior corre herramientas que preguntan
+  por GET—, pero lo anota (`TOKEN_POR_GET`, sin el token) y el diagnóstico
+  dice quién lo manda. Siguen mandando un token por GET el stub (su token de
+  menú) y `panel.gs` hacia una Tienda Básica (`FUNCIONALIDADES.md` ›
+  *Seguridad*). Los tokens no se imprimen nunca (los flujos los tapan).
+- **Tres tokens de GitHub** (decisión 34): `FLOTA_TOKEN` en `tiendas` (con
+  *Administration* y *Secrets*, porque hace también el alta y `conectar`),
+  `SEMILLA_TOKEN` en cada tienda y `DISPARO_TOKEN` en las propiedades del
+  maestro. `ALTA_TOKEN` se retiró: el secreto se borró de `tiendas` el 29 de
+  septiembre de 2026.
 - Cada secreto, dónde vive y quién lo pone: `ARQUITECTURA.md` (tabla de
   credenciales) y `DESPLIEGUE.md` › *Secretos, tokens y llaves*.
 
@@ -143,7 +171,9 @@ una versión: **`CONTRIBUIR.md`**.
   `ACTUALIZAR-UNA-TIENDA.md`).
 - **Ningún comercio va escrito en el código**; todo sale de su pestaña
   `Configuración`.
-- **Campo nuevo, al final y opcional**: el maestro lee por posición.
+- **Campo nuevo, al final del encabezado del código y opcional.** Catálogo e
+  Inventario por variante se leen por el nombre de su columna (0.24.0,
+  decisión 32); las demás pestañas, por posición.
 - **Nunca una implementación nueva de Apps Script**: estrena URL y deja la
   tienda muda.
 
@@ -166,20 +196,41 @@ una versión: **`CONTRIBUIR.md`**.
 | `FUNCIONALIDADES.md` | Todo lo que hace el producto |
 | `GUIA-COMERCIANTE.md` | La página que se le entrega al comercio (y `manuales/Guia-de-una-pagina.html`, imprimible) |
 | `PAGOS-BOLD.md` | Cobrar en línea con Bold, y cómo probarlo |
-| `EVALUACION-stub-automatico.md` | Por qué el stub se pega a mano |
+| `EVALUACION-stub-automatico.md` | Historia: por qué el stub se pega a mano. La decisión vigente está en `DECISIONES.md` › 03 y `ROADMAP.md` › 3.5 |
+| `CONOCIMIENTO.md` | Cómo se hereda lo aprendido entre proyectos (la bitácora como segundo cerebro) |
+| `TRASLADO-3.0.md` | **No es de operación**: el arranque de la Tienda 3.0 |
 
-Un documento redundante no se marca como viejo: **se borra** (patrón 23).
+Un documento redundante no se marca como viejo: **se borra** (P18 en
+`BITACORA.md` › *Lo aprendido*). La historia que explica una decisión no es
+redundante: se marca como historia y se queda.
 
 ---
 
 ## 9 · Lo que queda abierto
 
-- **La 1.0.0**: comprobar en tiendas de verdad lo construido —el cobro con
-  Bold con llaves de pruebas en una tienda publicada (`PAGOS-BOLD.md`), una
-  tienda con variantes vendiendo por combinación, el registro de cambios en una
-  hoja real—. Qué se cerró ya, en `PLAN-MVP.md`.
+Después de la 1.0.0 lo que queda es casi todo del dueño, de otro proyecto o
+de una decisión; el código pendiente de este repositorio es menor (al final).
+
+- **Los secretos `PANEL_SCRIPT_ID` y `PANEL_CLASPRC` en `tiendas`**, y la
+  primera corrida de su flujo `panel`. Hasta entonces la hoja *Panel de
+  tiendas* publicada es anterior a la 1.0.0 y pregunta por GET: cada maestro la
+  atiende y lo anota, y su diagnóstico lo dice.
+- **Revocar en GitHub el token viejo de `ALTA_TOKEN`** (el secreto ya se
+  borró) y quitar el respaldo `ALTA_TOKEN ||` que aún tienen los flujos de
+  `tiendas`.
+- **Migrar a los clientes de Orgánico** a la 2.0, uno por uno, cuando
+  convenga (§2, decisión 36).
+- **Riesgo legal abierto:** la tienda no pide consentimiento de cookies antes
+  de cargar GA4 o el píxel de Meta (decisión 35). No se construye sin la
+  confirmación de un abogado.
+- **E-2:** comparar las comisiones de Bold con números reales.
+- **Decisiones abiertas** (`PLAN-MVP.md` §8): el precio de quitar la autoría;
+  qué se le promete al comercio sobre las actualizaciones; cuándo se hace
+  pública la semilla. Van a `DECISIONES.md` cuando se contesten.
+- **Menores:** las derivadas webp se generan aunque `fotos_webp=No`; el SEO no
+  da el rango de precios cuando varían por combinación; `flota › flujos` hace
+  un commit por entrega; el stub sigue mandando su token por GET (cerrarlo
+  exige repegarlo en cada hoja).
 - **Lo de `ANTES-DE-SALIR.md`**, por cada tienda que salga al aire.
 - **El archivado de la hoja**: `Pedidos` y `Validaciones` solo crecen.
-- **Decisiones abiertas**: el precio de quitar la autoría; qué se le promete al
-  comercio sobre las actualizaciones; cuándo se hace pública la semilla. Van a
-  `DECISIONES.md` cuando se contesten.
+- **Fuera de este proyecto:** el sitio principal (ED1).

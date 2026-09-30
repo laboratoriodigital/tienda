@@ -1,7 +1,8 @@
 # Del error al conocimiento aplicado
 
-**Estado:** idea conceptualizada, sin construir (29-sep-2026). La fase 0 está hecha;
-las demás son propuesta. La decide el dueño.
+**Estado:** idea conceptualizada, sin construir. Al día con la 1.0.0 (30-sep-2026).
+La fase 0 está hecha; la F5 tiene su primer uso real, a mano, con el arranque de la
+Tienda 3.0 (§7); las demás son propuesta. La decide el dueño.
 
 La bitácora es el segundo cerebro del proyecto: qué se rompió, por qué, cómo se
 supo y qué lo impide hoy. Este documento plantea cómo dejar de tener una por
@@ -15,10 +16,10 @@ operación.
 
 | Pieza | Dónde | Qué aporta |
 |---|---|---|
-| Entradas numeradas, citables por número | `docs/BITACORA.md` (1–112) | La historia, con la voz de quien se equivocó. El código y los documentos las citan: «bitácora 103» |
+| Entradas numeradas, citables por número | `docs/BITACORA.md` (1–113; la 113 es la 1.0.0) | La historia, con la voz de quien se equivocó. El código y los documentos las citan: «bitácora 103» |
 | Ficha de cierre por entrada | `BITACORA.md` › *Cómo escribir una entrada* | Autoría · severidad · patrones · versión · fecha, en una línea que se puede leer con una expresión regular |
 | Patrones P1–P21 | `BITACORA.md` › *Lo aprendido* | La regla en una línea, las entradas que la prueban y **lo que la impide hoy** (batería, aserción o código) |
-| Otras bitácoras | `organico/docs/BITACORA.md` (línea Básica) y su copia en cada tienda Básica | La misma historia hasta la separación y otra después, con su propia numeración |
+| Otras bitácoras | `organico/docs/BITACORA.md` (línea Básica) y su copia en cada tienda Básica | La misma historia hasta la separación y otra después, con su propia numeración. Desde la decisión 36 (30-sep-2026) Orgánico solo recibe correcciones hasta que sus clientes se migren: su bitácora crece poco y se hereda como está |
 
 Lo que falta: que esas piezas se lean entre proyectos y que alguien —una
 persona, un flujo o Claude— las **use** antes de equivocarse, no después.
@@ -130,12 +131,21 @@ su fuente, y un repositorio central lee, junta y publica.
 
 | Fase | Qué | Estado |
 |---|---|---|
-| **F0** | Formato común: ficha de cierre, *Lo aprendido* P1–P20, *Cómo escribir una entrada* | **Hecho** (0.22.3) |
+| **F0** | Formato común: ficha de cierre, *Lo aprendido*, *Cómo escribir una entrada* | **Hecho** (0.22.3, con P1–P20; P21 entró en la 0.24.1, bitácora 111) |
 | F1 | Extractor `bitacora.mjs` + batería de formato de las entradas nuevas | Propuesta |
-| F2 | La bitácora de `organico` al mismo formato; mapa `P → K` inicial | Propuesta |
+| F2 | La bitácora de `organico` al mismo formato; mapa `P → K` inicial | Propuesta. Con Orgánico congelado (decisión 36), basta convertirla una vez |
 | F3 | Repo `conocimiento`, su Action y su página | Propuesta |
 | F4 | Skill de revisión y búsqueda por síntoma | Propuesta |
-| F5 | Ficha de riesgos heredados al arrancar un proyecto nuevo | Propuesta |
+| F5 | Ficha de riesgos heredados al arrancar un proyecto nuevo | **Primer uso real, a mano**: la Tienda 3.0 (abajo) |
+
+**La Tienda 3.0 arranca heredando la bitácora.** Es un proyecto nuevo, desde
+cero (decisión 36), y empieza en `docs/TRASLADO-3.0.md`: qué se lleva de la 2.0
+—las entradas 1–113, los patrones P1–P21 y las decisiones— y qué no. Es el
+**primer uso real de F5**, hecho a mano y sin F1–F4: la ficha de riesgos
+heredados la arma una persona leyendo `BITACORA.md`, no un índice generado. Lo
+que cueste hacerlo así es la medida de cuánto vale automatizarlo. Con el modelo
+de §2, las entradas de la 2.0 siguen citándose por su id (`tienda/103`) aunque
+la 3.0 abra su propia numeración.
 
 Con F1–F3, este sistema y la automatización de despliegue de la flota son la
 misma idea: **un repositorio central que conoce a muchos y los pone al día.** Si

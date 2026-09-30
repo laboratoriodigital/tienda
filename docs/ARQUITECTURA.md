@@ -3,9 +3,17 @@
 Este archivo responde una sola pregunta: **qué vive dónde, de quién es la
 cuenta, quién mueve cada pieza y por qué**. Es la referencia técnica del
 sistema, incluida la automatización que monta, publica y actualiza las
-tiendas. Describe el presente (0.22.3); lo que pasó está en `BITACORA.md`, las
+tiendas. Describe el presente —vigente a la
+**1.0.0 (30 de septiembre de 2026)**, la versión que cierra el MVP—; lo que pasó está en `BITACORA.md`, las
 decisiones con condición de disparo en `DECISIONES.md`, y el paso a paso para
 operar en `DESPLIEGUE.md` y `RUNBOOK-TECNICO.md`.
+
+Los nombres, para no confundirlos: la **Tienda 2.0** es este repositorio
+(`laboratoriodigital/tienda`, el producto «Tienda Panel») y es el único que se
+administra y se vende. **Orgánico** (`laboratoriodigital/organico`, «Tienda
+Básica», versiones 3.x) solo recibe correcciones hasta que sus clientes se
+migren a la 2.0 (§13). La **Tienda 3.0** es un proyecto nuevo, desde cero; no
+tiene nada que ver con las versiones 3.x de Orgánico.
 
 El contrato de datos (pestañas, claves, puertas del maestro, entradas de los
 flujos) es normativo y vive aparte, en `CONTRATOS.md`.
@@ -24,16 +32,17 @@ flujos) es normativo y vive aparte, en `CONTRATOS.md`.
    │  secretos,       │ entrega flujos       ▼                        ▼
    │  dispara         │ (API contents)   Hoja «Panel de tiendas»   etiquetas vX.Y.Z ──(se clonan)──┐
    ▼                  ▼                  (panel.gs, cuenta del     (alta clona la última;          │
- ┌────────────── una TIENDA (repo privado, uno por comercio) ─────┐ operador) ── ?a=panel ──┐       │
+ ┌────────────── una TIENDA (repo privado, uno por comercio) ─────┐ operador) ─ a=panel POST ┐       │
  │ montaje · fotos · pruebas · restaurar       publicar/  ◄── hornea                        │       │
  │ semilla.json › propios ◄─────── montaje › semilla (actualizar-semilla.mjs) ─────────────────────┘
  │ compuerta: pruebas/publicacion.sh → pruebas/tienda-viva.js                             │
  │ push a main ──────────────► Cloudflare: Worker solo de recursos estáticos (publicar/)  │
  └─────▲──────────────────────────────▲───────────────────────────────────────────────────┘
-       │ ?a=bloques|identidad|fotos…   │ dispara fotos.yml / montaje.yml
-       │ (MAESTRO_TOKEN, GET ?t=)      │ (GITHUB_TOKEN de sus propiedades = DISPARO_TOKEN)
+       │ a=bloques|identidad|fotos…    │ dispara fotos.yml / montaje.yml
+       │ (POST, MAESTRO_TOKEN en el    │ (GITHUB_TOKEN de sus propiedades = DISPARO_TOKEN)
+       │  cuerpo; 1.0.0)               │
  ┌─────┴──────────────────────────────┴───────────────┐
- │ maestro.gs (Apps Script suelto, cuenta de la tienda)│ ◄── ?a=menu ── stub en la hoja del comercio
+ │ maestro.gs (Apps Script suelto, cuenta de la tienda)│ ◄── ?a=menu (GET) ── stub en la hoja del comercio
  │ web app /exec · propiedades del script · Drive       │ ◄── admin.html (panel del comerciante, POST)
  └─────────────────────────┬───────────────────────────┘ ◄── index.html (comprador: validar, registrar…)
                            ▼
@@ -137,7 +146,15 @@ abrir la hoja de un cliente**. Compartirlas todas con una cuenta
 administradora reconstruiría justo el acoplamiento que evitamos.
 
 En vez de eso, cada maestro publica un resumen de su tienda por la puerta
-`?a=panel&t=<token de montaje>`, y el panel lo pregunta. Lo que cruza son
+`panel` (guardia `montaje`), y el panel lo pregunta. Desde la 1.0.0 `panel.gs`
+pregunta por POST, con el token de montaje en el cuerpo (`{a: 'panel', t}`),
+nunca en la dirección; salvo a una **Tienda Básica** (Orgánico 3.x, función
+`esBasica` según la columna Producto), cuyo maestro no atiende puertas por
+POST: a esa se le sigue preguntando por GET hasta migrarla. El maestro de la
+2.0 contesta también por GET, a propósito, y anota cada GET con el token
+(§6d): la hoja «Panel de tiendas» publicada hoy es anterior a la 1.0.0 y
+pregunta así hasta que el flujo `panel` de `tiendas` publique el `panel.gs`
+de la 1.0.0. Lo que cruza son
 **cifras agregadas** —ventas del mes, pedidos por confirmar, productos
 agotados, versión del código—, nunca un pedido ni el dato de un comprador. Si
 mañana una tienda se va, se borra su fila y no queda nada suyo en nuestro lado.
@@ -165,8 +182,9 @@ las claves que faltan, nunca los valores**.
 `publicar/index.html` es un archivo que se basta solo. Su política de
 seguridad (`default-src 'none'`) autoriza como código externo **solo** la
 librería de pago de Bold (`checkout.bold.co`, que la página inserta únicamente
-al pagar en línea) y, si la tienda tiene `analytics_id`, el fragmento de GA4
-(§15). No hay librerías de terceros ni código compartido cargado con
+al pagar en línea) y, si la tienda los pidió en su hoja, el fragmento de GA4
+(`analytics_id`) y el del píxel de Meta (`meta_pixel_id`) (§15). No hay
+librerías de terceros ni código compartido cargado con
 `<script src>`: la caída de un registro de paquetes no apaga ninguna tienda, y
 nadie puede inyectar código en el carrito de todos los clientes desde un
 paquete.
@@ -206,6 +224,21 @@ flujo (`PUBLICA`: `publicar/fotos`, `catalogo.json`, `index.html`, `404.html`,
 `sitemap.xml`, `robots.txt`); si el horneado toca algo fuera de esa lista, no
 se fusiona solo y deja un pull request.
 
+**En la página: una foto por tarjeta, las demás cuando alguien las pide
+(1.0.0).** Si un producto tiene más de una foto general, su tarjeta del
+catálogo es un carril que se desliza con el dedo (*scroll-snap*), con flechas
+al pasar el ratón en computador y puntos abajo (`carrilDeFotos` en
+`plantilla/index.html`). El costo en la carga es el mismo que con una sola
+foto: **al pintar solo se descarga la primera**; las demás llevan su dirección
+en `data-src` y se piden la primera vez que alguien toca, pasa el ratón, enfoca
+o desliza esa tarjeta (`despertarFotos`; `marcarFoto` mueve los puntos,
+`pasarFoto` las flechas). Una portada con veinte productos de cuatro fotos
+baja a lo sumo veinte fotos, no ochenta (la primera, además, con
+`loading="lazy"`). La caja de una tarjeta con varias fotos deja de ser un `<button>` —un carril no cabe en un botón—: tocar la foto abre
+la ficha y el botón «Ver» es el camino del teclado. Con una sola foto la
+tarjeta queda como antes. Se quitó la insignia «N fotos». Lo prueba
+`pruebas/fotos.js` §6b.
+
 ---
 
 ## 6b. Lo único que sigue viviendo dentro de la hoja
@@ -230,7 +263,9 @@ septiembre de 2026**, en dos mitades:
 **La frontera no es la autorización: es de quién es el proyecto donde vive la
 función que se ejecuta.** Por eso el stub se queda: sus opciones llaman a
 funciones que viven en la hoja del comerciante y piden por HTTP al maestro
-(`?a=menu`, con el token del menú). El experimento se retiró; solo queda
+(`?a=menu`, con el token del menú, por GET: una de las dos excepciones que
+quedan a la regla de no poner un token en una dirección, §6d). El experimento
+se retiró; solo queda
 `quitarMenuDePrueba()` para desmontarlo donde se llegó a instalar.
 
 Consecuencia para el técnico: como el stub llama a `UrlFetchApp`, **el
@@ -268,28 +303,54 @@ donde vive.
   es una copia de `DISPARO_TOKEN`) viven SOLO en las propiedades del script de
   Apps Script.** Nunca en la hoja, en un repositorio, en los secretos de GitHub
   de una tienda ni en el panel.
-- **Un token de GitHub, una clave o un testigo viajan en el cuerpo de un POST,
-  nunca en una dirección.** `conectar` siembra el permiso por POST
-  (`a=permiso`); el panel del comerciante y `entrar` son solo POST.
+- **Un token de GitHub, una clave, un testigo o el token de montaje viajan en
+  el cuerpo de un POST, nunca en una dirección.** Una dirección queda en los
+  registros de acceso de Google y en el historial del navegador; un cuerpo, no.
+  `conectar` siembra el permiso por POST (`a=permiso`); el panel del
+  comerciante y `entrar` son solo POST; y desde la 1.0.0 las herramientas
+  mandan también el token de montaje en el cuerpo (siguiente punto).
 - **Nunca se imprime un token.** `conectar` enmascara el de montaje; las
   herramientas que clonan con un token lo tapan (`***`) en sus errores.
-- **Riesgo conocido, aceptado hoy:** el token de montaje (`MAESTRO_TOKEN`,
-  `tk-…`) sí viaja como parámetro `t` en peticiones GET a la `/exec` —lo usan
-  las herramientas de `montar/`, `flota/conectar.mjs` y el Panel de tiendas—, y
-  por eso queda en los registros de acceso de Google. Lo que abre está acotado
-  (ver su fila), y se rota con `A3_rotarToken()`.
+- **El token de montaje, fuera de la dirección (1.0.0, ROADMAP 5.7, bitácora
+  113).** Hasta la 0.25.0 el token de montaje (`MAESTRO_TOKEN`, `tk-…`) viajaba
+  como parámetro `t` en peticiones GET a la `/exec`, y era el riesgo abierto
+  del PLAN §7. Desde la 1.0.0 lo mandan en el cuerpo de un POST (JSON en texto
+  plano, con `t`): `montar/tienda.mjs › alMaestro`, `montar/publicar-maestro.mjs`,
+  `flota/conectar.mjs › pedir` (en `tiendas`) y `panel.gs` (`a: 'panel'`) hacia
+  las tiendas de la 2.0. Del lado del maestro, las puertas de montaje
+  (`panel`, `identidad`, `bloques`, `sembrar`, `fotos`, `foto`) **siguen
+  aceptando GET, a propósito**: volver una tienda a una versión anterior
+  (`restaurar › la-version`, o `montaje › semilla`) corre las herramientas de
+  esa versión, que preguntan por GET, contra el maestro 1.0.0 que sigue vivo
+  hasta que se publica el viejo; rechazar el GET rompía volver atrás. En vez de
+  eso, cada GET con el token se **anota** (`doGet › anotarTokenPorGet`,
+  propiedad `TOKEN_POR_GET`: acción y fecha, nunca el token) y el diagnóstico
+  dice quién sigue mandándolo así: la hoja *Panel de tiendas* sin actualizar, o
+  una herramienta anterior a la 1.0.0. Solo `permiso` es `soloPost` (desde la
+  0.16.0). Lo vigilan `montaje.js` §0, `sondeo.js` (el maestro de mentira
+  cuenta los tokens que le llegan en la dirección), `panel.js` y
+  `flota/pruebas.mjs`. Quedan **dos clientes que mandan un token por GET, los
+  dos a la vista**:
+  - el **stub** de cada hoja manda su propio token (`TOKEN_MENU`, guardia
+    `menu`) por GET en `?a=menu`. Ese token solo abre el menú y ya está a la
+    vista en la hoja del comercio; cerrarlo exige repegar el stub en cada hoja;
+  - `panel.gs` hacia una **Tienda Básica** (`esBasica`): el maestro de Orgánico
+    no atiende puertas por POST; se cierra al migrarla a la 2.0.
+
+  Lo que abre el token de montaje sigue acotado (ver su fila) y se rota con
+  `A3_rotarToken()`.
 
 ### Qué token vive dónde
 
 | Credencial | Vive en | Lo usa | Permisos mínimos |
 |---|---|---|---|
-| `ALTA_TOKEN` (retirado el 29-sep-2026, decisión 34) | ya no existe; el código lo prefiere si reaparece (`ALTA_TOKEN \|\| FLOTA_TOKEN`) | nadie | lo mismo que `FLOTA_TOKEN` + *Administration* y *Secrets*: por eso se funden |
+| `ALTA_TOKEN` (retirado: el secreto se borró de `tiendas` el 29-sep-2026, decisión 34) | ya no existe; los flujos de `tiendas` todavía lo prefieren si reapareciera (`ALTA_TOKEN \|\| FLOTA_TOKEN`), respaldo que falta quitar | nadie | lo mismo que `FLOTA_TOKEN`, que ya tiene *Administration* y *Secrets*: por eso se fundieron. Falta revocar el token viejo en GitHub (dueño) |
 | `FLOTA_TOKEN` | secretos de `tiendas` | `flota` (`estado`, `actualizar`, `flujos`), y desde la 0.24.0 también `alta`, `conectar` y `panel` | grano fino, todos los repositorios del dueño: *Administration*, *Contents*, *Pull requests*, *Workflows*, *Secrets*, *Actions* en escritura; *Metadata* lectura. Quedan tres tokens: este, `SEMILLA_TOKEN` y `DISPARO_TOKEN` |
 | `DISPARO_TOKEN` | secretos de `tiendas` → propiedad `GITHUB_TOKEN` de cada maestro | `conectar` lo comprueba y lo siembra; el maestro dispara `fotos.yml` y `montaje.yml` | grano fino sobre **todos** los repositorios del dueño, **solo** *Actions: Read and write* |
 | `SEMILLA_TOKEN` | secretos de `tiendas` → copia en los secretos de cada tienda | la tienda: `montaje` › `semilla` (clonar la semilla) y `restaurar` › `la-version` (leer sus etiquetas) | *Contents* lectura sobre la semilla. Hace falta porque la semilla es privada (decisión D1 de `PLAN-MVP.md`) |
 | `MAESTRO_URL` · `MAESTRO_TOKEN` · `HOJA_ID` · `SCRIPT_ID` | secretos de cada tienda (y de la semilla, que también es una tienda) | `montaje`, `fotos`, `release` (la semilla) | — |
 | `CLASPRC` | secretos de cada tienda | `montaje`, al publicar el maestro | credencial de Google de la cuenta de la tienda |
-| `PANEL_SCRIPT_ID` · `PANEL_CLASPRC` | secretos de `tiendas` | `panel` | credencial de Google de la cuenta dueña del Panel de tiendas |
+| `PANEL_SCRIPT_ID` · `PANEL_CLASPRC` | secretos de `tiendas` (**a la 1.0.0 todavía no están puestos**: pendiente del dueño) | `panel` | credencial de Google de la cuenta dueña del Panel de tiendas |
 | `CLOUDFLARE_API_TOKEN` · `CLOUDFLARE_ACCOUNT_ID` | secretos de `tiendas` | `flota` › `estado` (publica `panel/`) | *Workers Scripts: Edit*, *Account Settings: Read* |
 | `PANEL_URL` · `PANEL_CLAVE` | secretos de `tiendas` | `conectar` (POST `registrar_tienda`) | no son de GitHub |
 | `GITHUB_TOKEN` de Actions | cada corrida, automático | checkout, push a `main`, pull requests, `gh` dentro de la corrida | el bloque `permissions` de cada flujo (§13). **Nunca puede escribir `.github/workflows`** |
@@ -300,14 +361,14 @@ Ese repositorio es **privado** y es el único con poder sobre los demás.
 
 | Secreto | Qué es | Qué permite | Dónde se crea | Cómo se renueva |
 |---|---|---|---|---|
-| `ALTA_TOKEN` (retirado el 29-sep-2026, decisión 34) | Token de grano fino del dueño de las tiendas, sobre **todos** sus repositorios (la tienda nueva todavía no existe al crearlo) | Crear el repositorio, clonar la semilla y empujarla, permisos de Actions, fusiones automáticas, poner secretos en la tienda, disparar su `montaje`; leer la semilla para `panel` | GitHub › Settings › Developer settings › Fine-grained tokens | Vence: se crea otro con los mismos permisos y se pega en Settings › Secrets › Actions de `tiendas`. Nada más lo usa |
-| `FLOTA_TOKEN` | Token de grano fino sobre semillas y tiendas (mejor todos los repositorios del dueño: una tienda que no ve contesta 404 y la flota la **salta**) | Leer versiones y etiquetas (`estado`); disparar y esperar el `montaje` de cada tienda (`actualizar`); **escribir los `.github/workflows` de cada tienda por la API de contenidos** (`flujos`, y `actualizar` después de cada tienda buena, §13d) | Igual que el anterior | Igual |
+| `ALTA_TOKEN` (**retirado**: secreto borrado de `tiendas` el 29-sep-2026, decisión 34) | Era el token de `alta`, `conectar` y `panel`. Lo que permitía lo hace hoy `FLOTA_TOKEN` | — | — | No se renueva. Falta revocar el token viejo en GitHub y quitar el respaldo `ALTA_TOKEN \|\|` de los flujos de `tiendas` |
+| `FLOTA_TOKEN` | Token de grano fino sobre **todos** los repositorios del dueño (la tienda nueva todavía no existe al crearlo, y una tienda que no ve contesta 404 y la flota la **salta**) | Leer versiones y etiquetas (`estado`); disparar y esperar el `montaje` de cada tienda (`actualizar`); **escribir los `.github/workflows` de cada tienda por la API de contenidos** (`flujos`, y `actualizar` después de cada tienda buena, §13d). Desde la 0.24.0, también lo de `alta`, `conectar` y `panel`: crear el repositorio, clonar la semilla y empujarla, permisos de Actions, fusiones automáticas, poner secretos en la tienda, disparar su `montaje`, leer la semilla | GitHub › Settings › Developer settings › Fine-grained tokens | Vence: se crea otro con los mismos permisos y se pega en Settings › Secrets › Actions de `tiendas` |
 | `SEMILLA_TOKEN` | Token de grano fino con lectura de la semilla | No lo usa `tiendas`: `alta` lo **copia** a cada tienda al nacer y `conectar` lo **refresca** cada vez que corre. Desde la 0.22.1 **no empuja flujos** (bitácora 103) | Igual | Se cambia en `tiendas` y se vuelve a correr `conectar` en cada tienda (o se pega a mano en la tienda) |
 | `DISPARO_TOKEN` | Token de grano fino **sobre TODOS los repositorios del dueño** (no «Only select repositories»: el alta crea tiendas nuevas y una lista fija envejece con cada una), **solo** *Actions: Read and write* | Disparar flujos de las tiendas: es el que hace que *Publicar ahora* y *Actualizar* funcionen desde el panel y el menú del comercio | Igual | Se cambia en `tiendas` y se vuelve a correr `conectar`: el maestro reemplaza el que ya no sirve (0.20.2), o se marca `forzar_permiso` |
 | `PANEL_URL` | No es una credencial: la URL `/exec` de la aplicación web de la hoja **Panel de tiendas** | Escribir una fila en la pestaña Tiendas, nada más | Al implementar esa hoja como aplicación web | Cambia solo si se crea una implementación nueva |
 | `PANEL_CLAVE` | La clave de escritura de esa hoja (`alta-…`) | Que la puerta `registrar_tienda` acepte la fila | Menú de esa hoja › *Clave para el alta* (se guarda como `CLAVE_ALTA` en sus propiedades) | Se genera otra desde el mismo menú: la anterior deja de servir en el acto |
 | `PANEL_SCRIPT_ID` | El id del proyecto de Apps Script del Panel de tiendas | Decirle a `clasp` qué proyecto actualizar | De la URL del editor, entre `/projects/` y `/edit` | No caduca |
-| `PANEL_CLASPRC` | El contenido de `~/.clasprc.json` tras `clasp login --no-localhost` con la cuenta dueña del Panel de tiendas | Publicar `panel.gs` en ese proyecto (el flujo lo escribe en `~/.clasprc.json` antes de publicar, 0.22.3) | `clasp login --no-localhost` | Caduca: se repite `clasp login` y se pega de nuevo |
+| `PANEL_CLASPRC` | El contenido de `~/.clasprc.json` tras `clasp login --no-localhost` con la cuenta dueña del Panel de tiendas | Publicar `panel.gs` en ese proyecto (el flujo lo escribe en `~/.clasprc.json` antes de publicar, 0.22.3). **A la 1.0.0, este y `PANEL_SCRIPT_ID` faltan en `tiendas`**: el flujo `panel` no ha corrido nunca, y hasta su primera corrida la hoja publicada sigue preguntando por GET (el maestro lo anota: §6d, reglas) | `clasp login --no-localhost` | Caduca: se repite `clasp login` y se pega de nuevo |
 | `CLOUDFLARE_API_TOKEN` · `CLOUDFLARE_ACCOUNT_ID` | Token de Cloudflare e identificador de la cuenta | `wrangler deploy` de `panel/` desde `flota` › `estado`. Opcionales: sin ellos el flujo lo dice y sigue | Cloudflare › My Profile › API Tokens | Con vencimiento: se crea otro y se pega |
 
 ### Los secretos del repositorio de cada tienda
@@ -315,7 +376,7 @@ Ese repositorio es **privado** y es el único con poder sobre los demás.
 | Secreto | Qué es | Qué permite | Dónde se crea | Cómo se renueva |
 |---|---|---|---|---|
 | `MAESTRO_URL` | La URL `/exec` de la aplicación web del maestro de esa tienda | Hablarle al maestro | Apps Script › Implementar › Aplicación web | Solo cambia si se crea una implementación nueva. Lo escribe `conectar` |
-| `MAESTRO_TOKEN` | El **token de montaje** de esa tienda (`tk-…`) | Abrir las puertas de guardia `montaje`: `bloques`, `sembrar`, `fotos`, `foto`, `panel`, `identidad` y `permiso`. Leer la configuración, listar y bajar de la carpeta de fotos, leer cifras agregadas y sembrar en la hoja lo que el alta ya sabe | Lo inventa `A0_instalar` y lo guarda en la propiedad `TOKEN` | `A3_rotarToken()` y llevarlo a **tres** sitios: este secreto (volviendo a correr `conectar`), la pestaña Tiendas del panel y el `tienda.json` local |
+| `MAESTRO_TOKEN` | El **token de montaje** de esa tienda (`tk-…`) | Abrir las puertas de guardia `montaje`: `bloques`, `sembrar`, `fotos`, `foto`, `panel`, `identidad` y `permiso`. Leer la configuración, listar y bajar de la carpeta de fotos, leer cifras agregadas y sembrar en la hoja lo que el alta ya sabe. Viaja en el cuerpo de un POST (1.0.0); el maestro acepta todavía GET en esas puertas salvo `permiso`, y anota cada GET en `TOKEN_POR_GET` (§6d) | Lo inventa `A0_instalar` y lo guarda en la propiedad `TOKEN` | `A3_rotarToken()` y llevarlo a **tres** sitios: este secreto (volviendo a correr `conectar`), la pestaña Tiendas del panel y el `tienda.json` local |
 | `HOJA_ID` | El identificador de la hoja | Que el `maestro.gs` que se sube lleve su hoja dentro | Lo escribe `conectar` (se lo pregunta al maestro) | No caduca |
 | `SCRIPT_ID` | El identificador del proyecto de Apps Script | Decirle a `clasp` qué proyecto actualizar | Lo escribe `conectar` | No caduca |
 | `CLASPRC` | El contenido de `~/.clasprc.json` tras `clasp login` **con la cuenta de esa tienda** | Publicar el Apps Script de esa cuenta y tocar su Drive. **Es la credencial más poderosa de una tienda** | `clasp login --no-localhost` con esa cuenta | Caduca: se repite `clasp login` y se pega de nuevo. Es el único paso que nadie puede automatizar hoy (roadmap 3.11) |
@@ -331,7 +392,7 @@ comparte con el comercio— ni en un repositorio.
 | Propiedad | Qué guarda | Quién la escribe | Para qué |
 |---|---|---|---|
 | `TOKEN` | El token de montaje (`tk-…`) | `A0_instalar` la primera vez; `A3_rotarToken` | El secreto `MAESTRO_TOKEN` y la columna Token del panel |
-| `TOKEN_MENU` | El token del stub (`tk-…`, **otro**) | `A0_instalar` / `A1_generarStub` | Solo abre `?a=menu`. Está a la vista en la hoja del comercio, y por eso no abre nada más |
+| `TOKEN_MENU` | El token del stub (`tk-…`, **otro**) | `A0_instalar` / `A1_generarStub` | Solo abre `?a=menu`. Está a la vista en la hoja del comercio, y por eso no abre nada más. Viaja por GET en la dirección: una de las dos excepciones abiertas a la regla de §6d |
 | `HOJA_ID` | El identificador de la hoja | `A0_instalar` (0.17.0) | Que la aplicación web funcione aunque su versión implementada sea anterior a pegar la constante (bitácora 74) |
 | `URL_EXEC` | La URL `/exec` aprendida al abrirla una vez | El propio maestro | Poder decirle a la tienda y al stub dónde vive |
 | `GITHUB_TOKEN` | La copia de `DISPARO_TOKEN` que dispara flujos de esa tienda | `conectar` (puerta `permiso`, por POST), o a mano | *Publicar ahora* (`fotos.yml`) y *Actualizar* (`montaje.yml` con `semilla`). Se reemplaza solo si el guardado ya no puede listar los flujos del repositorio (bitácoras 89 y 97), o con `forzar` |
@@ -344,6 +405,7 @@ comparte con el comercio— ni en un repositorio.
 | `COBROS_ABIERTOS` | Los cobros en línea que falta cerrar | El maestro | La lista de trabajo del disparador `conciliarPagos` (`CONTRATOS.md`) |
 | `RESPALDO` · `RESTAURACION` | Qué pasó en la última copia y en la última restauración | El maestro | Que el panel pueda decir «último respaldo: hace 3 días» |
 | `HOJA_AL_DIA` | La `VERSION_TIENDA` con la que la hoja se ordenó por última vez (0.24.0) | `instalar()` y `ponerHojaAlDia()` | Que la revisión de cada hora ordene la hoja una sola vez por versión |
+| `TOKEN_POR_GET` | Por puerta de montaje, la fecha de la última vez que el token llegó en la dirección (GET). Nunca el token (1.0.0) | `doGet` › `anotarTokenPorGet` | Que el diagnóstico diga quién sigue mandándolo por GET: la hoja *Panel de tiendas* sin actualizar, o una herramienta anterior a la 1.0.0 al volver a una versión vieja |
 | `STUB_VISTO` · `STUB_CON_TOKEN_VIEJO` | Qué versión del stub está pegada en la hoja, y si todavía usa el token viejo | La puerta `menu`, en cada petición | Saber en qué hojas falta repegar el stub sin abrirlas una por una |
 | `LECTURAS` · `RESCATES` · `PEDIDA_PUBLICACION` · `ULTIMA_EDICION` | Contadores y marcas de operación | El maestro | Cuota, pedidos rescatados, publicar pendiente, última edición de la hoja |
 
@@ -366,18 +428,24 @@ lectura **y escritura** sobre todos los repositorios, y el diagnóstico del
 panel lo señala si aparece uno.
 
 La pestaña Tiendas del Panel guarda, por tienda, la URL `/exec` y el token de
-montaje (columnas *Servicio* y *Token*): es lo que necesita para preguntar
-`?a=panel`. Es un token que solo abre las puertas de montaje; ningún token de
-GitHub ni llave de pago pasa por esa hoja.
+montaje (columnas *Servicio* y *Token*): es lo que necesita para preguntar a
+la puerta `panel` (por POST desde la 1.0.0). Es un token que solo abre las
+puertas de montaje; ningún token de GitHub ni llave de pago pasa por esa hoja.
 
 ## 6e. Cuatro códigos, cuatro numeraciones
 
 | Código | Constante | Qué numera | Con qué compara |
 |---|---|---|---|
-| `maestro.gs` | `VERSION` (fecha, p. ej. `2026-09-22-8`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
+| `maestro.gs` | `VERSION` (fecha; a la 1.0.0, `2026-09-22-8`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
 | `publicar/index.html` | `SCRIPT_VERSION` | Lo que la tienda espera del maestro | Se hornea con lo que **contesta el maestro publicado**; el montaje se para si no es la `VERSION` del repositorio (bitácora 56) |
-| `maestro.gs` | `VERSION_TIENDA` (0.22.3) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
-| `panel.gs` | `VERSION_PANEL` | El archivo de gestión | **Con nada.** Es otro programa |
+| `maestro.gs` | `VERSION_TIENDA` (`1.0.0`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
+| `panel.gs` | `VERSION_PANEL` (`2026-09-30-a`) | El archivo de gestión | **Con nada.** Es otro programa |
+
+La 1.0.0 es un ejemplo de por qué van separadas: sube el producto
+(`package.json` y `VERSION_TIENDA` en `1.0.0`, antes 0.25.0) y no el contrato
+página↔maestro (`VERSION` sigue en `2026-09-22-8`), porque lo que la página le
+pide al maestro no cambió; lo que cambió es cómo le hablan las herramientas de
+montaje.
 
 `version` en `package.json` es la del producto: la que corta `release` como
 etiqueta `vX.Y.Z` y la que exige subir el flujo `pruebas` cuando un pull
@@ -453,6 +521,7 @@ del atacante.**
 | XSS y carga de recursos ajenos | CSP en la etiqueta `meta` y en `_headers`: `default-src 'none'`, con lista explícita para scripts, estilos, imágenes y `connect-src`. `frame-ancestors` solo funciona en cabecera, por eso existe `_headers`. Una aserción compara las tres copias de la política |
 | Payloads absurdos al backend | Tope de 30 ítems, cantidad máxima 200, total máximo 5.000.000, IDs que no estén en el catálogo se descartan, duplicados se colapsan y el `Estado` nunca lo decide quien envía |
 | Una puerta sin guardia | Cada puerta del maestro declara su guardia en una sola tabla (`PUERTAS`); una guardia mal escrita no abre (`CONTRATOS.md` §6) |
+| Una credencial en los registros de Google | Las claves, los testigos, los tokens de GitHub y, desde la 1.0.0, el token de montaje viajan en el cuerpo de un POST. Las puertas del panel y `entrar` son `soloPost`; las de montaje aceptan todavía GET (volver atrás lo necesita) y lo anotan en `TOKEN_POR_GET`, que el diagnóstico muestra. Mandan un token por GET, declarados: el stub y `panel.gs` hacia una Tienda Básica (§6d) |
 | Datos personales | `Pedidos` guarda la ciudad de cada pedido; nombre, celular, correo y dirección solo se guardan cuando se cobra en línea, en `Datos de entrega`, que no sale por ninguna puerta (por WhatsApp viajan en el chat). Lo regula la Ley 1581 de 2012, con el aviso que arman las claves `empresa_*`. Cada hoja es de un solo comercio |
 
 > **Lo que este diseño NO puede impedir.** `wa.me` solo rellena la caja de
@@ -522,9 +591,14 @@ Límites conocidos, aceptados y no accidentales:
 | `laboratoriodigital/tiendas` | El repositorio de **servicio**: `flota.json`, `flota/*.mjs`, los flujos `alta`, `conectar`, `flota` y `panel`, el panel estático (`panel/`, generado) y `ESTADO.md` (generado) | Privada |
 | Una por comercio | Nace de `alta` clonando la última etiqueta de su semilla (`gh repo create --private`); contiene `publicar/` (lo que Cloudflare sirve) y su copia de lo que es de la semilla | **Privada, siempre** (D1) |
 
-La otra línea de producto, Tienda Básica (`laboratoriodigital/organico`, 3.x,
-se actualiza por pull request desde la flota), comparte `tiendas` pero queda
-fuera de este documento.
+La otra línea de producto, **Orgánico** («Tienda Básica»,
+`laboratoriodigital/organico`, 3.x, se actualiza por pull request desde la
+flota), comparte `tiendas` pero queda fuera de este documento. Desde la 1.0.0
+(30-sep-2026) solo recibe correcciones, **hasta que sus clientes se migren a la
+Tienda 2.0**, cliente por cliente y cuando convenga, sin sincronizar código
+entre las dos líneas; esto cambia la decisión 20, que decía no migrar. Su
+cliente hoy es Cinnamon Beauty. En `flota.json`, la línea `tienda` tiene a la
+semilla (Laboratorio Digital) y a `prueba1` (anillo 2).
 
 ### Los flujos de una tienda (viajan dentro de la semilla)
 
@@ -541,15 +615,15 @@ fuera de este documento.
 | Flujo | Entradas | Token | Qué hace |
 |---|---|---|---|
 | `alta` | `nombre`, `comercio`, `producto` | `FLOTA_TOKEN` | Crea el repositorio **privado** de la tienda clonando la última etiqueta de su semilla, lo limpia de lo que es de otra tienda (`NO_SE_HEREDA` en `flota/alta.mjs`: `release.yml`, catálogo, fotos, fichas, sitemap, imagen, `servicio`…), le pone su `name` de Cloudflare, los permisos de Actions, las fusiones automáticas y `SEMILLA_TOKEN`, y escribe su fila en `flota.json` |
-| `conectar` | `nombre`, `maestro_url`, `maestro_token`, `forzar_permiso` | `FLOTA_TOKEN`, `DISPARO_TOKEN` | Le pregunta al maestro su hoja y su proyecto (`identidad`), siembra en la hoja lo que ya se sabe (`sembrar`), comprueba `DISPARO_TOKEN` y **solo si sirve** se lo siembra al maestro (`permiso`, POST), registra la tienda en el Panel de tiendas, escribe `MAESTRO_URL`, `MAESTRO_TOKEN`, `HOJA_ID`, `SCRIPT_ID`, refresca `SEMILLA_TOKEN` y dispara el primer `montaje` |
+| `conectar` | `nombre`, `maestro_url`, `maestro_token`, `forzar_permiso` | `FLOTA_TOKEN`, `DISPARO_TOKEN` | Le habla al maestro siempre por POST, con el token en el cuerpo (`flota/conectar.mjs › pedir`, 1.0.0): le pregunta su hoja y su proyecto (`identidad`), siembra en la hoja lo que ya se sabe (`sembrar`), comprueba `DISPARO_TOKEN` y **solo si sirve** se lo siembra al maestro (`permiso`), registra la tienda en el Panel de tiendas, escribe `MAESTRO_URL`, `MAESTRO_TOKEN`, `HOJA_ID`, `SCRIPT_ID`, refresca `SEMILLA_TOKEN` y dispara el primer `montaje` |
 | `flota` | `accion` (`estado` \| `actualizar` \| `flujos`), `linea`, `anillo`, `version`, `ensayo`, `tienda`, `sin_base` | `FLOTA_TOKEN` | `estado` (también los lunes 12:23 UTC): versión de cada tienda y de su semilla, `ESTADO.md` y `panel/`. `actualizar`: por anillos (§13e). `flujos`: entrega los `.github/workflows` (§13d). De fábrica, `ensayo` = sí |
-| `panel` | `version` | `FLOTA_TOKEN` para leer la semilla; `PANEL_CLASPRC` | Clona la semilla en esa etiqueta y publica `panel.gs` con `montar/publicar-maestro.mjs` y `ARCHIVO=panel.gs`, actualizando la implementación que ya existe (la URL no cambia) |
+| `panel` | `version` | `FLOTA_TOKEN` para leer la semilla; `PANEL_SCRIPT_ID` y `PANEL_CLASPRC` | Clona la semilla en esa etiqueta y publica `panel.gs` con `montar/publicar-maestro.mjs` y `ARCHIVO=panel.gs`, actualizando la implementación que ya existe (la URL no cambia). A la 1.0.0 no ha corrido: faltan sus dos secretos (§6d) |
 
 ### Quién dispara qué
 
 ```
  persona ──► tiendas: alta ─────────► crea TIENDA (repo) ─ copia SEMILLA_TOKEN
- persona ──► tiendas: conectar ─────► maestro: identidad, sembrar, permiso(POST)
+ persona ──► tiendas: conectar ─────► maestro (POST): identidad, sembrar, permiso
                                └────► TIENDA: secretos + montaje (que=todo)
  persona/lunes ► tiendas: flota ─ estado ─► lee versiones · ESTADO.md · panel/ (wrangler)
                               ├─ actualizar ► TIENDA: montaje (semilla=true, version) … espera
@@ -652,6 +726,16 @@ tienda: arma una copia del repositorio **sin** lo que `alta` no hereda, con
 restos de una versión vieja y con los datos de otro comercio, y corre ahí la
 compuerta. Es lo que caza, antes del commit, una aserción cierta en la semilla
 y falsa en una tienda (bitácora 95).
+
+**Cuando algo falla, se dice todo de una vez (ROADMAP 5.6, «causa 4»).** Se
+da por cerrada **por diseño** en la 1.0.0, sin cambiar el flujo: la guardia de
+una tienda (`tienda-viva.js`, 0.22.0) es pequeña y pone **todas** sus líneas
+FALLA en el resumen de la corrida; `preparar-index` lista **todas** las claves
+que bloquean, con su porqué; y `misma-tienda` nombra los tres sitios donde se
+pueden cruzar dos tiendas (los secretos, la clave `repositorio`, el proyecto
+de Cloudflare). Lo que no hace el flujo —que cada comprobación previa corra
+aunque la anterior falle— no es tarea de la 2.0: pasa a la Tienda 3.0 como
+principio de diseño.
 
 `publicacion.sh` hace además una cosa que no es probar: **en una tienda, saca
 del índice cualquier cambio en `.github/workflows`** antes de publicar (§13d).
@@ -805,7 +889,7 @@ sea anterior). La tabla completa está en `DESPLIEGUE.md` › *Volver atrás*.
 | `publicar/` | Lo que Cloudflare sirve. Se hornea en el montaje; no se edita a mano (salvo `_headers`, que es de la semilla) |
 | `montar/` | Las herramientas, cada una con su `ESCRIBE`. Horneado: `preparar-index`, `preparar-admin`, `preparar-compartir`, `traer-fotos`, `catalogo-estatico`, `sembrar-respaldo`, `sembrar-seo`, `nombrar-worker`. Comprobaciones: `sondear`, `misma-tienda`, `revisar-worker`, `revisar-fotos-cdn`, `revisar-clasprc`, `tiempos`. Publicar y actualizar: `publicar-maestro`, `actualizar-semilla` + `semilla`, `volver-atras`. En el equipo: `configurar-tienda`, `sembrar-configuracion`, `tienda` |
 | `pruebas/` | Las baterías, el emulador `gas.js`, la compuerta (`publicacion.sh`, `donde.js`, `tienda-viva.js`) y `tiendita.js`. `./pruebas/todas.sh` las corre todas |
-| `docs/` | Este archivo, `CONTRATOS.md` (normativo), `DESPLIEGUE.md`, `RUNBOOK-TECNICO.md`, `ACTUALIZAR-UNA-TIENDA.md`, `FUNCIONALIDADES.md`, `PLAN-MVP.md`, `ROADMAP.md`, `DECISIONES.md`, `BITACORA.md`, `GUIA-COMERCIANTE.md`, `PAGOS-BOLD.md`, `ANTES-DE-SALIR.md` |
+| `docs/` | Este archivo, `CONTRATOS.md` (normativo), `DESPLIEGUE.md`, `RUNBOOK-TECNICO.md`, `ACTUALIZAR-UNA-TIENDA.md`, `FUNCIONALIDADES.md`, `PLAN-MVP.md`, `ROADMAP.md`, `DECISIONES.md`, `BITACORA.md`, `GUIA-COMERCIANTE.md` (y su versión imprimible en `manuales/`), `PAGOS-BOLD.md`, `ANTES-DE-SALIR.md`, `TRASPASO.MD`, `CONOCIMIENTO.md` (idea sin construir), `EVALUACION-stub-automatico.md` (histórica) y `TRASLADO-3.0.md` (con qué arranca la Tienda 3.0) |
 | `semilla.json` | Qué es de la semilla (`propios`) y qué retiró (`retirados`), §13b |
 | `flota.json` (en `tiendas`) | La lista de tiendas, su línea y su anillo, §13e |
 
@@ -849,3 +933,5 @@ bitácora.
 | Un maestro nuevo publicado y la corrida falla después | Google sirve el maestro nuevo con el index viejo | `montaje` vuelve a publicar el maestro del commit de partida | — (`montaje.yml`, paso 7) |
 | Una hoja publica en el sitio de otra tienda | Secretos o stub cruzados entre dos tiendas | `misma-tienda.mjs` compara la clave `repositorio` de la hoja con el repositorio; el maestro rechaza un stub de otra hoja | 76 |
 | Dos tiendas en el mismo Worker | El `name` de la semilla se quedó en `wrangler.jsonc` | `alta` lo pone; `revisar-worker.mjs` y `nombrar-worker.mjs` | — (A-3) |
+| El token de montaje quedaba en los registros de acceso de Google (riesgo del PLAN §7, abierto hasta la 0.25.0) | Las herramientas, `conectar` y el Panel de tiendas lo mandaban como `?t=` en un GET | Desde la 1.0.0 va en el cuerpo de un POST; el maestro acepta todavía GET en las puertas de montaje (volver atrás corre herramientas viejas) pero lo anota en `TOKEN_POR_GET` y el diagnóstico lo dice; `sondeo.js` cuenta los tokens que llegan en una dirección. Mandan todavía un token por GET, a la vista: el stub y `panel.gs` hacia una Tienda Básica (§6d) | 113 |
+| `test.js` en rojo de vez en cuando, sin cambio de código | El cupón lo valida el maestro por red y la batería esperaba un número fijo de cuadros | La batería espera a que el aviso deje de decir «Validando…» (1.0.0) | — |

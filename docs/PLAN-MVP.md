@@ -24,12 +24,26 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 > promueve a `ARQUITECTURA.md`, las decisiones a `DECISIONES.md`, lo que se
 > rompió a `BITACORA.md`, lo que quedó fuera al `ROADMAP.md`, y este archivo se
 > borra.
+>
+> *(30 de septiembre de 2026: la 1.0.0 está cortada y el plan caducó como
+> plan. No se borra: queda como la historia del MVP, historia por historia,
+> y no se reescribe (R1 de los documentos). Lo que sigue vive en el
+> `ROADMAP.md` y en `DECISIONES.md`; el producto definitivo, que se empieza
+> de cero como proyecto nuevo, arranca de `TRASLADO-3.0.md` (decisión 36).)*
 
-## Dónde estamos · 29 de septiembre de 2026 · 0.24.0
+## Dónde estamos · 30 de septiembre de 2026 · 1.0.0
 
-- **La semilla va en la 0.24.0** (`package.json` y `VERSION_TIENDA`). Los
-  hitos del MVP están cerrados —M0 a M5, con M3.5 y M3 bis (tabla al principio
-  de §5)—; la etiqueta 1.0.0 todavía no se ha cortado.
+- **El MVP está cerrado y la 1.0.0 está cortada** (`package.json` y
+  `VERSION_TIENDA`; el contrato página↔maestro, `VERSION` del maestro, sigue
+  en `2026-09-22-8`). Los hitos —M0 a M5, con M3.5 y M3 bis— se cerraron
+  entre el 18 y el 21 de septiembre (tabla al principio de §5); lo que vino
+  después, de la 0.11.0 a la 0.25.0, está versión por versión en §5.
+- **Lo que trae la 1.0.0** (§5, *1.0.0 · Se cierra el MVP*): las fotos que se
+  pasan desde la tarjeta del catálogo; ningún token de montaje en una
+  dirección desde las herramientas —el maestro todavía acepta el GET, para que
+  volver atrás funcione, pero lo anota; siguen por GET el stub y `panel.gs`
+  hacia una Tienda Básica—; `test.js` deja de fallar a ratos; y la causa 4 se
+  da por cerrada por diseño.
 - **La flota que se actualiza sola (M6) también está hecha**, aunque salió del
   MVP: v1 en la 0.13.0, automática en la 0.14.0 (`montaje` con la entrada
   `semilla`). Desde la 0.22.0 lo que decide si una tienda publica es
@@ -37,27 +51,44 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
   0.22.1 los flujos de cada tienda los entrega la flota (`tiendas`); desde la
   0.22.3 la semilla, que también es una tienda, pone al día su propio maestro
   al cortar una versión.
-- **prueba1** (anillo 2), la tienda de prueba de esta línea, está actualizada
-  y publicada en verde, con su logo y los flujos entregados por la flota
-  (bitácoras 104 y 105).
-- **`prueba-panel` ya no está en la flota**: se sacó de `flota.json` porque no
+- **La flota de esta línea** (`flota.json`): la semilla —Laboratorio Digital,
+  que también es una tienda— y **prueba1** (anillo 2), actualizada y
+  publicada en verde, con su logo y los flujos entregados por la flota
+  (bitácoras 104 y 105). **`prueba-panel` ya no está**: se sacó porque no
   aportaba nada (ver *Flota · Una tienda puede estar fuera del reparto*, en
   §5, tras la 0.22.2).
+- **Un solo producto desde hoy** (decisión 36, que revoca la 20): esta es la
+  **Tienda 2.0**, la única que se administra y se vende. Orgánico (la
+  Tienda Básica, 3.x) solo recibe correcciones hasta que sus clientes —hoy
+  Cinnamon Beauty— se migren aquí, uno por uno y cuando convenga. El
+  producto definitivo se empieza de cero como proyecto nuevo, la «Tienda
+  3.0», desde `TRASLADO-3.0.md`.
 
-**Lo pendiente, en este orden:**
+**Lo pendiente, en este orden** (todo del dueño o fuera de la 2.0):
 
 1. Poner en `tiendas` los secretos `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`, y
    correr por primera vez su flujo `panel` (publica `panel.gs`, 0.21.1; desde
-   la 0.22.3 escribe `~/.clasprc.json`, que antes nunca escribía).
-2. **Causa 4** de la revisión (bitácora 102): que el montaje diga TODO lo que
-   falla en una corrida, no solo lo primero.
-3. Publicar el sitio principal (ED1).
-4. **Riesgo conocido:** `MAESTRO_TOKEN` todavía viaja como `t=` en la
-   dirección de peticiones GET del montaje al maestro (`?a=bloques&t=…`, por
-   ejemplo), contra la regla de que los tokens solo van por POST.
+   la 0.22.3 escribe `~/.clasprc.json`, que antes nunca escribía). Con eso
+   la hoja «Panel de tiendas» pregunta por POST a las tiendas de la 2.0 y deja
+   de aparecer en el `TOKEN_POR_GET` de sus maestros.
+2. Revocar en GitHub el token viejo de `ALTA_TOKEN`: el secreto ya se borró
+   de `tiendas` el 29-sep, pero el token sigue vivo hasta que se revoque.
+3. Publicar el sitio principal (ED1). Es otro proyecto.
+4. **Riesgo legal abierto:** la tienda no pide consentimiento antes de cargar
+   GA4 o el píxel de Meta (decisión 35). No se construye el aviso sin que un
+   abogado o la SIC lo confirmen para Colombia.
+5. **E-2:** comparar comisión y días de desembolso de Bold con números de una
+   tienda que cobre de verdad.
+6. Las decisiones abiertas de §8: el precio de quitar la autoría, la promesa
+   sobre las actualizaciones y cuándo se hace pública la semilla.
+7. Menores: las derivadas webp se hacen aunque `fotos_webp=No`; el SEO no da
+   el rango de precios cuando hay precio por variante; `flota/flujos.mjs`
+   hace un commit por archivo y no uno por entrega; los flujos de `tiendas`
+   todavía leen `ALTA_TOKEN ||` como respaldo; y el stub de cada hoja sigue
+   mandando su token de menú por GET (§7).
 
-El último está en §7 (riesgos) y en el `ROADMAP.md` (5.7). El de los flujos
-retirados que nadie podía borrar se cerró en la 0.22.3 (la flota los quita).
+El de los flujos retirados que nadie podía borrar se cerró en la 0.22.3 (la
+flota los quita); el del token de montaje en la dirección, en la 1.0.0 (§7).
 
 | | |
 |---|---|
@@ -452,7 +483,7 @@ qué se puede:
 | «Avísame cuando llegue» | Es venta perdida, no venta rota |
 | Restauración probada del respaldo | Duele el día que duele. Va primero en el roadmap |
 
-**Lo que de esta tabla se hizo después**, al 29 de septiembre de 2026: el
+**Lo que de esta tabla se hizo después**, al 30 de septiembre de 2026 (1.0.0): el
 tablero (M4, 0.8.0), el rastreo (M5, 0.10.0), cupones y zonas en el panel
 (0.9.0), un colaborador además del dueño (0.13.0), «Avísame cuando llegue»
 (0.11.0), la actualización automática (0.14.0) y la restauración (0.18.0).
@@ -476,7 +507,7 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 5. Si cambia un contrato de datos, la versión anterior sigue funcionando.
 6. Si toca `maestro.gs`, `panel.gs` o `plantilla/`, sube `version`.
 
-**Estado de los hitos, al 29 de septiembre de 2026:**
+**Estado de los hitos, al 30 de septiembre de 2026 (1.0.0):**
 
 | Hito | Estado | Versión |
 |---|---|---|
@@ -489,14 +520,15 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 | M3 bis · El panel alcanza para todo | Cerrado el 21-sep | 0.9.0 |
 | M5 · El rastreo del pedido | Cerrado el 21-sep | 0.10.0 |
 | M6 · La flota se actualiza sola | Hecho fuera del MVP (S3 del `ROADMAP.md`) | 0.13.0 y 0.14.0 |
+| **El MVP entero** | **Cerrado el 30-sep: la etiqueta se cortó** | **1.0.0** |
 
 Lo que vino después, versión por versión, está en las secciones 0.11.0 a
-0.24.0 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
+1.0.0 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
 
 **El MVP son siete hitos —M3 bis reabrió M3—, y este fue el orden:**
 
 ```
-M0 → M1 → M2 → M3 → M3.5 → M4 → M5   ← la 1.0.0
+M0 → M1 → M2 → M3 → M3.5 → M4 → M5   ← la 1.0.0 (cortada el 30-sep-2026)
                                   M6   ← era la 1.1; hecho en la 0.14.0
 ```
 
@@ -641,6 +673,8 @@ evidencia en baterías que corren en cada empujón:
 
 **Lo que NO cierra M0 y sigue abierto a propósito:** que un abogado mire el
 machote legal (nota de A-4), y el `sitemap.xml` / `robots.txt` de C-2.
+*(El `sitemap.xml` y el `robots.txt` se cerraron con C-2, en M2:
+`montar/sembrar-seo.mjs` los hornea. La revisión del abogado sigue abierta.)*
 
 ### M1 · Rendimiento y cuota   · con repositorios privados, esto es dinero
 
@@ -1648,12 +1682,22 @@ agotado.
 - [x] De 2–5 minutos de Actions por publicación a segundos.
 
 **Pendiente de la revisión (bitácora 102)**
-- [ ] Causa 3: unificar los permisos de GitHub en los menos posibles, con una sola
+- [x] Causa 3: unificar los permisos de GitHub en los menos posibles, con una sola
       comprobación de alcance al principio de cada flujo. *(Sin huecos conocidos
       desde la bitácora 102; la 0.22.1 quitó `SEMILLA_TOKEN` del camino de los
       flujos. Queda la unificación, sin fecha.)*
-- [ ] Causa 4: que `montaje` diga TODO lo que falla en una corrida, no lo primero.
+      **Resuelta en la 0.24.0 (decisión 34):** tres tokens de GitHub y ni uno
+      más —`FLOTA_TOKEN`, `SEMILLA_TOKEN` y `DISPARO_TOKEN`—, porque fundirlos
+      daría a cada copia más alcance del que necesita. `ALTA_TOKEN` se fundió en
+      `FLOTA_TOKEN` y el dueño lo borró de `tiendas` el 29-sep.
+- [x] Causa 4: que `montaje` diga TODO lo que falla en una corrida, no lo primero.
       *(Sigue pendiente al 29-sep: ver Dónde estamos.)*
+      **Cerrada por diseño en la 1.0.0, sin cambiar el flujo:** la guardia de una
+      tienda (`tienda-viva.js`, 0.22.0) es pequeña y pone TODAS sus líneas FALLA
+      en el resumen; `preparar-index` lista TODAS las claves que bloquean;
+      `misma-tienda` dice los tres sitios. Lo que queda —que cada comprobación
+      previa corra aunque falle la anterior— pasa a la 3.0 como principio de
+      diseño, no como tarea de la 2.0 (ver 1.0.0, más abajo).
 
 ### 0.22.1 · Los flujos de las tiendas son de la flota
 
@@ -1726,8 +1770,11 @@ próxima.*
       siguiente montaje o *Publicar ahora*.
 - [x] El logo de la barra: 40 px de alto (34 en el celular), ancho libre hasta
       un tope, y entero (sin el recorte cuadrado de las derivadas webp).
-- [ ] `test.js` («Mínimo no alcanzado muestra aviso») falla a veces con toda
+- [x] `test.js` («Mínimo no alcanzado muestra aviso») falla a veces con toda
       la suite en paralelo y pasa sola: una espera que depende de la carga.
+      **Arreglado en la 1.0.0:** el cupón lo valida el maestro por red y la
+      batería esperaba dos cuadros; ahora espera a que el aviso deje de decir
+      «Validando…».
 
 ### 0.23.0 · El tamaño del logo lo elige la hoja
 
@@ -1788,6 +1835,56 @@ próxima.*
 - [ ] Riesgo abierto: consentimiento antes de cargar GA4/Meta, si un abogado lo
       confirma para Colombia.
 
+### 1.0.0 · Se cierra el MVP
+
+> **30 de septiembre de 2026.** Los hitos estaban cerrados desde el 21 de
+> septiembre; faltaba cerrar lo que la revisión y la prueba real dejaron
+> abierto, y cortar la etiqueta. Con esta entrega el MVP queda cerrado y la
+> semilla pasa de la 0.25.0 a la **1.0.0**. El mismo día el dueño decide que
+> esta es la **Tienda 2.0**, el único producto que se gestiona (decisión 36).
+
+**C-25**  · 3 pts · ✅ (decisión 36, bitácora 113)
+- [x] **Fotos que se pasan desde la tarjeta del catálogo.** Con más de una
+      foto general, la tarjeta es un carril con *scroll-snap*: se desliza con
+      el dedo, tiene flechas al pasar el ratón en computador y puntos abajo.
+      Solo la primera foto se descarga al pintar; las demás llevan `data-src` y
+      se piden la primera vez que alguien toca, pasa el ratón o desliza esa
+      tarjeta. Un carril no cabe en un `<button>`, así que esa caja deja de
+      serlo: tocar la foto abre la ficha y el botón «Ver» es el camino del
+      teclado. Con una sola foto la tarjeta queda como antes. Fuera la
+      insignia «N fotos». (`carrilDeFotos`, `despertarFotos`, `marcarFoto`,
+      `pasarFoto` en `plantilla/index.html`; lo prueba `fotos.js` §6b.)
+- [x] **Ningún token de montaje en una dirección** (ROADMAP 5.7, §7). `alMaestro`
+      (`montar/tienda.mjs`) y `publicar-maestro.mjs` hablan con el maestro por
+      POST, JSON en texto plano, con `t` en el cuerpo; `panel.gs` consulta cada
+      tienda (`a: 'panel'`) igual, y `tiendas/flota/conectar.mjs › pedir`
+      también. El maestro **sigue aceptando GET** en las puertas de montaje, a
+      propósito: volver a una versión anterior corre las herramientas viejas,
+      que preguntan por GET, contra el maestro 1.0.0; rechazarlo rompía volver
+      atrás. Cada GET con el token se anota (`anotarTokenPorGet`, propiedad
+      `TOKEN_POR_GET`, nunca el token) y el diagnóstico lo dice. **Dos
+      clientes siguen por GET, dichos:** `panel.gs` hacia una Tienda Básica
+      (`esBasica`: el maestro de Orgánico no atiende puertas por POST; hasta
+      migrarla) y el stub de cada hoja con su token de menú (guardia `menu`),
+      que no se cierra sin repegar el stub en cada hoja. Lo prueban
+      `montaje.js` §0, `sondeo.js` (el maestro de mentira cuenta los tokens
+      que llegan en la dirección), `panel.js` y `flota/pruebas.mjs`.
+- [x] **`test.js` deja de fallar a ratos:** el cupón lo valida el maestro por
+      red y la batería esperaba dos cuadros; ahora espera a que el aviso deje
+      de decir «Validando…» (la casilla abierta en la 0.22.5).
+- [x] **Causa 4, cerrada por diseño** sin cambiar el flujo: la guardia de una
+      tienda pone todas sus líneas FALLA en el resumen, `preparar-index` lista
+      todas las claves que bloquean y `misma-tienda` dice los tres sitios. Que
+      cada comprobación previa corra aunque falle la anterior pasa a la 3.0
+      como principio de diseño (la casilla abierta en la 0.22.0).
+- [x] **La versión:** `1.0.0` en `package.json` y `VERSION_TIENDA`. El contrato
+      página↔maestro (`VERSION` del maestro) no cambia: sigue en
+      `2026-09-22-8`.
+- [ ] Lo que queda del dueño: poner en `tiendas` `PANEL_SCRIPT_ID` y
+      `PANEL_CLASPRC` y correr el flujo `panel` —con eso la puerta `panel` deja
+      de aceptar GET—, y revocar en GitHub el token viejo de `ALTA_TOKEN`. El
+      resto de lo pendiente, en *Dónde estamos*.
+
 ---
 
 ### Lo que sigue después del MVP
@@ -1800,6 +1897,11 @@ volver atrás sola— está en `ROADMAP.md`. *(Hecha después, fuera del MVP: v1
 en la 0.13.0 y automática en la 0.14.0, con vuelta atrás del maestro si algo
 falla —S3 del `ROADMAP.md`—. Desde la 0.22.0 lo que decide si publica es
 `tienda-viva.js`.)*
+
+**Después de la 1.0.0** *(30-sep-2026, decisión 36)*: la 2.0 queda como
+producto en operación —correcciones y lo que pidan los clientes— y el producto
+definitivo se empieza de cero como proyecto nuevo, desde `TRASLADO-3.0.md`
+(`ROADMAP.md` › *Después de la 2.0: el proyecto 3.0*).
 
 **Lo que el MVP les deja hecho**, y por eso después son baratos: el horneado
 determinista y `publicar/` como producto (M0) son la mitad de M6; el testigo de
@@ -1833,7 +1935,7 @@ vivo», ese es el número que hay que mirar.
 | **El panel se come el proyecto** | Tres meses construyendo un administrador y la tienda sin mejorar | M3 llega después de M0-M2, y su alcance está cerrado por escrito (§4.3) |
 | **Publicar deja la tienda rota** | La tienda sirve el `<head>` de un comercio y el catálogo de otro | Nada se empuja si las baterías no están verdes, y el horneado es o entero o nada |
 | **Poner al día una tienda a mano se olvida** | Una tienda montada en marzo se queda sin las correcciones de junio | *Contenido desde la 0.14.0:* la tienda se actualiza sola (`montaje` con `semilla`) y la flota la dispara por anillos. Lo que queda: una tienda con `"anillo": "fuera"` no recibe nada, y el estado la sigue mostrando atrás |
-| **El token de montaje en la dirección** | `MAESTRO_TOKEN` va como `t=` en peticiones GET del montaje al maestro (`montar/tienda.mjs › alMaestro`), y una URL acaba en registros | Riesgo conocido, sin arreglar (`ROADMAP.md` 5.7): la regla es que los tokens viajan solo por POST. El token solo abre las puertas de montaje de esa tienda |
+| **El token de montaje en la dirección** | `MAESTRO_TOKEN` va como `t=` en peticiones GET del montaje al maestro (`montar/tienda.mjs › alMaestro`), y una URL acaba en registros | *Cerrado en la 1.0.0 (`ROADMAP.md` 5.7):* el montaje, `publicar-maestro.mjs`, `panel.gs` y `conectar` mandan el token en el cuerpo de un POST; el maestro acepta todavía el GET (volver atrás lo necesita) pero lo anota en `TOKEN_POR_GET` y el diagnóstico lo dice. Quedan dos excepciones: `panel.gs` hacia una Tienda Básica, hasta migrarla, y el stub de cada hoja manda su token de menú por GET hasta que se repegue |
 | **Un flujo retirado se queda en la tienda** | `semilla.json › retirados` nombra `.github/workflows/tienda-nueva.yml`, y el permiso de la tienda no toca `.github/workflows` | *Cerrado en la 0.22.3:* la flota lo quita (`flota/flujos.mjs › flujosRetirados`) |
 | **La clave del panel** | Alguien entra a la tienda de un comercio | Hash con sal fuera de la hoja, testigo con vencimiento, bloqueo por intentos, y el alcance acotado a esa tienda. Sus límites están escritos, no disimulados |
 | **Subir fotos desde el panel no cabe** en los límites de Apps Script | Fotos grandes que fallan o tardan | El camino viejo sigue existiendo; la historia lo exige explícitamente |
@@ -1841,7 +1943,7 @@ vivo», ese es el número que hay que mirar.
 | **A-2 cambia sin querer lo que ve el comprador** | Una tienda se ve distinta tras un refactor «que no cambiaba nada» | Comparar el horneado nuevo contra el publicado de una tienda real, antes de fusionar |
 | **Dos compradores y la última unidad** | Hoy: dos pedidos por WhatsApp de la misma unidad, y el comerciante le escribe a uno que ya no hay. Con pago en línea: los dos pagan y a uno hay que devolverle la plata | E-1 aparta la unidad **antes** de que empiece el pago, y va antes que el proveedor. Hasta M3.5, se resuelve a mano como siempre |
 | **Confirmar un pago desde Apps Script** | Un aviso de pago falso marca un pedido como pagado; o uno verdadero no llega nunca | `doPost` no ve cabeceras, así que el aviso no se cree: se consulta al proveedor por la referencia (E-4). Ese es el criterio que decide el proveedor (E-2) |
-| **Dos líneas de producto** | Una corrección se arregla en `tienda` y no en `organico` | Son dos líneas a propósito: `organico` solo recibe correcciones, y este plan no las sincroniza. Si algo hay que llevar, se lleva a mano y se anota |
+| **Dos líneas de producto** | Una corrección se arregla en `tienda` y no en `organico` | Son dos líneas a propósito: `organico` solo recibe correcciones, y este plan no las sincroniza. Si algo hay que llevar, se lleva a mano y se anota. *Desde el 30-sep-2026 (decisión 36):* la convivencia tiene fin. `organico` sigue solo con correcciones y sus clientes —hoy Cinnamon Beauty— se migran a la 2.0, uno por uno y cuando convenga; mientras tanto, lo que haya que llevar se sigue llevando a mano |
 
 ---
 
@@ -1852,7 +1954,7 @@ vivo», ese es el número que hay que mirar.
 | | Decisión |
 |---|---|
 | **Nombre** | El producto se llama **tienda**. Este repositorio es la semilla de su segunda versión |
-| **Versión** | Empieza en **0.1.0**; el MVP sale como **1.0.0**. `organico` sigue en 3.x, aparte |
+| **Versión** | Empieza en **0.1.0**; el MVP sale como **1.0.0**. `organico` sigue en 3.x, aparte. *Cumplida: la 1.0.0 se cortó el 30-sep-2026* |
 | **Datos de empresa** | **Bloquean**: sin ellos no se publica (§4.2) |
 | **Alcance** | El MVP son **M0 a M3**. Tablero, rastreo y flota automática son la 1.1. *(Ampliado el 21 de septiembre: entran **M3.5 · Cobrar en línea**, **M4 · El tablero** y **M5 · El rastreo**.)* |
 | **Repositorios** | Semilla y tiendas privadas. La semilla se hará pública cuando el consumo llegue al umbral que el dueño está midiendo; las tiendas, nunca |
@@ -1870,7 +1972,8 @@ Las cuatro primeras están también en `DECISIONES.md`, con su contrapartida.
    y no hay promesa que romper. El día que la flota se actualice sola, si una
    versión nuestra tumba su tienda **es nuestra** — y eso conviene escribirlo
    antes de que él lo dé por hecho de otra manera. *Al 29 de septiembre M6 ya
-   llegó (0.14.0) y la promesa sigue sin escribirse.*
+   llegó (0.14.0) y la promesa sigue sin escribirse. Al 30 de septiembre, con
+   la 1.0.0 cortada, sigue igual.*
 3. **Cuándo se hace pública la semilla.** No bloquea nada del MVP: con las
    tiendas privadas hace falta el secreto de lectura de todos modos, y solo lo
    necesita M6. *(Sigue abierta. Hoy ese secreto es `SEMILLA_TOKEN`, que la

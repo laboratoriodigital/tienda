@@ -15,20 +15,20 @@ parte de ella. Una decisión nueva que deja vieja a otra se anota en las dos.
 
 ### Vigencia a hoy
 
-Revisada contra el código de la 0.22.3 el 29 de septiembre de 2026.
+Revisada contra el código de la 1.0.0 el 30 de septiembre de 2026.
 
 | # | Decisión | Vigencia |
 |---|---|---|
 | 01 | Catálogo estático | VIGENTE · ejecutada |
 | 02 | Telemetría por empuje | VIGENTE · sin ejecutar (condición no cumplida) |
-| 03 | El cascarón en la hoja | VIGENTE |
+| 03 | El cascarón en la hoja | VIGENTE; el stub es, con `panel.gs` hacia una Tienda Básica, lo último que manda un token por GET |
 | 04 | Pedido no registrado, en el navegador | VIGENTE · ejecutada |
 | 05 | Dato, interruptor o ranura | VIGENTE en la regla; el «desvío declarado» lo reemplazó la **19** |
 | 06 | Sobrescribir y rehornear | VIGENTE la regla; el mecanismo lo reemplazaron la **19** y la **21** |
 | 07 | Sin pull request en las tiendas | VIGENTE · ejecutada en parte; la compuerta es la **26** |
 | 08 | Publicar a demanda, red diaria | VIGENTE · ejecutada |
 | 09 | Datos de la empresa bloquean | VIGENTE · ejecutada |
-| 10 | Se llama «tienda», desde 0.1.0 | VIGENTE |
+| 10 | Se llama «tienda», desde 0.1.0 | VIGENTE · cumplida: la 1.0.0 salió el 30-sep |
 | 11 | Stock por variante | VIGENTE · ejecutada |
 | 12 | Bold | VIGENTE |
 | 13 | Tablero dentro del panel | VIGENTE |
@@ -37,13 +37,13 @@ Revisada contra el código de la 0.22.3 el 29 de septiembre de 2026.
 | 16 | «Avísame» por WhatsApp | VIGENTE |
 | 17 | Dominio propio | VIGENTE |
 | 18 | Un colaborador | VIGENTE |
-| 19 | Tres versiones; líneas separadas | VIGENTE la regla; «una persona fusiona» lo reemplazó la **21** |
-| 20 | Dos productos | VIGENTE |
+| 19 | Tres versiones; líneas separadas | VIGENTE la regla; «una persona fusiona» lo reemplazó la **21**; la migración 3.x vuelve con la **36** |
+| 20 | Dos productos | **REVOCADA** el 30-sep-2026 por la **36** |
 | 21 | La tienda se actualiza sola | VIGENTE; dos partes reemplazadas por la **26** y la **27** |
 | 22 | Fotos: las dos maneras | VIGENTE |
-| 23 | Google Analytics y `medir()` | VIGENTE |
+| 23 | Google Analytics y `medir()` | VIGENTE; la **35** suma Meta y fija los eventos |
 | 24 | El logo en la barra | VIGENTE |
-| 25 | `panel.gs` se publica por flujo | VIGENTE |
+| 25 | `panel.gs` se publica por flujo | VIGENTE · sin su primera corrida (faltan los secretos) |
 | 26 | La compuerta de una tienda es la tienda viva | VIGENTE |
 | 27 | Los flujos de una tienda los entrega la flota | VIGENTE |
 | 28 | El que mira aplica la hoja sobre lo publicado | VIGENTE |
@@ -52,7 +52,9 @@ Revisada contra el código de la 0.22.3 el 29 de septiembre de 2026.
 | 31 | Una clave nueva de Configuración aparece sola | VIGENTE |
 | 32 | Las columnas se leen por su nombre; el orden visible es libre | VIGENTE |
 | 33 | El precio por variante va por combinación, vacío = el del producto | VIGENTE |
-| 34 | Tres tokens de GitHub: FLOTA, SEMILLA y DISPARO | VIGENTE |
+| 34 | Tres tokens de GitHub: FLOTA, SEMILLA y DISPARO | VIGENTE · `ALTA_TOKEN` borrado de `tiendas` el 29-sep |
+| 35 | El píxel de Meta y los eventos propios | VIGENTE · el medidor propio sin construir; riesgo abierto: consentimiento |
+| 36 | Un solo producto: la Tienda 2.0 | VIGENTE · desde el 30-sep-2026 |
 
 ---
 
@@ -216,7 +218,10 @@ Tres cosas, y la primera es la seria:
 (`A1_generarStub`) y pegando a mano. El hueco del token ya se cerró: el stub
 lleva su propio token (`tokenMenu()`, propiedad `TOKEN_MENU`), distinto del de
 montaje. Automatizar el pegado está evaluado y sin hacer:
-`EVALUACION-stub-automatico.md`.
+`EVALUACION-stub-automatico.md`. *(30-sep-2026, 1.0.0:* el stub es, con
+`panel.gs` cuando consulta una Tienda Básica, lo último que manda un token en
+la dirección —`?a=menu&…&t=…`, por GET—; cerrarlo exige repegar el stub en
+cada hoja. ROADMAP 5.7 y 3.5.)
 
 ### Qué se quería
 
@@ -599,8 +604,11 @@ pruebas del operador, con los datos del operador.
 
 **Estado:** DECIDIDA el 18 de septiembre de 2026
 
-**Vigencia:** VIGENTE. La semilla va en la 0.22.3 (`package.json`); la 1.0.0
-no ha salido. La lista de términos vive en `terminos-prohibidos.json`.
+**Vigencia:** VIGENTE, cumplida: la 1.0.0 se cortó el 30 de septiembre de 2026
+(`package.json` y `VERSION_TIENDA`). La lista de términos vive en
+`terminos-prohibidos.json`. *(Hasta el 29-sep decía: «La semilla va en la
+0.22.3; la 1.0.0 no ha salido».)* Desde la **36**, esta línea es la
+**Tienda 2.0**.
 
 ### Qué hace hoy
 
@@ -990,7 +998,9 @@ colaborador hasta que alguien decide agregarla a `CLAVES_DEL_COLABORADOR`.
 (`montar/semilla.mjs` en la semilla; la misma tabla en la flota). «Una persona
 fusiona y corre el montaje» quedó REEMPLAZADO por la **21** en la línea
 `tienda`; la línea `organico` sigue en modo pull request y queda fuera de este
-registro.
+registro. «Pasar de la 3.x a esta es una migración de la hoja, aparte», que la
+**20** había descartado, vuelve con la **36** (30-sep-2026): se hace, cliente
+por cliente.
 
 ### Qué hacía
 
@@ -1029,10 +1039,15 @@ vive solo en `tiendas`, de grano fino y con vencimiento.
 ## 20 · Dos productos, dos líneas que no se mezclan
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.14.0). Reemplaza el
-«migrar las tiendas 3.x» de la decisión 19.
+«migrar las tiendas 3.x» de la decisión 19. **REVOCADA el 30 de septiembre de
+2026 por la 36.**
 
-**Vigencia:** VIGENTE. (Lo de «`tienda` todavía no tiene hijas» era cierto ese
-día; hoy tiene a `prueba1` en `tiendas/flota.json`.)
+**Vigencia:** REVOCADA por la **36** (30-sep-2026). Dos productos costaban
+doble —dos semillas, dos flotas, cada arreglo dos veces— y el dueño decidió
+gestionar uno solo: la Tienda 2.0. Orgánico ya no es un producto que se vende;
+solo recibe correcciones hasta que sus clientes se migren. *(Antes decía:
+VIGENTE. Lo de «`tienda` todavía no tiene hijas» era cierto ese día; hoy tiene
+a `prueba1` en `tiendas/flota.json`.)*
 
 ### Qué hacía
 
@@ -1152,7 +1167,11 @@ tamaños, aunque casi no se usen.
 
 **Estado:** CERRADA el 22 de septiembre de 2026 (0.19.0).
 
-**Vigencia:** VIGENTE.
+**Vigencia:** VIGENTE, ampliada por la **35** (0.25.0): `medir()` ya reparte a
+dos destinos —GA4 y el píxel de Meta— con cinco eventos propios, y la condición
+de disparo del medidor propio y su diseño viven ahora en la 35. La regla de
+fondo no cambió: vacío es lo de fábrica, y sin clave la tienda no carga nada de
+fuera.
 
 ### Qué se decidió
 
@@ -1234,7 +1253,13 @@ quiera solo la imagen no puede.
 
 ## 25 · `panel.gs` se publica con un flujo, y con la misma herramienta que el maestro
 
-**Estado:** CERRADA en la 0.21.1 (3.11b · bitácora 100). **Vigencia:** VIGENTE.
+**Estado:** CERRADA en la 0.21.1 (3.11b · bitácora 100). **Vigencia:** VIGENTE,
+sin estrenar: al 30-sep-2026 el flujo `panel` todavía no ha corrido porque
+faltan sus dos secretos en `tiendas` (pendiente del dueño). Desde la 1.0.0
+`panel.gs` pregunta por POST, con el token en el cuerpo, a cada tienda de la
+2.0 (a una Tienda Básica, por GET, hasta migrarla). Hasta esa primera corrida
+la hoja publicada pregunta por GET: el maestro lo atiende y lo anota
+(`TOKEN_POR_GET`), y el diagnóstico lo dice.
 
 ### Qué hacía
 
@@ -1546,7 +1571,13 @@ exige llenar cada fila; «Precio antes» sigue siendo del producto.
 
 ## 34 · Tres tokens de GitHub: FLOTA, SEMILLA y DISPARO
 
-**Estado:** CERRADA en la 0.24.0 (bitácora 110). **Vigencia:** VIGENTE.
+**Estado:** CERRADA en la 0.24.0 (bitácora 110). **Vigencia:** VIGENTE. Cierra
+la causa 3 de la revisión de la bitácora 102. El dueño borró `ALTA_TOKEN` de
+`tiendas` el 29 de septiembre de 2026 (bitácora 111) y `FLOTA_TOKEN` ya lleva
+*Administration* y *Secrets*. Quedan dos restos: revocar en GitHub el token
+viejo —el secreto ya no existe, el token sí— y quitar el respaldo
+`ALTA_TOKEN ||` de los flujos de `tiendas` (`alta.yml`). En la semilla ya no
+lo lee ningún flujo ni herramienta.
 
 **Decisión.** `ALTA_TOKEN` se funde en `FLOTA_TOKEN` (mismo sitio, mismos
 repos; el código acepta los dos mientras exista el viejo). `SEMILLA_TOKEN`
@@ -1563,7 +1594,10 @@ vista del comercio; si esa cuenta se compartiera, habría que acotarlo.
 
 ## 35 · El píxel de Meta, y un contrato de eventos para el medidor propio
 
-**Estado:** CERRADA en la 0.25.0 (bitácora 112). **Vigencia:** VIGENTE.
+**Estado:** CERRADA en la 0.25.0 (bitácora 112). **Vigencia:** VIGENTE, al
+30-sep-2026 (1.0.0): el píxel y los cinco eventos están en el código
+(`meta_pixel_id`, `medir()`, `medidores()`); el medidor propio sigue sin
+construir (ROADMAP 3.13) y el riesgo del consentimiento sigue abierto.
 
 **Qué hace hoy.** La tienda mide con GA4 si la hoja pone `analytics_id`
 (decisión 23). Los comercios que anuncian en Facebook e Instagram no podían
@@ -1616,6 +1650,60 @@ pide consentimiento antes de cargar GA4 o Meta; si un abogado o la SIC lo
 exigen para cookies de publicidad, hace falta un aviso con «Aceptar» que
 retrase la carga (`fbq('consent','revoke')` hasta aceptar). No se construye sin
 esa confirmación.
+
+---
+
+## 36 · Un solo producto: la Tienda 2.0; Orgánico se migra, y la definitiva empieza de cero
+
+**Estado:** DECIDIDA el 30 de septiembre de 2026 por el dueño, con la 1.0.0.
+**Vigencia:** VIGENTE. **Revoca** la **20** y devuelve la migración 3.x que la
+**19** dejaba para aparte.
+
+### Qué hace hoy
+
+Hay dos líneas de producto que se administran por separado: `tienda` (la
+Tienda Panel, este repositorio, con la semilla y prueba1 en su flota) y
+`organico` (la Tienda Básica, 3.x, con Cinnamon Beauty como cliente). Cada una
+tiene su semilla, su modo de actualizarse —montaje aquí, pull request allá—,
+sus baterías y su documentación, y la flota las reparte por separado.
+
+### La fuerza real
+
+No es técnica: es el costo de mantener. Dos productos cuestan doble —cada
+arreglo común se hace dos veces, o se hace en una y se olvida en la otra (el
+riesgo *Dos líneas de producto* del `PLAN-MVP.md` §7)— y los recursos son los
+de un equipo pequeño. La 20 los separó porque se venden distinto; el dueño
+prefiere un solo producto bien cuidado a dos a medias.
+
+### La decisión
+
+- **La Tienda 2.0 —este repositorio— es el caballo de batalla**: el único
+  producto que se administra, se vende y recibe funciones nuevas.
+- **Orgánico queda como está, solo con correcciones**, hasta que cada cliente
+  suyo (hoy Cinnamon Beauty) se migre a la 2.0. No se sincroniza código entre
+  las dos líneas ni se construye nada nuevo para la Básica (ROADMAP 3.9 y 3.10
+  pasan a NO; 3.8 pasa a SÍ).
+- **El producto definitivo y maduro se empieza como proyecto nuevo**, la
+  «Tienda 3.0», **desde cero**, con lo aprendido en `docs/TRASLADO-3.0.md` y en
+  la bitácora. La 2.0 no se reescribe para convertirse en ella: queda en
+  operación, con correcciones y lo que pidan sus clientes. «3.0» es el nombre
+  del proyecto futuro; no tiene que ver con las versiones 3.x de Orgánico.
+
+### Condición de disparo
+
+Cada migración va por su cuenta: **cuando el cliente necesite algo que solo
+tiene la 2.0** (el panel web, por ejemplo) **o cuando mantener Orgánico cueste
+más que migrar** (una corrección que habría que hacer dos veces). Lo observa el
+dueño, cliente por cliente; no hay fecha fija.
+
+### Contrapartida
+
+Migrar no es gratis: exige pasar la hoja de cada cliente a la de esta línea
+—sus columnas y claves (`CONTRATOS.md`), que no son las mismas— y su dominio,
+y darla de alta como una tienda más (`alta` + `conectar`). Y mientras dure la
+convivencia, **la flota sigue teniendo dos líneas**: `organico` conserva su
+modo pull request en `tiendas/flota.json` y sus correcciones se siguen
+haciendo a mano.
 
 ---
 

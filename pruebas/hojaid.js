@@ -20,7 +20,7 @@ ok('A0_INSTALAR deja el ID de la hoja en las propiedades del script', g.props.HO
 // La versión implementada, sin el ID en la constante, pero con la propiedad ya guardada
 const v = crear('./as.js', { hojaId: '', props: { HOJA_ID: g.props.HOJA_ID } });
 ok('UNA VERSIÓN SIN EL ID en la constante lo toma de la propiedad', v.api.HOJA_ID === g.props.HOJA_ID);
-const id = JSON.parse(v.api.doGet({ parameter: { a: 'identidad', t: v.api.token() } })._texto);
+const id = JSON.parse(v.api.doPost({ postData: { contents: JSON.stringify({ a: 'identidad', t: v.api.token() }) } })._texto);
 ok('  ...y `identidad` abre su hoja (lo que pregunta conectar)', id.ok && id.hojaOk && id.hojaId === g.props.HOJA_ID, JSON.stringify(id).slice(0, 120));
 
 const nada = crear('./as.js', { hojaId: '' });

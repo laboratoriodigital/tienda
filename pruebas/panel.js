@@ -140,18 +140,35 @@ function panel(tiendas, respuestas) {
   ok('TRES TIENDAS, UNA SOLA IDA A LA RED', g.peticiones.length === 1,
      g.peticiones.length + ' llamada(s) de red');
   ok('  ...con las tres URL adentro', g.peticiones[0].length === 3);
-  ok('  ...y cada una lleva su propio token',
-     g.peticiones[0].every(u => /[?&]t=tk-/.test(u)), g.peticiones[0][0].slice(-30));
+  /* 1.0.0 · el token en el CUERPO (ROADMAP 5.7): la dirección es la del
+     servicio y nada más. */
+  const partes = g.peticiones[0].map(u => ({ dir: u.split(' ')[0], cuerpo: JSON.parse(u.slice(u.indexOf(' ') + 1) || '{}') }));
+  ok('  ...y cada una lleva su propio token, EN EL CUERPO y no en la dirección',
+     partes.every(x => /^tk-/.test(x.cuerpo.t || '') && !/[?&]t=/.test(x.dir)),
+     g.peticiones[0][0].slice(-60));
   ok('  ...pidiendo la puerta del panel, no otra',
-     g.peticiones[0].every(u => /a=panel/.test(u)));
+     partes.every(x => x.cuerpo.a === 'panel'));
+}
+
+// ═══ 2b. 1.0.0 · A una Tienda Básica se le pregunta por GET (decisión 36) ═══
+{
+  const g = panel([{ comercio: 'Panel' }, { comercio: 'Basica' }],
+                  [[EXEC, () => ({ cuerpo: tiendaFalsa() })]]);
+  g.hojas.get('Tiendas').getRange(3, 16).setValue('Tienda Básica');
+  g.api.actualizar();
+  const [aPanel, aBasica] = g.peticiones[0];
+  ok('UNA TIENDA BÁSICA (Orgánico 3.x) se consulta por GET: su maestro no atiende POST',
+     /[?&]a=panel&t=tk-Basica/.test(aBasica) && !/ /.test(aBasica), aBasica.slice(-40));
+  ok('  ...y la de la 2.0, con el token en el cuerpo', !/[?&]t=/.test(aPanel.split(' ')[0]) && /"t":"tk-Panel"/.test(aPanel),
+     aPanel.slice(-40));
 }
 
 // ═══ 3. Una tienda caída no tumba el panel ═══
 {
   const g = panel([{ comercio: 'Buena' }, { comercio: 'Caida' }, { comercio: 'Rara' }], [
-    ['t=tk-Buena', () => ({ cuerpo: tiendaFalsa({ ventasMes: 500000 }) })],
-    ['t=tk-Caida', () => ({ codigo: 404, cuerpo: 'no' })],
-    ['t=tk-Rara',  () => ({ cuerpo: 'esto no es JSON' })]
+    ['"t":"tk-Buena"', () => ({ cuerpo: tiendaFalsa({ ventasMes: 500000 }) })],
+    ['"t":"tk-Caida"', () => ({ codigo: 404, cuerpo: 'no' })],
+    ['"t":"tk-Rara"',  () => ({ cuerpo: 'esto no es JSON' })]
   ]);
   const r = g.api.actualizar();
   const todo = g.filas('Métricas');
@@ -221,10 +238,10 @@ function panel(tiendas, respuestas) {
     { comercio: 'Nueva',   precio: 60000, estado: 'En montaje' },
     { comercio: 'Dormida', precio: 45000, estado: 'Pausada' }
   ], [
-    ['t=tk-Grande', () => ({ cuerpo: tiendaFalsa({ ventasMes: 3000000, pedidosMes: 20 }) })],
-    ['t=tk-Chica',  () => ({ cuerpo: tiendaFalsa({ ventasMes: 1000000, pedidosMes: 5,
+    ['"t":"tk-Grande"', () => ({ cuerpo: tiendaFalsa({ ventasMes: 3000000, pedidosMes: 20 }) })],
+    ['"t":"tk-Chica"',  () => ({ cuerpo: tiendaFalsa({ ventasMes: 1000000, pedidosMes: 5,
                                                         atrasados: 3, porConfirmar: 4, agotados: 2 }) })],
-    ['t=tk-Nueva',  () => ({ cuerpo: tiendaFalsa({ ventasMes: 0, pedidosMes: 0 }) })]
+    ['"t":"tk-Nueva"',  () => ({ cuerpo: tiendaFalsa({ ventasMes: 0, pedidosMes: 0 }) })]
   ]);
   g.api.actualizar();
   const tab = g.filas('Tablero');
@@ -279,9 +296,9 @@ function panel(tiendas, respuestas) {
 {
   const viejo = new Date(Date.now() - 40 * 86400000).toISOString();
   const g = panel([{ comercio: 'AlDia' }, { comercio: 'Vieja' }, { comercio: 'Falla' }], [
-    ['t=tk-AlDia', () => ({ cuerpo: tiendaFalsa() })],
-    ['t=tk-Vieja', () => ({ cuerpo: tiendaFalsa({ respaldo: { fecha: viejo, archivo: 'x' } }) })],
-    ['t=tk-Falla', () => ({ cuerpo: tiendaFalsa({ respaldo: { error: 'sin permiso' } }) })]
+    ['"t":"tk-AlDia"', () => ({ cuerpo: tiendaFalsa() })],
+    ['"t":"tk-Vieja"', () => ({ cuerpo: tiendaFalsa({ respaldo: { fecha: viejo, archivo: 'x' } }) })],
+    ['"t":"tk-Falla"', () => ({ cuerpo: tiendaFalsa({ respaldo: { error: 'sin permiso' } }) })]
   ]);
   g.props.CORREO = 'yo@ejemplo.com';
   g.api.actualizar();
@@ -312,7 +329,7 @@ function panel(tiendas, respuestas) {
      /SIN RESPALDO AL DÍA/.test(correo.body) && /Falla: FALLÓ/.test(correo.body),
      (correo.body.match(/SIN RESPALDO AL DÍA[\s\S]{0,60}/) || [''])[0].replace(/\n/g, ' | '));
 
-  const sano = panel([{ comercio: 'A' }], [['t=tk-A', () => ({ cuerpo: tiendaFalsa() })]]);
+  const sano = panel([{ comercio: 'A' }], [['"t":"tk-A"', () => ({ cuerpo: tiendaFalsa() })]]);
   sano.api.actualizar();
   ok('Con todo respaldado, el tablero lo dice y no alarma',
      /todas respaldadas/.test(String((sano.filas('Tablero')
@@ -488,7 +505,7 @@ function panel(tiendas, respuestas) {
   ok('  ...y contesta la pregunta que se quería hacer: qué corre cada tienda',
      (() => {
        const g2 = panel([{ comercio: 'Uno' }],
-         [['t=tk-Uno', () => ({ cuerpo: tiendaFalsa({ version: LA_VERSION }) })]]);
+         [['"t":"tk-Uno"', () => ({ cuerpo: tiendaFalsa({ version: LA_VERSION }) })]]);
        g2.api.actualizar();
        const t = g2.api.diagnostico().texto;
        return /VERSIÓN DEL MAESTRO EN CADA TIENDA/.test(t) &&
@@ -497,7 +514,7 @@ function panel(tiendas, respuestas) {
   ok('  ...diciendo cuál es la que tiene que coincidir con npm run maestro',
      (() => {
        const g2 = panel([{ comercio: 'Uno' }],
-         [['t=tk-Uno', () => ({ cuerpo: tiendaFalsa() })]]);
+         [['"t":"tk-Uno"', () => ({ cuerpo: tiendaFalsa() })]]);
        g2.api.actualizar();
        return /coincidir con lo que imprime npm run maestro/.test(g2.api.diagnostico().texto);
      })());
@@ -509,7 +526,7 @@ function panel(tiendas, respuestas) {
      primera tienda, y con una sola tienda se comía todo. */
   ok('  ...CON UNA SOLA TIENDA también la lista, que es el caso de hoy', (() => {
        const g2 = panel([{ comercio: 'Solita' }],
-         [['t=tk-Solita', () => ({ cuerpo: tiendaFalsa() })]]);
+         [['"t":"tk-Solita"', () => ({ cuerpo: tiendaFalsa() })]]);
        g2.api.actualizar();
        return new RegExp('Solita: ' + LA_VERSION).test(g2.api.diagnostico().texto);
      })());
@@ -562,8 +579,8 @@ function panel(tiendas, respuestas) {
   };
 
   const g = conCorreo([{ comercio: 'A' }, { comercio: 'B' }], [
-    ['t=tk-A', () => ({ cuerpo: tiendaFalsa({ ventasAyer: 120000 }) })],
-    ['t=tk-B', () => ({ cuerpo: tiendaFalsa({ ventasAyer: 80000, atrasados: 2,
+    ['"t":"tk-A"', () => ({ cuerpo: tiendaFalsa({ ventasAyer: 120000 }) })],
+    ['"t":"tk-B"', () => ({ cuerpo: tiendaFalsa({ ventasAyer: 80000, atrasados: 2,
                                                    porConfirmar: 3, agotados: 1 }) })]
   ]);
   g.api.enviarResumen();
@@ -671,7 +688,7 @@ function panel(tiendas, respuestas) {
      COLS.filter(c => /correo|celular|contacto/i.test(c)).join(', ') +
      ' son del comercio, no de sus clientes');
   ok('  ...y todo lo que sabe se lo preguntó a cada tienda por su puerta',
-     /a=panel/.test(codigo) && /fetchAll/.test(codigo));
+     /a: 'panel'/.test(codigo) && /fetchAll/.test(codigo));
   ok('Es JavaScript válido, se pega y funciona',
      (() => { try { new Function('if(0){' + codigo + '\n}'); return true; }
               catch (e) { return false; } })());

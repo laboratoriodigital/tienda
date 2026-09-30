@@ -224,8 +224,10 @@ async function verificar(version) {
   process.stdout.write('\nComprobando que el maestro publicado abre su hoja… ');
   const arranque = Date.now();
   try {
-    const pedir = async () => (await fetch(url + '?a=bloques&t=' + encodeURIComponent(token),
-                                           { redirect: 'follow' })).json();
+    /* 1.0.0 · por POST: el token no viaja en la dirección (ROADMAP 5.7). */
+    const pedir = async () => (await fetch(url, { method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ a: 'bloques', t: token }) })).json();
     let d = await pedir();
     /* GOOGLE TARDA UNOS SEGUNDOS EN SERVIR LA VERSIÓN NUEVA. Antes esto lo
        avisaba y seguía, y el paso siguiente horneaba el index con la versión

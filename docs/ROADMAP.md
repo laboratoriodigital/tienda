@@ -15,15 +15,23 @@ de la hoja de configuración de cada tienda.
 fecha, en lo más viejo) ·
 `[SIGUIENTE]` es lo próximo que se construye · `[PENSADO]` está diseñado o
 anotado, sin fecha · `[NO]` está descartado con su razón. *(Antes había también `[MVP]`,
-`[1.1]` y `[MEDIDO]`: lo que llevaba esas marcas hoy está HECHO.)*
+`[1.1]` y `[MEDIDO]`: lo que llevaba esas marcas hoy está HECHO.)* Dos marcas
+de la 1.0.0: `[CERRADO POR DISEÑO]` se da por resuelto con lo que ya hay, sin
+construir más, y `[SÍ · cuando convenga]` está decidido y se hace cuando se
+cumpla su condición.
 
-**Al 30 de septiembre de 2026 la semilla va en la 0.25.0.** Lo pendiente
-inmediato —los secretos y la primera corrida del flujo `panel`, la causa 4, el
-sitio principal— está en `PLAN-MVP.md` › *Dónde estamos*; aquí, marcado
-`[SIGUIENTE]`: 3.9, 5.5, 5.6 y 5.7.
+**Al 30 de septiembre de 2026 la semilla va en la 1.0.0: el MVP está
+cerrado.** Lo pendiente —casi todo del dueño: los secretos y la primera
+corrida del flujo `panel`, revocar el token viejo de `ALTA_TOKEN`, el sitio
+principal— está en `PLAN-MVP.md` › *Dónde estamos*; aquí, marcado
+`[SIGUIENTE]`, queda 5.5.
 
 **El producto se llama «tienda».** Este repositorio es la semilla de su segunda
-versión: empieza en `0.1.0` y el MVP sale como `1.0.0`.
+versión: empezó en `0.1.0` y el MVP salió como `1.0.0` el 30 de septiembre de
+2026. Desde ese día es **la Tienda 2.0**, el único producto que se administra
+y se vende (decisión 36): Orgánico solo recibe correcciones hasta que sus
+clientes se migren aquí, y el producto definitivo se empieza de cero como
+proyecto nuevo (al final de las fases).
 
 ---
 
@@ -32,9 +40,10 @@ versión: empieza en `0.1.0` y el MVP sale como `1.0.0`.
 **Cuatro hitos**, decidido el 18 de septiembre de 2026. Los dos primeros no son
 negociables; el tercero es lo que hace que el producto se pueda enseñar a
 cualquier comercio; el cuarto es la mitad del trabajo. *(El 21 de septiembre
-entraron M3.5, M4 y M5, y M3 bis reabrió el panel. Todos están cerrados; la
-etiqueta 1.0.0 todavía no se ha cortado. Estado y versión de cada uno, en la
-tabla de `PLAN-MVP.md` §5.)*
+entraron M3.5, M4 y M5, y M3 bis reabrió el panel. Todos están cerrados, y
+**la etiqueta 1.0.0 se cortó el 30 de septiembre de 2026**: el MVP está
+cerrado. Estado y versión de cada uno, en la tabla de `PLAN-MVP.md` §5; lo que
+trajo la 1.0.0, en su sección *1.0.0 · Se cierra el MVP*.)*
 
 | | Hito | Qué deja funcionando | Estado |
 |---|---|---|---|
@@ -46,6 +55,7 @@ tabla de `PLAN-MVP.md` §5.)*
 | M4 | El tablero *(entró el 21-sep)* | La pestaña Tablero del panel: los números de la hoja en gráficas SVG, con su tabla debajo y una petición por visita (decisión 13) | HECHO · 0.8.0 |
 | M3 bis | El panel alcanza para todo *(21-sep)* | Toda la configuración, cupones y zonas de envío desde el panel | HECHO · 0.9.0 |
 | M5 | El rastreo del pedido *(entró el 21-sep)* | `pedido.html` con un secreto en el enlace (decisión 15) | HECHO · 0.10.0 |
+| **1.0.0** | **El MVP, cortado** | La etiqueta, con lo que cerraba la revisión: ningún token de montaje en una dirección (5.7), la causa 4 cerrada por diseño (5.6), `test.js` estable, y las fotos que se pasan desde la tarjeta (4.7) | **HECHO · 1.0.0 · 30-sep** |
 
 Lo que **no** entra, y su consecuencia, está escrito en `PLAN-MVP.md` §4.9.
 
@@ -93,8 +103,9 @@ request, que la flota fusiona sola tras las pruebas de la tienda, salvo si trae
 flujos de cada tienda los entrega la flota —`flota › actualizar` después de
 cada tienda buena, `flota › flujos` a mano— (decisión 27); desde la 0.22.3 la
 semilla pone al día su propio maestro al cortar una versión (decisión 30).
-Falta: que la Básica aprenda a actualizarse sola (3.9); la flota ya retira
-los flujos que la semilla quita (3.14, 0.22.3). El panel de la flota ya está: el portal de la hoja de
+Falta: que la Básica aprenda a actualizarse sola (3.9) —*descartado el
+30-sep-2026 por la decisión 36: la Básica solo recibe correcciones*—; la flota
+ya retira los flujos que la semilla quita (3.14, 0.22.3). El panel de la flota ya está: el portal de la hoja de
 administración (0.18.0, 3.7).*
 
 
@@ -135,6 +146,10 @@ hoja de administración), 3.11b (`panel.gs` se publica con un flujo; falta
 ponerle los secretos y correrlo por primera vez) y 3.12 (volver atrás).
 **Siguen abiertos**, en este orden: 3.9 (la Básica se actualiza sola), 3.7 v2 (el portal servido detrás de Cloudflare Access) y
 3.11 (`CLASPRC`, el último paso a mano del alta).
+*Al 30 de septiembre de 2026 (1.0.0): 3.9 y 3.10 quedan descartados por la
+decisión 36 —la Básica solo recibe correcciones— y 3.8, migrar las tiendas
+3.x, pasa a SÍ, cliente por cliente. 3.11b sigue esperando sus secretos y su
+primera corrida. Siguen abiertos 3.7 v2 y 3.11, sin fecha.*
 
 
 **3.1 Interruptores por tienda**   [PENSADO · los interruptores existen desde el MVP; falta la disciplina]
@@ -173,6 +188,9 @@ El código pegado en la hoja que dibuja el menú. Con el panel web, el menú de 
 hoja deja de ser el camino principal, así que esto **baja de prioridad solo**.
 La evaluación completa —con las dos formas posibles y la medición de diez
 minutos que decide cuál— está en `EVALUACION-stub-automatico.md`.
+*Desde la 1.0.0 tiene una razón más:* el stub manda su propio token de menú
+(guardia `menu`) por GET, y es la última excepción de 5.7 que no se cierra sin
+repegarlo en cada hoja.
 
 **3.7 El panel de la flota**   [HECHO v1 · 0.15.0: `tiendas/panel/index.html`, estático, lo escribe `estado` · 0.17.0: la hoja *Panel de tiendas* se llena sola desde `conectar` (bitácora 75) · 0.18.0: **el portal**, menú de la hoja › Abrir el portal, con las cifras y los enlaces de cada tienda (bitácora 78). La v2 —servir esa misma pantalla en una dirección, detrás de Cloudflare Access— está PENSADA]
 Hoy la flota se ve en `ESTADO.md` y las cifras en la hoja *Panel de tiendas*.
@@ -182,18 +200,26 @@ comercios**: el informe mensual, campañas de cupones y avisos de «volvió a
 llegar» para todas las tiendas a la vez — el marketing que un comercio solo no
 hace.
 
-**3.8 Migrar las tiendas 3.x a esta línea**   [NO · 22-sep-2026 — decisión 20]
-Se descartó: la línea 3.x no es una versión vieja de esta, es **otro producto**,
-la **Tienda Básica** (solo la hoja, sin panel, más rápida). Orgánico y
-Cinnamon siguen en su línea y se actualizan desde Orgánico.
+**3.8 Migrar las tiendas 3.x a esta línea**   [SÍ · cuando convenga, cliente por cliente — decisión 36 · antes: NO, 22-sep-2026, decisión 20, revocada]
+*Lo que se escribió el 22 de septiembre:* se descartó: la línea 3.x no es una
+versión vieja de esta, es **otro producto**, la **Tienda Básica** (solo la
+hoja, sin panel, más rápida). Orgánico y Cinnamon siguen en su línea y se
+actualizan desde Orgánico.
+*Desde el 30 de septiembre de 2026:* dos productos cuestan doble y el dueño
+decide gestionar uno solo, la Tienda 2.0. Orgánico queda solo con
+correcciones y sus clientes —hoy Cinnamon Beauty— se migran aquí, uno por
+uno: cuando el cliente necesite algo que solo tiene la 2.0, o cuando mantener
+Orgánico cueste más que migrar. Migrar es pasar su hoja (columnas y claves,
+`CONTRATOS.md`) y su dominio, y darle de alta como una tienda más de esta
+línea (`alta` + `conectar`). No se sincroniza código entre las dos líneas.
 
-**3.9 La Tienda Básica aprende a actualizarse sola**   [SIGUIENTE]
+**3.9 La Tienda Básica aprende a actualizarse sola**   [NO · 30-sep-2026 — decisión 36: la Básica solo recibe correcciones hasta que sus clientes se migren; antes estaba SIGUIENTE]
 Llevar a la semilla `organico` lo que la 0.14.0 le dio a la Panel —`semilla.json`,
 `montar/semilla.mjs`, `montar/actualizar-semilla.mjs`, la entrada `semilla`
 de su montaje, la opción del menú y la vuelta atrás—. Con eso la flota deja
 de abrir pull requests en la Básica y todo queda en un solo modo.
 
-**3.10 Las gráficas de la Básica, como extra**   [PENSADO]
+**3.10 Las gráficas de la Básica, como extra**   [NO · 30-sep-2026 — decisión 36: no se construye nada nuevo para la Básica; antes estaba PENSADO]
 La Básica tiene sus números en la pestaña Tablero de la hoja. Las gráficas
 del panel (M4) pueden llegarle como una página aparte, detrás del mismo token
 del menú: un extra que se puede cobrar o regalar.
@@ -209,7 +235,10 @@ decide antes de construirlo.
 El flujo `panel` de `tiendas` clona la semilla y sube `panel.gs` con
 `montar/publicar-maestro.mjs` (`ARCHIVO`). Pide los secretos `PANEL_SCRIPT_ID` y
 `PANEL_CLASPRC`; desde la 0.22.3 escribe `~/.clasprc.json`, que antes nunca
-escribía. Falta ponerle los secretos y correrlo por primera vez.
+escribía. Falta ponerle los secretos y correrlo por primera vez (del dueño).
+Desde la 1.0.0 esa primera corrida hace además que la hoja «Panel de
+tiendas» pregunte por POST a las tiendas de la 2.0: con el `panel.gs`
+anterior pregunta por GET, y cada maestro lo anota (`TOKEN_POR_GET`, 5.7).
 
 **3.12 Volver atrás**   [HECHO · 0.18.0 — bitácora 77: los datos desde el maestro (`A5_respaldos`, `A6_restaurarDatos`), el sitio y la versión desde el flujo `restaurar` de cada tienda. 0.22.3: `el-sitio` no publicaba nunca —comparaba el árbol con el índice— y ya compara con `HEAD` (bitácora 106). Falta: restaurar una tienda entera desde la flota, y que el montaje avise solo cuando una publicación deja la tienda peor que antes]
 Está documentado en `DESPLIEGUE.md` › *Volver atrás*, con la tabla de qué se
@@ -267,6 +296,13 @@ La clave `logo` nombra una foto de la carpeta de Drive (o una dirección
 completa). Va en la barra en lugar del signo, el nombre sigue escrito, y sirve
 de icono de la pestaña si no hay `favicon`.
 
+**4.7 Las fotos se pasan desde la tarjeta**   [HECHO · 1.0.0 — `PLAN-MVP.md` › C-25]
+Un producto con varias fotos generales las enseña en la tarjeta del catálogo,
+en un carril que se desliza con el dedo (flechas con el ratón, puntos abajo),
+sin abrir la ficha. Solo la primera se descarga al pintar; las demás, la
+primera vez que alguien toca o desliza esa tarjeta: el catálogo no pesa más
+por tener más fotos. Con una sola foto, la tarjeta no cambia.
+
 ---
 
 ## Fase 5 · Operación
@@ -298,16 +334,47 @@ costumbre: un trimestre sin simulacro es un procedimiento que no se sabe si
 funciona. *La 0.22.3 lo demostró: `restaurar › el-sitio` no había publicado
 nunca, y se supo auditando la documentación, no usándolo (bitácora 106).*
 
-**5.6 El montaje dice todo lo que falla de una vez**   [SIGUIENTE]
+**5.6 El montaje dice todo lo que falla de una vez**   [CERRADO POR DISEÑO · 1.0.0]
 La causa 4 de la revisión de la bitácora 102: cada corrida enseñaba un fallo y
 cada fallo costaba una vuelta entera. Con la guardia pequeña de la 0.22.0 pesa
 menos, pero sigue abierta (`PLAN-MVP.md`, 0.22.0).
+*Cerrada en la 1.0.0 sin cambiar el flujo:* la guardia de una tienda
+(`tienda-viva.js`) pone todas sus líneas FALLA en el resumen, `preparar-index`
+lista todas las claves que bloquean y `misma-tienda` dice los tres sitios. Lo
+que queda —que cada comprobación previa corra aunque falle la anterior— no es
+tarea de la 2.0: pasa a la 3.0 como principio de diseño.
 
-**5.7 Ningún token en una dirección**   [SIGUIENTE]
+**5.7 Ningún token en una dirección**   [HECHO · 1.0.0 — con dos excepciones dichas]
 La regla es que los tokens viajan solo por POST, y `MAESTRO_TOKEN` todavía va
 como `t=` en las peticiones GET del montaje al maestro
 (`montar/tienda.mjs › alMaestro`, y la espera de `publicar-maestro.mjs`). Es un
 riesgo conocido (`PLAN-MVP.md` §7).
+*Cerrado en la 1.0.0:* `alMaestro`, `publicar-maestro.mjs`, `panel.gs` y
+`tiendas/flota/conectar.mjs` mandan el token en el cuerpo de un POST. El
+maestro **sigue aceptando GET** en las puertas de montaje, a propósito: volver
+a una versión anterior corre las herramientas viejas, que preguntan por GET,
+contra el maestro 1.0.0. Cada GET se anota (`anotarTokenPorGet`, propiedad
+`TOKEN_POR_GET`, nunca el token) y el diagnóstico lo dice (por ejemplo, la
+hoja «Panel de tiendas» hasta que corra el flujo `panel`, 3.11b). Quedan dos
+excepciones: `panel.gs` hacia una Tienda Básica (Orgánico no atiende puertas
+por POST; hasta migrarla), y el stub de cada hoja manda su token de menú por
+GET hasta que se repegue (3.5).
+
+---
+
+## Después de la 2.0: el proyecto 3.0
+
+*Decidido el 30 de septiembre de 2026 (decisión 36).* Con la 1.0.0 la Tienda
+2.0 queda como **producto en operación**: recibe correcciones y lo que pidan
+sus clientes, y las fases de arriba se construyen solo cuando un cliente las
+necesite. No se le hace una reescritura.
+
+**El producto definitivo y maduro se empieza de cero**, como proyecto nuevo:
+la «Tienda 3.0» (el nombre del proyecto futuro; nada que ver con las versiones
+3.x de Orgánico). Su punto de partida es `docs/TRASLADO-3.0.md`: lo que la 2.0
+aprendió —con la bitácora detrás— y los principios que se llevan de diseño en
+vez de tareas, como que cada comprobación previa corra aunque falle la
+anterior (5.6).
 
 ---
 
@@ -357,7 +424,8 @@ tasa de cierre, y el tablero los dibuja. Un tercero agregaría el embudo de
 navegación a cambio de rastrear a los visitantes y de declararlo en la política
 de datos. *Desde la 0.19.0 un comercio puede pedir Google Analytics 4 con
 `analytics_id` (decisión 23); vacío, que es lo de fábrica, la tienda no carga
-nada de Google.*
+nada de Google. Desde la 0.25.0 también el píxel de Meta, con
+`meta_pixel_id` y las mismas reglas (decisión 35).*
 
 **App móvil.** La tienda ya abre en un segundo en un navegador.
 

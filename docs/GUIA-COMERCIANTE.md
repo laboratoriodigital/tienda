@@ -20,9 +20,8 @@ es menú › **Publicar ahora**. Si algo no cuadra, no se publica nada.
 
 ## Tu panel: `https://<tu tienda>/admin.html`
 
-Entras con tu usuario y tu clave. ¿La perdiste? **¿Olvidaste tu clave?** te
-manda un código al correo de la tienda (o menú de la hoja › **Clave del
-panel**). La primera entrada del día puede tardar unos segundos.
+Entras con tu usuario y tu clave. ¿La perdiste? **¿Olvidaste tu clave?** te manda un código al
+correo de la tienda (o menú de la hoja › **Clave del panel**). La primera entrada del día tarda más.
 
 Tiene **dos pantallas**:
 
@@ -41,7 +40,8 @@ arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 
 **Tienda** — tus **productos** (precio, stock, fotos, variantes: con variantes aparece **Precio y
 stock por combinación** —vacío = el precio del producto—; las fotos de un color, eligiendo «Foto de
-color: Rosa», o en la hoja `codigo--color-rosa-1.jpg`) y **todos los ajustes**, por secciones: tu
+color: Rosa», o en la hoja `codigo--color-rosa-1.jpg`; con varias fotos, en la portada de la tienda
+se pasan deslizando, o con las flechas en el computador) y **todos los ajustes**, por secciones: tu
 tienda, la venta, el cobro, la portada, los textos, los colores, Google y WhatsApp, **medición y
 anuncios** (Google Analytics y el píxel de Meta: solo el número), datos legales, el correo del día
 y **Avanzado** (no lo toques si no sabes para qué). También las **zonas de envío** y los
@@ -92,7 +92,7 @@ Si el menú no se ve, recarga la página de la hoja.
 
 ## Lo que no hay que hacer nunca
 
-- **No cambiarle el nombre a una pestaña ni a una columna.** Se rompe todo.
+- **No cambiarle el nombre a una pestaña ni a una columna.** La tienda las busca por su nombre.
 - **No borrar filas de Pedidos ni del Registro.** Son tu historial.
 - **No escribir en Tablero ni en Más vendidos:** se reescriben solas.
 - **No tocar el código** (Extensiones → Apps Script).

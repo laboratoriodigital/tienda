@@ -495,10 +495,15 @@ function crear(rutaScript, opciones) {
     },
     UrlFetchApp: {
       fetch(url, op) { return respuestaDe(url, op); },
+      /* 1.0.0 · Una petición es su dirección MÁS su cuerpo: el token de montaje
+         viaja en el cuerpo (ROADMAP 5.7), y las rutas de prueba casan con
+         cualquiera de las dos. Lo que se anota es lo mismo, para que una
+         prueba pueda exigir que el token NO esté en la dirección. */
       fetchAll(peticiones) {
-        peticionesVistas.push(peticiones.map(p => p.url));
+        const clave = p => p.url + (p.payload ? ' ' + p.payload : '');
+        peticionesVistas.push(peticiones.map(clave));
         if (fetchAllRevienta) throw new Error('fetchAll caído');
-        return peticiones.map(p => respuestaDe(p.url));
+        return peticiones.map(p => respuestaDe(clave(p), p));
       }
     },
     MailApp: {

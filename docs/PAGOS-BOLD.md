@@ -1,8 +1,12 @@
 # Cobrar en línea con Bold
 
+> _Vigente a la **1.0.0 (30 de septiembre de 2026)** de la Tienda 2.0; la
+> 1.0.0 no cambió nada del cobro._
+>
 > M3.5 del plan. Implementado el 21 de septiembre de 2026, a partir de la
-> integración que la línea anterior del producto ya validó con una compra
-> completa en el ambiente de pruebas de Bold. Documentación oficial:
+> integración que la línea anterior del producto —Orgánico, la «Tienda
+> Básica» 3.x— ya validó con una compra completa en el ambiente de pruebas de
+> Bold. Documentación oficial:
 > <https://developers.bold.co/pagos-en-linea/boton-de-pagos> y
 > <https://developers.bold.co/pagos-en-linea/consulta-de-transacciones>.
 
@@ -112,6 +116,13 @@ del **Botón de pagos**, no las de la API de pagos en línea.
    cobro y se borra solo. La revisión de cada hora también concilia, por si el
    de cinco minutos no se pudo crear.
 
+**Lo que se mide** (0.25.0, `CONTRATOS.md` §6): al abrir la pasarela la
+página manda `pagar_en_linea` y, cuando el maestro confirma el pago,
+`pago_confirmado`, los dos con el código del pedido como `transaction_id` y sin
+un solo dato del comprador. Solo llegan a Google Analytics o al píxel de Meta si
+la tienda tiene `analytics_id` o `meta_pixel_id`; en Meta son `AddPaymentInfo` y
+`Purchase`. Un pedido por WhatsApp nunca es `Purchase`: todavía no está pagado.
+
 ## Lo que sale mal, con nombre
 
 | Qué pasa | Qué hace la tienda |
@@ -183,7 +194,7 @@ y una compra real de valor bajo. Mientras la pasarela esté en Pruebas, el
 diagnóstico lo recuerda: en pruebas, una tarjeta de prueba «paga» y descuenta
 inventario.
 
-## Qué se portó de la línea anterior, y qué se hizo distinto
+## Qué se portó de la línea anterior (Orgánico), y qué se hizo distinto
 
 Se portó lo que ya estaba validado contra Bold: la librería
 (`boldPaymentButton.js` con `BoldCheckout`), la firma, la consulta por
@@ -222,4 +233,11 @@ sus propias reglas escritas en el plan (M3.5):
 - `pruebas/pagoweb.js` (navegador, 26): el botón, lo que le llega a Bold, la
   vuelta con `approved` en la dirección, nada del comprador en el navegador,
   rechazado con el carrito intacto, la última unidad, los textos legales.
-- `pruebas/legal.js` (20): los textos con y sin pasarela.
+- `pruebas/legal.js` (24): los textos con y sin pasarela.
+
+## Lo que falta
+
+- **E-2:** comparar la comisión y los días de desembolso de Bold con números
+  reales de una tienda. Bold quedó elegido por el criterio técnico (decisión 12:
+  confirmar el pago consultando al proveedor); la comparación de costos está
+  pendiente del dueño.

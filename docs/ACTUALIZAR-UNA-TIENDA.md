@@ -1,8 +1,9 @@
 # Actualizar una tienda que ya está montada
 
-_Vigente a la 0.25.0 (30 de septiembre de 2026). Tienda Panel: semilla
+_Vigente a la 1.0.0 (30 de septiembre de 2026). Tienda Panel: semilla
 `laboratoriodigital/tienda`. La Tienda Básica (`organico`) se actualiza por
-pull request desde la flota y no se cuenta aquí._
+pull request desde la flota y no se cuenta aquí; desde la 1.0.0 solo recibe
+correcciones, hasta que sus clientes se migren a esta línea._
 
 Cada tienda tiene su propio repositorio y su propio ritmo. Una versión nueva de
 la semilla **no le llega sola a nadie**: se pide. Pero pedirla es un botón, y
@@ -151,6 +152,9 @@ Se entregan los flujos que `propios` nombra (`montaje`, `fotos`, `pruebas`,
   **`restaurar`** › `la-version` (vacío = la anterior, o una `vX.Y.Z`) ›
   escribir `RESTAURAR`. Le pide a `montaje` esa versión con `semilla`: una
   versión escrita se trae aunque sea anterior. Pasa por la misma compuerta.
+  Desde la 1.0.0 hacia una anterior también: las herramientas viejas preguntan
+  por GET y el maestro 1.0.0, que sigue vivo hasta que se publica el viejo, las
+  atiende (y lo anota; el diagnóstico lo dice).
 - **El sitio de antes**: `restaurar` › `el-sitio` publica `publicar/` de un
   commit anterior como un commit nuevo (desde la 0.22.3 de verdad: antes decía
   siempre «Ya estaba así»). Comparte cola con `montaje` y `fotos`: no se pisan.
@@ -184,8 +188,8 @@ volver a pedir la actualización.
 | Cuándo | Qué | Dónde |
 |---|---|---|
 | La versión cambia el **menú de la hoja** | Repegar el stub: `A1_generarStub` **en el editor del MAESTRO**, ya publicado el nuevo; copiar lo que imprime el registro y pegarlo en la hoja | Ver *v2.0.0*, abajo |
-| La versión agrega **claves de Configuración o columnas** | `A0_instalar()`: las agrega **al final** y no pisa ningún valor escrito (R2 del contrato) | Editor del maestro |
-| Cambió `panel.gs` | Actions › **panel** en `tiendas` (secretos `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`) | Hoja *Panel de tiendas* |
+| La versión agrega **una pestaña, un disparador o columnas de Pedidos, Pagos…** | `A0_instalar()`: agrega lo que falta y no pisa ningún valor escrito (R2 del contrato). Las **claves de Configuración** y las columnas de **Catálogo** e **Inventario por variante** ya no lo piden: las agrega la revisión de cada hora, una vez por versión (`ponerHojaAlDia`, 0.24.0), y las claves aparecen además al abrir Ajustes del panel (0.23.0). La sección de cada versión dice si hace falta | Editor del maestro |
+| Cambió `panel.gs` | Actions › **panel** en `tiendas` (secretos `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`). Mientras esos dos secretos no estén puestos (pendiente del dueño), pegarlo a mano y publicar Nueva versión | Hoja *Panel de tiendas* |
 | Una tienda sin `CLASPRC` | Ponerlo, una vez: sin él no se puede publicar un maestro nuevo | Secretos de la tienda |
 
 **Nunca una implementación nueva del maestro**: estrena URL y deja la tienda
@@ -198,6 +202,26 @@ muda. Qué pide cada versión, en las secciones de abajo.
 Cada sección cuenta lo que pedía esa versión cuando salió. Los caminos que
 nombran —pegar `panel.gs` a mano, `SEMILLA_TOKEN` para traer flujos, el pull
 request de la flota— pueden haber cambiado después: lo vigente está arriba.
+
+---
+
+## La 1.0.0 (tienda): ningún token en una dirección, fotos que se pasan — nada a mano en la tienda
+
+1. Actualizar como siempre (la flota, Panel › *Versión de tu tienda*, el menú,
+   o `montaje` › `semilla`). Trae `maestro.gs` nuevo: hace falta `CLASPRC`.
+2. Ni `A0_instalar()` ni el stub. Las herramientas que llegan en la misma
+   corrida ya hablan por POST, con el token en el cuerpo; el maestro nuevo
+   sigue aceptando GET en las puertas de montaje (para que volver atrás
+   funcione) y anota cada uno en `TOKEN_POR_GET`, que el diagnóstico muestra.
+   El stub sigue mandando su token de menú por GET: cerrarlo pediría repegarlo
+   en cada hoja, y no se pide en esta versión.
+3. **La hoja *Panel de tiendas*** sigue funcionando con su `panel.gs` de antes,
+   que pregunta por GET: el maestro lo atiende y lo anota. Publicar el
+   `panel.gs` de la 1.0.0 (flujo `panel`, o a mano) hace que pregunte por POST
+   a las tiendas de la 2.0 (a una Tienda Básica, por GET, hasta migrarla).
+4. Comprobarlo: en la tienda, un producto con varias fotos generales se desliza
+   en su tarjeta (flechas al pasar el ratón en el computador); en Actions, el
+   `montaje` en verde con «La tienda queda publicada en …».
 
 ---
 

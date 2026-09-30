@@ -261,8 +261,8 @@ ok('Ciudad con fórmula queda como texto',
 {
   const sucia = crear('./as.js');
   sucia.api.instalar(); configurar(sucia);
-  const puerta = o => JSON.parse(sucia.api.doGet({
-    parameter: Object.assign({ t: sucia.token }, o) })._texto);
+  const puerta = o => JSON.parse(sucia.api.doPost({ postData: { contents:
+    JSON.stringify(Object.assign({ t: sucia.token }, o)) } })._texto);
 
   sucia.hojas.get('Catálogo').getRange(2, sucia.columna('Catálogo', 'Precio'), 1, 1).setValue('$8.900');   // precio como texto
   sucia.hojas.get('Envíos').getRange(3, 3, 1, 1).setValue('9,000');      // envío como texto

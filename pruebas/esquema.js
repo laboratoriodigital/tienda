@@ -34,7 +34,7 @@ function esquemaVivo() {
   const hablar = console.log;
   console.log = function () { };
   const g = configurar((function () { const x = crear('./as.js'); x.api.instalar(); return x; })());
-  const puerta = a => JSON.parse(g.api.doGet({ parameter: { a: a, t: g.token } })._texto);
+  const puerta = a => JSON.parse(g.api.doPost({ postData: { contents: JSON.stringify({ a: a, t: g.token }) } })._texto);
 
   const hojas = {};
   for (const [nombre] of g.hojas) hojas[nombre] = g.filas(nombre)[0].map(String);

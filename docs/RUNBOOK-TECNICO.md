@@ -18,7 +18,8 @@ de Google y unos 15 de contenido (fotos y textos).
 
 **Antes de empezar, ten a mano:** el nombre corto de la tienda
 (`cafe-la-esquina`), el nombre del comercio como lo verá el comprador
-(`Café La Esquina`), qué producto es (Tienda Panel o Tienda Básica), el celular
+(`Café La Esquina`), el producto (Tienda Panel: desde la 1.0.0 es el único que
+se vende; la Básica solo recibe correcciones hasta migrar a sus clientes), el celular
 de WhatsApp del comercio y sus datos de empresa (razón social, NIT, dirección,
 ciudad, teléfono, correo).
 
@@ -33,7 +34,7 @@ el detalle en el registro del paso que falló.
 | | Qué | Dónde se comprueba |
 |---|---|---|
 | 0.1 | Acceso a la organización de GitHub con permiso de administrador | github.com/laboratoriodigital |
-| 0.2 | `laboratoriodigital/tiendas` con sus secretos: `FLOTA_TOKEN` (con los permisos del alta: *Administration* y *Secrets* incluidos; `ALTA_TOKEN` se retiró el 29-sep-2026), `SEMILLA_TOKEN`, `DISPARO_TOKEN`, `PANEL_URL`, `PANEL_CLAVE` (y, opcionales, `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) | Settings › Secrets and variables › Actions. Permisos de cada uno: `DESPLIEGUE.md` › *Secretos, tokens y llaves* |
+| 0.2 | `laboratoriodigital/tiendas` con sus secretos: `FLOTA_TOKEN` (con los permisos del alta: *Administration* y *Secrets* incluidos; es el único token del alta desde que `ALTA_TOKEN` se borró, el 29-sep-2026), `SEMILLA_TOKEN`, `DISPARO_TOKEN`, `PANEL_URL`, `PANEL_CLAVE` (y, opcionales, `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) | Settings › Secrets and variables › Actions. Permisos de cada uno: `DESPLIEGUE.md` › *Secretos, tokens y llaves* |
 | 0.3 | Las semillas con al menos una versión publicada (`release`) | github.com/laboratoriodigital/tienda/releases |
 | 0.4 | La hoja **Panel de tiendas** instalada, implementada como aplicación web y con su *Clave para el alta* generada | Menú Panel › Diagnóstico |
 | 0.5 | Cuenta de Cloudflare con el dominio, si las tiendas llevan subdominio | dash.cloudflare.com |
@@ -54,7 +55,8 @@ Detalle y porqués: `DESPLIEGUE.md` › *Antes de la primera tienda de tu vida*.
      sin rehacerlo todo. (El nombre del sitio en Cloudflare lo reescribe cada
      montaje a partir de `negocio`: `DESPLIEGUE.md` › paso 1.)
    - **comercio**: como lo verá el comprador (`Café La Esquina`).
-   - **producto**: `tienda` (Tienda Panel) u `organico` (Tienda Básica).
+   - **producto**: `tienda` (Tienda Panel). `organico` (Tienda Básica) sigue en
+     el formulario, pero ya no se vende.
 3. **Run workflow** y espera el verde.
 
 **Comprobar antes de seguir:**
@@ -202,17 +204,25 @@ URL no cambia), y vuelve a correr `conectar`. Más casos en I, grupo *conectar*.
    (`fotos_drive`), con el nombre exacto de la columna Imágenes. Llegan a la
    tienda al **publicar** (menú › *Publicar ahora*, panel › Publicar, o
    Actions › `fotos` › Run workflow). La corrida diaria del flujo `fotos`
-   **solo mira y avisa**: no publica.
-2. **Catálogo**: llena la pestaña Catálogo (ID, Nombre, Formato, Categoría,
-   Precio, Stock, Descripción, Imágenes, Destacado, Activo, Referencia, Precio
-   antes, Umbral bajo, Variantes).
+   **solo mira y avisa**: no publica. Varias fotos generales en la celda
+   (separadas por `|`): desde la 1.0.0 la tarjeta del catálogo se desliza para
+   pasarlas (`DESPLIEGUE.md` › paso 13).
+2. **Catálogo**: llena la pestaña Catálogo (ID, Nombre, Categoría, Formato,
+   Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción,
+   Destacado, Activo, Referencia: el orden en que la deja `A0_instalar` desde la
+   0.24.0; se lee por el nombre del encabezado, así que no se renombra ninguno).
+   El precio de una combinación va en *Inventario por variante › Precio*
+   (vacío = el del producto).
 3. **Envíos y cupones**: sus pestañas, o el panel.
 4. **Clave del panel**: menú de la hoja › *Clave del panel*, y entrégasela al
    comercio junto con `panel_usuario`.
-5. **Medición** (opcional, 0.19.0): si el comercio quiere Google Analytics,
+5. **Medición** (opcional): si el comercio quiere Google Analytics (0.19.0),
    crea el flujo de datos web en analytics.google.com y pega el `G-XXXXXXXXXX`
-   en la clave `analytics_id` de la pestaña Configuración. **Publica** después
-   para que tome efecto, y avísalo en la política de privacidad.
+   en la clave `analytics_id` de la pestaña Configuración; si quiere el píxel
+   de Meta (0.25.0), solo su número en `meta_pixel_id`. **Publica** después
+   para que tome efecto. La política de datos de la tienda lo dice sola
+   (bitácora 112); el consentimiento de cookies sigue siendo un riesgo abierto
+   (decisión 35, `DESPLIEGUE.md` › paso 13b).
 6. **Respaldo**: pega en `respaldo_carpeta` el enlace de la carpeta de Drive
    del administrador, y dale permiso de edición a la cuenta de esta tienda.
 7. **WhatsApp Business**: respuesta automática con los datos de pago.
@@ -277,7 +287,7 @@ resumen de la corrida, o en el registro del paso). Agrupados por dónde aparecen
 | Las fotos no cargan | `fotos_cdn` apunta a un proveedor que no transforma | Vaciar `fotos_cdn` (vuelve al archivo original) y mirar el aviso de `revisar-fotos-cdn.mjs` en el montaje |
 | El panel dice **FALLÓ** en Último respaldo | La cuenta de la tienda no tiene permiso sobre `backup_tiendas` | `DESPLIEGUE.md` › paso 13 |
 | La tienda se ve desactualizada | Falta publicar | *Publicar ahora* (panel o menú) y mirar Actions › `fotos` |
-| Una publicación dejó la tienda peor | — | Actions › **restaurar** › `el-sitio`. ⚠ Hoy dice «Ya estaba así» sin publicar: ver el grupo *restaurar* |
+| Una publicación dejó la tienda peor | — | Actions › **restaurar** › `el-sitio` |
 | Una versión nueva rompió algo | — | Actions › **restaurar** › `la-version` |
 | El comercio borró medio catálogo | — | En el maestro: `A5_respaldos()` y `A6_restaurarDatos('ultimo','Catálogo')`, y publicar |
 
@@ -397,11 +407,11 @@ resumen de la corrida, o en el registro del paso). Agrupados por dónde aparecen
 | Síntoma | Causa | Qué hacer |
 |---|---|---|
 | `panel`: «Faltan los secretos: …» | `PANEL_SCRIPT_ID` o `PANEL_CLASPRC` | Ponerlos (`DESPLIEGUE.md` › *El panel de la flota*) |
-| `panel`: «Clasp dice que NO ENCUENTRA CREDENCIALES» en «Publicar panel.gs» | **Defecto conocido del flujo** (sin verificar en una corrida real): nunca escribe `PANEL_CLASPRC` en `~/.clasprc.json` | Hasta que se corrija, pegar `panel.gs` a mano en el Apps Script de la hoja y publicar Nueva versión |
+| `panel`: «Clasp dice que NO ENCUENTRA CREDENCIALES» en «Publicar panel.gs» | Hasta la 0.22.3 era un defecto del flujo, que no escribía `~/.clasprc.json` (bitácora 106); ya lo escribe. Hoy: `PANEL_CLASPRC` mal pegado o sesión caducada (el paso anterior, `revisar-clasprc.mjs`, dice cuál) | Repetir `clasp login --no-localhost` con la cuenta dueña de la hoja y volver a pegar. Mientras tanto, `panel.gs` a mano en el Apps Script de la hoja y publicar Nueva versión |
 | `panel` muere al clonar con `Remote branch … not found` | `version` sin `v` | Escribir `vX.Y.Z` |
 | `restaurar`: «No se restauró nada» con «Escribe **RESTAURAR**…», «La versión se escribe como la etiqueta de la semilla: `v0.16.0`…», «El commit se escribe con su identificador…», «Ese commit no tocó `publicar/`…», «Esta tienda solo tiene una publicación…», «Esta tienda ya está en la versión más antigua publicada…» | Entradas | Corregir la entrada |
 | `restaurar` › `la-version` con `hasta` vacío: «La semilla no tiene ninguna versión publicada.» | No pudo leer las etiquetas (semilla privada sin `SEMILLA_TOKEN` válido) | Escribir la versión en `hasta` (`v0.21.2`) |
-| `restaurar` › `el-sitio` dice «Ya estaba así» y no publica, aunque el sitio sí cambió | **Defecto conocido del flujo** (reproducido): después de `git checkout <commit> -- publicar/` compara la carpeta con el índice, que ya son iguales | A mano: `git checkout <commit> -- publicar/`, commit y push a `main` |
+| `restaurar` › `el-sitio` dice «Ya estaba así» y no publica, aunque el sitio sí cambió | Hasta la 0.22.3, defecto del flujo: comparaba la carpeta con el índice, que `git checkout <commit> -- publicar/` deja iguales (bitácora 106). Desde entonces compara contra `HEAD`, y «Ya estaba así» significa que el sitio ya era ese | Si pasa en una tienda anterior a la 0.22.3: actualizarla, o a mano `git checkout <commit> -- publicar/`, commit y push a `main` |
 | `release`: «No hay baterías en verde para este commit» | `pruebas` del push a `main` no está en verde | Esperar el verde y repetir |
 | `release`: «vX.Y.Z ya existe, pero apunta a otro commit» | Cambió el código y no la versión | Subir `version` en `package.json` |
 | `release`: «`release` no es un flujo de tienda» | Se corrió en una tienda | Nada: no tocó nada |
@@ -445,7 +455,7 @@ programada solo mira y avisa.
 
 | Entrada | Valores | Qué hace |
 |---|---|---|
-| `que` | `el-sitio` | Devuelve `publicar/` a un commit anterior y lo publica **como un commit nuevo encima**. ⚠ Hoy no publica: ver I |
+| `que` | `el-sitio` | Devuelve `publicar/` a un commit anterior y lo publica **como un commit nuevo encima** |
 | | `la-version` | Le pide a `montaje` que traiga una versión anterior de la semilla (código y maestro) |
 | `hasta` | vacío | `el-sitio`: el commit anterior que tocó `publicar/`. `la-version`: la etiqueta anterior a la de esta tienda |
 | | `a1b2c3d` | Ese commit en concreto (tiene que haber tocado `publicar/`) |
@@ -548,7 +558,7 @@ este camino nadie le entrega los flujos.
 | Semana | Que el respaldo de cada tienda esté al día | Columna «Último respaldo» del portal |
 | Semana | `ESTADO.md` de `tiendas` (lo escribe `flota` › `estado` los lunes): tiendas detrás de su semilla | `tiendas` › `ESTADO.md` |
 | Por versión | Actualizar la flota al último release | `tiendas` › Actions › flota › `actualizar` (por anillos) |
-| Por versión con `panel.gs` nuevo | Publicar el panel de la flota | `tiendas` › `panel` (hoy, a mano: ver I) |
+| Por versión con `panel.gs` nuevo | Publicar el panel de la flota | `tiendas` › `panel`. Mientras `PANEL_SCRIPT_ID` y `PANEL_CLASPRC` no estén puestos (pendiente del dueño), a mano |
 | Mes | Revisar minutos de Actions y ejecuciones de Apps Script | `ARQUITECTURA.md` § presupuestos |
 | Trimestre | **Simulacro de reversión** en una tienda de prueba | `restaurar` › `la-version`, y volver |
 | Cuando caduque | Renovar `FLOTA_TOKEN`, `SEMILLA_TOKEN`, `DISPARO_TOKEN` y los `CLASPRC`. `SEMILLA_TOKEN` y `DISPARO_TOKEN` llegan a cada tienda corriendo `conectar` otra vez | `DESPLIEGUE.md` › *Secretos, tokens y llaves* |

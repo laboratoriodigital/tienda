@@ -4,10 +4,18 @@ _10 de septiembre de 2026. Sobre una propuesta externa de tres archivos:
 `arquitecturadespliegue.md`, `ActionActualizacionmenu.yml`,
 `funcionactualizarmenu.js`._
 
-> **HISTORIA. Evaluación resuelta; no se reescribe.** Revisada contra el
-> código de la 0.22.3 el 29 de septiembre de 2026. Se escribió en la línea
-> anterior del producto: las versiones que cita (2.3.0 a 2.7.2) y los
-> «sprints» son de esa numeración.
+> **Estado: HISTORIA · revisada el 30 de septiembre de 2026, con la 1.0.0.**
+> Evaluación resuelta; no se reescribe ni manda sobre nada. **La decisión
+> vigente vive en `DECISIONES.md` › 03** (el cascarón en la hoja se queda y se
+> pega a mano) **y en `ROADMAP.md` › 3.5** (automatizar el pegado: PENSADO, sin
+> hacer). Desde la 1.0.0, 3.5 tiene una razón más: el stub sigue mandando su
+> token de menú en la dirección —`?a=menu&…&t=…`, por GET—, y cerrarlo exige
+> repegarlo en cada hoja (ROADMAP 5.7). Lo que sigue se deja como el porqué de
+> esa decisión.
+>
+> Revisada antes contra el código de la 0.22.3 el 29 de septiembre de 2026. Se
+> escribió en la línea anterior del producto: las versiones que cita (2.3.0 a
+> 2.7.2) y los «sprints» son de esa numeración.
 >
 > **Qué se decidió.** Ninguna de las dos propuestas se adoptó tal cual. Se hizo
 > el paso previo (§7): el stub declara su versión (`var STUB` en la plantilla

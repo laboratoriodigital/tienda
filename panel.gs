@@ -29,7 +29,7 @@
  * =============================================================================
  */
 
-var VERSION_PANEL = '2026-09-22-e';
+var VERSION_PANEL = '2026-09-30-a';
 
 var H_TIENDAS  = 'Tiendas';
 var H_METRICAS = 'Métricas';
@@ -296,7 +296,17 @@ function consultar(tiendas) {
   if (!tiendas.length) return [];
 
   var peticiones = tiendas.map(function (t) {
-    return { url: t.servicio + '?a=panel&t=' + encodeURIComponent(t.token),
+    /* 1.0.0 · el token en el cuerpo, no en la dirección (ROADMAP 5.7). Salvo
+       a una Tienda Básica (la línea 3.x): su maestro no atiende puertas por
+       POST —un cuerpo sin pedido lo toma por un pedido roto y lo anota en sus
+       Errores—, así que a ella se le sigue preguntando por GET hasta migrarla
+       a la 2.0 (decisión 36). */
+    if (esBasica(t)) {
+      return { url: t.servicio + '?a=panel&t=' + encodeURIComponent(t.token),
+               muteHttpExceptions: true, followRedirects: true };
+    }
+    return { url: t.servicio, method: 'post', contentType: 'text/plain; charset=utf-8',
+             payload: JSON.stringify({ a: 'panel', t: t.token }),
              muteHttpExceptions: true, followRedirects: true };
   });
 
@@ -345,6 +355,8 @@ function consultar(tiendas) {
     }
   });
 }
+
+function esBasica(t) { return /b[aá]sica/i.test(String((t && t.producto) || '')); }
 
 function leerTiendas() {
   return filas(H_TIENDAS).map(function (f, i) {

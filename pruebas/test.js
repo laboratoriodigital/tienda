@@ -37,13 +37,23 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   ok('Agotado: Agregar deshabilitado', await agotado.locator('.btn-solido').isDisabled());
 
   // --- 2. Cupón ---
+  /* 1.0.0 · El cupón lo valida el MAESTRO, por la red: esperar dos cuadros
+     (pintado) no alcanza cuando la suite corre en paralelo, y por eso esta
+     batería fallaba a veces y pasaba sola (bitácora 113). Se espera a que el
+     aviso deje de decir «Validando…» y, si se sabe, a que diga lo esperado. */
+  const cuponResuelto = async se => {
+    await p.waitForFunction(patron => {
+      const t = (document.querySelector('#avisoCupon') || {}).innerText || '';
+      return !!t.trim() && !/Validando/.test(t) && (!patron || new RegExp(patron).test(t));
+    }, se ? se.source : '', { timeout: 15000 }).catch(() => { /* la aserción dirá qué quedó */ });
+  };
   await p.click('.btn-carrito');
   await pintado(p);
 
   // subtotal 3 x 12.000 = 36.000 -> por debajo del mínimo de 50000
   await p.fill('#cupon', 'bienvenida10');
   await p.click('.cupon-fila .btn-linea');
-  await pintado(p);
+  await cuponResuelto();
   let aviso = await p.locator('#avisoCupon').innerText();
   ok('Mínimo no alcanzado muestra aviso', /Aplica desde/.test(aviso));
   ok('Aviso en rojo', (await p.locator('#avisoCupon').getAttribute('class')).includes('mal'));
@@ -52,7 +62,7 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   // código inexistente
   await p.fill('#cupon', 'NOEXISTE');
   await p.click('.cupon-fila .btn-linea');
-  await pintado(p);
+  await cuponResuelto(/no existe/);
   ok('Código inexistente avisa', /no existe/.test(await p.locator('#avisoCupon').innerText()));
 
   // subir el carrito por encima de 50000: 6 unidades mas = 9 x 12.000 = 108.000
@@ -63,7 +73,7 @@ const { catalogoListo, selloListo, pintado } = require('./esperar.js');
   await pintado(p);
   await p.fill('#cupon', 'BIENVENIDA10');
   await p.press('#cupon', 'Enter');   // Enter tambien aplica
-  await pintado(p);
+  await cuponResuelto(/aplicado/);
   const tot = await p.locator('#totales').innerText();
   ok('Enter aplica el cupón', /Cupón aplicado/.test(await p.locator('#avisoCupon').innerText()));
   ok('Descuento aparece en totales', /Descuento \(BIENVENIDA10\)/.test(tot));

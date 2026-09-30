@@ -34,7 +34,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P1 · El fallo que funciona es el caro
 - **Regla:** lo que cae a un respaldo, a un valor de fábrica o a un «no pasa nada» tiene que gritar; si no, el respaldo se vuelve el estado normal.
-- **Entradas:** 1, 17, 31, 36, 73, 81, 108, 111; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
+- **Entradas:** 1, 17, 31, 36, 73, 81, 108, 111, 113; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
 - **Lo impide hoy:** `pruebas/todas.sh` cuenta como rota la batería que no arranca; `montar/preparar-index.mjs` se niega a hornear una clave vacía o entre corchetes; `montar/publicar-maestro.mjs` repone `HOJA_ID` antes de subir.
 
 ### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
@@ -79,7 +79,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P10 · El que se actualiza a sí mismo corre su versión vieja
 - **Regla:** un arreglo en el auto-actualizador llega una versión tarde. Lo que decide si una tienda publica vive en lo que la actualización escribe antes de usarlo (`pruebas/`), y lo que la tienda no puede entregarse se lo entrega otro: la flota.
-- **Entradas:** 90, 92, 95, 101, 102, 103.
+- **Entradas:** 90, 92, 95, 101, 102, 103, 113.
 - **Lo impide hoy:** `pruebas/publicacion.sh` elige la compuerta y llega con la actualización antes de correr; `flota/flujos.mjs` (en `tiendas`) entrega los flujos.
 
 ### P11 · Lo que depende de SER la semilla no puede decidir si una tienda publica
@@ -124,7 +124,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos, un motivo que ya se fue, un tope fijo, un intermitente o una X que nadie va a aprobar se arreglan o se quitan. Darlas por buenas siempre y darlas por molestas siempre son el mismo error.
-- **Entradas:** 12, 17, 26, 27, 28, 36, 43.
+- **Entradas:** 12, 17, 26, 27, 28, 36, 43, 113.
 - **Lo impide hoy:** nada general. Casos sueltos: el tope del stub crece con las opciones (`pruebas/menu.js`), y `pruebas.yml` se salta los pull requests del bot.
 
 ### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
@@ -3052,3 +3052,62 @@ Controles negativos vistos en rojo: `enviar_pedido` como `Purchase` y la CSP sin
 la imagen de Meta.
 
 *Ficha:* *(mío)* · 🟠 Grave · P18, P20 · 0.25.0 · 2026-09-30
+
+**113 · El cierre del MVP: el token salió de la dirección, y cerrarle la puerta
+al GET rompía volver atrás.** El dueño pidió cerrar el MVP con lo crucial, poder
+pasar las fotos desde la tarjeta sin abrir el producto, y dejar la documentación
+al día con un traslado para empezar la 3.0 desde cero. Tres cosas se aprendieron.
+
+**La primera, en el carrusel: `loading="lazy"` no sirve dentro de un carril
+horizontal.** La tarjeta con varias fotos es un carril con `scroll-snap` —el dedo
+lo mueve sin una línea de JavaScript— y la promesa era que la portada no pesara
+más que antes. El control negativo lo desmintió: con todas las fotos en `src` y
+`loading="lazy"`, el navegador pidió la segunda foto de cada tarjeta al pintar,
+porque está «cerca» del viewport aunque nadie la vea. Por eso las fotos 2 en
+adelante esperan en `data-src` y se piden la primera vez que alguien toca, pasa
+el ratón, enfoca o desliza esa tarjeta. La caja deja de ser un `<button>`: un
+carril no cabe en un botón, y el botón «Ver» sigue siendo el camino del teclado.
+
+**La segunda, y la grave: cerrar el GET rompía volver atrás (P10).** El riesgo
+que el plan arrastraba desde el principio —el token de montaje viajaba como `t=`
+en la dirección y quedaba en los registros de Google— se cerró del lado de los
+clientes: `alMaestro`, `publicar-maestro.mjs`, `conectar` y `panel.gs` lo mandan
+en el cuerpo de un POST. Del lado del maestro, lo natural era marcar las puertas
+de montaje `soloPost`, y así se hizo primero. El repaso de `DESPLIEGUE.md`
+encontró lo que eso rompía, y lo reprodujo: `restaurar › la-version` a una
+versión anterior escribe las herramientas VIEJAS —que preguntan por GET— y las
+corre contra el maestro 1.0.0, que sigue vivo hasta que se publica el viejo. La
+corrida se paraba en «¿Esta hoja es la de esta tienda?» y la tienda no podía
+volver atrás sola. Es la misma forma de la causa 2 de la entrada 102, al revés:
+el que se actualiza corre su versión vieja, y el que vuelve atrás también. El
+maestro **acepta el GET y lo anota** (`TOKEN_POR_GET`: la acción y la fecha,
+nunca el token), y el diagnóstico dice quién sigue mandándolo así (P1: el
+respaldo que funciona tiene que gritar). Volver atrás vale más que la regla, y
+la regla se cumple donde importa: ningún cliente de la 1.0.0 pone el token en
+una dirección. Quedan dos, dichos: el stub de cada hoja (su token de menú) y
+`panel.gs` hacia una Tienda Básica, cuyo maestro no atiende puertas por POST.
+
+**La tercera: el rojo intermitente de `test.js` tenía causa (P19).** «Pasa sola
+y falla con la suite» llevaba desde la 0.22.5 anotado como ruido. El cupón lo
+valida el maestro por la red y la batería esperaba dos cuadros de pintura
+(`pintado`), que es lo que se espera para lo que no sale de la red. Con la
+suite en paralelo la respuesta llegaba después. Ahora espera a que el aviso deje
+de decir «Validando…». Un rojo que se da por ruido enseña a no mirar los rojos.
+
+Y lo que se cerró sin código: la causa 4 (que el montaje diga todo lo que falla
+de una vez) quedó cerrada por diseño —la guardia de la tienda es pequeña y pone
+todas sus FALLA en el resumen; `preparar-index` lista todas las claves que
+bloquean— y pasa a la 3.0 como principio. La decisión 36 deja un solo producto:
+la Tienda 2.0; Orgánico se migra cliente por cliente, y la definitiva empieza de
+cero con `docs/TRASLADO-3.0.md`.
+
+**Lo prueban** `pruebas/fotos.js` §6b (el carril, la segunda foto sin pedir
+hasta que alguien toque —control negativo en rojo con `src` y `lazy`—, la flecha
+que no abre la ficha, la tarjeta de una foto como siempre), `pruebas/montaje.js`
+§0 (POST contesta; el GET contesta y queda anotado sin el token; ninguna
+herramienta pone `t=`; `panel.gs` solo a la Básica), `pruebas/sondeo.js` (el
+maestro de mentira cuenta los tokens que llegan en una dirección: cero),
+`pruebas/panel.js` §2 y §2b, `flota/pruebas.mjs` en `tiendas`, y `pruebas/test.js`
+corrido con la suite entera en paralelo.
+
+*Ficha:* *(mío)* · 🟠 Grave · P1, P10, P19 · 1.0.0 · 2026-09-30

@@ -23,12 +23,23 @@ const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -
 
 /* Un maestro de mentira: contesta cualquier acción y anota cuál le pidieron. */
 let pedidas = [];
+/* 1.0.0 · Y anota si alguien le puso el token en la DIRECCIÓN: desde la 1.0.0
+   va en el cuerpo de un POST (ROADMAP 5.7). */
+let tokenEnDireccion = 0, porPost = 0;
 const servidor = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
-  const a = u.searchParams.get('a');
-  pedidas.push(a);
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ ok: true, accion: a, marca: 'del-maestro' }));
+  if (u.searchParams.has('t')) tokenEnDireccion++;
+  let cuerpo = '';
+  req.on('data', c => { cuerpo += c; });
+  req.on('end', () => {
+    let d = {};
+    try { d = JSON.parse(cuerpo || '{}'); } catch { d = {}; }
+    if (req.method === 'POST') porPost++;
+    const a = d.a || u.searchParams.get('a');
+    pedidas.push(a);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, accion: a, marca: 'del-maestro' }));
+  });
 });
 
 /* Corre un trozo de código en un proceso aparte, con o sin `--desde`, desde una
@@ -174,6 +185,8 @@ let URL_BASE = '';
 
   servidor.close();
   fs.rmSync(dir, { recursive: true, force: true });
+  ok('NINGÚN TOKEN EN UNA DIRECCIÓN: las herramientas le hablan al maestro por POST',
+     tokenEnDireccion === 0 && porPost > 0, tokenEnDireccion + ' con el token en la dirección · ' + porPost + ' por POST');
   console.log(T.join('\n'));
   console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
   process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

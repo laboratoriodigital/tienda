@@ -1859,7 +1859,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.25.0';
+var VERSION_TIENDA = '1.0.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -2936,6 +2936,15 @@ function diagnostico(mostrarSecretos) {
   } else {
     decir('Medición: apagada. La tienda no carga nada de Google ni pone cookies.');
   }
+  var porGet = tokenPorGet();
+  var accionesGet = Object.keys(porGet);
+  if (accionesGet.length) {
+    decir('El token de montaje llegó por GET (en la dirección): ' + accionesGet.map(function (a) {
+      return a + ' ' + String(porGet[a]).slice(0, 10); }).join(', ') + '.');
+    decir('   Desde la 1.0.0 va en el cuerpo. Si es «panel», la hoja Panel de tiendas');
+    decir('   no se ha actualizado (flujo panel de tiendas); si es otra, corrió una');
+    decir('   herramienta anterior a la 1.0.0 (por ejemplo, al volver a una versión vieja).');
+  }
   var idPx = idDePixel(cfgDiag);
   var crudoPx = String(cfgDiag.meta_pixel_id || '').trim();
   if (idPx) {
@@ -3667,6 +3676,14 @@ var PUERTAS = {
 
   menu:      { guarda: 'menu',    fn: atenderMenu },
 
+  /* 1.0.0 · EL TOKEN DE MONTAJE VIAJA EN EL CUERPO (ROADMAP 5.7, bitácora
+     113). Las herramientas de `montar/`, `conectar` y `panel.gs` lo mandan por
+     POST. Estas puertas SIGUEN aceptando GET, y es a propósito: volver una
+     tienda a una versión anterior (`restaurar › la-version`) corre las
+     herramientas de ESA versión, que preguntan por GET, contra el maestro 1.0.0
+     que sigue vivo hasta que se publica el viejo. Rechazar el GET rompía volver
+     atrás, que vale más que la regla. En vez de eso, cada GET con el token se
+     ANOTA (`anotarTokenPorGet`) y el diagnóstico lo dice: se ve, no se calla. */
   panel:     { guarda: 'montaje', fn: atenderPanel },
   identidad: { guarda: 'montaje', fn: atenderIdentidad },
   bloques:   { guarda: 'montaje', fn: atenderBloques },
@@ -3777,11 +3794,31 @@ function doGet(e) {
     }
     var no = guardiaDe(puerta, p);
     if (no) return json(no);
+    if (puerta.guarda === 'montaje') anotarTokenPorGet(p.a);
     return json(puerta.fn(p));
   } catch (err) {
     registrarError(err, null);
     return json({ ok: false, error: 'No pudimos validar en este momento.' });
   }
+}
+
+/* 1.0.0 · Quién sigue mandando el token de montaje en la dirección, y cuándo
+   fue la última vez. Una propiedad y no la pestaña Errores: la hoja «Panel de
+   tiendas» anterior a la 1.0.0 lo hace a diario, y llenar Errores con eso
+   escondería lo importante. Lo lee el diagnóstico. Nunca guarda el token. */
+function anotarTokenPorGet(accion) {
+  try {
+    var p = propiedades();
+    var d = {};
+    try { d = JSON.parse(p.getProperty('TOKEN_POR_GET') || '{}') || {}; } catch (e) { d = {}; }
+    d[String(accion).slice(0, 20)] = new Date().toISOString();
+    p.setProperty('TOKEN_POR_GET', JSON.stringify(d));
+  } catch (e) { /* anotar no puede tumbar la respuesta */ }
+}
+
+function tokenPorGet() {
+  try { return JSON.parse(propiedades().getProperty('TOKEN_POR_GET') || '{}') || {}; }
+  catch (e) { return {}; }
 }
 
 /* EL PANEL POR POST. El cuerpo es un JSON en texto plano —así el navegador no

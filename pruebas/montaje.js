@@ -24,8 +24,9 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
 
 const CARPETA = '1CarpetaDeFotosDelComercio';
 const nuevo = () => { const g = crear('./as.js'); g.api.instalar(); return g; };
-const puerta = (g, a, extra) => JSON.parse(g.api.doGet({
-  parameter: Object.assign({ a: a, t: g.token }, extra || {}) })._texto);
+/* 1.0.0 · las puertas de montaje van por POST, con el token en el cuerpo. */
+const puerta = (g, a, extra) => JSON.parse(g.api.doPost({ postData: { contents:
+  JSON.stringify(Object.assign({ a: a, t: g.token }, extra || {})) } })._texto);
 
 /* Una tienda ya configurada, con el comercio de prueba que vive en gas.js. De
    fábrica el nombre viene entre corchetes y el celular vacío, y el montaje se
@@ -39,6 +40,29 @@ const configurar = (g, clave, valor) => {
   if (i < 1) throw new Error('no existe la clave ' + clave);
   h.getRange(i + 1, 2).setValue(valor);
 };
+
+// ═══ 0. 1.0.0 · Ningún token en una dirección (ROADMAP 5.7, bitácora 113) ═══
+{
+  const g = yaConfigurada(nuevo());
+  const porGet = a => JSON.parse(g.api.doGet({ parameter: { a: a, t: g.token } })._texto);
+  ok('LAS PUERTAS DE MONTAJE contestan por POST, con el token en el cuerpo',
+     puerta(g, 'identidad').ok === true && puerta(g, 'bloques').ok === true);
+  ok('  ...y el maestro no ha visto ningún token en una dirección', Object.keys(g.api.tokenPorGet()).length === 0);
+  /* Por GET siguen contestando A PROPÓSITO: volver a una versión anterior corre
+     las herramientas viejas contra este maestro. Pero queda anotado, sin el token. */
+  const r = porGet('identidad');
+  const anotado = g.api.tokenPorGet();
+  ok('  ...por GET siguen contestando (volver atrás corre herramientas viejas), PERO QUEDA ANOTADO',
+     r.ok === true && !!anotado.identidad && !JSON.stringify(anotado).includes(g.token),
+     JSON.stringify(anotado));
+  const herramienta = fs.readFileSync('../montar/tienda.mjs', 'utf8');
+  const publicarM = fs.readFileSync('../montar/publicar-maestro.mjs', 'utf8');
+  const hojaPanel = fs.readFileSync('../panel.gs', 'utf8');
+  ok('  ...y ninguna herramienta ni el panel lo ponen en la dirección (salvo a una Tienda Básica)',
+     !/[?&]t=/.test(herramienta.replace(/\/\*[\s\S]*?\*\//g, '')) &&
+     !/a=bloques&t=/.test(publicarM) && /method: 'post'/.test(hojaPanel) &&
+     (hojaPanel.match(/a=panel&t=/g) || []).length === 1 && /if \(esBasica\(t\)\)/.test(hojaPanel));
+}
 
 // ═══ 1. La puerta que reemplaza el copiar y pegar ═══
 {
@@ -366,15 +390,15 @@ const configurar = (g, clave, valor) => {
   ok('  ...y dice cuál es su hoja, que es el dato que se pierde al publicar',
      idn.hojaId === g.hojaId && idn.hojaOk === true, idn.hojaId);
 
-  const r = JSON.parse(roto.api.doGet({ parameter:
-    { a: 'identidad', t: roto.api.token() } })._texto);
+  const r = JSON.parse(roto.api.doPost({ postData: { contents:
+    JSON.stringify({ a: 'identidad', t: roto.api.token() }) } })._texto);
   ok('CON LA HOJA PERDIDA sigue contestando, en vez de fallar entero',
      r.ok === true, JSON.stringify(r).slice(0, 60));
   ok('  ...avisando de que no puede abrirla', r.hojaOk === false &&
      /HOJA_ID/.test(r.problema || ''), String(r.problema).split('\n')[0]);
   ok('  ...y las OTRAS puertas sí fallan, como debe ser', (() => {
-       const b = JSON.parse(roto.api.doGet({ parameter:
-         { a: 'bloques', t: roto.api.token() } })._texto);
+       const b = JSON.parse(roto.api.doPost({ postData: { contents:
+         JSON.stringify({ a: 'bloques', t: roto.api.token() }) } })._texto);
        return b.ok === false;
      })(), 'identidad es la excepción a propósito, no un descuido');
 
@@ -583,8 +607,8 @@ const configurar = (g, clave, valor) => {
   ok('  ...así que el stub sale completo y apuntando a donde existe',
      editor.api.generarStub().codigo.indexOf("var MAESTRO = '" + EXEC + "'") !== -1);
   ok('  ...y el index también', (() => {
-       const b = JSON.parse(editor.api.doGet({ parameter:
-         { a: 'bloques', t: editor.token } })._texto);
+       const b = JSON.parse(editor.api.doPost({ postData: { contents:
+         JSON.stringify({ a: 'bloques', t: editor.token }) } })._texto);
        return b.valores.SCRIPT_URL === EXEC;
      })());
 
@@ -1080,8 +1104,8 @@ const configurar = (g, clave, valor) => {
    Es la ÚNICA puerta que escribe, así que la mitad de estas aserciones son
    sobre lo que NO puede hacer. */
 {
-  const sembrar = (g, datos) => JSON.parse(g.api.doGet({ parameter:
-    Object.assign({ a: 'sembrar', t: g.token }, datos) })._texto);
+  const sembrar = (g, datos) => JSON.parse(g.api.doPost({ postData: { contents:
+    JSON.stringify(Object.assign({ a: 'sembrar', t: g.token }, datos)) } })._texto);
   const valor = (g, clave) => {
     const f = g.filas('Configuración').find(x => String(x[0]).trim() === clave);
     return f ? String(f[1]) : null;
@@ -1147,8 +1171,8 @@ const configurar = (g, clave, valor) => {
        valor(g, 'color_principal') === color && valor(g, 'empresa_nit') === legal,
        'es la única puerta que escribe: el resto de la hoja no se toca desde fuera');
     ok('  ...y el catálogo no lo puede tocar nadie desde fuera', (() => {
-         const r = JSON.parse(g.api.doGet({ parameter:
-           { a: 'sembrar', t: g.token, Catálogo: 'x', stock: '0' } })._texto);
+         const r = JSON.parse(g.api.doPost({ postData: { contents:
+           JSON.stringify({ a: 'sembrar', t: g.token, Catálogo: 'x', stock: '0' }) } })._texto);
          return r.ok === true && !(r.escritos || []).length;
        })());
   }

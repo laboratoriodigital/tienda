@@ -5,7 +5,7 @@ página de **una tienda**. Primero lo que el sistema comprueba solo —para sabe
 dónde mirar cuando se queja—, después lo que sigue siendo tuyo. Está ordenado
 por lo que más duele si sale mal, no por lo que más trabajo cuesta.
 
-_Vigente a la 0.25.0 (30 de septiembre de 2026)._
+_Vigente a la 1.0.0 (30 de septiembre de 2026)._
 
 ---
 
@@ -64,6 +64,12 @@ de esa tienda y sin errores. Si falla, no se publica nada. La lista completa, en
 - Las llaves de Bold y el `GITHUB_TOKEN` viven **solo** en las propiedades del
   script del maestro: ni en la hoja, ni en el repositorio, ni en los secretos de
   GitHub de la tienda, ni en el panel.
+- Ninguna herramienta pone el token de montaje en una dirección (1.0.0): las
+  herramientas, `conectar` y `panel.gs` lo mandan en el cuerpo de un POST. El
+  maestro todavía acepta GET en las puertas de montaje (para que volver atrás
+  funcione), pero lo anota y el diagnóstico lo dice. Quedan dos excepciones
+  conocidas: el token de menú del stub y `panel.gs` hacia una Tienda Básica
+  (`DESPLIEGUE.md` › *Por dónde viaja cada uno*).
 - La hoja guarda **qué** se pidió, no **quién** lo pidió.
 - El total lo recalcula y lo sella el maestro con los precios de la hoja.
 - Si la hoja no contesta, la tienda pinta el catálogo de respaldo que lleva
@@ -104,6 +110,10 @@ si el mensaje sale.
       (`A4_respaldoAhora()` en el maestro la prueba sin esperar al domingo).
 - [ ] **La clave del panel**: `panel_usuario` en Configuración y menú de la
       hoja › **Clave del panel**. Se ve una sola vez: se entrega en persona.
+- [ ] **Si el comercio quiere medir** (`analytics_id`, `meta_pixel_id`): la
+      política de datos lo dice sola, pero la tienda **no pide consentimiento**
+      antes de cargar GA4 o Meta. Es un riesgo abierto (decisión 35): que el
+      comercio lo sepa antes de encenderlo.
 
 ---
 
@@ -164,6 +174,6 @@ puede hacer desde fuera (el paso a paso, en `RUNBOOK-TECNICO.md`):
 
 > *Historia.* En la línea anterior (Orgánico) esta lista cerró el 15 de
 > septiembre de 2026 con la 2.15.1 corriendo idéntica en las tres tiendas y la
-> prueba de punta a punta hecha en la 3.0.0. Aquel cronómetro —30 minutos por
-> tienda, la mitad copiando secretos en GitHub— es lo que `conectar` vino a
-> quitar.
+> prueba de punta a punta hecha en su 3.0.0 (la de Orgánico, no la *Tienda
+> 3.0*). Aquel cronómetro —30 minutos por tienda, la mitad copiando secretos en
+> GitHub— es lo que `conectar` vino a quitar.

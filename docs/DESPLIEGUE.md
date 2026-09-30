@@ -39,6 +39,12 @@ web)—, más una del operador: la hoja **Panel de tiendas** con `panel.gs`.
 
 La otra línea de producto, Tienda Básica (`laboratoriodigital/organico`, 3.x),
 se actualiza por pull request desde la flota y queda fuera de este documento.
+Desde la 1.0.0 (30 de septiembre de 2026) **Tienda Panel es el único producto
+que se vende**: Orgánico queda como está, solo con correcciones, hasta que sus
+clientes (hoy, Cinnamon Beauty) se migren a esta línea, uno por uno y cuando
+convenga. No se sincroniza código entre las dos (esto cambia la decisión 20).
+*Tienda 3.0* es otra cosa: un proyecto nuevo, desde cero; no confundirlo con
+las versiones 3.x de Orgánico.
 
 ---
 
@@ -107,7 +113,7 @@ Actions). Ninguno se copia a otro sitio, salvo los dos que se dice:
 | Nombre | Permisos mínimos | Quién lo usa, y para qué |
 |---|---|---|
 | `FLOTA_TOKEN` (desde la 0.24.0, también el del alta) | De grano fino, del **mismo dueño** que las tiendas, sobre **todos** sus repositorios —una tienda que el token no ve contesta 404 y la flota la **salta**; el repositorio nuevo aún no existe al crearlo—: *Administration*, *Contents*, *Pull requests*, *Workflows*, *Secrets* y *Actions* en lectura y escritura; *Metadata* lectura | `alta`: ver la semilla, crear el repositorio, clonar la etiqueta y empujarla, permisos de Actions y fusiones, poner `SEMILLA_TOKEN`. `conectar`: poner los secretos de la tienda y disparar su `montaje`. `flota`: `estado`, `actualizar` (disparar y esperar el `montaje` de cada tienda; en la Básica, ramas y pull requests) y `flujos` (escribir y retirar `.github/workflows` en cada tienda). `panel`: leer la semilla |
-| `ALTA_TOKEN` (retirado el 29-sep-2026, decisión 34) | El mismo que `FLOTA_TOKEN` hacía antes por separado. **Borrado de `tiendas` el 29-sep-2026**; lo que sigue queda como historia. **Decisión 34:** se funde en `FLOTA_TOKEN`; mientras exista, `alta`, `conectar` y `panel` lo prefieren (`ALTA_TOKEN \|\| FLOTA_TOKEN`) y el resumen de `alta` dice cuál usó | Para retirarlo: dar a `FLOTA_TOKEN` *Administration* y *Secrets* en escritura, borrar el secreto `ALTA_TOKEN` de `tiendas` y revocar el token |
+| `ALTA_TOKEN` — **ya no existe** (decisión 34) | Historia: era el token del alta, aparte. Se fundió en `FLOTA_TOKEN` (0.24.0) y el secreto se **borró de `tiendas` el 29-sep-2026**. Los flujos `alta`, `conectar` y `panel` todavía lo nombran como respaldo (`ALTA_TOKEN \|\| FLOTA_TOKEN`); sin el secreto, usan `FLOTA_TOKEN`, y el resumen de `alta` dice cuál usó | Pendiente del dueño: **revocar el token viejo en GitHub** (borrar el secreto no lo invalida) y quitar el respaldo `ALTA_TOKEN \|\|` de esos flujos. No se vuelve a crear |
 | `SEMILLA_TOKEN` | De grano fino: *Contents* lectura sobre la semilla. Solo hace falta si la semilla es privada *(sin verificar aquí si lo es)* | No lo usa `tiendas`: `alta` lo **copia** a cada tienda al nacer y `conectar` lo **refresca** cada vez que corre (0.21.2). Ver la tabla de la tienda |
 | `DISPARO_TOKEN` | De grano fino, sobre **todos** los repositorios del dueño (no «Only select repositories»: una lista fija no incluye las tiendas que nacen después), **solo** *Actions: Read and write* | `conectar`: comprueba que ve la tienda (`GET /repos/…`) y **solo entonces** se lo siembra al maestro por POST (`a=permiso`), que lo guarda como `GITHUB_TOKEN` |
 | `PANEL_URL` · `PANEL_CLAVE` | No son de GitHub: la URL `/exec` de la hoja *Panel de tiendas* y la clave de su menú › *Clave para el alta* | `conectar`: registra la tienda en esa hoja (POST `registrar_tienda`). Opcionales: sin ellos lo dice y sigue |
@@ -131,7 +137,7 @@ hoja, en el repositorio, en los secretos de GitHub de la tienda ni en el panel:
 
 | Nombre | Quién lo pone | Para qué |
 |---|---|---|
-| `TOKEN` (token de montaje, `tk-…`) · `TOKEN_MENU` | ⚙ `A0_instalar` (lo inventa la primera vez); `A3_rotarToken` lo cambia | el de montaje abre las puertas de las herramientas (`bloques`, `sembrar`, `identidad`, fotos); el del menú va en el stub |
+| `TOKEN` (token de montaje, `tk-…`) · `TOKEN_MENU` | ⚙ `A0_instalar` (lo inventa la primera vez); `A3_rotarToken` lo cambia | el de montaje abre las puertas de servicio (`identidad`, `bloques`, `sembrar`, `fotos`, `foto`, `permiso` y `panel`), todas por POST salvo `panel` (ver abajo); el del menú va en el stub |
 | `HOJA_ID` | ⚙ `A0_instalar` (0.17.0), desde la línea `var HOJA_ID` | que la versión implementada sepa su hoja aunque se implementara antes de pegarla |
 | `GITHUB_TOKEN` | ⚙ `conectar` (desde `DISPARO_TOKEN`), o a mano | *Publicar ahora* (dispara `fotos.yml`) y *Actualizar* (dispara `montaje.yml` con `semilla`), por la API de GitHub. Se reemplaza solo si ya no sirve (0.20.2), o con `forzar_permiso` |
 | `BOLD_IDENTIDAD_SANDBOX` · `BOLD_SECRETA_SANDBOX` · `BOLD_IDENTIDAD_PRODUCCION` · `BOLD_SECRETA_PRODUCCION` | **tú**, a mano | cobrar en línea con Bold (`docs/PAGOS-BOLD.md`) |
@@ -142,12 +148,42 @@ y, opcional, un `GITHUB_TOKEN` propio de grano fino con solo *Actions:
 read-only*, para leer las ejecuciones sin quedarse en las 60 peticiones por
 hora que GitHub da sin token.
 
-**Por dónde viaja cada uno.** El `GITHUB_TOKEN` del maestro y la clave del
-panel de administración van por **POST**, nunca en una dirección. El token de
-montaje (`MAESTRO_TOKEN`), en cambio, lo mandan las herramientas de `montar/`,
-`conectar.mjs` y `publicar-maestro.mjs` como parámetro `t` de peticiones GET a
-la `/exec`: queda en los registros de acceso de Google. Es su diseño de hoy, no
-un descuido de este documento.
+**Por dónde viaja cada uno.** Un token en una dirección queda en los registros
+de acceso de Google y en los de cualquier intermediario; en el cuerpo de un
+POST, no. Por eso, **desde la 1.0.0 ninguna herramienta de la 2.0 pone el
+token de montaje en una dirección** (ROADMAP 5.7, bitácora 113):
+
+- El `GITHUB_TOKEN` del maestro, la clave del panel de administración y el
+  testigo del panel del comercio ya iban por **POST**.
+- El token de montaje (`MAESTRO_TOKEN`) también: `montar/tienda.mjs ›
+  alMaestro`, `montar/publicar-maestro.mjs` y `tiendas › flota/conectar.mjs ›
+  pedir` lo mandan en el cuerpo de un POST —JSON en texto plano
+  (`text/plain`), `{ "a": …, "t": … }`, que Apps Script recibe sin preguntar
+  antes por CORS—, y `panel.gs` consulta igual (`a: 'panel'`) cada tienda de
+  la 2.0.
+- El maestro **sigue aceptando GET** en las puertas de montaje (`panel`,
+  `identidad`, `bloques`, `sembrar`, `fotos`, `foto`; solo `permiso` es
+  `soloPost`), **a propósito**: volver a una versión anterior (`restaurar ›
+  la-version`, o `montaje › semilla`) corre las herramientas de esa versión,
+  que preguntan por GET, contra el maestro 1.0.0 que sigue vivo hasta que se
+  publica el viejo. Pero cada GET con el token **queda anotado**
+  (`anotarTokenPorGet`, propiedad `TOKEN_POR_GET`: acción y fecha, nunca el
+  token) y el diagnóstico dice quién sigue mandándolo así: la hoja *Panel de
+  tiendas* sin actualizar (su `panel.gs` publicado es anterior a la 1.0.0
+  hasta que corra el flujo `panel`, pendiente del dueño: los secretos
+  `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`), o una herramienta anterior a la 1.0.0.
+- **Dos clientes siguen mandando un token por GET, a la vista.** El stub: cada
+  hoja manda su token de menú (`tk-…`, guardia `menu`) por GET a `?a=menu`;
+  cerrarlo exige volver a pegar el stub en cada hoja, así que queda para
+  cuando haya que repegarlo por otra razón. Y `panel.gs` hacia una **Tienda
+  Básica** (Orgánico 3.x, `esBasica`), cuyo maestro no atiende puertas por
+  POST: hasta migrarla a la 2.0.
+
+Lo vigilan `pruebas/montaje.js` §0 (el POST contesta; el GET contesta pero
+queda anotado sin el token; ninguna herramienta pone `t=` en la dirección y
+`panel.gs` solo a una Tienda Básica),
+`pruebas/sondeo.js` (un maestro de mentira cuenta los tokens que llegan en la
+dirección: tienen que ser cero), `pruebas/panel.js` y `flota/pruebas.mjs`.
 
 ---
 
@@ -186,9 +222,11 @@ invierten. Están marcados con ⚠ más abajo.
 
 - Cuenta de GitHub con la organización, y las dos semillas: `tienda` (Tienda
   Panel) y `organico` (Tienda Básica). El alta clona **etiquetas**, así que cada
-  semilla necesita al menos una versión publicada con `release`.
+  semilla necesita al menos una versión publicada con `release`. Una tienda
+  nueva es `tienda`: la Básica ya no se vende (ver arriba).
 - El repositorio de servicio `laboratoriodigital/tiendas`, con los secretos de
-  la tabla de arriba. Imprescindible: `FLOTA_TOKEN` (con *Administration* y *Secrets*; `ALTA_TOKEN` se retiró el 29-sep-2026); para que
+  la tabla de arriba. Imprescindible: `FLOTA_TOKEN` (con *Administration* y
+  *Secrets*: desde el 29-sep-2026 es el único token del alta); para que
   el panel y el menú publiquen, `DISPARO_TOKEN`; para que la hoja de
   administración se llene sola, `PANEL_URL` y `PANEL_CLAVE`.
 - La hoja **Panel de tiendas**: una hoja de cálculo tuya con `panel.gs` pegado
@@ -312,7 +350,8 @@ Comprueba con dos ventanas, no una:
 `semilla`, si la versión trae un `maestro.gs` nuevo— sube el archivo con clasp
 **y actualiza la implementación que ya existe** (`update-deployment` en clasp 3,
 `deploy --deploymentId` en clasp 2), sobre la misma URL. Y no lo da por hecho:
-al terminar le pregunta a la `/exec` (`?a=bloques`) qué versión responde, y el
+al terminar le pregunta a la `/exec` (puerta `bloques`, por POST desde la
+1.0.0) qué versión responde, y el
 paso siguiente (`preparar-index.mjs`) espera hasta tres minutos y
 **falla si no es la que acaba de publicar**. Si la corrida sale verde, el
 despliegue está hecho — no hay que abrir Implementar.
@@ -338,10 +377,13 @@ Si te saltas esto, el paso 9 dice «TODAVÍA NO SE SABE» y no entiendes por qu�
 
 ## 7 · `A0_instalar()` en el editor del maestro
 
-Crea las pestañas, los desplegables, los disparadores (el tablero cada hora, el
-respaldo los domingos a las 2:00) y los dos tokens, y guarda `HOJA_ID` en las
-propiedades. Es idempotente: se puede repetir. Termina con «LISTO. Pestañas de
-la hoja: …».
+Crea las pestañas, los desplegables, los disparadores (`revisionHoraria` —pagos
+abiertos, la hoja al día, tablero e inventario—, `alEditar` y el respaldo
+los domingos a las 2:00) y los dos tokens, y guarda `HOJA_ID` en las
+propiedades. Desde la 0.24.0 además **ordena la hoja** (bitácora 110):
+Configuración por secciones, las pestañas en el orden en que se usan y con
+color, y quita la «Hoja 1» vacía. Es idempotente: se puede repetir. Termina con
+«LISTO. Pestañas de la hoja: …».
 
 > Las funciones que se ejecutan a mano llevan prefijo `A0_`…`A6_` para que
 > queden juntas al principio de la lista del editor, y numeradas **en el orden
@@ -349,14 +391,22 @@ la hoja: …».
 
 ## 8 · Llenar la hoja · ~12 min
 
-`A0_instalar()` crea, siempre las mismas: `Configuración · Catálogo · Envíos ·
-Cupones · Validaciones · Pedidos · Más vendidos · Tablero · Errores · Pagos ·
-Datos de entrega · Registro · Inventario por variante · Avísame`.
+`A0_instalar()` crea, siempre las mismas, y las deja en este orden
+(`ORDEN_PESTANAS`): `Catálogo · Inventario por variante · Pedidos · Envíos ·
+Cupones · Configuración · Tablero · Más vendidos · Avísame · Pagos · Datos de
+entrega · Validaciones · Registro · Errores`. La `Papelera` aparece al borrar el
+primer producto desde el panel.
 
-> **No insertar columnas en medio de ninguna pestaña.** El maestro lee por
-> posición fija (`getRange(fila, columna, …)`), no por el nombre del
-> encabezado: una columna metida en medio corre todas las de la derecha un
-> puesto y nada avisa. Agregar columnas **al final** es seguro.
+> **Las columnas: Catálogo e Inventario por variante, por nombre; el resto, por
+> posición.** Desde la 0.24.0 (bitácora 110) esas dos pestañas se leen **por el
+> nombre del encabezado** (`mapaDeColumnas`): se pueden mover columnas, y
+> `A0_instalar` —o la revisión de cada hora, una vez por versión
+> (`ponerHojaAlDia`)— las deja en el orden en que se leen. Lo que no se puede
+> es **renombrar** un encabezado: si no lo encuentra, lee por posición, como
+> antes, y lo dice. Las demás pestañas (Pedidos, Envíos, Cupones…) se siguen
+> leyendo por posición fija: ahí, **no insertar columnas en medio**; una
+> columna metida en medio corre las de la derecha un puesto y nada avisa.
+> Agregar al final es seguro.
 
 Pestaña `Configuración`. **La lista del alta** (`LISTA_DE_ALTA` en
 `maestro.gs`) dice qué falta; el Diagnóstico y el panel la enseñan, y el
@@ -480,7 +530,8 @@ y anillo. **A mano** queda lo comercial:
 | `Notas` | Lo que haya que recordar |
 
 Si `conectar` dice «Hoja de administración: no se pudo registrar», la fila se
-pega a mano con los mismos datos. Después: menú del panel → **`actualizar()`**.
+pega a mano con los mismos datos. Después: menú **Panel › Actualizar todas las
+tiendas** (`actualizar()`).
 Si la fila está bien, la tienda aparece con sus métricas en un par de segundos.
 
 > **El token vive en TRES sitios**: los secretos del repositorio, las
@@ -564,7 +615,10 @@ estaba al día» o «sigue como estaba».
 > Apps Script queda «frío» al actualizar una implementación: la primera
 > petición a la `/exec` puede tardar cuarenta segundos o más. Las herramientas
 > lo aguantan y el log dice cuánto tardó cada llamada. Si ves `· «bloques»
-> contestó en 38 s`, no está roto: está arrancando.
+> contestó en 38 s`, no está roto: está arrancando. Y si una respuesta lenta
+> llega como 404 —la redirección de Google caducó mientras el script
+> trabajaba—, `alMaestro` la reintenta hasta dos veces más, con pausa, antes de
+> rendirse (0.22.4, bitácora 107); un 404 rápido sí es la implementación.
 
 ## 12 · ⚠ `A1_generarStub()` — y el orden importa
 
@@ -617,6 +671,16 @@ catálogo, mayúsculas incluidas. Formatos: JPG, PNG, WebP. Tope: 8 MB por foto
 (el maestro rechaza las más pesadas; `traer-fotos.mjs` ni pide las de más de
 10 MB).
 
+**Varias fotos por producto** (separadas por `|` en `Imágenes`). Desde la 1.0.0
+la tarjeta del catálogo las enseña todas: si un producto tiene más de una foto
+**general** —las que no son de una opción, `--opción-`—, la tarjeta es un carril
+que se desliza con el dedo, con flechas al pasar el ratón en el computador y
+puntos abajo. Solo la primera se descarga al pintar la página; las demás se
+piden la primera vez que alguien toca, pasa el ratón o desliza esa tarjeta, así
+que la portada pesa lo mismo que con una foto. Tocar la foto abre la ficha;
+con una sola foto la tarjeta queda como antes. Ya no sale la insignia «N
+fotos». Para el comercio no cambia nada: se suben igual.
+
 Después, menú de la hoja → **Publicar ahora** ⚙ (ver *Publicar*).
 
 ## 13b · La medición, si el comercio la quiere (0.19.0)
@@ -627,15 +691,30 @@ tienda. Copiar el identificador `G-XXXXXXXXXX` y pegarlo en la clave
 `analytics_id` de la pestaña Configuración. **Publicar** después: el
 identificador se hornea en el `<head>`, no se lee en vivo.
 
-Tres cosas que conviene decirle al comercio:
+**El píxel de Meta** (0.25.0, decisión 35) entra igual: clave
+`meta_pixel_id`, vacía de fábrica, solo el número del píxel
+(business.facebook.com › Administrador de eventos › Orígenes de datos), y
+publicar.
 
-- **Vacío es vacío**: sin esa clave la tienda no carga nada de Google y no pone
-  una sola cookie. Con ella sí, y eso hay que mencionarlo en la política de
-  privacidad.
+Lo que conviene decirle al comercio:
+
+- **Vacío es vacío**: sin esas claves la tienda no carga nada de Google ni de
+  Meta y no pone una sola cookie de medición. Con ellas sí, y **la política de
+  datos de la tienda lo dice sola** desde la 0.25.0: mira qué medidor se cargó
+  de verdad en la página, no lo que diga la hoja (bitácora 112).
 - Solo sirve **GA4** (`G-…`). Un `UA-…` (apagado por Google) o un `GTM-…` (Tag
   Manager) no se hornean, y el panel dice por qué.
-- La tienda ya manda tres eventos: `agregar_al_carrito`, `enviar_pedido` y
-  `pagar_en_linea`. No hay que configurar nada más en Analytics.
+- La tienda ya manda cinco eventos, los mismos para los dos destinos (`medir()`
+  los traduce): `ver_producto`, `agregar_al_carrito`, `enviar_pedido`,
+  `pagar_en_linea` (al **abrir** la pasarela) y `pago_confirmado` (cuando el
+  maestro confirma el pago). En Meta, un pedido por WhatsApp es
+  `InitiateCheckout`, no `Purchase`: no está pagado. No hay que configurar nada
+  más.
+- **Riesgo abierto** (decisión 35): la tienda no pide consentimiento antes de
+  cargar GA4 o Meta. Si un abogado o la SIC lo exigen para cookies de
+  publicidad, hará falta un aviso con «Aceptar» que retrase la carga; no se
+  construye sin esa confirmación. Encender la medición es decisión del
+  comercio.
 
 ## 14 · WhatsApp Business — la respuesta automática
 
@@ -707,11 +786,13 @@ El menú de su hoja tiene ocho opciones, y conviene nombrárselas todas una vez:
 dejarlo listo en la entrega: en `Configuración › panel_usuario` el nombre con el
 que va a entrar, y después menú › **Clave del panel** con el comerciante al
 lado — la clave se enseña una sola vez y no queda escrita en ninguna parte, así
-que la apunta él. El panel tiene tres pestañas: **Productos** (editar, subir
-fotos y, si hay variantes, el stock de cada combinación), **Pedidos** (ver y
-cambiar el estado, con el mismo efecto sobre el inventario que en la hoja) y
-**Tu tienda** (textos, colores, contacto, horario, envío gratis, pedido mínimo y
-cerrar la tienda; las claves técnicas no salen). Todo lo que se cambia queda en
+que la apunta él. El panel tiene dos pantallas (desde la 0.9.0; antes eran
+cuatro pestañas): **Ventas** —cómo va el mes, los **pedidos** (ver y cambiar el
+estado, con el mismo efecto sobre el inventario que en la hoja) y las gráficas—
+y **Tienda** —los **productos** (editar, subir fotos y, si hay variantes, el
+precio y el stock de cada combinación) y, en secciones plegables, lo mismo que
+la pestaña Configuración más Envíos y Cupones, *Otra persona en el panel*,
+*Versión de tu tienda* y *Revisión de tu tienda*—. Todo lo que se cambia queda en
 la pestaña **Registro** de la hoja. Arriba, la barra de **Publicar**. Lo que se
 guarda en el panel queda en la hoja al instante, pero **la tienda lo muestra al
 publicar**: eso hay que decírselo, porque el panel también lo dice y la primera
@@ -783,8 +864,9 @@ empujar. No usa `CLASPRC`: `fotos` nunca publica el maestro.
      haber detectado novedades»**, con la lista `PUBLICA` y el estado del
      repositorio (ver el runbook).
 
-`fotos` y `montaje` comparten el grupo de concurrencia `tienda-<repositorio>`:
-nunca escriben `publicar/` a la vez.
+`fotos`, `montaje` y `restaurar` (este desde la 0.22.3, bitácora 106)
+comparten el grupo de concurrencia `tienda-<repositorio>`: nunca escriben
+`publicar/` a la vez.
 
 ---
 
@@ -810,6 +892,15 @@ etiqueta y la publicación con `index.html`, `maestro.gs`, `panel.gs` y
 `publicar.tar.gz`. En una tienda, `release` se niega («`release` no es un flujo
 de tienda»). `pruebas` en la semilla exige además subir `version` cuando cambia
 `maestro.gs`, `panel.gs` o `publicar/index.html`.
+
+**Y pone al día el maestro de la propia semilla** (0.22.3, bitácora 106): la
+semilla también es una tienda, y a ella ninguna actualización le publica el
+maestro nuevo. El último paso («El maestro de la semilla, al día») le pregunta
+al maestro vivo, con los `MAESTRO_URL` y `MAESTRO_TOKEN` de la semilla, si es
+el de este commit y, si no, dispara su `montaje` con la casilla del maestro y
+`PUBLICAR` (por eso `release.yml` pide `actions: write`). Corre aunque no haya
+nada que cortar: volver a correr `release` pone al día una semilla atrasada.
+Sin esos dos secretos, lo dice y no hace nada más.
 
 ### 2 · Repartirla — `tiendas` › `flota` › `actualizar`
 
@@ -926,24 +1017,27 @@ con **la misma herramienta** que el maestro de cada tienda, no con una copia
 - **Entradas:** `version` (la etiqueta **con `v`**; vacío = la última, con la
   misma regla `ultimaEtiqueta` que el alta y la flota).
 - **Secretos:** `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`; para leer la semilla,
-  `FLOTA_TOKEN` (o `ALTA_TOKEN`, si alguien lo vuelve a poner), o el `GITHUB_TOKEN` de la corrida.
+  `FLOTA_TOKEN` (el flujo aún mira antes `ALTA_TOKEN`, que ya no existe), o el
+  `GITHUB_TOKEN` de la corrida.
 - **Qué hace:** si falta alguno de los dos secretos, «Faltan los secretos» y
   no toca nada; clona la semilla en esa etiqueta, comprueba que traiga
-  `panel.gs` y `montar/publicar-maestro.mjs`, instala clasp 3 y corre
-  `publicar-maestro.mjs` con `ARCHIVO=panel.gs` y `SCRIPT_ID` = el del panel.
-  Sube el archivo tal cual (el panel abre su hoja con `getActive()`, no lleva
-  id horneado), actualiza la implementación que ya existe y termina con «El
-  panel queda en `vX.Y.Z`» o «El panel sigue como estaba».
+  `panel.gs` y `montar/publicar-maestro.mjs`, revisa la credencial con
+  `revisar-clasprc.mjs`, instala clasp 3, la escribe en `~/.clasprc.json` y
+  corre `publicar-maestro.mjs` con `ARCHIVO=panel.gs` y `SCRIPT_ID` = el del
+  panel. Sube el archivo tal cual (el panel abre su hoja con `getActive()`, no
+  lleva id horneado), actualiza la implementación que ya existe y termina con
+  «El panel queda en `vX.Y.Z`» o «El panel sigue como estaba».
 - **La primera implementación** de esa aplicación web se crea a mano, una vez;
   sin ella: «Este proyecto no tiene ninguna implementación publicada todavía».
 
-> **⚠ Defecto conocido, a hoy (sin verificar en una corrida real).** El paso
-> «Publicar panel.gs» le pasa `PANEL_CLASPRC` a la herramienta como variable
-> `CLASPRC`, pero ningún paso lo escribe en `~/.clasprc.json`, que es lo único
-> que lee clasp 3 (o la ruta de `--auth` / `clasp_config_auth`). `montaje` sí
-> lo escribe en su paso «clasp y la sesión de Google de esta tienda». Lo
-> esperable es que `clasp push` conteste que no encuentra credenciales. Mientras
-> no se corrija el flujo, `panel.gs` se sigue pegando a mano.
+> **⚠ Nunca ha corrido con sus secretos de verdad.** Hasta la 0.22.3 el flujo
+> no escribía `~/.clasprc.json`, que es lo único que lee clasp 3, y no habría
+> podido subir nada; se corrigió al auditar la documentación (bitácora 106) y
+> lo exige `flota/pruebas.mjs`. Pero `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`
+> **todavía no están puestos** en `tiendas` (pendiente del dueño): hasta su
+> primera corrida en verde, `panel.gs` se pega a mano. Esa primera corrida,
+> con la 1.0.0, es además la que hace que la hoja deje de mandar el token de
+> montaje por GET, que hoy el maestro anota (ver *Por dónde viaja cada uno*).
 
 ---
 
@@ -956,8 +1050,8 @@ versiones, y Drive ya guarda las copias de la hoja.
 | Se perdió | Dónde está el respaldo | Cómo se vuelve |
 |---|---|---|
 | **Los datos** (catálogo, configuración, envíos, cupones) | las copias semanales en la carpeta de respaldos del administrador (`respaldo_carpeta`, ocho copias) | en el editor del maestro: `A5_respaldos()` las lista y `A6_restaurarDatos('ultimo', 'Catálogo')` devuelve las pestañas que se le digan |
-| **El sitio** (lo que se ve publicado) | cada commit de `main` que tocó `publicar/` | Actions › **restaurar** › `el-sitio` (vacío = el anterior). Publica un commit NUEVO encima; Cloudflare republica solo. ⚠ Ver el defecto de abajo |
-| **La versión** (el código y el maestro) | las etiquetas `vX.Y.Z` de la semilla | Actions › **restaurar** › `la-version` (vacío = la anterior a la de esta tienda). Se lo pide a `montaje` con `semilla=true` y esa `version`, que publica el maestro, rehornea y corre la guardia |
+| **El sitio** (lo que se ve publicado) | cada commit de `main` que tocó `publicar/` | Actions › **restaurar** › `el-sitio` (vacío = el anterior). Publica un commit NUEVO encima; Cloudflare republica solo |
+| **La versión** (el código y el maestro) | las etiquetas `vX.Y.Z` de la semilla | Actions › **restaurar** › `la-version` (vacío = la anterior a la de esta tienda). Se lo pide a `montaje` con `semilla=true` y esa `version`, que publica el maestro, rehornea y corre la guardia. Funciona también desde la 1.0.0 hacia una anterior: el maestro 1.0.0 acepta el GET de las herramientas viejas mientras se publica el viejo |
 
 **`restaurar` por dentro** (`restaurar.yml`, `montar/volver-atras.mjs`).
 Entradas: `que` (`el-sitio` · `la-version`), `hasta` (vacío, un commit
@@ -970,13 +1064,13 @@ ninguna versión publicada», y entonces se escribe la versión a mano. No pide
 ningún secreto nuevo; `la-version` necesita los mismos que una actualización
 (`CLASPRC` si esa versión trae otro `maestro.gs`).
 
-> **⚠ Defecto conocido de `el-sitio`, a hoy.** `volver-atras.mjs` hace `git
-> checkout <commit> -- publicar/`, que cambia el índice Y la carpeta; el paso
-> siguiente pregunta `git diff --quiet -- publicar/`, que compara la carpeta
-> con el índice, y los encuentra iguales. Resultado: **dice «Ya estaba así» y
-> no publica nada**, aunque el sitio sí sea distinto (reproducido con un
-> repositorio de juguete). Mientras no se corrija el flujo, el sitio se vuelve
-> atrás a mano: `git checkout <commit> -- publicar/`, commit y push a `main`.
+> *Historia: el defecto de `el-sitio`, corregido en la 0.22.3 (bitácora 106).*
+> `volver-atras.mjs` hace `git checkout <commit> -- publicar/`, que deja el
+> índice igual a la carpeta, y el paso siguiente comparaba esos dos: decía «Ya
+> estaba así» siempre y el sitio no volvía nunca. Ahora compara contra `HEAD`
+> (`git diff --quiet HEAD -- publicar/`) y lo prueba `pruebas/restaurar.js` con
+> git de verdad. «Ya estaba así» vuelve a significar lo que dice. Conviene
+> haberlo corrido una vez en una tienda antes de necesitarlo.
 
 Las tres reglas que lo hacen seguro: **restaurar no borra** —el sitio vuelve en
 un commit encima, nunca con `push --force`, así que restaurar también se
@@ -1002,7 +1096,7 @@ que el sitio muestre lo restaurado.
 | domingos 2:00 | respaldo de la hoja (disparador del maestro) |
 | a diario, el comercio | precios y stock → **Publicar ahora**; pedidos → **Pagado** |
 | cuando hay versión nueva | `release` en la semilla → `flota` › `actualizar`, por anillos |
-| cuando cambia `panel.gs` | `tiendas` › `panel` (ver el defecto de arriba) |
+| cuando cambia `panel.gs` | `tiendas` › `panel` (mientras no tenga sus dos secretos, a mano: ver arriba) |
 
 **Por qué los dos flujos publican solos.** `montaje` y `fotos` publican directo
 en `main` cuando todo sale verde: la guardia ya corrió sobre esos mismos bytes,
@@ -1034,7 +1128,7 @@ aplicación web sirve el código implementado.**
 | Cualquier cosa del maestro | ✅ siempre | | |
 | Pestañas, claves de Configuración, formatos, disparadores | ✅ | ✅ | |
 | Algo que la tienda pide por `/exec` (catálogo, validar, registrar) | ✅ | | ✅ |
-| Algo que use el **menú** de la hoja o el **panel** (`?a=panel`) | ✅ | | ✅ |
+| Algo que use el **menú** de la hoja o el **panel** (puerta `panel`) | ✅ | | ✅ |
 
 En la práctica, casi siempre toca reimplementar: hasta el menú de la hoja pasa
 por `/exec`. La regla corta: *si algo fuera del editor lo va a usar,

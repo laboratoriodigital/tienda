@@ -83,9 +83,11 @@ etiqueta, no una rama paralela. Por eso no hay `develop`.
 
 1. En la rama del cambio, sube `version` en `package.json` **y**
    `VERSION_TIENDA` en `maestro.gs` al mismo número (una batería exige que
-   coincidan). Parche `0.22.4` si nada cambió para el comercio · menor `0.23.0`
-   si hay algo nuevo · mayor si una tienda vieja tiene que tocar la hoja o el
-   maestro para seguir funcionando.
+   coincidan). Parche `1.0.1` si nada cambió para el comercio · menor `1.1.0`
+   si hay algo nuevo · mayor (`2.0.0`) si una tienda vieja tiene que tocar la
+   hoja o el maestro para seguir funcionando. La versión del producto no es la
+   del contrato (`VERSION`, abajo): la 1.0.0 salió con el contrato en
+   `2026-09-22-8`, el mismo de la 0.25.0.
 2. Fusiona a `main` y espera `pruebas` en verde.
 3. Actions › **release** › Run workflow.
 
@@ -126,8 +128,12 @@ la versión y se reparte.
   alta.** Un error se nota mejor un martes en la mañana que un sábado.
 - **Una versión nueva se reparte por anillos**: primero el 0, y se mira antes
   de seguir. La flota se detiene sola en la primera tienda que falla.
-- **Prohibido renombrar o reordenar columnas de la hoja.** Solo agregar al
-  final — el maestro lee por posición, no por nombre.
+- **Prohibido renombrar columnas de la hoja, y una columna nueva va al final
+  del encabezado del código** (`ENCABEZADO_…`, R1). Catálogo e Inventario por
+  variante se leen por el nombre de su columna desde la 0.24.0 (decisión 32):
+  su orden visible lo pone `ORDEN_VISIBLE_…` y la hoja se ordena sola. Una
+  columna renombrada deja esa hoja leyéndose por posición, y lo anota. Las
+  demás pestañas se siguen leyendo por posición.
 - **Un cambio de esquema nunca en un paso**: primero la versión que acepta las
   dos formas, después la migración, y solo entonces se retira el soporte
   viejo.
@@ -150,7 +156,20 @@ la versión y se reparte.
   (arriba), o `montaje` con `maestro` + `PUBLICAR`, o `npm run maestro` en el
   equipo. Los tres actualizan la implementación que ya existe: la URL no
   cambia. En una hija, lo publica su actualización.
-- **`panel.gs`** se publica desde `tiendas` › Actions › **panel**.
+- **`panel.gs`** se publica desde `tiendas` › Actions › **panel**. Al 30 de
+  septiembre de 2026 no ha corrido nunca: faltan sus secretos
+  `PANEL_SCRIPT_ID` y `PANEL_CLASPRC`.
+- **Ningún token en una dirección** (1.0.0, ROADMAP 5.7). Lo que le hable al
+  maestro con el token de montaje lo manda por POST, en el cuerpo (`alMaestro`
+  en `montar/tienda.mjs` es el camino). El maestro **sigue aceptando el GET** en
+  sus puertas de montaje, a propósito: volver una tienda a una versión anterior
+  corre las herramientas de esa versión, que preguntan por GET, contra el
+  maestro nuevo. No lo rechaza: lo anota (`TOKEN_POR_GET`, nunca el token) y el
+  diagnóstico lo dice. Lo vigilan `montaje.js` (§0: ninguna herramienta pone
+  `t=` en la dirección) y `sondeo.js`, cuyo maestro de mentira cuenta los
+  tokens que le llegan en la dirección. Los clientes que todavía mandan un
+  token por GET (el stub de la hoja y `panel.gs` hacia una Tienda Básica) están
+  en `docs/FUNCIONALIDADES.md` › *Seguridad*.
 - **Nada de secretos.** Llaves de pago, ID de hojas y tokens no entran al
   repositorio, ni siquiera en un comentario. Las llaves de Bold y el
   `GITHUB_TOKEN` del maestro viven solo en las propiedades del script.

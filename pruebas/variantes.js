@@ -24,7 +24,7 @@ const j = r => JSON.parse(r._texto);
 const ponerVariantes = (g, fila, texto) =>
   g.hojas.get('Catálogo').getRange(fila, g.columna('Catálogo', 'Variantes')).setValue(texto);
 
-const puerta = (g, o) => j(g.api.doGet({ parameter: Object.assign({ t: g.token }, o) }));
+const puerta = (g, o) => j(g.api.doPost({ postData: { contents: JSON.stringify(Object.assign({ t: g.token }, o)) } }));
 
 (() => {
   // ═══ 1. La lectura de la celda ═══

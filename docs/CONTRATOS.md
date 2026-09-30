@@ -4,6 +4,10 @@
 con una decisión, y esa decisión tiene reglas. El resto de `/docs` explica cómo
 se hacen las cosas; este archivo dice qué **no** se puede hacer.
 
+_Vigente a la **1.0.0 (30 de septiembre de 2026)** de la Tienda 2.0
+(`laboratoriodigital/tienda`). Contrato página↔maestro: `VERSION`
+`2026-09-22-8`; esquema 1 (§8)._
+
 ---
 
 ## 1. Por qué un contrato, y por qué tan estricto
@@ -53,9 +57,9 @@ hojas. Un campo nuevo obligatorio es una tienda rota que todavía no lo sabe.
 ```
    Hoja del comercio       Maestro (standalone, /exec)           Quién pregunta
    ─────────────────       ───────────────────────────           ──────────────
-   Catálogo        ──┐     ?a=bloques · identidad · fotos · foto ──►  el montaje (horneado en
-   Configuración   ──┤     ?a=sembrar · permiso                  ◄──  publicar/: catalogo.json,
-   Envíos          ──┤                                                el <head>, el respaldo)
+   Catálogo        ──┐     bloques · identidad · fotos · foto ──►  el montaje (horneado en
+   Configuración   ──┤     sembrar · permiso                  ◄──  publicar/: catalogo.json,
+   Envíos          ──┤       (POST, token en el cuerpo)           el <head>, el respaldo)
    Cupones         ──┤     ?a=catalogo  ──────────────────────►  la vitrina, solo si no hay
    Inventario por  ──┘                                            catalogo.json, y ?vista
      variante              ?a=validar · registrar · pago_*  ◄──  la vitrina (index.html)
@@ -63,7 +67,7 @@ hojas. Un campo nuevo obligatorio es una tienda rota que todavía no lo sabe.
    Validaciones    ◄──     productos · pedidos · configuración…◄──  el panel del comerciante
    Pagos · Datos   ◄──       (POST, con testigo)                    (admin.html)
      de entrega            ?a=menu                          ◄──  el stub de la hoja
-   Registro · Avísame ◄──  ?a=panel                         ──►  el Panel de tiendas
+   Registro · Avísame ◄──  panel (POST; el GET se anota)    ──►  el Panel de tiendas
    Más vendidos · Tablero · Errores ◄── (los escribe el propio maestro)
 ```
 
@@ -117,18 +121,23 @@ tener dos convenciones en la misma hoja:
 Talla: S|M|L ; Color: Rosa|Nude
 ```
 
-Tope: cuatro grupos y veinticuatro opciones por grupo. **El catálogo falla
+Tope: **tres grupos y veinte opciones por grupo** (y cien combinaciones por
+producto). *(Hasta C-1b eran cuatro grupos y veinticuatro opciones; C-1b los
+bajó el 21 de septiembre: con inventario por combinación, 4 grupos de 24 son
+331.776 filas. `MAX_GRUPOS_VARIANTE` y `MAX_OPCIONES_VARIANTE` en el maestro, y
+`variantes.js` comprueba que la página y el horneado digan lo mismo.)* **El catálogo falla
 abierto**: una celda que no se entiende no saca el producto de la tienda, lo deja
 sin variantes y reporta la celda — vender un labial sin tono deja un pedido que
 el comerciante resuelve con un mensaje, y no venderlo es una venta perdida y
 callada. El precio es lo contrario y por eso ese sí tumba el producto.
 
-Y **hoy el stock es del producto, no de la variante**: dos líneas del mismo
-producto compiten por las mismas existencias. Era una decisión consciente con su
-disparador escrito —el primer comercio que pierda una venta por una talla
-agotada—, y **ese disparador se cumplió el 21 de septiembre**: el stock baja a
-la combinación con la historia C-1b (decisión 11). Hasta que C-1b se publique,
-lo que corre es lo de este párrafo.
+*(Superado por C-1b, ya publicado.)* Hasta C-1b **el stock era del producto,
+no de la variante**: dos líneas del mismo producto competían por las mismas
+existencias. Era una decisión consciente con su disparador escrito —el primer
+comercio que pierda una venta por una talla agotada—, y ese disparador se
+cumplió el 21 de septiembre (decisión 11). Hoy el stock puede bajar a la
+combinación: ver `Inventario por variante`. Un producto sin filas contadas
+allí sigue vendiéndose con el stock de Catálogo.
 
 
 ### `Configuración`
@@ -398,7 +407,7 @@ comprador, y **no sale por ninguna puerta** —tampoco por el panel—.
 
 ## 5. Las claves de `Configuración`
 
-Son 54. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
+Son 56. Ninguna es opcional para el maestro —`instalar()` las crea todas—, pero
 **todas pueden estar vacías**: una tienda a medio configurar tiene que seguir
 sirviendo lo que sí sabe.
 
@@ -506,17 +515,39 @@ contrario es que una errata deje la puerta de par en par sin que se note.
 | `menu` | el token del stub. Se guarda a sí misma, porque además distingue el token viejo del nuevo para la migración | `menu` |
 | `panel` | el testigo del comerciante (`k`), ocho horas, de esta tienda. Las marcadas † además **solo el dueño** (`soloDueno`) | `sesion` · `productos` · `guardar_producto` · `activar_producto` · `borrar_producto` · `subir_foto` · `pedidos` · `estado_pedido` · `configuracion` · `guardar_configuracion` · `publicacion` · `publicar` · `guardar_combinaciones` · `tablero` · `guardar_envio` · `guardar_cupon` · `enlace_seguimiento` · `avisame_hecho` · `colaborador`† · `actualizacion`† · `actualizar`† · `diagnostico`† — **todas solo por POST** |
 
-\* Solo por POST. La tabla viva es `PUERTAS`, en el maestro; `pruebas/esquema.js`
-congela sus nombres, así que una puerta nueva no aparece sin pasar por
-`--congelar`.
+\* Solo por POST (`soloPost`). Las demás de montaje se llaman por POST desde la
+1.0.0 y aceptan todavía GET, que queda anotado (abajo). La tabla viva es
+`PUERTAS`, en el maestro;
+`pruebas/esquema.js` congela sus nombres, así que una puerta nueva no aparece
+sin pasar por `--congelar`.
 
-**El token de montaje viaja en la dirección.** Las puertas de guardia
-`montaje` se llaman por GET con `t=<token>` —así las llaman `montar/`,
-`flota/conectar.mjs` y el Panel de tiendas—, salvo `permiso`, que es solo POST
-porque además lleva un token de GitHub. Es un riesgo conocido y aceptado hoy:
-ese token queda en los registros de acceso de Google, y por eso lo que abre
-está acotado (leer configuración y cifras, listar y bajar fotos de SU carpeta,
-sembrar claves vacías) y se rota con `A3_rotarToken()` (`ARQUITECTURA.md` §6d).
+**El token de montaje viaja en el cuerpo, no en la dirección (1.0.0,
+ROADMAP 5.7).** Hasta la 0.25.0 las puertas de guardia `montaje` se llamaban
+por GET con `t=<token>`, y el token quedaba en los registros de acceso de
+Google. Desde la 1.0.0 los clientes las llaman por POST: el cuerpo es
+`{ a, t, … }` con los mismos nombres de parámetro que antes iban en la
+dirección. Así las llaman `montar/tienda.mjs › alMaestro`,
+`montar/publicar-maestro.mjs`, `flota/conectar.mjs › pedir` y `panel.gs` (hacia
+las tiendas de la 2.0).
+
+**El maestro sigue aceptando GET en esas puertas, a propósito** (todas menos
+`permiso`, que es `soloPost` desde la 0.16.0). Volver una tienda a una versión
+anterior (`restaurar › la-version`, o `montaje › semilla`) corre las
+herramientas de esa versión, que preguntan por GET, contra el maestro 1.0.0 que
+sigue vivo hasta que se publica el viejo; rechazar el GET rompía volver atrás.
+En vez de eso, `doGet` anota cada GET con el token de montaje
+(`anotarTokenPorGet`, propiedad `TOKEN_POR_GET`: acción → fecha, nunca el
+token) y el diagnóstico dice quién sigue mandándolo así: la hoja *Panel de
+tiendas* sin actualizar, o una herramienta anterior a la 1.0.0.
+
+Los clientes que todavía mandan un token en una dirección son dos: el stub en
+`?a=menu` (guardia `menu`, abajo) y `panel.gs` hacia una **Tienda Básica**
+(`esBasica`: el maestro de Orgánico 3.x no atiende puertas por POST; hasta
+migrarla).
+
+Lo que abre el token de montaje está acotado (leer configuración y cifras,
+listar y bajar fotos de SU carpeta, sembrar claves vacías, guardar el permiso de
+GitHub) y se rota con `A3_rotarToken()` (`ARQUITECTURA.md` §6d).
 
 `entrar` es pública porque es la que **entrega** las credenciales: no se puede
 pedir el testigo para pedir el testigo. Lo que la protege es el límite de
@@ -533,8 +564,10 @@ El cuerpo del POST es un JSON en texto plano (`Content-Type: text/plain`, para
 que el navegador no pregunte antes por CORS) con `a` diciendo la puerta y los
 mismos nombres de parámetro que por GET. Pasa por **la misma tabla y la misma
 guardia**. Un cuerpo sin `a` sigue siendo el registro de pedidos de siempre.
-Tope: 20.000 caracteres para el panel, menos `subir_foto`, que tiene el suyo
-(una foto no cabe en 20.000).
+Tope del cuerpo: 20.000 caracteres para toda puerta llamada por POST (las del
+panel y las de montaje), menos `subir_foto`, que tiene el suyo
+(una foto no cabe en 20.000). El tope es de lo que se **manda**, no de lo que se
+contesta: `foto` devuelve hasta 8 MB en base64.
 
 **Las escrituras del panel** (`guardar_producto`, `activar_producto`,
 `borrar_producto`, `subir_foto`, `estado_pedido`, `guardar_configuracion`,
@@ -575,27 +608,29 @@ validar, escribe las líneas en `Pedidos` en estado *Nuevo* y cierra el acta de
 `Validaciones`. Contesta `ok`, `lineas`; un número ya registrado, `ok: true`,
 `duplicado: true`; más `version`, `esquema`, `generado`.
 
-**`?a=identidad`** — `ok`, `version`, `scriptId`, `hojaId`, `url`, `hojaOk`, `hoja`, `negocio`, `repositorio` (y `problema` si no abre su hoja)
+**`identidad`** (montaje, por POST desde la 1.0.0; el GET se acepta y se anota) — `ok`, `version`, `scriptId`, `hojaId`, `url`, `hojaOk`, `hoja`, `negocio`, `repositorio` (y `problema` si no abre su hoja)
 
-**`?a=bloques`** — `ok`, `version`, `head`, `valores`, `scriptId`, `negocio`, `hoja`, `hojaId`, `alta`, `colores` (`principal`, `secundario`, `alterno`, `ilegibles`)
+**`bloques`** (montaje, por POST desde la 1.0.0; el GET se acepta y se anota) — `ok`, `version`, `head`, `valores`, `scriptId`, `negocio`, `hoja`, `hojaId`, `alta`, `colores` (`principal`, `secundario`, `alterno`, `ilegibles`)
 
-**`?a=sembrar`** (montaje) — acepta solo `negocio`, `whatsapp`, `sitio_url`,
+**`sembrar`** (montaje, por POST desde la 1.0.0; el GET se acepta y se anota) — acepta solo `negocio`, `whatsapp`, `sitio_url`,
 `fotos_origen`, `fotos_drive`, `respaldo_carpeta`, `correo_resumen`,
 `fotos_webp` y `repositorio` (0.15.0, al final), y `forzar=si`. Escribe solo
 donde la celda está vacía o de fábrica, salvo `forzar`; deduce `fotos_origen`
 de `sitio_url` y `fotos_webp` de `fotos_drive`. Contesta `ok`, `version`,
 `escritos`, `iguales`, `respetados`, `faltan`. La usa `conectar`.
 
-**`?a=fotos`** (montaje) — contesta `ok`, `version`, `archivos` (`id`,
+**`fotos`** (montaje, por POST desde la 1.0.0; el GET se acepta y se anota) — contesta `ok`, `version`, `archivos` (`id`,
 `nombre`, `bytes`, `modificado`, solo imágenes de la carpeta `fotos_drive`) y
 `usadas` (los nombres que nombran el catálogo, el `logo` y el `favicon`).
 
-**`?a=foto`** (montaje) — pide `id`. Solo un archivo de ESA carpeta, imagen, de
+**`foto`** (montaje, por POST desde la 1.0.0; el GET se acepta y se anota) — pide `id`. Solo un archivo de ESA carpeta, imagen, de
 hasta 8 MB. Contesta `ok`, `nombre`, `tipo`, `bytes`, `contenido` (base64).
 
 **`?a=menu`** (guardia `menu`) — la llama el stub por GET con `f` (la opción),
 `t` (el token del menú), `s` (la versión del stub) y `h` (0.18.0, el ID de la
-hoja donde está pegado).
+hoja donde está pegado). Es la única puerta con token a la que su cliente
+llama siempre por GET, sin fecha de cierre: pasarla a POST exige repegar el
+stub en cada hoja.
 
 **`?a=entrar`** — `ok`, `error` · y cuando entra: `ok`, `testigo`, `usuario`, `vence`
 
@@ -925,7 +960,7 @@ cambia la vitrina: guardar desde el panel (productos, fotos, configuración) o
 editar a mano Catálogo, Configuración o Envíos. Pagar o despachar un pedido no
 la toca. `publicacion` la compara con el `generado` servido.
 
-**`?a=panel`** — `ok`, `version`, `negocio`, `sitio`, `whatsapp`, `correo`, `hoja`, `productos`, `publicados`, `agotados`, `pocos`, `ventasMes`, `ventasMesAnterior`, `pedidosMes`, `ticket`, `tasaCierre`, `lecturasHoy`, `picoHora`, `cuotaCorreo`, `respaldo`, `ventasAyer`, `pedidosAyer`, `porConfirmar`, `atrasados`, `errores`, `meses`, `consultado`, `stub`, `tokenViejo`, `rescates`, `alta`
+**`panel`** (montaje; por POST desde la 1.0.0; el GET se acepta y se anota) — `ok`, `version`, `negocio`, `sitio`, `whatsapp`, `correo`, `hoja`, `productos`, `publicados`, `agotados`, `pocos`, `ventasMes`, `ventasMesAnterior`, `pedidosMes`, `ticket`, `tasaCierre`, `lecturasHoy`, `picoHora`, `cuotaCorreo`, `respaldo`, `ventasAyer`, `pedidosAyer`, `porConfirmar`, `atrasados`, `errores`, `meses`, `consultado`, `stub`, `tokenViejo`, `rescates`, `alta`
 
 Y dentro de `?a=catalogo`:
 
@@ -967,7 +1002,7 @@ celular, ni dirección, ni correo). Cada destino los traduce dentro de `medir()`
 | `ver_producto` | Se abre la ficha | `item_id`, `value`, `currency` | tal cual | `ViewContent` |
 | `agregar_al_carrito` | Entra al carrito | `item_id`, `quantity`, `value` (precio × cantidad), `currency` | tal cual | `AddToCart` |
 | `enviar_pedido` | Sale el mensaje a WhatsApp | `transaction_id` (el código del pedido), `value`, `currency` | tal cual | `InitiateCheckout` |
-| `pagar_en_linea` | Se abre la pasarela | `transaction_id` (el de Bold), `value`, `currency` | tal cual | `AddPaymentInfo` |
+| `pagar_en_linea` | Se abre la pasarela | `transaction_id` (el `orderId` del cobro, que es el código del pedido), `value`, `currency` | tal cual | `AddPaymentInfo` |
 | `pago_confirmado` | El maestro confirma el pago | `transaction_id` (el código del pedido), `value`, `currency` | tal cual | `Purchase` |
 
 - **R1 vale aquí también**: un evento o un dato nuevo se agrega; ninguno se
@@ -1067,6 +1102,11 @@ Bold la exige, y la secreta nunca.
 - Que la vitrina marque las tarjetas cuyo precio no es el del sello (**S1-9**).
 - El diagnóstico a nueve puntos, con fila y columna exactas para cada dato
   ilegible. La mitad ya está hecha: los avisos **ya** nombran la celda
-  (`Catálogo E2`, `Envíos C3`); falta juntarlos en una sola pantalla (Sprint 5).
-- Los datos de pago llegando al comprador por la respuesta automática, y el tope
-  de Bre-B comprobándose contra `pago_tope` (Sprint 6).
+  (`Catálogo E2`, `Envíos C3`); falta juntarlos en una sola pantalla.
+- Los datos de pago llegando al comprador por la respuesta automática de
+  WhatsApp: es configuración de WhatsApp Business de cada comercio, no código.
+  *(El tope de Bre-B ya se comprueba: la página lee `tope_pago` —`pago_tope` de
+  la hoja— y no deja mandar por WhatsApp un pedido que lo pase.)*
+
+*(Las etiquetas «Sprint 5» y «Sprint 6» que llevaban estos puntos eran del plan
+viejo; lo pendiente de verdad a la 1.0.0 está en `ROADMAP.md`.)*
