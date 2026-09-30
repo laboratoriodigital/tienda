@@ -17,7 +17,7 @@ fecha, en lo más viejo) ·
 anotado, sin fecha · `[NO]` está descartado con su razón. *(Antes había también `[MVP]`,
 `[1.1]` y `[MEDIDO]`: lo que llevaba esas marcas hoy está HECHO.)*
 
-**Al 29 de septiembre de 2026 la semilla va en la 0.23.0.** Lo pendiente
+**Al 29 de septiembre de 2026 la semilla va en la 0.24.0.** Lo pendiente
 inmediato —los secretos y la primera corrida del flujo `panel`, la causa 4, el
 sitio principal— está en `PLAN-MVP.md` › *Dónde estamos*; aquí, marcado
 `[SIGUIENTE]`: 3.9, 5.5, 5.6 y 5.7.

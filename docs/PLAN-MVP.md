@@ -25,9 +25,9 @@ _18 de septiembre de 2026. Repositorio `laboratoriodigital/tienda`._
 > rompió a `BITACORA.md`, lo que quedó fuera al `ROADMAP.md`, y este archivo se
 > borra.
 
-## Dónde estamos · 29 de septiembre de 2026 · 0.23.0
+## Dónde estamos · 29 de septiembre de 2026 · 0.24.0
 
-- **La semilla va en la 0.23.0** (`package.json` y `VERSION_TIENDA`). Los
+- **La semilla va en la 0.24.0** (`package.json` y `VERSION_TIENDA`). Los
   hitos del MVP están cerrados —M0 a M5, con M3.5 y M3 bis (tabla al principio
   de §5)—; la etiqueta 1.0.0 todavía no se ha cortado.
 - **La flota que se actualiza sola (M6) también está hecha**, aunque salió del
@@ -491,7 +491,7 @@ de usuario, criterios de aceptación verificables, y qué la prueba.
 | M6 · La flota se actualiza sola | Hecho fuera del MVP (S3 del `ROADMAP.md`) | 0.13.0 y 0.14.0 |
 
 Lo que vino después, versión por versión, está en las secciones 0.11.0 a
-0.23.0 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
+0.24.0 de más abajo; lo pendiente, en *Dónde estamos*, al principio.
 
 **El MVP son siete hitos —M3 bis reabrió M3—, y este fue el orden:**
 
@@ -1738,6 +1738,23 @@ próxima.*
 - [x] Al abrir Ajustes, el panel agrega las claves que le falten a la hoja
       (valor de fábrica, al final, sin tocar nada escrito): ninguna opción nueva
       vuelve a pedir `A0_instalar` en cada tienda.
+
+### 0.24.0 · Una hoja que se lee, y el precio por variante
+
+**C-22**  · 3 pts · ✅ (decisiones 32–34, bitácora 110)
+- [x] Catálogo e Inventario por variante se leen por el NOMBRE de su columna;
+      su orden visible es libre (`ORDEN_VISIBLE_…`). Si una columna no se
+      encuentra, se lee por posición, como antes, y se dice.
+- [x] Hoja ordenada: columnas lógicas, Configuración por secciones, listas en
+      todo lo que tiene opciones, formato y listas mil filas por delante,
+      obligatorios en rojo, pestañas en orden y con color, sin «Hoja 1».
+- [x] Las tiendas existentes se ponen al día solas en la revisión de cada hora,
+      una vez por versión (`ponerHojaAlDia`).
+- [x] Precio por combinación (`Inventario por variante › Precio`): lo cobra el
+      maestro, lo publica el catálogo, lo muestra la página y lo edita el panel.
+- [x] Actions: cancelación en `pruebas`, Chromium sin ventana, topes de tiempo;
+      arreglados el falso «NO se pudieron traer las fotos» y la ficha de `release`.
+- [x] Permisos: `ALTA_TOKEN` se funde en `FLOTA_TOKEN` (compatible hacia atrás).
 
 ---
 

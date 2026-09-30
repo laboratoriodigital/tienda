@@ -50,6 +50,9 @@ Revisada contra el código de la 0.22.3 el 29 de septiembre de 2026.
 | 29 | Una tienda puede quedar fuera del reparto | VIGENTE |
 | 30 | La semilla también es una tienda | VIGENTE |
 | 31 | Una clave nueva de Configuración aparece sola | VIGENTE |
+| 32 | Las columnas se leen por su nombre; el orden visible es libre | VIGENTE |
+| 33 | El precio por variante va por combinación, vacío = el del producto | VIGENTE |
+| 34 | Tres tokens de GitHub: FLOTA, SEMILLA y DISPARO | VIGENTE |
 
 ---
 
@@ -1505,6 +1508,56 @@ Ninguna pendiente.
 
 Abrir Ajustes puede escribir en la hoja (filas nuevas al final). Es la misma
 escritura que `instalar()`, idempotente, y solo aparece una vez por clave.
+
+---
+
+## 32 · Las columnas se leen por su nombre; el orden visible es libre
+
+**Estado:** CERRADA en la 0.24.0 (bitácora 110). **Vigencia:** VIGENTE.
+
+**Qué hacía.** El maestro leía Catálogo por posición y R1 obligaba a agregar
+columnas al final: el orden de la hoja era el de nacimiento, no el lógico.
+
+**Decisión.** Catálogo e Inventario por variante se leen por el nombre de su
+encabezado (`mapaDeColumnas`). El código conserva su ENCABEZADO (que sigue
+creciendo solo por el final, R1); la hoja va en `ORDEN_VISIBLE_…`. `instalar()` y
+`ponerHojaAlDia()` mueven columnas enteras. Si falta un nombre, se lee por
+posición y se anota.
+
+**Contrapartida.** Una lectura del encabezado por petición (en caché durante la
+ejecución). Renombrar una columna a mano ya no descuadra nada, pero deja esa hoja
+en el modo de siempre hasta que se corrija.
+
+---
+
+## 33 · El precio por variante va por combinación
+
+**Estado:** CERRADA en la 0.24.0 (bitácora 110). **Vigencia:** VIGENTE.
+
+**Decisión.** `Inventario por variante › Precio`, por combinación; vacío = el
+del producto. No es un «+$» por opción: es el precio final, como lo piensa quien
+vende. Independiente del inventario por combinación. Lo decide el maestro al
+sellar; la página solo lo muestra. Un precio ilegible veta esa combinación.
+
+**Contrapartida.** Un producto con muchas combinaciones y precios distintos
+exige llenar cada fila; «Precio antes» sigue siendo del producto.
+
+---
+
+## 34 · Tres tokens de GitHub: FLOTA, SEMILLA y DISPARO
+
+**Estado:** CERRADA en la 0.24.0 (bitácora 110). **Vigencia:** VIGENTE.
+
+**Decisión.** `ALTA_TOKEN` se funde en `FLOTA_TOKEN` (mismo sitio, mismos
+repos; el código acepta los dos mientras exista el viejo). `SEMILLA_TOKEN`
+(lectura de la semilla, copiado a cada tienda) y `DISPARO_TOKEN` (solo Actions,
+en las propiedades del maestro) quedan aparte: fundirlos daría a cada copia más
+alcance del que necesita.
+
+**Contrapartida y riesgo anotado.** `DISPARO_TOKEN` sobre «todos los
+repositorios» alcanza también `tiendas`. El proyecto del maestro es de la cuenta
+de Laboratorio Digital —el comercio solo edita la hoja—, así que no está a la
+vista del comercio; si esa cuenta se compartiera, habría que acotarlo.
 
 ---
 

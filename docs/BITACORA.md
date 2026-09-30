@@ -39,7 +39,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
 - **Regla:** una sola fuente, y lo demás se deriva de ella. Si no se puede, una aserción ata las dos copias. Vale igual para una lista, un número, un documento, un comentario o una justificación.
-- **Entradas:** 2, 9, 18, 26, 29, 33, 41, 52, 80, 82, 83, 99, 100; Críticos: *Y el mismo agujero seguía intacto en el flujo de Actions*, *El guardia dejaba pasar el catálogo…*; Medios: *El runbook hablaba de dos campos…*; Menores: *«758 aserciones»…*.
+- **Entradas:** 2, 9, 18, 26, 29, 33, 41, 52, 80, 82, 83, 99, 100, 110; Críticos: *Y el mismo agujero seguía intacto en el flujo de Actions*, *El guardia dejaba pasar el catálogo…*; Medios: *El runbook hablaba de dos campos…*; Menores: *«758 aserciones»…*.
 - **Lo impide hoy:** `PUBLICA` escrita una vez en `montaje.yml` y `fotos.yml`, y `pruebas/montaje.js` la compara con lo que escribe cada herramienta (99); `semilla.json` es la única lista de lo que es de la semilla; `pruebas/esquema.js` ata `CONTRATOS.md` al código; `pruebas/montaje.js` exige que todo secreto de un flujo esté en `ARQUITECTURA.md` (82).
 
 ### P3 · Windows
@@ -99,7 +99,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P14 · Los fallos silenciosos del lenguaje y del shell
 - **Regla:** una tubería sin `pipefail`, un `try/catch` que protege, dos funciones con el mismo nombre, una constante que nace `undefined` o una comparación que nunca coincide no fallan: siguen. Cada clase se ata con una aserción de clase, no de la línea que la destapó.
-- **Entradas:** 36, 42, 51, 58; Graves: *Dos herramientas se cargaban, no ejecutaban nada, y salían con código 0*; Medios: *Una tubería `| tee` sin `pipefail`…*, *Una función `pesos()` duplicada*.
+- **Entradas:** 36, 42, 51, 58, 110; Graves: *Dos herramientas se cargaban, no ejecutaban nada, y salían con código 0*; Medios: *Una tubería `| tee` sin `pipefail`…*, *Una función `pesos()` duplicada*.
 - **Lo impide hoy:** `pruebas/montaje.js` exige `pipefail` en toda tubería con `tee`; `pruebas/esquema.js`: ninguna función del maestro se declara dos veces y ninguna constante nace con `undefined`; la guardia de puertas del maestro falla cerrada (36).
 
 ### P15 · Un aviso tiene que llegar a donde alguien mira, y nombrar la causa
@@ -129,7 +129,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
 - **Regla:** se prueba desde quien mira —el comprador, el comerciante que no entra a GitHub, el rastreador que no ejecuta JavaScript—, no desde el estado interno.
-- **Entradas:** 17, 31, 34, 57, 78, 85, 88, 109; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
+- **Entradas:** 17, 31, 34, 57, 78, 85, 88, 109, 110; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
 - **Lo impide hoy:** las baterías de navegador miran la pantalla, no las listas internas (34, `pruebas/hoja.js`); el SEO se hornea y lo revisa `pruebas/seo.js` (31).
 
 ---
@@ -2909,3 +2909,61 @@ contiene, «grande» se lee 80, el celular baja), probadas sobre un index
 horneado con la plantilla nueva; con el publicado viejo se saltan y lo dicen.
 
 *Ficha:* *(mío)* · 🟡 Medio · P20 · 0.23.0 · 2026-09-29
+
+**110 · La hoja estaba en el orden en que nacieron sus columnas, no en el que se
+leen.** El dueño pidió precio por variante, una hoja ordenada —Catálogo primero,
+columnas lógicas, listas donde haya opciones, Configuración por secciones, sin
+la «Hoja 1» vacía, lo que se escribe a mano dentro del formato y un aviso si
+falta algo obligatorio—, unificar los permisos de GitHub y una última revisión
+de las Actions. Lo caro no era dibujar la hoja: el maestro leía Catálogo **por
+posición** (`f[4]` es el precio), así que la regla R1 —«solo se agrega, y al
+final»— había dejado Referencia, Precio antes, Umbral bajo y Variantes al fondo,
+lejos de Precio y Stock, y mover una columna habría convertido precios en otra
+cosa en silencio. Ahora Catálogo e Inventario por variante se leen **por el
+nombre de su encabezado** (`mapaDeColumnas`): el código sigue hablando en el
+orden de su ENCABEZADO y la hoja puede estar en el orden que se lee
+(`ORDEN_VISIBLE_…`). Si una columna no se encuentra —alguien la renombró—, se lee
+por posición, como antes, y se dice; y `asegurarColumnas` no le agrega una
+«Precio» vacía que le robaría la lectura. Las columnas se mueven enteras
+(`moveColumns`: valores, fórmulas, formato). Configuración va por secciones con
+los títulos del panel (una fila «▸ …» no es una clave); todo lo que tiene
+opciones sale con su lista desde la misma tabla que usa el panel (patrón 2); el
+formato y las listas cubren mil filas por delante, no solo las escritas; lo
+obligatorio se pinta en rojo con formato condicional; las pestañas van en el
+orden en que se usan, con color; y la «Hoja 1» vacía se quita. Todo eso lo hace
+`instalar()` y, en las tiendas que ya existen, la revisión de cada hora una vez
+por versión (`ponerHojaAlDia`): ninguna tienda tiene que correr A0_instalar.
+
+**El precio por variante** va en `Inventario por variante › Precio`, al lado de
+Stock: vacío = el del producto. Lo cobra el maestro (`validarPedido` usa el de la
+combinación), lo publica el catálogo (`precios`), la página lo muestra («Desde»
+en la tarjeta, el de la elección en la ficha y el carrito) y el panel lo edita
+junto al stock. Un precio ilegible no regala ni cobra el del producto: esa
+combinación no se vende y queda anotada.
+
+**Las Actions** (revisión con evidencia): `pruebas` cancela la corrida vieja de
+la misma rama; se instala solo el Chromium sin ventana; ningún trabajo queda sin
+tope de tiempo. Y dos fallos de verdad: cada commit de «Publicar ahora» decía
+«las fotos NO se pudieron traer» porque leía `$fallo_fotos` desde OTRO paso —
+otra shell, variable vacía, y vacío ≠ "0"—; y la ficha de `release` nunca veía
+la última versión porque el checkout no baja etiquetas.
+
+**Los permisos**: tres tokens en vez de cuatro (`ALTA_TOKEN` se funde en
+`FLOTA_TOKEN`, que ya vivía en el mismo sitio y alcanzaba los mismos repos);
+`SEMILLA_TOKEN` y `DISPARO_TOKEN` siguen aparte por menor privilegio. El análisis
+señaló que `DISPARO_TOKEN` alcanza también a `tiendas`; el dueño aclaró que el
+proyecto del maestro es de la cuenta de Laboratorio Digital y el comercio solo
+edita la hoja, así que el token no queda a su vista: el riesgo queda anotado y
+se cierra si esa cuenta se cuida.
+
+**Lo prueban** `pruebas/presentacion.js` (hoja ordenada, hoja vieja que se ordena
+sin perder datos ni fórmulas, encabezado renombrado, secciones, listas, filas
+futuras con formato, reglas de obligatorios sin duplicarse, la revisión horaria),
+`pruebas/combinaciones.js` (el precio en la tarjeta, la ficha, el carrito y el
+sello; y la combinación vetada) con su control negativo —con el maestro cobrando
+el precio del producto, el sello sale en 8.000 y la prueba se pone roja—,
+`pruebas/inventario.js` (panel y maestro) y `pruebas/montaje.js` (topes, cancelación,
+Chromium y la variable de las fotos). La suite entera corrió además sobre un
+index con el código nuevo trasplantado, como lo dejará el montaje.
+
+*Ficha:* *(mío)* · 🟠 Grave · P2, P4, P14, P20 · 0.24.0 · 2026-09-29

@@ -82,6 +82,15 @@ los nombres viejos desde un servidor nuevo.
 
 Lo que el comercio vende. Es la única pestaña que el comerciante edita todos los días.
 
+**Desde la 0.24.0 se lee POR NOMBRE de columna** (decisión 32): el número de
+abajo es el orden del CÓDIGO (el de `ENCABEZADO_CATALOGO`, que solo crece por el
+final, R1); en la hoja las columnas van en el orden visible
+`ORDEN_VISIBLE_CATALOGO`: ID · Nombre · Categoría · Formato · Precio · Precio
+antes · Stock · Umbral bajo · Variantes · Imágenes · Descripción · Destacado ·
+Activo · Referencia. Lo que no se puede cambiar es el **nombre** de una columna:
+si una no se encuentra, la hoja se lee por posición, como antes, y queda anotado
+en Errores. La `Papelera` va en el mismo orden visible.
+
 
 | # | Columna |
 |---|---|
@@ -306,6 +315,7 @@ stock vacío; el comerciante solo pone los números.
 | 3 | `Stock` | unidades de esa combinación. **Vacío = todavía no se cuenta** |
 | 4 | `Código` | opcional, el SKU del comercio |
 | 5 | `Nota` | la escribe el maestro: `Ya no está en Variantes: no cuenta` si la combinación dejó de existir |
+| 6 | `Precio` | (0.24.0) el precio de esa combinación. **Vacío = el del producto.** Un valor ilegible veta la combinación (no se vende) y queda anotado. En la hoja va al lado de `Stock` (orden visible: ID producto · Combinación · Precio · Stock · Código · Nota); se lee por nombre |
 
 **Cuándo manda.** Un producto se vende por combinación en cuanto **una** de sus
 filas tiene un número. Entonces cada combinación compite solo por sus unidades,
@@ -399,6 +409,15 @@ Ajustes: una opción nueva aparece sin correr `A0_instalar` en cada tienda. Se l
 se escriben **por nombre** (la columna `Clave`), no por posición: por eso una
 hoja vieja, con las claves nuevas abajo, funciona igual que una recién
 instalada. Lo que no se puede tocar es el nombre.
+
+**Desde la 0.24.0 la pestaña va por SECCIONES** con los títulos del panel (Tu
+tienda, La venta, El cobro, La portada, Los textos, Los colores, Google y
+WhatsApp, Datos legales, El correo del día, Avanzado) y al final las técnicas.
+Una fila cuya `Clave` empieza con `▸ ` es un título, **no una clave**: ninguna
+lectura la toma. Las claves nuevas van a su sección. Todo lo que tiene opciones
+lleva su lista desplegable, y las claves que bloquean la publicación se pintan
+en rojo mientras estén vacías. Lo hacen `instalar()` y la revisión de cada hora
+(`ponerHojaAlDia`, una vez por versión).
 
 
 | Grupo | Claves, por tema (en una hoja nueva salen en el orden de la semilla de `instalar()`; en una vieja, las que faltaban quedan al final) |
@@ -840,7 +859,10 @@ quién lo arregla.
 un número que no es entero, o una fila que cambió en la hoja, y no se escribe
 ninguno (`errores` por combinación). Vacío es válido. Reescribe la suma en
 Catálogo. `productos` trae además, por producto, `combinaciones`
-(`combinacion`, `stock` tal como está, `version`, `noCasa`) y `porCombinacion`.
+(`combinacion`, `stock` tal como está, `version`, `noCasa`, y desde la 0.24.0
+`precio` y `versionPrecio`) y `porCombinacion`. Desde la 0.24.0 acepta además
+`precios` (`{combinación: pesos o vacío}`) con `versionesPrecio`, con la misma
+regla de todo o nada.
 `subir_foto` acepta `opcion` (`Color=Rosa`) y nombra la foto
 `<código>--color-rosa-<n>`.
 
@@ -850,7 +872,9 @@ nombra la combinación.
 
 **`?a=catalogo`** (C-1b) — cada producto con inventario por combinación trae
 `skus: [{ eleccion, stock }]` al final, y su `stock` es la suma. Horneado igual
-en `catalogo.json` y en el respaldo.
+en `catalogo.json` y en el respaldo. Desde la 0.24.0, un producto con precios por
+combinación trae `precios: [{ eleccion, precio }]` (solo las que tienen uno
+propio), y `?a=validar` cobra cada línea a ese precio.
 
 **`pago_crear`** (M3.5, pública, **solo por POST**) — pide `op`, `items`,
 `cupon`, `envio`, `sub` y `entrega` (`nombre`, `tel`, `correo`, `ciudad`,

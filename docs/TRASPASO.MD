@@ -1,6 +1,6 @@
 # Traspaso — la Tienda Panel
 
-_Al 29 de septiembre de 2026 · semilla en la **0.23.0**. Repositorio
+_Al 29 de septiembre de 2026 · semilla en la **0.24.0**. Repositorio
 `laboratoriodigital/tienda`._
 
 **Léeme primero si recibes el proyecto o abres una sesión nueva.** Aquí está el
@@ -15,7 +15,7 @@ Este repositorio es **la semilla de la Tienda Panel**: una tienda en línea para
 comercios pequeños, con la hoja de Google como base de datos, un panel web para
 el comercio y WhatsApp o Bold para cobrar. Costo de infraestructura: **$0 al
 mes**. Nació el 18 de septiembre de 2026 como copia de la semilla de la línea
-anterior (`organico` 3.0.0) y va por la **0.23.0**; el MVP saldrá como 1.0.0.
+anterior (`organico` 3.0.0) y va por la **0.24.0**; el MVP saldrá como 1.0.0.
 Está construido —M0 a M5 y el panel completo—, **se actualiza solo** desde la
 0.14.0 y tiene su **flota** en `laboratoriodigital/tiendas`. Lo que falta antes
 de la 1.0.0 es comprobarlo en tiendas de verdad. Dónde va cada hito:

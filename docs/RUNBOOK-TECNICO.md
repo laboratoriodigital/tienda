@@ -33,7 +33,7 @@ el detalle en el registro del paso que falló.
 | | Qué | Dónde se comprueba |
 |---|---|---|
 | 0.1 | Acceso a la organización de GitHub con permiso de administrador | github.com/laboratoriodigital |
-| 0.2 | `laboratoriodigital/tiendas` con sus secretos: `ALTA_TOKEN`, `FLOTA_TOKEN`, `SEMILLA_TOKEN`, `DISPARO_TOKEN`, `PANEL_URL`, `PANEL_CLAVE` (y, opcionales, `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) | Settings › Secrets and variables › Actions. Permisos de cada uno: `DESPLIEGUE.md` › *Secretos, tokens y llaves* |
+| 0.2 | `laboratoriodigital/tiendas` con sus secretos: `FLOTA_TOKEN` (con los permisos del alta; `ALTA_TOKEN` está en retiro), `SEMILLA_TOKEN`, `DISPARO_TOKEN`, `PANEL_URL`, `PANEL_CLAVE` (y, opcionales, `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) | Settings › Secrets and variables › Actions. Permisos de cada uno: `DESPLIEGUE.md` › *Secretos, tokens y llaves* |
 | 0.3 | Las semillas con al menos una versión publicada (`release`) | github.com/laboratoriodigital/tienda/releases |
 | 0.4 | La hoja **Panel de tiendas** instalada, implementada como aplicación web y con su *Clave para el alta* generada | Menú Panel › Diagnóstico |
 | 0.5 | Cuenta de Cloudflare con el dominio, si las tiendas llevan subdominio | dash.cloudflare.com |
@@ -295,8 +295,8 @@ resumen de la corrida, o en el registro del paso). Agrupados por dónde aparecen
 
 | Síntoma | Causa | Qué hacer |
 |---|---|---|
-| «Falta el secreto `ALTA_TOKEN`» | — | Ponerlo en `tiendas` (permisos en `DESPLIEGUE.md`) |
-| «ALTA_TOKEN no ve la semilla `…`» | Grano fino sin ese repositorio, dueño del token distinto del de la semilla, o vencido | Rehacer el token sobre **todos** los repositorios del dueño |
+| «Falta el secreto `FLOTA_TOKEN` (o el antiguo `ALTA_TOKEN`)» | — | Poner `FLOTA_TOKEN` en `tiendas` con los permisos del alta (`DESPLIEGUE.md`, decisión 34) |
+| «`FLOTA_TOKEN` (o `ALTA_TOKEN`) no ve la semilla `…`» | Grano fino sin ese repositorio, dueño del token distinto del de la semilla, o vencido | Rehacer el token sobre **todos** los repositorios del dueño |
 | El paso «Leer el formulario» en rojo: «El nombre va en minúsculas…», «Ya hay una tienda … en flota.json», «La dirección … ya es de otra tienda» | Entradas inválidas o repetidas | Corregir y volver a correr. Nada se creó |
 | «Ya existe `…`. No toco nada.» | El repositorio existe: el nombre está usado, o un alta anterior falló después de crearlo | Otro nombre, o borrar a mano el repositorio vacío (y su fila de `flota.json`, si la tiene) |
 | «La semilla no tiene ninguna versión publicada (etiqueta vX.Y.Z). Corre su **release** primero.» | — | `release` en la semilla |
@@ -329,6 +329,10 @@ resumen de la corrida, o en el registro del paso). Agrupados por dónde aparecen
 | «Marcaste publicar el maestro pero no escribiste PUBLICAR.» | — | Volver a disparar con `confirmar` = `PUBLICAR` |
 | «El maestro respondió 404 a «identidad»» después de ««identidad» contestó en 41 s» | La respuesta tardó y la redirección de Google a `script.googleusercontent.com` caducó: el script estaba frío o recién publicado. **No es el acceso**: con «Solo yo» Google contesta en un segundo | Desde la 0.22.4 un 404 que llega tras más de 15 s se reintenta solo, dos veces, con pausa. Si aun así sale «Tardó N s en contestar ese 404», volver a correr en unos minutos y mirar las Ejecuciones del proyecto (bitácora 107) |
 | «El maestro respondió 404 a «…»» **rápido** y «Ninguna acción ha contestado todavía» | Ahí sí: implementación con acceso «Solo yo», o `MAESTRO_URL` de otra implementación | Implementar › Gestionar implementaciones › lápiz › Quién tiene acceso: **Cualquier persona**; comprobar `MAESTRO_URL` |
+| En Errores: «Encabezado de Catálogo que no se entiende» | Alguien renombró una columna de Catálogo (o de Inventario por variante) | Devolverle su nombre exacto (CONTRATOS §2). Mientras tanto la hoja se lee por posición, como antes de la 0.24.0 |
+| Una celda en rojo en Catálogo, Envíos, Cupones o Configuración | Es un dato obligatorio vacío (formato condicional, 0.24.0) | Llenarla. En Catálogo: ID, Nombre, Precio y Activo de toda fila con código |
+| Una combinación que no se puede elegir aunque tiene stock | Su `Precio` en Inventario por variante es ilegible («doce mil») | Escribir el número (o dejarlo vacío = el precio del producto). Queda anotado en Errores |
+| La hoja de una tienda sigue en el orden viejo tras actualizarla | La revisión de cada hora la ordena una vez por versión (`ponerHojaAlDia`) | Esperar la siguiente hora, o correr `A0_instalar` en el editor del maestro |
 | Una opción nueva de la versión no sale en Ajustes del panel | La hoja no tiene la clave: hasta la 0.22.5 solo `A0_instalar` las agregaba | Desde la 0.23.0 aparece sola al abrir Ajustes (decisión 31). Si no: el maestro de la tienda es anterior; actualizarla. La tienda usa el valor de fábrica mientras tanto |
 | Una foto `.png` (o `.jpeg`) del Drive no carga en la tienda, con el nombre bien escrito; o el logo/icono de la pestaña roto | Hasta la 0.22.4 el respaldo se publicaba siempre como `<nombre>.jpg`: la tienda pedía `<nombre>.png` y recibía 404 | Desde la 0.22.5 se publica con su nombre y formato exactos, y el montaje vuelve a bajar sola la que el registro da por hecha pero no está en `publicar/fotos/`. Actualizar la tienda y *Publicar ahora* (bitácora 108) |
 | En la **semilla**, `config.js` en rojo: «La pestaña del navegador dibuja un icono propio -> fotos/…» | Batería anterior a la 0.22.4: solo sabía ver el icono dibujado, y la hoja de la semilla tiene `favicon` o `logo` | Actualizado en la 0.22.4: con foto, comprueba que el archivo esté publicado en `publicar/fotos/` (bitácora 107) |
@@ -544,4 +548,4 @@ este camino nadie le entrega los flujos.
 | Por versión con `panel.gs` nuevo | Publicar el panel de la flota | `tiendas` › `panel` (hoy, a mano: ver I) |
 | Mes | Revisar minutos de Actions y ejecuciones de Apps Script | `ARQUITECTURA.md` § presupuestos |
 | Trimestre | **Simulacro de reversión** en una tienda de prueba | `restaurar` › `la-version`, y volver |
-| Cuando caduque | Renovar `ALTA_TOKEN`, `FLOTA_TOKEN`, `SEMILLA_TOKEN`, `DISPARO_TOKEN` y los `CLASPRC`. `SEMILLA_TOKEN` y `DISPARO_TOKEN` llegan a cada tienda corriendo `conectar` otra vez | `DESPLIEGUE.md` › *Secretos, tokens y llaves* |
+| Cuando caduque | Renovar `FLOTA_TOKEN` (y `ALTA_TOKEN` mientras exista), `SEMILLA_TOKEN`, `DISPARO_TOKEN` y los `CLASPRC`. `SEMILLA_TOKEN` y `DISPARO_TOKEN` llegan a cada tienda corriendo `conectar` otra vez | `DESPLIEGUE.md` › *Secretos, tokens y llaves* |

@@ -283,8 +283,8 @@ donde vive.
 
 | Credencial | Vive en | Lo usa | Permisos mínimos |
 |---|---|---|---|
-| `ALTA_TOKEN` | secretos de `tiendas` | `alta`, `conectar`, `panel` | grano fino, dueño de las tiendas, todos sus repositorios: *Administration*, *Secrets*, *Contents*, *Workflows*, *Actions* en escritura |
-| `FLOTA_TOKEN` | secretos de `tiendas` | `flota` (`estado`, `actualizar`, `flujos`), `panel` si no hay `ALTA_TOKEN` | grano fino sobre semillas y tiendas: *Contents*, *Pull requests*, *Workflows*, *Actions* en escritura; *Metadata* lectura |
+| `ALTA_TOKEN` (en retiro, decisión 34) | secretos de `tiendas` | `alta`, `conectar`, `panel` si existe; si no, `FLOTA_TOKEN` | lo mismo que `FLOTA_TOKEN` + *Administration* y *Secrets*: por eso se funden |
+| `FLOTA_TOKEN` | secretos de `tiendas` | `flota` (`estado`, `actualizar`, `flujos`), y desde la 0.24.0 también `alta`, `conectar` y `panel` | grano fino, todos los repositorios del dueño: *Administration*, *Contents*, *Pull requests*, *Workflows*, *Secrets*, *Actions* en escritura; *Metadata* lectura. Quedan tres tokens: este, `SEMILLA_TOKEN` y `DISPARO_TOKEN` |
 | `DISPARO_TOKEN` | secretos de `tiendas` → propiedad `GITHUB_TOKEN` de cada maestro | `conectar` lo comprueba y lo siembra; el maestro dispara `fotos.yml` y `montaje.yml` | grano fino sobre **todos** los repositorios del dueño, **solo** *Actions: Read and write* |
 | `SEMILLA_TOKEN` | secretos de `tiendas` → copia en los secretos de cada tienda | la tienda: `montaje` › `semilla` (clonar la semilla) y `restaurar` › `la-version` (leer sus etiquetas) | *Contents* lectura sobre la semilla. Hace falta porque la semilla es privada (decisión D1 de `PLAN-MVP.md`) |
 | `MAESTRO_URL` · `MAESTRO_TOKEN` · `HOJA_ID` · `SCRIPT_ID` | secretos de cada tienda (y de la semilla, que también es una tienda) | `montaje`, `fotos`, `release` (la semilla) | — |
@@ -343,6 +343,7 @@ comparte con el comercio— ni en un repositorio.
 | `BOLD_IDENTIDAD_SANDBOX` · `BOLD_SECRETA_SANDBOX` · `BOLD_IDENTIDAD_PRODUCCION` · `BOLD_SECRETA_PRODUCCION` | Las llaves de la pasarela de pago | A mano, el operador | Cobrar en línea. **Nunca** viajan a la página: la firma se calcula en el maestro. Se aceptan los alias `BOLD_BOTON_*` y el sufijo `PRUEBAS` |
 | `COBROS_ABIERTOS` | Los cobros en línea que falta cerrar | El maestro | La lista de trabajo del disparador `conciliarPagos` (`CONTRATOS.md`) |
 | `RESPALDO` · `RESTAURACION` | Qué pasó en la última copia y en la última restauración | El maestro | Que el panel pueda decir «último respaldo: hace 3 días» |
+| `HOJA_AL_DIA` | La `VERSION_TIENDA` con la que la hoja se ordenó por última vez (0.24.0) | `instalar()` y `ponerHojaAlDia()` | Que la revisión de cada hora ordene la hoja una sola vez por versión |
 | `STUB_VISTO` · `STUB_CON_TOKEN_VIEJO` | Qué versión del stub está pegada en la hoja, y si todavía usa el token viejo | La puerta `menu`, en cada petición | Saber en qué hojas falta repegar el stub sin abrirlas una por una |
 | `LECTURAS` · `RESCATES` · `PEDIDA_PUBLICACION` · `ULTIMA_EDICION` | Contadores y marcas de operación | El maestro | Cuota, pedidos rescatados, publicar pendiente, última edición de la hoja |
 
@@ -386,6 +387,21 @@ request toca `maestro.gs`, `panel.gs` o `publicar/index.html`.
 de la hoja de la tienda —que se llama como el comercio—, no en el menú
 **Panel**. El diagnóstico del Panel de tiendas lista qué versión del maestro
 corre cada tienda.
+
+## 6f. La hoja se lee por nombre, y se ordena sola (0.24.0)
+
+Catálogo e Inventario por variante se leen por el **nombre** de su encabezado
+(`mapaDeColumnas` en `maestro.gs`): el código trabaja en el orden de su
+`ENCABEZADO_…` —que solo crece por el final, R1— y la hoja va en su orden
+visible (`ORDEN_VISIBLE_…`). Leer, escribir una fila, agregar filas y escribir
+una columna pasan por el mismo adaptador (`filasCanonicas`,
+`escribirFilaCanonica`, `agregarFilasCanonicas`, `escribirColumna`,
+`columnaDe`). Si falta un nombre, se lee por posición y se anota. Configuración
+se lee por clave y va por secciones (filas «▸ …»). `instalar()` y la revisión de
+cada hora (`ponerHojaAlDia`, una vez por `VERSION_TIENDA`) dejan la hoja en su
+forma: columnas en orden (`moveColumns`), secciones, listas desde
+`CLAVES_DEL_PANEL`, formato mil filas por delante, obligatorios con formato
+condicional, pestañas en orden y sin «Hoja 1» vacía (decisión 32, bitácora 110).
 
 ## 7. Lo que cuesta operar una tienda
 
@@ -814,6 +830,8 @@ bitácora.
 | Push rechazado: «refusing to allow a GitHub App to create or update workflow» | La tienda intentó publicar flujos; la cabecera `extraheader` del checkout manda el `GITHUB_TOKEN` | Los flujos salen del commit y los entrega la flota (§13d) | 101, 103 |
 | `fotos`: «Nada que publicar pese a haber detectado novedades» | La lista `PUBLICA` no cubría lo que se horneaba; y el paso que mira comparaba la plantilla con lo publicado | Una batería compara `PUBLICA` con lo que declaran las herramientas; el que mira aplica la hoja **sobre lo publicado** (`baseParaRevisar`) | 99, 104 |
 | La flota se detiene en una tienda que no existe o que no importa | Una fila vieja en `flota.json` | 404 se salta; `"anillo": "fuera"` | 100, 105 |
+| Una columna renombrada a mano en Catálogo | Hasta la 0.23.0 el maestro leía por posición: renombrar no rompía, pero MOVER sí | Desde la 0.24.0 se lee por nombre (`mapaDeColumnas`); si falta un nombre, por posición y anotado | 110 |
+| Un commit de fotos que dice «NO se pudieron traer» sin que fallara nada | `$fallo_fotos` se leía en otro paso (otra shell) | Se pasa por `$GITHUB_ENV` como `FALLO_FOTOS` (0.24.0) | 110 |
 | «El maestro respondió 404 a «identidad»» tras esperar decenas de segundos | La redirección de Apps Script a `script.googleusercontent.com` caduca cuando el script tarda (frío o recién publicado) | `alMaestro` reintenta un 404 lento, con pausa, y el mensaje distingue el 404 lento del de acceso (0.22.4) | 107 |
 | Una foto `.png` publicada como `.jpg`: el producto sin foto, el logo sin transparencia | `convertir()` escribía el respaldo siempre en JPEG con extensión `.jpg` | El respaldo lleva el nombre y el formato exactos de la hoja; `novedades` vuelve a bajar lo que el registro da por hecho y no está (0.22.5) | 108 |
 | En la semilla, una batería en rojo por los datos de SU hoja (el icono de la pestaña es una foto) | La batería solo sabía ver el caso de fábrica (patrón 4) | `config.js` acepta las tres formas que produce `iconoDeLaTienda`: dibujo, `fotos/<archivo>` publicado y `https://` (0.22.4) | 107 |

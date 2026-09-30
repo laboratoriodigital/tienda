@@ -1,6 +1,6 @@
 # Todo lo que hace esta tienda
 
-Inventario completo de funcionalidades de la **Tienda Panel** (`0.23.0`), por
+Inventario completo de funcionalidades de la **Tienda Panel** (`0.24.0`), por
 categoría y sin dejar ninguna fuera. Si algo existe en el producto, está en
 esta lista; si no está aquí, no existe todavía —y entonces vive en
 `ROADMAP.md`—.
@@ -44,7 +44,15 @@ Cómo leer las marcas:
   (`fotos_cdn`), o tal cual si no hay nada de eso.
 - **Marca y colores** de la hoja: color principal, secundario y alterno,
   título de portada, texto, puntos de portada y descripción al pie.
-- **Logo del comercio** (`logo`, 0.21.0): el nombre de una foto de la carpeta
+- - **Precio por combinación** (0.24.0): en *Inventario por variante › Precio* o
+  en el panel, junto al stock; vacío = el precio del producto. La tarjeta dice
+  «Desde» el más barato, la ficha cambia el precio con la elección, y el sello de
+  la hoja cobra ese precio.
+- **Hoja ordenada** (0.24.0): Catálogo primero y en orden lógico (se lee por
+  nombre de columna), Configuración por secciones, listas desplegables en todo lo
+  que tiene opciones, formato mil filas por delante, obligatorios en rojo,
+  pestañas en orden y con color; se pone al día sola cada hora.
+**Logo del comercio** (`logo`, 0.21.0): el nombre de una foto de la carpeta
   de Drive o una dirección completa. Va en la barra en lugar del signo; el
   nombre del comercio sigue escrito. Si el archivo no llega, vuelve el signo.
   Entero —sin el recorte cuadrado de las derivadas— y en su formato: un PNG

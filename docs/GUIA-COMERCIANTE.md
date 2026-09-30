@@ -40,8 +40,8 @@ llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si
 arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 
 **Tienda** — tus **productos** (precio, stock, fotos, variantes: con variantes
-aparece **Stock por combinación**; las fotos de un color se suben eligiendo
-«Foto de color: Rosa») y debajo **todos los ajustes** de tu hoja, por
+aparece **Precio y stock por combinación** —vacío = el precio del producto—; las
+fotos de un color, eligiendo «Foto de color: Rosa») y **todos los ajustes**, por
 secciones: tu tienda, la venta, el cobro, la portada, los textos, los colores,
 Google y WhatsApp, datos legales, el correo del día y **Avanzado** (no lo toques
 si no sabes para qué). También las **zonas de envío** y los **cupones**. Cambiar
