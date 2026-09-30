@@ -1224,6 +1224,37 @@ function skusDe(crudo){
   return Object.keys(m).length ? Object.freeze(m) : null;
 }
 
+/* 0.24.0 · EL PRECIO DE CADA COMBINACIÓN (bitácora 110). Llave sin tildes ni
+   mayúsculas → pesos. Solo las que tienen uno propio; las demás cuestan lo del
+   producto. Lo que cobra es el maestro: esto es lo que se MUESTRA. */
+function preciosDe(crudo){
+  if(!Array.isArray(crudo) || !crudo.length) return null;
+  const m = {};
+  crudo.forEach(k => { const n = Number(k && k.precio) || 0; if(k && k.eleccion && n > 0) m[llano(k.eleccion)] = n; });
+  return Object.keys(m).length ? Object.freeze(m) : null;
+}
+function combinacionesTotales(p){ return gruposDe(p).reduce((n, g) => n * g.opciones.length, gruposDe(p).length ? 1 : 0); }
+/* El precio de lo elegido: el de la combinación si tiene uno propio y la
+   elección está completa; si no, el del producto. */
+function precioDe(p, eleccion){
+  if(!p || !p.precios || !eleccion || !eleccionCompleta(p, eleccion)) return p ? p.precio : 0;
+  return p.precios[llano(textoVariante(p, depurarEleccion(p, eleccion)))] || p.precio;
+}
+/* De cuánto a cuánto: si alguna combinación no tiene precio propio, cuenta el
+   del producto. */
+function rangoDePrecio(p){
+  if(!p.precios) return { min:p.precio, max:p.precio };
+  const vals = Object.values(p.precios);
+  if(Object.keys(p.precios).length < combinacionesTotales(p)) vals.push(p.precio);
+  return { min:Math.min.apply(null, vals), max:Math.max.apply(null, vals) };
+}
+function textoPrecio(p, eleccion){
+  const completa = eleccion && gruposDe(p).length && eleccionCompleta(p, eleccion);
+  if(completa) return pesos(precioDe(p, eleccion));
+  const r = rangoDePrecio(p);
+  return r.min < r.max ? "Desde " + pesos(r.min) : pesos(p.precio);
+}
+
 function aplicarCatalogo(datos){
   if(!datos || !datos.ok) return false;
   if(!esquemaEntendido(datos)) return false;
@@ -1256,6 +1287,7 @@ function aplicarCatalogo(datos){
         /* C-1b: el stock de cada combinación, cuando el comercio lo lleva así.
            Llave sin tildes ni mayúsculas → unidades. Sin skus, como antes. */
         skus:        skusDe(c.skus),
+        precios:     preciosDe(c.precios),
         forma:       formaDe(c.formato, c.categoria)
       }));
 
@@ -1679,8 +1711,8 @@ const ORDENES = [
   { id:"destacados",  nombre:"Destacados primero",
     fn:(a, b) => (b.destacado === true) - (a.destacado === true) },
   { id:"hoja",        nombre:"Como en la hoja",          fn:null },
-  { id:"precio-asc",  nombre:"Precio: de menor a mayor", fn:(a, b) => a.precio - b.precio },
-  { id:"precio-desc", nombre:"Precio: de mayor a menor", fn:(a, b) => b.precio - a.precio },
+  { id:"precio-asc",  nombre:"Precio: de menor a mayor", fn:(a, b) => rangoDePrecio(a).min - rangoDePrecio(b).min },
+  { id:"precio-desc", nombre:"Precio: de mayor a menor", fn:(a, b) => rangoDePrecio(b).min - rangoDePrecio(a).min },
   { id:"nombre",      nombre:"Nombre: de la A a la Z",
     fn:(a, b) => a.nombre.localeCompare(b.nombre, "es") }
 ];
@@ -1848,7 +1880,7 @@ function pintarRejilla(){
         <h3>${escapar(p.nombre)}</h3>
         <p class="formato">${escapar(p.formato)}</p>
         <div class="fila-precio">
-          <span class="precio">${pesos(p.precio)}${p.precioAntes ? `<s class="antes">${pesos(p.precioAntes)}</s>` : ""}</span>
+          <span class="precio">${textoPrecio(p)}${p.precioAntes && !p.precios ? `<s class="antes">${pesos(p.precioAntes)}</s>` : ""}</span>
           <span class="disponible ${st.clase}"><i class="marcador"></i>${st.texto}</span>
         </div>
         <div class="acciones">
@@ -1965,7 +1997,7 @@ function marcarEleccion(){
   eleccionFicha = leerEleccionFicha(fichaActual);
   /* C-1b: elegir cambia qué hay (el stock de esa combinación, qué opciones
      quedan) y qué fotos se ven; se repinta la ficha con la elección puesta. */
-  if(fichaActual.skus || fichaActual.imagenes.some(n => FOTO_DE_OPCION.test(n))){
+  if(fichaActual.skus || fichaActual.precios || fichaActual.imagenes.some(n => FOTO_DE_OPCION.test(n))){
     fotoActual = 0;
     pintarFicha();
   }
@@ -2039,7 +2071,7 @@ function pintarFicha(){
       <div class="ficha-texto">
         <h2>${escapar(p.nombre)}</h2>
         <p class="formato">${escapar(p.formato)} · ${escapar(p.categoria)}</p>
-        <p class="ficha-precio">${pesos(p.precio)}</p>
+        <p class="ficha-precio" id="fichaPrecio">${textoPrecio(p, eleccionFicha)}</p>
         <p class="disponible ${st.clase}"><i class="marcador"></i>${st.texto}</p>
         <p class="ficha-desc">${escapar(p.descripcion)}</p>
         ${bloqueVariantes(p)}
@@ -2285,7 +2317,7 @@ function selloVigente(){
 }
 
 function subtotal(){
-  return carrito.reduce((s, i) => s + producto(i.id).precio * i.cantidad, 0);
+  return carrito.reduce((s, i) => s + precioDe(producto(i.id), i.variante) * i.cantidad, 0);
 }
 
 /* La misma regla que el maestro (validarPedido): desde el umbral, sobre el
@@ -2529,7 +2561,7 @@ function pintarPanel(datos){
         <div class="linea-info">
           <h4>${escapar(p.nombre)}</h4>
           ${elegido ? `<p class="formato">${escapar(elegido)}</p>` : ""}
-          <p class="formato">${escapar(p.formato)} · ${pesos(p.precio)} c/u</p>
+          <p class="formato">${escapar(p.formato)} · ${pesos(precioDe(p, i.variante))} c/u</p>
           <div class="cantidad">
             <button onclick="cambiarCantidad('${p.id}',-1,${pos})" aria-label="Quitar una unidad">−</button>
             <span>${i.cantidad}</span>
@@ -2538,7 +2570,7 @@ function pintarPanel(datos){
           ${lleno ? `<p style="font-size:.76rem;color:var(--rojo);margin-top:5px">Máximo disponible</p>` : ""}
         </div>
         <div class="linea-der">
-          <strong>${pesos(p.precio * i.cantidad)}</strong>
+          <strong>${pesos(precioDe(p, i.variante) * i.cantidad)}</strong>
           <button class="quitar" onclick="quitar('${p.id}',${pos})">Quitar</button>
         </div>
       </div>`;
@@ -3022,7 +3054,7 @@ function armarMensaje(){
        sin la talla obliga a preguntarla otra vez. */
     const elegido = textoVariante(p, i.variante);
     if(elegido) lineas.push(`   ${elegido}`);
-    lineas.push(`   ${i.cantidad} x ${pesos(p.precio)} = ${pesos(p.precio * i.cantidad)}`);
+    lineas.push(`   ${i.cantidad} x ${pesos(precioDe(p, i.variante))} = ${pesos(precioDe(p, i.variante) * i.cantidad)}`);
   });
   const ocultos = carrito.length - Math.min(topeProductos, carrito.length);
   if(ocultos > 0) lineas.push(topeProductos === 0
@@ -3637,7 +3669,7 @@ function refrescarFichaAbierta(){
 function compartirProducto(){
   if(!fichaActual) return;
   const url = enlaceDe(fichaActual.id);
-  const texto = fichaActual.nombre + " — " + pesos(fichaActual.precio) + " · " + NEGOCIO;
+  const texto = fichaActual.nombre + " — " + textoPrecio(fichaActual, eleccionFicha) + " · " + NEGOCIO;
   if(navigator.share){
     navigator.share({ title: fichaActual.nombre, text: texto, url: url }).catch(() => {});
     return;
