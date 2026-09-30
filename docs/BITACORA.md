@@ -84,7 +84,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P11 · Lo que depende de SER la semilla no puede decidir si una tienda publica
 - **Regla:** la compuerta de una tienda solo mira invariantes sobre lo horneado con SUS datos; lo que solo es cierto en la semilla se comprueba allí y en una tienda se salta diciéndolo.
-- **Entradas:** 13, 93, 95, 102, 104.
+- **Entradas:** 13, 93, 95, 102, 104, 113.
 - **Lo impide hoy:** `pruebas/tienda-viva.js`, elegida por `pruebas/publicacion.sh` con `donde.js` (`esSemilla()`); `pruebas/tiendita.js` corre la compuerta sin lo que `alta` no hereda y con otro comercio.
 
 ### P12 · El permiso que se comprueba es el que se usa, y ninguno opcional va en el camino crítico
