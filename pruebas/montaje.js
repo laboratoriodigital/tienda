@@ -507,7 +507,7 @@ const configurar = (g, clave, valor) => {
        configurar(g2, 'fotos_drive', 'https://drive.google.com/drive/folders/' + CARPETA);
        g2.enDrive(CARPETA, []);
        const h = g2.hojas.get('Catálogo');
-       h.getRange(2, 8).setValue('https://res.cloudinary.com/x/foto.jpg|chonto-1.jpg');
+       h.getRange(2, g2.columna('Catálogo', 'Imágenes')).setValue('https://res.cloudinary.com/x/foto.jpg|chonto-1.jpg');
        return puerta(g2, 'fotos').usadas.join() === 'chonto-1.jpg';
      })(), 'esa no sale de la carpeta del comercio');
 
@@ -2199,7 +2199,7 @@ const configurar = (g, clave, valor) => {
      preguntas más comunes, y hasta ahora la respuesta era «revisa el Drive». */
   {
     const g = yaConfigurada(nuevo());
-    g.hojas.get('Catálogo').getRange(2, 1, 1, 13).setValues([['chonto', 'Chonto',
+    g.ponerFilas('Catálogo', [['chonto', 'Chonto',
       'kg', 'Frutas', 9000, 10, 'de la finca', 'chonto-1.jpg|chonto-2.jpg',
       'No', 'Sí', '', '', '']]);
     g.responder('/catalogo.json', () => ({ cuerpo: {
@@ -4159,6 +4159,31 @@ if (!fs.existsSync('../.github/workflows/release.yml')) {
   ok('  ...y si el lento se repite, el mensaje dice cuánto tardó y NO manda a revisar el acceso',
      c.pedidas === 3 && /Tardó \d+ s/.test(c.error || '') && !/Ninguna acción/.test(c.error || ''),
      JSON.stringify(c).slice(0, 140));
+}
+
+/* ═══ 27m. LAS ACTIONS, SIN GASTO QUE NO COMPRA NADA (0.24.0 · bitácora 110) ═══ */
+{
+  const dir = '../.github/workflows';
+  const ymls = fs.readdirSync(dir).filter(f => /\.ya?ml$/.test(f));
+  const sinTope = ymls.filter(f => {
+    const t = fs.readFileSync(dir + '/' + f, 'utf8');
+    const trabajos = (t.split(/^jobs:\s*$/m)[1] || '').split(/^  [a-z0-9_-]+:\s*$/m).slice(1);
+    return trabajos.some(j => !/^\s{4}timeout-minutes:/m.test(j));
+  });
+  ok('NINGÚN TRABAJO SIN TOPE DE TIEMPO: uno colgado gasta hasta seis horas', sinTope.length === 0, sinTope.join(', '));
+  const pr = fs.readFileSync(dir + '/pruebas.yml', 'utf8');
+  ok('  ...y `pruebas` cancela la corrida vieja cuando llega un push nuevo a la misma rama',
+     /concurrency:\s*\n\s+group: pruebas-/.test(pr) && /cancel-in-progress: true/.test(pr));
+  const conNavegador = ['pruebas.yml', 'fotos.yml', 'montaje.yml'].filter(f => fs.existsSync(dir + '/' + f));
+  ok('  ...y se instala solo el Chromium sin ventana, que es el único que se abre',
+     conNavegador.every(f => { const t = fs.readFileSync(dir + '/' + f, 'utf8');
+       return !/playwright install/.test(t) || /--only-shell/.test(t); }));
+  const fo = fs.readFileSync(dir + '/fotos.yml', 'utf8');
+  const pasoPublicar = fo.slice(fo.indexOf('sinFotos=""'));
+  ok('`fotos`: el paso que escribe el commit lee el fallo de las fotos del ENTORNO, no de una variable de otro paso',
+     /FALLO_FOTOS=\$fallo_fotos" >> "\$GITHUB_ENV"/.test(fo) && /\$\{FALLO_FOTOS:-0\}/.test(pasoPublicar) &&
+     !/\$fallo_fotos/.test(pasoPublicar.slice(0, 400)),
+     'vacío ≠ "0": todos los commits decían que las fotos no se trajeron');
 }
 
 /* ═══ 27k. LO QUE LA SEMILLA RETIRÓ ENTRA EN EL COMMIT (0.22.3 · bitácora 106) ═══

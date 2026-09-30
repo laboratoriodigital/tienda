@@ -144,6 +144,10 @@ export function bloque(catalogo, version) {
            (variantes.length && Array.isArray(p.skus) && p.skus.length
              ? '    skus:[' + p.skus.map(k => '{ eleccion:' + literal(k.eleccion) + ', stock:' +
                  Math.max(0, Math.floor(Number(k.stock) || 0)) + ' }').join(', ') + '],\n' : '') +
+           /* 0.24.0: y el precio de cada combinación que tiene uno propio. */
+           (variantes.length && Array.isArray(p.precios) && p.precios.length
+             ? '    precios:[' + p.precios.map(k => '{ eleccion:' + literal(k.eleccion) + ', precio:' +
+                 Math.max(0, Number(k.precio) || 0) + ' }').join(', ') + '],\n' : '') +
            '    descripcion:' + literal(p.descripcion) + ' }';
   }).join(',\n\n'));
   L.push('];');

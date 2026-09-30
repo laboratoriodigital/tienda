@@ -93,7 +93,7 @@ function red(g, cuenta, o) {
     /* Y en la hoja también: el comerciante no siempre usa el panel. */
     const g2 = conSesion(true); red(g2.g, g2.cuenta, { servido: '2026-09-20T08:00:00.000Z' });
     const hc = g2.g.hojas.get('Catálogo');
-    hc.getRange(3, 5).setValue(7000);
+    hc.getRange(3, g2.g.columna('Catálogo', 'Precio')).setValue(7000);
     g2.g.api.alEditar({ range: { getSheet: () => hc, getColumn: () => 5, getNumColumns: () => 1 } });
     ok('  ...y CAMBIAR UN PRECIO EN LA HOJA, también', post(g2.g, { a: 'publicacion', k: g2.k }).pendientes === true);
 

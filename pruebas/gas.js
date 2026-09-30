@@ -126,6 +126,11 @@ function crear(rutaScript, opciones) {
       setColumnWidth: (c, w) => { anchos[c] = w; return h; },
       setRowHeight: (f, a) => { altos[f] = a; return h; },
       setHiddenGridlines: (b) => { ocultarCuadricula = !!b; return h; },
+      /* 0.24.0 · formato condicional y color de pestaña, lo que usa presentarHojas. */
+      _reglas: [], _colorPestana: null,
+      getConditionalFormatRules: () => h._reglas.slice(),
+      setConditionalFormatRules: (rs) => { h._reglas = rs.slice(); return h; },
+      setTabColor: (c) => { h._colorPestana = c; return h; },
       getMaxRows: () => Math.max(datos.length, 1),
       getMaxColumns: () => Math.max(1, datos.reduce((m, f) => Math.max(m, f.length), 0)),
       _formato: formato, _formulas: formulas, _uniones: uniones,
@@ -134,6 +139,30 @@ function crear(rutaScript, opciones) {
       appendRow(fila) {
         anotarEscritura(nombre, 'appendRow');
         datos.push(fila.map(celda));
+        return h;
+      },
+      /* 0.24.0 · Mover columnas enteras, como Apps Script: valores, fórmulas y
+         formato. `destino` en coordenadas de ANTES de mover. */
+      moveColumns(rango, destino) {
+        anotarEscritura(nombre, 'moveColumns');
+        const c = rango._c, nc = rango._nc;
+        const ancho = datos.reduce((m, f) => Math.max(m, f.length), 0);
+        const orden = [];
+        for (let i = 1; i <= Math.max(ancho, c + nc - 1); i++) orden.push(i);
+        const movidas = orden.splice(c - 1, nc);
+        const antes = destino > c ? destino - 1 - nc + 1 : destino;   // posición 1-based tras quitar
+        orden.splice(antes - 1, 0, ...movidas);
+        const nueva = {}; orden.forEach((viejaCol, i) => { nueva[viejaCol] = i + 1; });
+        for (let f = 0; f < datos.length; f++) {
+          const fila = datos[f], sal = [];
+          orden.forEach((vc, i) => { sal[i] = fila[vc - 1] === undefined ? '' : fila[vc - 1]; });
+          while (sal.length && sal[sal.length - 1] === '' && sal.length > fila.length) sal.pop();
+          datos[f] = sal;
+        }
+        [formato, formulas].forEach(mapa => {
+          const copia = Array.from(mapa.entries()); mapa.clear();
+          copia.forEach(([k, v]) => { const [ff, cc] = k.split(',').map(Number); mapa.set(ff + ',' + (nueva[cc] || cc), v); });
+        });
         return h;
       },
       deleteRows(desde, cuantas) {
@@ -146,6 +175,7 @@ function crear(rutaScript, opciones) {
         if (typeof f !== 'number') throw new Error('getRange: fila inválida ' + f);
         if (f < 1 || c < 1) throw new Error('getRange fuera de rango: ' + f + ',' + c);
         const r = {
+          _c: c, _nc: nc, _f: f, _nf: nf,
           getValue() { return celda((datos[f - 1] || [])[c - 1]); },
           getValues() {
             const out = [];
@@ -228,6 +258,19 @@ function crear(rutaScript, opciones) {
     getSheetByName: n => hojas.get(n) || null,
     getSheets: () => Array.from(hojas.values()),
     insertSheet(n) { const h = nuevaHoja(n); hojas.set(n, h); return h; },
+    /* 0.24.0 · ordenar y quitar pestañas, como Apps Script. */
+    _activa: null,
+    setActiveSheet(h) { libro._activa = h; return h; },
+    getActiveSheet() { return libro._activa; },
+    moveActiveSheet(pos) {
+      const lista = Array.from(hojas.entries());
+      const i = lista.findIndex(([, h]) => h === libro._activa);
+      if (i === -1) return;
+      const [par] = lista.splice(i, 1);
+      lista.splice(pos - 1, 0, par);
+      hojas.clear(); lista.forEach(([n, h]) => hojas.set(n, h));
+    },
+    deleteSheet(h) { hojas.delete(h.getName()); },
     toast: (m, t) => toasts.push(t + ': ' + m)
   };
 
@@ -258,6 +301,18 @@ function crear(rutaScript, opciones) {
         return librosExtra.get(id) || libro;
       },
       BorderStyle: { SOLID: 'SOLID', SOLID_MEDIUM: 'SOLID_MEDIUM' },
+      newConditionalFormatRule: () => {
+        const regla = { formula: '', fondo: '', rangos: [] };
+        const b = {
+          whenFormulaSatisfied(f) { regla.formula = String(f); return b; },
+          setBackground(c) { regla.fondo = c; return b; },
+          setRanges(rs) { regla.rangos = rs.map(r => ({ f: r._f, c: r._c, nf: r._nf, nc: r._nc })); return b; },
+          build: () => Object.assign({
+            getBooleanCondition: () => ({ getBackground: () => regla.fondo })
+          }, regla)
+        };
+        return b;
+      },
       newDataValidation: () => {
         const regla = { _lista: null, _permiteOtros: true, _ayuda: '', _menu: true };
         const b = {
@@ -458,6 +513,8 @@ function crear(rutaScript, opciones) {
   const devolver = '\n; return {' +
     declaradas.concat([...new Set(constantes)]).map(f => f + ': ' + f).join(', ') + '};';
   const api = new Function(...nombres, codigo + devolver).apply({}, nombres.map(k => entorno[k]));
+  const encabezadoCanonico = n => (n === 'Catálogo' ? api.ENCABEZADO_CATALOGO
+                                   : n === 'Inventario por variante' ? api.ENCABEZADO_INVENTARIO_VARIANTE : null);
 
   return { api, libro, hojas, toasts,
            get triggers() { return triggers; },
@@ -486,7 +543,28 @@ function crear(rutaScript, opciones) {
            carpetaDrive: (id) => (carpetasDrive.get(id) || []).filter(x => !x.papelera),
            sinRed() { fetchAllRevienta = true; },
            get peticiones() { return peticionesVistas; },
-           filas: n => { const h = hojas.get(n); return h ? h._datos : null; },
+           /* 0.24.0 · Catálogo e Inventario por variante se leen POR NOMBRE:
+              su orden en la hoja es libre. Las pruebas siguen hablando en el
+              orden del código (ENCABEZADO_…), así que aquí se traduce. Sin
+              diferencia de orden, es la matriz de siempre (por referencia). */
+           filas: n => {
+             const h = hojas.get(n); if (!h) return null;
+             const enc = encabezadoCanonico(n);
+             if (!enc || !h._datos.length) return h._datos;
+             const cab = (h._datos[0] || []).map(llanoG);
+             const pos = enc.map(x => cab.indexOf(llanoG(x)));
+             if (pos.some(p => p === -1) || pos.every((p, i) => p === i)) return h._datos;
+             return [enc.slice()].concat(h._datos.slice(1).map(f => pos.map(p => celda(f[p]))));
+           },
+           /* La columna FÍSICA (1…) de una columna, por su nombre. */
+           columna: (n, nombreCol) => {
+             const h = hojas.get(n);
+             const i = ((h && h._datos[0]) || []).map(llanoG).indexOf(llanoG(nombreCol));
+             if (i === -1) throw new Error('columna: ' + n + ' no tiene «' + nombreCol + '»');
+             return i + 1;
+           },
+           /* Escribe filas en el orden del código, cada valor en su columna física. */
+           ponerFilas: (n, filasCanon) => reemplazarFilas(hojas.get(n), filasCanon, encabezadoCanonico(n)),
            /* LAS PROPIEDADES TAMBIÉN. Se quedaban vivas: una tienda con las
               hojas borradas y las propiedades intactas no es una tienda nueva,
               es una tienda a medio borrar. Eso hacía que un contador —los
@@ -577,11 +655,26 @@ const ENVIOS = [
    haya escrito instalar() —o una corrida anterior de esta misma prueba— se
    borra primero, para que el ancho de las filas nuevas no se mezcle con el de
    las viejas. */
-function reemplazarFilas(h, filas) {
-  const anchas = Math.max.apply(null, filas.map(function (f) { return f.length; }));
+const llanoG = t => String(t === null || t === undefined ? '' : t).toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+/* `enc` (el encabezado del código) traduce cada fila a las columnas FÍSICAS
+   por nombre (0.24.0): la hoja puede estar en otro orden. */
+function reemplazarFilas(h, filas, enc) {
   const actuales = h.getLastRow() - 1;   // sin encabezado
   if (actuales > 0) h.getRange(2, 1, actuales, h.getLastColumn()).clearContent();
-  h.getRange(2, 1, filas.length, anchas).setValues(filas);
+  if (!filas.length) return;
+  if (enc) {
+    const cab = h.getRange(1, 1, 1, Math.max(1, h.getLastColumn())).getValues()[0].map(llanoG);
+    const ancho = Math.max(cab.length, enc.length);
+    filas = filas.map(f => {
+      const fis = new Array(ancho).fill('');
+      f.forEach((v, i) => { const p = cab.indexOf(llanoG(enc[i])); fis[p === -1 ? i : p] = v; });
+      return fis;
+    });
+  }
+  const anchas = Math.max.apply(null, filas.map(function (f) { return f.length; }));
+  h.getRange(2, 1, filas.length, anchas).setValues(filas.map(f => { const c = f.slice(); while (c.length < anchas) c.push(''); return c; }));
 }
 
 /** Una tienda ya configurada, que es contra lo que se prueba casi todo. */
@@ -596,7 +689,7 @@ function configurar(g, extra) {
     if (i >= 1) h.getRange(i + 1, 2).setValue(valores[clave]);
   });
 
-  reemplazarFilas(g.hojas.get('Catálogo'), PRODUCTOS);
+  reemplazarFilas(g.hojas.get('Catálogo'), PRODUCTOS, g.api.ENCABEZADO_CATALOGO);
   reemplazarFilas(g.hojas.get('Envíos'), ENVIOS);
 
   return g;

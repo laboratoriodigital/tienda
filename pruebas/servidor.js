@@ -54,7 +54,8 @@ const servidor = http.createServer((req, res) => {
   // ---- utilidades de la prueba ----
   if (u.pathname === '/__hojas') {
     const salida = {};
-    gas.hojas.forEach((h, n) => salida[n] = h._datos);
+    /* 0.24.0 · en el orden del código (gas.filas traduce las que se leen por nombre). */
+    gas.hojas.forEach((h, n) => salida[n] = gas.filas(n));
     return responderJson(res, salida);
   }
   if (u.pathname === '/__peticiones') return responderJson(res, peticiones);
@@ -107,7 +108,7 @@ const servidor = http.createServer((req, res) => {
       filas.push(['p' + i, 'Producto ' + i, 'Unidad', cats[i % 4], 1000 * i, 10,
                   'Descripción del producto ' + i, '', i <= 3 ? 'Sí' : 'No', 'Sí']);
     }
-    h.getRange(2, 1, filas.length, 10).setValues(filas);
+    gas.ponerFilas('Catálogo', filas);
     gas.api.doGet({ parameter: { a: 'version' } });          // no cachea catálogo
     delete gas.cache['catalogo'];
     return responderJson(res, { ok: true, n: filas.length });
@@ -115,8 +116,8 @@ const servidor = http.createServer((req, res) => {
   if (u.pathname === '/__drift') {           // la hoja cambia bajo los pies del cliente
     const h = gas.hojas.get('Catálogo');
     h._datos.slice(1).forEach((f, i) => {
-      if (f[0] === 'baguette') h.getRange(i + 2, 5).setValue(9500);
-      if (f[0] === 'croissant') h.getRange(i + 2, 10).setValue('No');
+      if (f[0] === 'baguette') h.getRange(i + 2, gas.columna('Catálogo', 'Precio')).setValue(9500);
+      if (f[0] === 'croissant') h.getRange(i + 2, gas.columna('Catálogo', 'Activo')).setValue('No');
     });
     delete gas.cache['catalogo'];
     return responderJson(res, { ok: true });
@@ -124,9 +125,10 @@ const servidor = http.createServer((req, res) => {
   if (u.pathname === '/__producto') {        // agregar un producto solo desde la hoja
     const h = gas.hojas.get('Catálogo');
     const f = h.getLastRow() + 1;
-    h.getRange(f, 1, 1, 10).setValues([[u.query.id, u.query.nombre, u.query.formato || 'Unidad',
+    const canon = [u.query.id, u.query.nombre, u.query.formato || 'Unidad',
       u.query.categoria || 'Otros', Number(u.query.precio) || 1000, Number(u.query.stock) || 5,
-      u.query.desc || '', u.query.imagenes || '', u.query.destacado || 'No', 'Sí']]);
+      u.query.desc || '', u.query.imagenes || '', u.query.destacado || 'No', 'Sí'];
+    canon.forEach((v, i) => h.getRange(f, gas.columna('Catálogo', gas.api.ENCABEZADO_CATALOGO[i])).setValue(v));
     delete gas.cache['catalogo'];
     return responderJson(res, { ok: true });
   }
@@ -144,6 +146,12 @@ const servidor = http.createServer((req, res) => {
   if (u.pathname === '/__demora') { demoraMs = Number(u.query.ms) || 0; return responderJson(res, { ok: true }); }
   if (u.pathname === '/__celda') {          // escribir una celda como lo haría el dueño
     const h = gas.hojas.get(u.query.hoja);
+    /* 0.24.0 · `c` es la columna EN EL ORDEN DEL CÓDIGO —como estaban escritas
+       las pruebas—; en las pestañas que se leen por nombre se traduce a la
+       física. */
+    const enc = u.query.hoja === 'Catálogo' ? gas.api.ENCABEZADO_CATALOGO
+              : u.query.hoja === 'Inventario por variante' ? gas.api.ENCABEZADO_INVENTARIO_VARIANTE : null;
+    if (enc) u.query.c = String(gas.columna(u.query.hoja, enc[Number(u.query.c) - 1]));
     /* Por la dirección todo llega como texto; una hoja de verdad guarda un 1
        tecleado como NÚMERO. `num=1` hace lo mismo que la hoja. */
     h.getRange(Number(u.query.f), Number(u.query.c)).setValue(u.query.num === '1' ? Number(u.query.v) : u.query.v);

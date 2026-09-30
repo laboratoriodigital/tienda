@@ -16,6 +16,20 @@ on:
   # Para que el flujo de release pueda exigir el verde antes de publicar.
   workflow_call:
 
+# UNA CORRIDA VIVA POR PULL REQUEST O POR RAMA: LA DEL ÚLTIMO COMMIT.
+# Dos pushes seguidos al mismo pull request, o la flota entregando los flujos
+# de una tienda —un commit por archivo, cada uno con su corrida entera
+# (bitácora 104)—, pagaban corridas que ya no decían nada. Del verde solo
+# dependen dos cosas y las dos miran el commit MÁS NUEVO: `release` pide el
+# de SU commit (la punta de main) y `publicacion.sh`, el del último commit de
+# código. La corrida anterior se cancela. Si justo se había pedido un release
+# sobre ese commit, release no encuentra verde y se para: en rojo, nunca en
+# falso verde. Y si lo nuevo solo toca `publicar/`, la guardia corta no
+# encuentra verde y corren todas: más minutos, ninguna prueba de menos.
+concurrency:
+  group: pruebas-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pruebas:
     # NO SOBRE LOS PULL REQUESTS QUE ABREN `fotos` NI `montaje`, Y NO POR
@@ -53,7 +67,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          # LA HISTORIA ENTERA, SOLO EN UN PULL REQUEST: la necesita «La versión
+          # sube…» (`git diff origin/base...HEAD`). En un push nada mira atrás
+          # —con GUARDIA=todas, publicacion.sh decide sin `git log`, y ninguna
+          # batería lee la historia del repositorio— y bajarla entera, con las
+          # fotos de cada publicación, era tiempo de cada corrida por nada.
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
 
       # ── LA FICHA DE LA CORRIDA (0.20.4 · bitácora 91) ─────────────────────
       # La misma de todos los flujos: qué es esto, sobre qué repositorio, cómo
@@ -148,8 +167,16 @@ jobs:
           # La clave NO lleva la rama a propósito: una caché por rama multiplica
           # el almacenamiento, que en privado también se paga, y no protege de
           # nada porque la clave ya cambia cuando cambian las dependencias.
-          key: playwright-${{ runner.os }}-${{ hashFiles('pruebas/package-lock.json') }}
-          restore-keys: playwright-${{ runner.os }}-
+          #
+          # SOLO EL NAVEGADOR SIN VENTANA (revisión de minutos, 29-sep). Todas
+          # las baterías abren `chromium.launch()` sin opciones, y eso en
+          # Playwright es el «headless shell»: el Chromium completo —unos
+          # 600 MB instalado, frente a 320 del shell— se bajaba, se guardaba y
+          # se restauraba en cada corrida sin que nada lo abriera. Por eso
+          # `--only-shell` abajo, y por eso el prefijo nuevo de la clave: una
+          # caché vieja con el completo dentro no se vuelve a restaurar, caduca.
+          key: playwright-shell-${{ runner.os }}-${{ hashFiles('pruebas/package-lock.json') }}
+          restore-keys: playwright-shell-${{ runner.os }}-
 
       - name: Dependencias
         run: npm ci --no-audit --no-fund
@@ -160,9 +187,9 @@ jobs:
           # `--with-deps` instala paquetes apt y tarda; con la caché acertada el
           # navegador ya está en su sitio y esa instalación no aporta nada.
           if [ "${{ steps.navegador.outputs.cache-hit }}" = "true" ]; then
-            npx playwright install chromium
+            npx playwright install chromium --only-shell
           else
-            npx playwright install --with-deps chromium
+            npx playwright install --with-deps chromium --only-shell
           fi
 
       # todas.sh copia maestro.gs e index.html reales antes de correr, y sale

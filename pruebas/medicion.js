@@ -41,7 +41,9 @@ ok('LA CLAVE existe en la hoja de fábrica, vacía y al final (R1)',
    /* «Al final» cuando nació (0.19.0): justo detrás de la última que había.
       Lo que venga después es de versiones posteriores (0.23.0: logo_tamano),
       y también va al final: R1 se cumple igual. */
-   (() => { const c = g.filas('Configuración').map(f => String(f[0]).trim());
+   /* 0.24.0: Configuración va por secciones y se lee por nombre; R1 queda en
+      la SEMILLA de instalar() (el orden en que nacen las claves), no en la fila. */
+   (() => { const c = g.api.semillaDeConfiguracion().map(f => f[0]);
             return c.indexOf('analytics_id') === c.indexOf('catalogo_columnas') + 1; })());
 
 const sinMedir = head();

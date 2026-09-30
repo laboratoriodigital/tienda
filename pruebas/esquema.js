@@ -42,7 +42,8 @@ function esquemaVivo() {
   const catalogo = puerta('catalogo');
   const res = {
     hojas: hojas,
-    configuracion: g.filas('Configuración').slice(1).map(f => String(f[0])),
+    /* 0.24.0 · sin las filas de sección («▸ Tu tienda»): no son claves. */
+    configuracion: g.filas('Configuración').slice(1).map(f => String(f[0])).filter(k => k.indexOf('▸') !== 0),
     /* LOS NOMBRES DE TODAS LAS PUERTAS, sacados de la tabla y no escritos a
        mano. Es lo que obliga a que una puerta nueva pase por --congelar, que
        es un acto deliberado que alguien mira. Una puerta que aparece sin que
@@ -148,7 +149,15 @@ for (const h of Object.keys(foto.hojas)) {
 /* ── 3. Las claves de Configuración ─────────────────────────────────────── */
 /* Aquí el orden también importa, y no por capricho: escribirConfiguracion()
    ubica la fila por posición para no tocar lo que el comerciante escribió. */
-comparar('CLAVES de Configuración', foto.configuracion, vivo.configuracion);
+/* 0.24.0 · Las claves se leen y se escriben POR NOMBRE (CONTRATOS §5), y la
+   pestaña va por secciones: lo que no puede pasar es que una desaparezca o
+   cambie de nombre. El orden de las filas ya no es contrato. */
+{
+  const faltan = (foto.configuracion || []).filter(k => vivo.configuracion.indexOf(k) === -1);
+  ok('CLAVES de Configuración', faltan.length === 0,
+     faltan.length ? 'DESAPARECIERON: ' + faltan.join(', ')
+                   : 'nuevas: ' + vivo.configuracion.filter(k => (foto.configuracion || []).indexOf(k) === -1).join(', '));
+}
 
 /* ── 3 bis. Ninguna función del maestro se declara dos veces ─────────────── */
 /* En Apps Script dos `function x()` no dan error: gana la ÚLTIMA, en silencio,

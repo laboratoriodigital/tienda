@@ -34,7 +34,7 @@ function tienda() {
   const k = post(g, { a: 'entrar', u: 'dona.rosa', c: clave }).testigo;
   return { g, k };
 }
-const stock = (g, id, n) => g.hojas.get('Catálogo').getRange(g.filas('Catálogo').findIndex(f => f[0] === id) + 1, 6).setValue(n);
+const stock = (g, id, n) => g.hojas.get('Catálogo').getRange(g.filas('Catálogo').findIndex(f => f[0] === id) + 1, g.columna('Catálogo', 'Stock')).setValue(n);
 const conf = (g, c, v) => g.hojas.get('Configuración').getRange(g.filas('Configuración').findIndex(f => String(f[0]) === c) + 1, 2).setValue(v);
 
 (async () => {

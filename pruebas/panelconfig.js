@@ -58,7 +58,7 @@ const poner = (g, clave, v) => {
     /* DESDE LA 0.9.0 SALEN TODAS LAS QUE SE ESCRIBEN A MANO —el dueño pidió que
        el panel alcance para todo—, menos dos: la que escribe el script y la
        del usuario, que va con la clave del menú de la hoja. */
-    const hoja = g.filas('Configuración').slice(1).map(f => String(f[0]));
+    const hoja = g.filas('Configuración').slice(1).map(f => String(f[0])).filter(k => k.indexOf('▸') !== 0);
     const FUERA = ['correo_ultimo', 'panel_usuario'];
     const faltan = hoja.filter(c => FUERA.indexOf(c) === -1 && claves.indexOf(c) === -1);
     ok('TODAS LAS CLAVES DE LA HOJA salen en el panel', faltan.length === 0, faltan.join(', '));

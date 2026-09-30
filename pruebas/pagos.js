@@ -66,7 +66,7 @@ function tienda(o) {
 const stock = (g, id) => Number(g.filas('Catálogo').find(f => f[0] === id)[5]);
 const ponerStock = (g, id, n) => {
   const f = g.filas('Catálogo').findIndex(x => x[0] === id) + 1;
-  g.hojas.get('Catálogo').getRange(f, 6).setValue(n);
+  g.hojas.get('Catálogo').getRange(f, g.columna('Catálogo', 'Stock')).setValue(n);
 };
 const cobros = g => JSON.parse(g.props.COBROS_ABIERTOS || '{}');
 const vencerApartado = (g, pedido, cuanto) => {

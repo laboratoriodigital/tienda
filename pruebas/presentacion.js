@@ -17,6 +17,8 @@ const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' +
 
 const nuevo = () => { const g = crear('./as.js'); g.api.instalar(); return g; };
 const fmt = (g, hoja, f, c) => (g.hojas.get(hoja)._formato.get(f + ',' + c) || {});
+/* 0.24.0 · Catálogo se lee por NOMBRE: la columna se pide por su nombre. */
+const cc = (g, n) => g.columna('Catálogo', n);
 /* Ojo: g.filas() del emulador devuelve la matriz CON encabezado, así que el
    índice ya es el número de fila de la hoja. */
 const filaDe = (g, clave) => g.filas('Configuración').findIndex(f => f[0] === clave) + 1;
@@ -46,7 +48,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
 {
   const g = nuevo();
   ok('El precio del catálogo lleva formato de pesos',
-     fmt(g, 'Catálogo', 2, 5).formato === '"$"#,##0', String(fmt(g, 'Catálogo', 2, 5).formato));
+     fmt(g, 'Catálogo', 2, cc(g, 'Precio')).formato === '"$"#,##0', String(fmt(g, 'Catálogo', 2, cc(g, 'Precio')).formato));
   ok('El valor del envío también', fmt(g, 'Envíos', 2, 3).formato === '"$"#,##0');
   g.hojas.get('Pedidos').appendRow([new Date(), 'A1', 'V', 'Por confirmar', 'Cali', '',
                                     'x', 'chonto', 1, 8900, 8900, 8900, '']);
@@ -58,7 +60,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
      fmt(g, 'Pedidos', 2, 10).formato === '"$"#,##0' &&
      fmt(g, 'Pedidos', 2, 12).formato === '"$"#,##0');
   ok('Las descripciones largas se ajustan en vez de desbordar',
-     fmt(g, 'Catálogo', 2, 7).ajustar === true);
+     fmt(g, 'Catálogo', 2, cc(g, 'Descripción')).ajustar === true);
 }
 
 // ═══ 3. Listas desplegables: no se escribe, se elige ═══
@@ -91,8 +93,8 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
      !!val('Pedidos', 400, 4), 'fila 400');
 
   ok('Destacado y Activo del catálogo son Sí/No',
-     ['Sí', 'No'].join() === (val('Catálogo', 2, 9) || {})._lista.join() &&
-     ['Sí', 'No'].join() === (val('Catálogo', 2, 10) || {})._lista.join());
+     ['Sí', 'No'].join() === (val('Catálogo', 2, cc(g, 'Destacado')) || {})._lista.join() &&
+     ['Sí', 'No'].join() === (val('Catálogo', 2, cc(g, 'Activo')) || {})._lista.join());
   ok('El tipo de cupón es una lista de los tres que entiende el código',
      (val('Cupones', 2, 2) || {})._lista.join('|') === 'porcentaje|fijo|envio',
      (val('Cupones', 2, 2) || {})._lista.join(', '));
@@ -100,7 +102,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
 
   // instalar() (A-5) siembra dos EJEMPLO en la categoría «Ejemplos» -no
   // «Frescos», que era del catálogo de tomates de antes de A-5-.
-  const cat = val('Catálogo', 2, 4);
+  const cat = val('Catálogo', 2, cc(g, 'Categoría'));
   ok('La categoría sugiere las que ya existen', !!cat && cat._lista.indexOf('Ejemplos') !== -1,
      cat ? cat._lista.join(', ') : 'sin lista');
   ok('  ...pero SÍ deja escribir una nueva: el negocio crece', cat._permiteOtros === true);
@@ -108,6 +110,129 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   ok('correo_siempre también es Sí/No',
      ((fmt(g, 'Configuración', filaDe(g, 'correo_siempre'), 2) || {}).validacion || {})
        ._lista.join() === 'Sí,No');
+}
+
+// ═══ 3b. 0.24.0 · La hoja ordenada (bitácora 110) ═══
+{
+  const g = nuevo();
+  const cab = n => g.hojas.get(n)._datos[0].map(String);
+  ok('EL CATÁLOGO se ve en orden lógico: lo de vender junto (precio, antes, stock, umbral, variantes)',
+     cab('Catálogo').join('|') === g.api.ORDEN_VISIBLE_CATALOGO.join('|'), cab('Catálogo').join(' · '));
+  ok('  ...y el inventario por variante con Precio al lado de Stock',
+     cab('Inventario por variante').join('|') === 'ID producto|Combinación|Precio|Stock|Código|Nota',
+     cab('Inventario por variante').join(' · '));
+  const pestañas = Array.from(g.hojas.keys());
+  ok('LAS PESTAÑAS van en el orden en que se usan: Catálogo primero',
+     pestañas[0] === 'Catálogo' && pestañas.indexOf('Pedidos') < pestañas.indexOf('Configuración') &&
+     pestañas.indexOf('Configuración') < pestañas.indexOf('Registro'), pestañas.join(' · '));
+  ok('  ...y cada una con su color (lo que escribe el comercio, informes, sistema)',
+     g.hojas.get('Catálogo')._colorPestana && g.hojas.get('Errores')._colorPestana &&
+     g.hojas.get('Catálogo')._colorPestana !== g.hojas.get('Errores')._colorPestana);
+
+  // La «Hoja 1» vacía se va; una con algo escrito, no.
+  const g1 = crear('./as.js'); g1.libro.insertSheet('Hoja 1'); g1.api.instalar();
+  ok('LA «HOJA 1» VACÍA con que nace la hoja se quita al instalar', !g1.hojas.has('Hoja 1'));
+  const g1b = crear('./as.js'); g1b.libro.insertSheet('Hoja 1').appendRow(['mis notas']); g1b.api.instalar();
+  ok('  ...pero si tiene algo escrito, se queda: puede ser del comercio', g1b.hojas.has('Hoja 1'));
+
+  // Configuración por secciones
+  const conf = g.hojas.get('Configuración')._datos.slice(1).map(f => String(f[0]));
+  const secciones = conf.filter(k => k.indexOf('▸') === 0);
+  ok('CONFIGURACIÓN va por secciones, con los mismos títulos del panel',
+     secciones.length >= 8 && secciones[0] === '▸ Tu tienda', secciones.join(' · '));
+  ok('  ...y ninguna sección se lee como clave', !Object.keys(g.api.leerConfiguracion()).some(k => k.indexOf('▸') === 0));
+  ok('  ...y la clave queda en su sección: negocio bajo «Tu tienda», cobro_modo bajo «El cobro»',
+     conf.indexOf('negocio') > conf.indexOf('▸ Tu tienda') && conf.indexOf('negocio') < conf.indexOf('▸ La venta') &&
+     conf.indexOf('cobro_modo') > conf.indexOf('▸ El cobro'));
+  // Una hoja vieja, sin secciones y con claves de más abajo, queda igual de legible
+  const antes = JSON.stringify(g.api.leerConfiguracion());
+  g.api.ordenarConfiguracion();
+  ok('  ...y ordenar dos veces no cambia nada ni pierde un valor', JSON.stringify(g.api.leerConfiguracion()) === antes);
+
+  // Listas en Configuración: todo lo sí/no y lo de opciones
+  const filaC = k => g.filas('Configuración').findIndex(f => f[0] === k) + 1;
+  const listaDe = k => ((fmt(g, 'Configuración', filaC(k), 2) || {}).validacion || {})._lista || [];
+  ok('TODO LO QUE TIENE OPCIONES en Configuración es una lista: f_avisame, catalogo_columnas, logo_tamano, tienda_abierta',
+     listaDe('f_avisame').join() === 'Sí,No' && listaDe('catalogo_columnas').join() === '3,4,5' &&
+     listaDe('logo_tamano').join() === '40,80,120' && listaDe('tienda_abierta').join() === 'Sí,No',
+     [listaDe('f_avisame'), listaDe('catalogo_columnas'), listaDe('logo_tamano')].map(x => x.join('/')).join(' · '));
+  ok('  ...y el Formato del catálogo sugiere los de siempre y deja escribir otro',
+     ((val2 => val2 && val2._lista.indexOf('Unidad') !== -1 && val2._permiteOtros)(fmt(g, 'Catálogo', 2, cc(g, 'Formato')).validacion)));
+
+  // Lo que se escribe abajo queda dentro del formato
+  ok('LO QUE SE AGREGA A MANO queda dentro del formato: la fila 900 del catálogo ya tiene lista y pesos',
+     !!fmt(g, 'Catálogo', 900, cc(g, 'Activo')).validacion && fmt(g, 'Catálogo', 900, cc(g, 'Precio')).formato === '"$"#,##0');
+
+  // Lo obligatorio se pinta
+  const reglas = g.hojas.get('Catálogo')._reglas;
+  const deCol = n => reglas.filter(x => x.rangos.some(rg => rg.c === cc(g, n)));
+  ok('LO OBLIGATORIO SE PINTA: nombre, precio y activo de una fila con código, en rojo si faltan',
+     ['Nombre', 'Precio', 'Activo'].every(n => deCol(n).length === 1 && /LEN\(TRIM\(\$A2\)\)>0/.test(deCol(n)[0].formula)),
+     reglas.map(x => x.formula).join(' | '));
+  ok('  ...y la fórmula mira la columna por su letra de hoy, no la de antes',
+     deCol('Precio')[0] && deCol('Precio')[0].formula.indexOf('$' + String.fromCharCode(64 + cc(g, 'Precio')) + '2') !== -1,
+     deCol('Precio')[0] && deCol('Precio')[0].formula);
+  const rc = g.hojas.get('Configuración')._reglas;
+  ok('  ...y en Configuración, las claves que bloquean la publicación',
+     rc.length >= 8 && rc.some(x => x.rangos[0].f === filaC('negocio')) && rc.some(x => x.rangos[0].f === filaC('whatsapp')),
+     rc.length + ' reglas');
+  g.api.presentarHojas();
+  ok('  ...y presentar dos veces no duplica las reglas', g.hojas.get('Catálogo')._reglas.length === reglas.length);
+}
+
+// ═══ 3c. 0.24.0 · Una hoja VIEJA se ordena sin perder nada ═══
+{
+  const g = crear('./as.js');
+  // Como la dejaba la 0.23: el orden del código, con datos y una fórmula
+  const viejo = g.api.ENCABEZADO_CATALOGO.slice();
+  const h = g.libro.insertSheet('Catálogo');
+  h.appendRow(viejo);
+  h.appendRow(['vieja', 'Vieja', 'Unidad', 'Cosas', 5000, 7, 'desc', 'v.jpg', 'No', 'Sí', 'REF-1', 6000, 2, 'Talla: S|M']);
+  h.getRange(2, 13).setFormula('=1+1');
+  g.api.instalar();
+  const d = g.hojas.get('Catálogo')._datos;
+  const col = n => d[0].indexOf(n);
+  ok('UNA HOJA VIEJA se ordena al instalar: cada dato sigue con su columna',
+     d[0].join('|') === g.api.ORDEN_VISIBLE_CATALOGO.join('|') && d[1][col('Precio')] === 5000 &&
+     d[1][col('Stock')] === 7 && d[1][col('Referencia')] === 'REF-1' && d[1][col('Variantes')] === 'Talla: S|M',
+     d[0].join(' · '));
+  ok('  ...y la fórmula viaja con su celda', g.hojas.get('Catálogo')._formulas.get('2,' + (col('Umbral bajo') + 1)) === '=1+1');
+  const cat = JSON.parse(g.api.doGet({ parameter: { a: 'catalogo' } })._texto);
+  ok('  ...y la tienda la lee igual que antes',
+     (cat.productos || []).some(p => p.id === 'vieja' && p.precio === 5000 && p.referencia === 'REF-1'));
+
+  // Un encabezado renombrado a mano: se lee como antes, por posición, y se dice
+  const g2 = crear('./as.js');
+  const h2 = g2.libro.insertSheet('Catálogo');
+  const renombrado = viejo.slice(); renombrado[4] = 'Precio COP';
+  h2.appendRow(renombrado);
+  h2.appendRow(['otra', 'Otra', 'Unidad', 'Cosas', 8000, 3, '', '', 'No', 'Sí']);
+  const cat2 = JSON.parse(g2.api.doGet({ parameter: { a: 'catalogo' } })._texto);
+  ok('UNA COLUMNA RENOMBRADA no convierte un precio en otra cosa: se lee por posición, como antes',
+     (cat2.productos || []).some(p => p.id === 'otra' && p.precio === 8000));
+  g2.api.asegurarColumnas('Catálogo', g2.api.ENCABEZADO_CATALOGO);
+  ok('  ...y no se le agrega un «Precio» vacío que le robaría la lectura',
+     g2.hojas.get('Catálogo')._datos[0].filter(x => x === 'Precio').length === 0);
+}
+
+// ═══ 3d. 0.24.0 · Una tienda que ya existía se pone al día SOLA, cada hora, una vez por versión ═══
+{
+  const g = crear('./as.js');
+  const h = g.libro.insertSheet('Catálogo');
+  h.appendRow(g.api.ENCABEZADO_CATALOGO.slice(0, 10));      // una hoja de hace varias versiones
+  h.appendRow(['vieja', 'Vieja', 'Unidad', 'Cosas', 5000, 7, 'desc', '', 'No', 'Sí']);
+  g.libro.insertSheet('Hoja 1');
+  const decir = console.log; console.log = () => {};
+  g.api.revisionHoraria();
+  console.log = decir;
+  const d = g.hojas.get('Catálogo')._datos;
+  ok('LA REVISIÓN DE CADA HORA pone la hoja al día sin A0_instalar: columnas nuevas, en su orden, y sin «Hoja 1»',
+     d[0].join('|') === g.api.ORDEN_VISIBLE_CATALOGO.join('|') && d[1][d[0].indexOf('Stock')] === 7 && !g.hojas.has('Hoja 1'),
+     d[0].join(' · '));
+  ok('  ...y queda anotado para no repetirlo en la misma versión', g.props.HOJA_AL_DIA === (require('fs').readFileSync('./as.js', 'utf8').match(/var VERSION_TIENDA = '([^']+)'/) || [])[1]);
+  const antes = g.escrituras.length;
+  g.api.revisionHoraria();
+  ok('  ...y la hora siguiente no vuelve a tocar la hoja', !g.escrituras.slice(antes).some(e => e.como === 'moveColumns'));
 }
 
 // ═══ 4. Los colores se pintan, no se escriben ═══
@@ -212,14 +337,14 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
 
   ok('Un producto apagado NO entra al respaldo', (() => {
        const g2 = configurar(nuevo());
-       g2.hojas.get('Catálogo').getRange(3, 10).setValue('No');   // croissant
+       g2.hojas.get('Catálogo').getRange(3, g2.columna('Catálogo', 'Activo')).setValue('No');   // croissant
        const r = new Function(g2.api.generarInventario().bloque + '\n; return PRODUCTOS;')();
        return r.length === 7 && !r.some(p => p.id === 'croissant');
      })());
 
   ok('Las comillas de una descripción no rompen el bloque', (() => {
        const g2 = configurar(nuevo());
-       g2.hojas.get('Catálogo').getRange(2, 7)
+       g2.hojas.get('Catálogo').getRange(2, g2.columna('Catálogo', 'Descripción'))
          .setValue('Dice "el mejor" y usa \\ barra y\nsalto de línea');
        try {
          const r = new Function(g2.api.generarInventario().bloque + '\n; return PRODUCTOS;')();
@@ -229,7 +354,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
 
   ok('Las fotos salen separadas, no en un solo texto con barras', (() => {
        const g2 = configurar(nuevo());
-       g2.hojas.get('Catálogo').getRange(2, 8)
+       g2.hojas.get('Catálogo').getRange(2, g2.columna('Catálogo', 'Imágenes'))
          .setValue('https://res.cloudinary.com/a.jpg|https://res.cloudinary.com/b.jpg');
        const r = new Function(g2.api.generarInventario().bloque + '\n; return PRODUCTOS;')();
        return r[0].imagenes.length === 2 && r[0].imagenes[1] === 'https://res.cloudinary.com/b.jpg';

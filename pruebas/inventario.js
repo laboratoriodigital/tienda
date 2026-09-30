@@ -35,8 +35,9 @@ const filaDe = (g, id) => g.filas('Catálogo').findIndex(f => f[0] === id) + 1;
 /* Como lo haría el comerciante: escribe Variantes y la hoja avisa. */
 function ponerVariantes(g, id, texto) {
   const h = g.hojas.get('Catálogo'), f = filaDe(g, id);
-  h.getRange(f, 14).setValue(texto);
-  g.api.alEditar({ range: { getSheet: () => h, getColumn: () => 14, getNumColumns: () => 1, getNumRows: () => 1,
+  const cv = g.columna('Catálogo', 'Variantes');
+  h.getRange(f, cv).setValue(texto);
+  g.api.alEditar({ range: { getSheet: () => h, getColumn: () => cv, getNumColumns: () => 1, getNumRows: () => 1,
                             getRow: () => f, getA1Notation: () => 'N' + f } });
 }
 const inv = g => (g.filas(H) || []).slice(1);
@@ -45,8 +46,9 @@ function ponerStock(g, id, combo, n) {
   const h = g.hojas.get(H);
   const i = (g.filas(H) || []).findIndex(f => f[0] === id && f[1] === combo) + 1;
   if (i < 1) throw new Error('no hay fila para ' + combo);
-  h.getRange(i, 3).setValue(n);
-  g.api.alEditar({ range: { getSheet: () => h, getColumn: () => 3, getNumColumns: () => 1, getNumRows: () => 1,
+  const cs = g.columna(H, 'Stock');
+  h.getRange(i, cs).setValue(n);
+  g.api.alEditar({ range: { getSheet: () => h, getColumn: () => cs, getNumColumns: () => 1, getNumRows: () => 1,
                             getRow: () => i, getA1Notation: () => 'C' + i } });
 }
 const stockFila = (g, id, combo) => (inv(g).find(f => f[0] === id && f[1] === combo) || [])[2];
@@ -162,11 +164,11 @@ const RM = 'Talla: M · Color: Rosa', RS = 'Talla: S · Color: Rosa', NM = 'Tall
   // ═══ 9. Una celda ilegible ═══
   const h = g.hojas.get(H);
   const iNM = (g.filas(H) || []).findIndex(f => f[0] === 'croissant' && f[1] === NM) + 1;
-  h.getRange(iNM, 3).setValue('dos');
+  h.getRange(iNM, g.columna(H, 'Stock')).setValue('dos');
   cat = get(g, { a: 'catalogo' }).productos.find(p => p.id === 'croissant');
   ok('UN NÚMERO ILEGIBLE no vale cero en silencio: esa combinación no se vende y queda anotada',
      cat.skus.find(s => s.eleccion === NM).stock === 0 && get(g, { a: 'catalogo' }).ilegibles > 0);
-  h.getRange(iNM, 3).setValue(2);
+  h.getRange(iNM, g.columna(H, 'Stock')).setValue(2);
 
   // ═══ 10. El apartado del cobro en línea, por combinación ═══
   {
@@ -206,6 +208,30 @@ const RM = 'Talla: M · Color: Rosa', RS = 'Talla: S · Color: Rosa', NM = 'Tall
     r = post(g, { a: 'guardar_combinaciones', k, op: op(), id: 'croissant',
                   cambios: { [RM]: '9' }, versiones: { [RM]: ver(RM) } });
     ok('  ...y con la huella vieja no pisa lo que cambió en la hoja', !r.ok && /Cambió en la hoja/.test(r.errores[RM]));
+
+    /* ═══ 0.24.0 · EL PRECIO DE UNA COMBINACIÓN, desde el panel (bitácora 110) ═══ */
+    const cmb = post(g, { a: 'productos', k }).productos.find(x => x.id === 'croissant').combinaciones;
+    const cRM = cmb.find(c => c.combinacion === RM);
+    ok('EL PANEL trae el precio de cada combinación, tal como está (vacío = el del producto)',
+       cRM && cRM.precio === '' && typeof cRM.versionPrecio === 'string');
+    r = post(g, { a: 'guardar_combinaciones', k, op: op(), id: 'croissant',
+                  precios: { [RM]: 'caro' }, versionesPrecio: { [RM]: cRM.versionPrecio } });
+    ok('  ...un precio que no es número no se guarda, y se dice junto a su combinación',
+       !r.ok && /pesos/.test((r.errores || {})[RM] || ''));
+    r = post(g, { a: 'guardar_combinaciones', k, op: op(), id: 'croissant',
+                  precios: { [RM]: '9900' }, versionesPrecio: { [RM]: cRM.versionPrecio } });
+    const filaRM = inv(g).find(f => f[0] === 'croissant' && f[1] === RM);
+    ok('  ...y uno bueno va a la columna Precio de su fila', r.ok && Number(filaRM[5]) === 9900, String(filaRM && filaRM[5]));
+    ok('  ...y queda en el Registro', (g.filas('Registro') || []).slice(-1)[0][3] === 'Cambió el precio de una combinación');
+    const vp = get(g, { a: 'validar', envio: 'zona-norte', items: 'croissant:1:' + RM.replace(/: /g, '=').replace(/ · /g, ';') + ',croissant:1:Talla=S;Color=Rosa' });
+    const precioProd = get(g, { a: 'catalogo' }).productos.find(x => x.id === 'croissant').precio;
+    ok('EL MAESTRO cobra la combinación a su precio y la otra al del producto',
+       vp.ok && vp.sub === 9900 + precioProd, 'sub ' + vp.sub + ' · producto ' + precioProd);
+    const cat2 = get(g, { a: 'catalogo' }).productos.find(x => x.id === 'croissant');
+    ok('  ...y el catálogo publica el precio de esa combinación',
+       (cat2.precios || []).some(x => x.eleccion === RM && x.precio === 9900), JSON.stringify(cat2.precios));
+    post(g, { a: 'guardar_combinaciones', k, op: op(), id: 'croissant',
+              precios: { [RM]: '' }, versionesPrecio: { [RM]: post(g, { a: 'productos', k }).productos.find(x => x.id === 'croissant').combinaciones.find(c => c.combinacion === RM).versionPrecio } });
 
     // La foto de una opción: el nombre es el dato.
     const fc = g.filas('Configuración').findIndex(x => x[0] === 'fotos_drive') + 1;

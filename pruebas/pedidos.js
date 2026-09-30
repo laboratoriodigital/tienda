@@ -264,7 +264,7 @@ ok('Ciudad con fórmula queda como texto',
   const puerta = o => JSON.parse(sucia.api.doGet({
     parameter: Object.assign({ t: sucia.token }, o) })._texto);
 
-  sucia.hojas.get('Catálogo').getRange(2, 5, 1, 1).setValue('$8.900');   // precio como texto
+  sucia.hojas.get('Catálogo').getRange(2, sucia.columna('Catálogo', 'Precio'), 1, 1).setValue('$8.900');   // precio como texto
   sucia.hojas.get('Envíos').getRange(3, 3, 1, 1).setValue('9,000');      // envío como texto
   sucia.hojas.get('Cupones').getRange(2, 4, 1, 1).setValue('50.000');    // mínimo como texto
 

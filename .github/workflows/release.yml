@@ -31,6 +31,11 @@ permissions:
 jobs:
   publicar:
     runs-on: ubuntu-latest
+    # ERA EL ÚNICO FLUJO SIN TOPE, y el de GitHub son seis horas de minutos
+    # pagados si algo se cuelga (un `gh` sin respuesta, el maestro frío que no
+    # contesta). Lo largo que cabe aquí es la espera de las pruebas —cinco
+    # minutos, abajo— más una pregunta al maestro: quince sobran.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -41,7 +46,9 @@ jobs:
       - name: Qué es esta corrida
         run: |
           v=$(node -p "require('./package.json').version")
-          ultima=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          # El checkout no baja etiquetas: se preguntan al remoto, o la ficha
+          # decía siempre «ninguna todavía» (bitácora 110).
+          ultima=$(git ls-remote --tags --refs origin 'v*' 2>/dev/null | sed 's#.*refs/tags/##' | sort -V | tail -1)
           {
             echo "## Cortar la versión $v de la semilla"
             echo ""

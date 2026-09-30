@@ -385,6 +385,10 @@ jobs:
           # hoja. Así que se sigue, se publica lo que sí está, y se DICE en
           # grande: un fallo que se traga en silencio es peor que uno que para.
           node montar/traer-fotos.mjs       --desde 2>&1 | tee /tmp/fotos.txt    || fallo_fotos=$?
+          # 0.24.0 · Lo lee el paso de «Publicar», que es OTRO proceso de shell:
+          # una variable de aquí allá llega vacía, y vacío ≠ "0" hacía que TODOS
+          # los commits de fotos dijeran «NO se pudieron traer» (bitácora 110).
+          echo "FALLO_FOTOS=$fallo_fotos" >> "$GITHUB_ENV"
 
           node montar/catalogo-estatico.mjs --desde 2>&1 | tee /tmp/catalogo.txt || estado=$?
           # Y EL RESPALDO AL FINAL, que es una copia del catálogo que se acaba
@@ -492,8 +496,16 @@ jobs:
           # La clave NO lleva la rama a propósito: una caché por rama multiplica
           # el almacenamiento, que en privado también se paga, y no protege de
           # nada porque la clave ya cambia cuando cambian las dependencias.
-          key: playwright-${{ runner.os }}-${{ hashFiles('pruebas/package-lock.json') }}
-          restore-keys: playwright-${{ runner.os }}-
+          #
+          # SOLO EL NAVEGADOR SIN VENTANA (revisión de minutos, 29-sep). Todas
+          # las baterías abren `chromium.launch()` sin opciones, y eso en
+          # Playwright es el «headless shell»: el Chromium completo —unos
+          # 600 MB instalado, frente a 320 del shell— se bajaba, se guardaba y
+          # se restauraba en cada corrida sin que nada lo abriera. Por eso
+          # `--only-shell` abajo, y por eso el prefijo nuevo de la clave: una
+          # caché vieja con el completo dentro no se vuelve a restaurar, caduca.
+          key: playwright-shell-${{ runner.os }}-${{ hashFiles('pruebas/package-lock.json') }}
+          restore-keys: playwright-shell-${{ runner.os }}-
 
       - name: Navegador para las pruebas
         if: steps.publicar.outputs.seguir == 'si'
@@ -503,9 +515,9 @@ jobs:
           # `--with-deps` instala paquetes apt y tarda; con la caché acertada el
           # navegador ya está en su sitio y esa instalación no aporta nada.
           if [ "${{ steps.navegador.outputs.cache-hit }}" = "true" ]; then
-            npx playwright install chromium
+            npx playwright install chromium --only-shell
           else
-            npx playwright install --with-deps chromium
+            npx playwright install --with-deps chromium --only-shell
           fi
 
       # LAS BATERÍAS DE UNA PUBLICACIÓN. Si el código de main ya pasó la suite
@@ -660,7 +672,7 @@ jobs:
           # mira el día que algo va mal; el historial se mira meses después,
           # cuando alguien pregunta por qué esa foto nunca apareció.
           sinFotos=""
-          [ "$fallo_fotos" != "0" ] && sinFotos="Las fotos del Drive NO se pudieron traer en esta corrida."
+          [ "${FALLO_FOTOS:-0}" != "0" ] && sinFotos="Las fotos del Drive NO se pudieron traer en esta corrida."
           detalle=$(grep -E '^  [+-] ' /tmp/fotos.txt || true)
           movidos=$(grep -E '^(Catálogo horneado|Productos:|Fotos con medidas)' \
                     /tmp/catalogo.txt || true)

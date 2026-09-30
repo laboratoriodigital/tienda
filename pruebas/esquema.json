@@ -16,39 +16,13 @@
       "Umbral bajo",
       "Variantes"
     ],
-    "Configuración": [
-      "Clave",
-      "Valor",
-      "Qué es"
-    ],
-    "Envíos": [
-      "ID",
-      "Nombre",
-      "Valor"
-    ],
-    "Cupones": [
+    "Inventario por variante": [
+      "ID producto",
+      "Combinación",
+      "Stock",
       "Código",
-      "Tipo",
-      "Valor",
-      "Mínimo",
-      "Vence",
-      "Usos máximos",
-      "Usos confirmados",
-      "Activo",
-      "Notas"
-    ],
-    "Validaciones": [
-      "Fecha",
-      "Pedido",
-      "Cupón",
-      "Subtotal según la hoja",
-      "Subtotal según la página",
-      "Discrepancia",
-      "Descuento",
-      "Envío",
-      "Total según la hoja",
-      "Detalle",
-      "Avisos"
+      "Nota",
+      "Precio"
     ],
     "Pedidos": [
       "Fecha",
@@ -73,6 +47,32 @@
       "Transacción de pago",
       "Seguimiento"
     ],
+    "Envíos": [
+      "ID",
+      "Nombre",
+      "Valor"
+    ],
+    "Cupones": [
+      "Código",
+      "Tipo",
+      "Valor",
+      "Mínimo",
+      "Vence",
+      "Usos máximos",
+      "Usos confirmados",
+      "Activo",
+      "Notas"
+    ],
+    "Configuración": [
+      "Clave",
+      "Valor",
+      "Qué es"
+    ],
+    "Tablero": [
+      "Indicador",
+      "Valor",
+      "Comparación"
+    ],
     "Más vendidos": [
       "Producto",
       "ID",
@@ -80,15 +80,12 @@
       "Ingresos",
       "Pedidos en que aparece"
     ],
-    "Tablero": [
-      "Indicador",
-      "Valor",
-      "Comparación"
-    ],
-    "Errores": [
-      "Fecha",
-      "Error",
-      "Primeros 200 caracteres recibidos"
+    "Avísame": [
+      "ID",
+      "Producto",
+      "Personas esperando",
+      "Desde",
+      "Último pedido de aviso"
     ],
     "Pagos": [
       "Fecha",
@@ -123,6 +120,19 @@
       "Dirección",
       "Notas"
     ],
+    "Validaciones": [
+      "Fecha",
+      "Pedido",
+      "Cupón",
+      "Subtotal según la hoja",
+      "Subtotal según la página",
+      "Discrepancia",
+      "Descuento",
+      "Envío",
+      "Total según la hoja",
+      "Detalle",
+      "Avisos"
+    ],
     "Registro": [
       "Fecha",
       "Desde",
@@ -132,33 +142,47 @@
       "Antes",
       "Después"
     ],
-    "Inventario por variante": [
-      "ID producto",
-      "Combinación",
-      "Stock",
-      "Código",
-      "Nota"
-    ],
-    "Avísame": [
-      "ID",
-      "Producto",
-      "Personas esperando",
-      "Desde",
-      "Último pedido de aviso"
+    "Errores": [
+      "Fecha",
+      "Error",
+      "Primeros 200 caracteres recibidos"
     ]
   },
   "configuracion": [
     "negocio",
     "whatsapp",
     "logo",
+    "favicon",
+    "horario",
+    "tienda_abierta",
+    "tienda_cerrada_mensaje",
+    "logo_tamano",
+    "envio_gratis_desde",
+    "retracto_excepciones",
+    "f_variantes",
+    "orden_catalogo",
+    "pedido_minimo",
+    "f_rastreo",
+    "f_avisame",
+    "pago_llave",
+    "pago_titular",
+    "pago_entidad",
+    "pago_texto",
+    "pago_tope",
+    "cobro_modo",
+    "cobro_ambiente",
     "portada_titulo",
     "portada_texto",
     "portada_puntos",
+    "catalogo_columnas",
+    "pie_descripcion",
+    "como_compras",
     "color_principal",
     "color_secundario",
     "color_alterno",
-    "pie_descripcion",
-    "como_compras",
+    "sitio_titulo",
+    "sitio_descripcion",
+    "analytics_id",
     "empresa_razon",
     "empresa_nit",
     "empresa_correo",
@@ -166,43 +190,20 @@
     "empresa_ciudad",
     "empresa_tel",
     "legal_actualizado",
-    "sitio_url",
-    "sitio_titulo",
-    "sitio_descripcion",
     "correo_resumen",
     "correo_hora",
     "correo_siempre",
-    "correo_ultimo",
+    "sitio_url",
     "fotos_origen",
     "fotos_cdn",
     "respaldo_carpeta",
     "fotos_drive",
     "fotos_webp",
-    "favicon",
-    "pago_llave",
-    "pago_titular",
-    "pago_entidad",
-    "pago_texto",
-    "pago_tope",
-    "envio_gratis_desde",
-    "horario",
     "repositorio",
     "f_autoria",
     "autoria_url",
-    "retracto_excepciones",
-    "f_variantes",
-    "orden_catalogo",
-    "panel_usuario",
-    "cobro_modo",
-    "cobro_ambiente",
-    "tienda_abierta",
-    "tienda_cerrada_mensaje",
-    "pedido_minimo",
-    "f_rastreo",
-    "f_avisame",
-    "catalogo_columnas",
-    "analytics_id",
-    "logo_tamano"
+    "correo_ultimo",
+    "panel_usuario"
   ],
   "nombresDePuertas": [
     "version",

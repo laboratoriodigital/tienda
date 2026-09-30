@@ -584,8 +584,7 @@ function versionDeFila(fila) {
 function filasDelCatalogo() {
   var h = elLibro().getSheetByName(H_CATALOGO);
   if (!h || h.getLastRow() < 2) return { h: h, filas: [] };
-  var ancho = Math.max(h.getLastColumn(), ENCABEZADO_CATALOGO.length);
-  return { h: h, filas: h.getRange(2, 1, h.getLastRow() - 1, ancho).getValues() };
+  return { h: h, filas: filasCanonicas(h, ENCABEZADO_CATALOGO) };
 }
 
 function filaDelProducto(filasCat, id) {
@@ -627,7 +626,10 @@ function atenderProductos() {
       combinaciones: (inv[id] || []).map(function (x) {
         return { combinacion: x.texto,
                  stock: String(x.crudo === null || x.crudo === undefined ? '' : x.crudo),
-                 version: versionDeValor(x.crudo), noCasa: !combinacionValida(f[13], x.clave) };
+                 version: versionDeValor(x.crudo), noCasa: !combinacionValida(f[13], x.clave),
+                 /* 0.24.0 · su precio propio, tal como está escrito (vacío = el del producto). */
+                 precio: String(x.precioCrudo === null || x.precioCrudo === undefined ? '' : x.precioCrudo),
+                 versionPrecio: versionDeValor(x.precioCrudo) };
       }),
       porCombinacion: !!skusDe(variantesDeCelda(f[13], ''), inv[id], '')
     };
@@ -805,7 +807,7 @@ function atenderGuardarProducto(p) {
       if (i !== -1) return { ok: false, error: 'Ya hay un producto con el código «' +
                              armado.fila[0] + '». Elige otro.' };
       var h = cat.h || hoja(H_CATALOGO, ENCABEZADO_CATALOGO);
-      h.appendRow(armado.fila);
+      agregarFilasCanonicas(h, [armado.fila], ENCABEZADO_CATALOGO);
       if (String(armado.fila[13] || '')) sincronizarVariantes();
       return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila), creado: true,
                _registro: [{ que: 'Creó el producto', donde: 'Catálogo · ' + armado.fila[0], antes: '',
@@ -820,11 +822,11 @@ function atenderGuardarProducto(p) {
       return { ok: false, cambiado: true, error: CAMBIO_ENTRE_MEDIAS };
     }
     var dif = diferenciaDeFilas(cat.filas[i], armado.fila);
-    cat.h.getRange(i + 2, 1, 1, ENCABEZADO_CATALOGO.length).setValues([armado.fila]);
+    escribirFilaCanonica(cat.h, i + 2, armado.fila, ENCABEZADO_CATALOGO);
     /* C-1b: si cambiaron las variantes, las filas del inventario se ponen al
        día en la misma operación; y la suma pisa un Stock escrito a mano. */
     sincronizarVariantes();
-    armado.fila[COL_STOCK - 1] = cat.h.getRange(i + 2, COL_STOCK).getValues()[0][0];
+    armado.fila[COL_STOCK - 1] = cat.h.getRange(i + 2, columnaDe(cat.h, ENCABEZADO_CATALOGO, 'Stock')).getValues()[0][0];
     return { ok: true, id: armado.fila[0], version: versionDeFila(armado.fila),
              _registro: dif.antes.length ? [{ que: 'Editó el producto', donde: 'Catálogo · ' + armado.fila[0],
                                                antes: dif.antes.join(' · '), despues: dif.despues.join(' · ') }] : null };
@@ -841,7 +843,7 @@ function atenderActivarProducto(p) {
     if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
     var activo = p.activo === true;
     var antes = String(cat.filas[i][9]);
-    cat.h.getRange(i + 2, 10).setValue(activo ? 'Sí' : 'No');
+    cat.h.getRange(i + 2, columnaDe(cat.h, ENCABEZADO_CATALOGO, 'Activo')).setValue(activo ? 'Sí' : 'No');
     cat.filas[i][9] = activo ? 'Sí' : 'No';
     return { ok: true, id: id, activo: activo, version: versionDeFila(cat.filas[i]),
              _registro: [{ que: activo ? 'Activó el producto' : 'Desactivó el producto', donde: 'Catálogo · ' + id,
@@ -864,9 +866,12 @@ function atenderBorrarProducto(p) {
     if (String(p.version || '') !== versionDeFila(cat.filas[i])) {
       return { ok: false, cambiado: true, error: CAMBIO_ENTRE_MEDIAS };
     }
-    var papelera = hoja(H_PAPELERA, ENCABEZADO_CATALOGO.concat(['Borrado el', 'Desde']));
-    papelera.appendRow(cat.filas[i].slice(0, ENCABEZADO_CATALOGO.length)
-                       .concat([new Date(), 'Panel']));
+    /* 0.24.0 · La Papelera va en el MISMO orden visible que Catálogo, para que
+       devolver un producto siga siendo copiar y pegar; se escribe por nombre. */
+    var encPapelera = ENCABEZADO_CATALOGO.concat(['Borrado el', 'Desde']);
+    var papelera = hoja(H_PAPELERA, ORDEN_VISIBLE_CATALOGO.concat(['Borrado el', 'Desde']));
+    papelera.appendRow(aFisica(cat.filas[i].slice(0, ENCABEZADO_CATALOGO.length).concat([new Date(), 'Panel']),
+                               mapaDeColumnas(papelera, encPapelera), null));
     cat.h.deleteRows(i + 2, 1);
     return { ok: true, id: id, borrado: true,
              _registro: [{ que: 'Borró el producto (fue a la Papelera)', donde: 'Catálogo · ' + id,
@@ -981,7 +986,7 @@ function atenderSubirFoto(p) {
        quedaría en la carpeta sin estar en la hoja — que es exactamente el
        estado del camino viejo a medias, y se arregla escribiendo el nombre. */
     enCelda.push(nombre);
-    cat.h.getRange(i + 2, 8).setValue(celdaSegura(enCelda.join('|'), 1900));
+    cat.h.getRange(i + 2, columnaDe(cat.h, ENCABEZADO_CATALOGO, 'Imágenes')).setValue(celdaSegura(enCelda.join('|'), 1900));
     cat.filas[i][7] = enCelda.join('|');
     return { ok: true, id: id, nombre: nombre, imagenes: enCelda.join('|'),
              version: versionDeFila(cat.filas[i]),
@@ -1842,7 +1847,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.23.0';
+var VERSION_TIENDA = '0.24.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -2076,22 +2081,29 @@ function instalar() {
   console.log('Instalando en la hoja: ' + libro.getName());
   /* 0.17.0 · el ID queda también en las propiedades (ver arriba, HOJA_ID). */
   try { propiedades().setProperty('HOJA_ID', String(HOJA_ID)); } catch (e) { }
-  var cat = hoja(H_CATALOGO, ENCABEZADO_CATALOGO);
+  /* 0.24.0 · Una hoja nueva nace en el orden en que se lee (ORDEN_VISIBLE), y
+     una vieja se ordena: las columnas se mueven enteras, con sus fórmulas y
+     su formato, y el código las encuentra por su nombre (bitácora 110). */
+  var cat = hoja(H_CATALOGO, ORDEN_VISIBLE_CATALOGO);
   asegurarColumnas(H_CATALOGO, ENCABEZADO_CATALOGO);   // hojas viejas: agrega lo que falte
+  ordenarColumnas(H_CATALOGO, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
+  ordenarColumnas(H_PAPELERA, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
   if (cat.getLastRow() < 2) {
     /* Dos filas de EJEMPLO, no un catálogo de otro comercio. Activo = No: se
        ven en la hoja para que el comerciante entienda el formato, pero no en
        la tienda hasta que él las active o —mejor— las reemplace por las
        suyas. diagnostico() avisa mientras quede alguna EJEMPLO activa. */
-    cat.getRange(2, 1, 2, 10).setValues([
-      ['ejemplo1','Producto de ejemplo — edítalo o bórralo','Unidad','Ejemplos',19900,10,
-       'Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.','','No','No'],
-      ['ejemplo2','Segundo producto de ejemplo — edítalo o bórralo','Unidad','Ejemplos',29900,5,
-       'Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.','','No','No']
-    ]);
-    cat.setColumnWidth(7, 380);   // Descripción
-    cat.setColumnWidth(8, 380);   // Imágenes
-    cat.getRange(2, 7, 2, 2).setWrap(true);
+    var ejemplo = function (valores) {
+      var f = ENCABEZADO_CATALOGO.map(function () { return ''; });
+      valores.forEach(function (v, i) { f[i] = v; });
+      return f;
+    };
+    agregarFilasCanonicas(cat, [
+      ejemplo(['ejemplo1','Producto de ejemplo — edítalo o bórralo','Unidad','Ejemplos',19900,10,
+       'Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.','','No','No']),
+      ejemplo(['ejemplo2','Segundo producto de ejemplo — edítalo o bórralo','Unidad','Ejemplos',29900,5,
+       'Un segundo ejemplo, para ver cómo se ve el catálogo con más de un producto. Cámbiala por tu segundo producto, o bórrala.','','No','No'])
+    ], ENCABEZADO_CATALOGO);
   }
 
   var cfg = hoja(H_CONFIG, ['Clave', 'Valor', 'Qué es']);
@@ -2148,7 +2160,9 @@ function instalar() {
   protegerRegistro();
   /* C-1b. La pestaña existe siempre, y se llenan las filas de lo que ya tenga
      Variantes. Con el stock vacío: nada cambia hasta que alguien lo llene. */
-  hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+  hoja(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO);
+  asegurarColumnas(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+  ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
   /* 0.11.0 · 4.1. Cuántos esperan cada producto agotado. Sin datos de nadie. */
   hoja(H_AVISAME, ENCABEZADO_AVISAME);
   var sync = sincronizarVariantes();
@@ -2157,8 +2171,15 @@ function instalar() {
   var cuantas = Object.keys(leerConfiguracion()).length;
   console.log('Configuración: ' + cuantas + ' claves.');
 
+  /* 0.24.0 · La hoja ordenada (bitácora 110): Configuración por secciones,
+     las pestañas en el orden en que se usan, y sin la «Hoja 1» vacía. */
+  if (ordenarConfiguracion()) console.log('Configuración ordenada por secciones.');
   presentarHojas();
-  console.log('Hojas con formato, listas desplegables y colores sincronizados.');
+  var movidas = ordenarPestanas();
+  var quitadas = quitarHojaVacia();
+  try { propiedades().setProperty('HOJA_AL_DIA', VERSION_TIENDA); } catch (e) { }
+  console.log('Hojas con formato, listas desplegables y colores sincronizados' +
+              (movidas ? '; pestañas en su orden' : '') + (quitadas ? '; se quitó la «Hoja 1» vacía' : '') + '.');
 
   ScriptApp.getProjectTriggers().forEach(function (t) {
     var f = t.getHandlerFunction();
@@ -3264,6 +3285,8 @@ function agregarClavesQueFaltan(h, semilla) {
   var desde = h.getLastRow() + 1;
   h.getRange(desde, 1, faltan.length, 3).setValues(faltan);
   h.getRange(desde, 2, faltan.length, 2).setWrap(true);
+  /* 0.24.0 · En una hoja por secciones, cada clave nueva va a la suya. */
+  if (filas(H_CONFIG).some(function (f) { return esSeccion(f[0]); })) ordenarConfiguracion();
   return faltan.map(function (f) { return f[0]; });
 }
 
@@ -3272,6 +3295,9 @@ function hoja(nombre, encabezados) {
   var h = libro.getSheetByName(nombre);
   if (!h) {
     h = libro.insertSheet(nombre);
+    /* 0.24.0 · las que se leen por nombre nacen en su orden visible. */
+    if (nombre === H_CATALOGO) encabezados = ORDEN_VISIBLE_CATALOGO;
+    if (nombre === H_INVENTARIO_VARIANTE) encabezados = ORDEN_VISIBLE_INVENTARIO;
     h.appendRow(encabezados);
     h.getRange(1, 1, 1, encabezados.length).setFontWeight('bold');
     h.setFrozenRows(1);
@@ -3285,14 +3311,175 @@ function asegurarColumnas(nombre, encabezados) {
   var h = elLibro().getSheetByName(nombre);
   if (!h) return;
   var actuales = h.getRange(1, 1, 1, Math.max(1, h.getLastColumn())).getValues()[0];
+  /* 0.24.0 · POR NOMBRE, en las pestañas que se leen por nombre. Falta una
+     columna nueva solo si están todas las anteriores del código: si falta una
+     vieja, alguien la renombró, y agregar otra vacía con el nombre de siempre
+     haría que el código leyera la vacía (un precio vacío tira el producto). */
+  if (encabezadoDe(nombre)) {
+    var tiene = actuales.map(function (x) { return llano(x); });
+    var hasta = actuales.length, agregadas = 0, rota = false;
+    encabezados.forEach(function (n) {
+      if (rota) return;
+      if (tiene.indexOf(llano(n)) !== -1) return;
+      /* Nueva de verdad = está en la COLA que falta: todas las anteriores del
+         código están y ninguna posterior. Si una posterior está, esta no es
+         nueva: la renombraron. */
+      var k = encabezados.indexOf(n);
+      var anteriores = encabezados.slice(0, k), posteriores = encabezados.slice(k + 1);
+      if (!anteriores.every(function (a) { return tiene.indexOf(llano(a)) !== -1; }) ||
+          posteriores.some(function (a) { return tiene.indexOf(llano(a)) !== -1; })) { rota = true; return; }
+      h.getRange(1, hasta + agregadas + 1).setValue(n).setFontWeight('bold');
+      tiene.push(llano(n)); agregadas++;
+    });
+    if (rota) anotarError('No se agregaron columnas nuevas a ' + nombre,
+      'Falta una columna de siempre (¿se renombró?). Revisa el encabezado: el código las busca por su nombre.');
+    olvidarColumnas();
+    return;
+  }
   for (var i = actuales.length; i < encabezados.length; i++) {
     h.getRange(1, i + 1).setValue(encabezados[i]).setFontWeight('bold');
   }
 }
 
+/* EL ORDEN EN QUE SE VE (0.24.0 · bitácora 110). El del código solo crece por
+   el final; este es el que busca quien abre la hoja: lo de vender junto. */
+var ORDEN_VISIBLE_CATALOGO = ['ID', 'Nombre', 'Categoría', 'Formato', 'Precio', 'Precio antes',
+                              'Stock', 'Umbral bajo', 'Variantes', 'Imágenes', 'Descripción',
+                              'Destacado', 'Activo', 'Referencia'];
+var ORDEN_VISIBLE_INVENTARIO = ['ID producto', 'Combinación', 'Precio', 'Stock', 'Código', 'Nota'];
+
+/* Mueve columnas enteras —valores, fórmulas, formato— hasta dejar `visible`
+   a la izquierda y en ese orden. Solo si están todas: si falta una, no toca
+   nada (la lectura por nombre sigue funcionando igual). Idempotente. */
+function ordenarColumnas(nombre, visible, encabezado) {
+  var h = elLibro().getSheetByName(nombre);
+  if (!h || h.getLastColumn() < 1) return 0;
+  var cab = function () {
+    return h.getRange(1, 1, 1, Math.max(1, h.getLastColumn())).getValues()[0].map(function (x) { return llano(x); });
+  };
+  var c0 = cab();
+  if (!visible.every(function (n) { return c0.indexOf(llano(n)) !== -1; })) return 0;
+  var movidas = 0;
+  visible.forEach(function (n, destino) {
+    var j = cab().indexOf(llano(n));
+    if (j !== destino) { h.moveColumns(h.getRange(1, j + 1), destino + 1); movidas++; }
+  });
+  olvidarColumnas();
+  return movidas;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LAS COLUMNAS SE LEEN POR SU NOMBRE (0.24.0 · bitácora 110)
+   --------------------------------------------------------------------------
+   El código habla en el orden de su ENCABEZADO —que solo crece por el final,
+   R1—, y hasta aquí la hoja tenía que estar en ESE orden: por eso Catálogo
+   acababa con Referencia, Precio antes, Umbral bajo y Variantes, lejos de
+   Precio y de Stock, que es donde alguien los busca. Ahora el orden VISIBLE es
+   libre: se lee el encabezado de la pestaña, se ubica cada columna por su
+   nombre, y el resto del código sigue recibiendo filas en su orden de siempre.
+
+   SI NO SE PUEDE UBICAR TODO, SE LEE COMO ANTES —por posición—. Una columna
+   renombrada a mano o repetida no puede convertir un precio en un stock: el
+   camino de siempre es el que ya funcionaba con esa hoja. Y se dice.
+
+   El mapa se guarda por ejecución (en Apps Script cada petición empieza de
+   cero); lo que cambia el encabezado —instalar, ordenar— lo olvida. */
+var MAPAS_DE_COLUMNAS = {};
+function olvidarColumnas() { MAPAS_DE_COLUMNAS = {}; }
+
+function encabezadoDe(nombre) {
+  if (nombre === H_CATALOGO) return ENCABEZADO_CATALOGO;
+  if (nombre === H_INVENTARIO_VARIANTE) return ENCABEZADO_INVENTARIO_VARIANTE;
+  return null;
+}
+
+function mapaDeColumnas(h, encabezado) {
+  var k = h.getName();
+  if (MAPAS_DE_COLUMNAS[k]) return MAPAS_DE_COLUMNAS[k];
+  var ultima = Math.max(h.getLastColumn(), 1);
+  var cab = h.getRange(1, 1, 1, ultima).getValues()[0].map(function (x) { return llano(x); });
+  var pos = [], falta = [], vistas = {};
+  encabezado.forEach(function (n, i) {
+    var j = cab.indexOf(llano(n));
+    if (j === -1 || vistas[j]) falta.push(n);
+    vistas[j] = true;
+    pos.push(j);
+  });
+  var identidad = encabezado.map(function (n, i) { return i; });
+  if (falta.length) {
+    /* Hoja vieja a medio instalar (le faltan columnas del final) es lo normal
+       y no se denuncia: asegurarColumnas las agrega. Lo que se denuncia es
+       un encabezado que no se entiende y no está en el orden de siempre. */
+    var enOrden = cab.slice(0, encabezado.length).every(function (c, i) { return !c || c === llano(encabezado[i]); });
+    if (!enOrden) anotarError('Encabezado de ' + k + ' que no se entiende',
+      'No se encontró: ' + falta.join(', ') + '. Se lee por posición, como antes. Revisa que no se haya renombrado una columna.');
+    pos = identidad;
+  }
+  var m = { pos: pos, ancho: Math.max(ultima, encabezado.length),
+            identidad: pos.every(function (p, i) { return p === i; }) };
+  MAPAS_DE_COLUMNAS[k] = m;
+  return m;
+}
+
+/* Fila física → fila en el orden del código. */
+function aCanonica(fisica, m) {
+  return m.pos.map(function (p) { var v = fisica[p]; return v === undefined || v === null ? '' : v; });
+}
+
+/* Fila en el orden del código → fila física, sobre `base` (lo que ya había en
+   esa fila, para no pisar columnas que el código no conoce). */
+function aFisica(canonica, m, base) {
+  var fis = [];
+  for (var i = 0; i < m.ancho; i++) fis.push(base && base[i] !== undefined ? base[i] : '');
+  m.pos.forEach(function (p, i) { fis[p] = canonica[i] === undefined ? '' : canonica[i]; });
+  return fis;
+}
+
+/* La columna física (1…) de una columna del código, por su nombre. */
+function columnaDe(h, encabezado, nombre) {
+  var i = encabezado.indexOf(nombre);
+  if (i === -1) throw new Error('columnaDe: ' + nombre + ' no está en el encabezado');
+  return mapaDeColumnas(h, encabezado).pos[i] + 1;
+}
+
+/* Todas las filas de datos de una pestaña con adaptador, en el orden del código. */
+function filasCanonicas(h, encabezado) {
+  if (!h || h.getLastRow() < 2) return [];
+  var m = mapaDeColumnas(h, encabezado);
+  var datos = h.getRange(2, 1, h.getLastRow() - 1, m.ancho).getValues();
+  return m.identidad ? datos : datos.map(function (f) { return aCanonica(f, m); });
+}
+
+/* Escribe UNA fila (número de hoja) que viene en el orden del código. */
+function escribirFilaCanonica(h, n, canonica, encabezado) {
+  var m = mapaDeColumnas(h, encabezado);
+  var base = h.getRange(n, 1, 1, m.ancho).getValues()[0];
+  h.getRange(n, 1, 1, m.ancho).setValues([aFisica(canonica, m, base)]);
+}
+
+/* Agrega filas al final, que vienen en el orden del código. */
+function agregarFilasCanonicas(h, filasCanon, encabezado) {
+  if (!filasCanon.length) return;
+  var m = mapaDeColumnas(h, encabezado);
+  /* Una sola: appendRow, que ubica la última fila y escribe en un paso (dos
+     guardados a la vez no caen en la misma fila). Varias: de una vez. */
+  if (filasCanon.length === 1) { h.appendRow(aFisica(filasCanon[0], m, null)); return; }
+  h.getRange(h.getLastRow() + 1, 1, filasCanon.length, m.ancho)
+   .setValues(filasCanon.map(function (f) { return aFisica(f, m, null); }));
+}
+
+/* Una columna entera (desde la fila 2), en el orden de las filas. */
+function escribirColumna(h, encabezado, nombre, valores) {
+  if (!valores.length) return;
+  h.getRange(2, columnaDe(h, encabezado, nombre), valores.length, 1)
+   .setValues(valores.map(function (v) { return [v]; }));
+}
+
 function filas(nombre) {
   var h = elLibro().getSheetByName(nombre);
   if (!h || h.getLastRow() < 2) return [];
+  var enc = encabezadoDe(nombre);
+  if (enc) return filasCanonicas(h, enc);
   return h.getRange(2, 1, h.getLastRow() - 1, h.getLastColumn()).getValues();
 }
 
@@ -3512,6 +3699,7 @@ function guardiaDe(puerta, p) {
 }
 
 function doGet(e) {
+  olvidarColumnas();
   try {
     recordarMiUrl();
     var p = (e && e.parameter) ? e.parameter : {};
@@ -4082,6 +4270,17 @@ function restaurarDatos(copia, pestanas) {
                seguridad: seguridad.nombre };
   try { PropertiesService.getScriptProperties().setProperty('RESTAURACION', JSON.stringify(dato)); } catch (e) { }
   try { anotarCambios('restaurar', 'A6_restaurarDatos', anotaciones); } catch (e) { }
+  /* 0.24.0 · Una copia de antes de la 0.24.0 vuelve con las columnas en el
+     orden viejo (su encabezado viaja con ella, así que se lee bien). Se
+     reordena para que el formato y las listas vuelvan a caer donde van. */
+  try {
+    olvidarColumnas();
+    if (hechas.some(function (x) { return x.pestana === H_CATALOGO || x.pestana === H_INVENTARIO_VARIANTE; })) {
+      ordenarColumnas(H_CATALOGO, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
+      ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
+      presentarHojas();
+    }
+  } catch (e) { }
   try { cacheFuera(); } catch (e) { }
 
   console.log('Restaurado desde ' + elegida.nombre + ': ' +
@@ -4907,7 +5106,7 @@ function leerConfiguracion() {
   var mapa = {};
   filas(H_CONFIG).forEach(function (f) {
     var clave = String(f[0]).trim();
-    if (clave) mapa[clave] = String(f[1] === undefined || f[1] === null ? '' : f[1]);
+    if (clave && !esSeccion(clave)) mapa[clave] = String(f[1] === undefined || f[1] === null ? '' : f[1]);
   });
   return mapa;
 }
@@ -4946,9 +5145,13 @@ function leerCatalogo() {
   var inv = leerInventarioVariante();
   Object.keys(mapa).forEach(function (id) {
     var s = skusDe(mapa[id].variantes, inv[id], 'Inventario por variante (' + id + ')');
-    if (!s) return;
-    mapa[id].skus = s.porClave;
-    mapa[id].stock = s.suma;
+    if (s) {
+      mapa[id].skus = s.porClave;
+      mapa[id].stock = s.suma;
+    }
+    /* 0.24.0 · y el precio de cada combinación, si tiene uno propio. */
+    var pr = preciosDe(mapa[id].variantes, inv[id], 'Inventario por variante (' + id + ')');
+    if (pr) { mapa[id].precios = pr.porClave; mapa[id].vetadas = pr.vetadas; }
   });
   return mapa;
 }
@@ -5045,6 +5248,12 @@ function validarPedido(p) {
        null = pidió algo que este comercio no ofrece: la línea se cae. */
     var elegido = variantePedida(t[2], prod.variantes, avisos, prod.nombre);
     if (elegido === null) { recortado = true; return; }
+    /* 0.24.0 · Una combinación con el precio ilegible no se vende. */
+    if (elegido && prod.vetadas && prod.vetadas[llano(elegido)]) {
+      avisos.push(prod.nombre + ' (' + elegido + ') no está disponible en este momento.');
+      recortado = true;
+      return;
+    }
 
     /* LA CLAVE ES PRODUCTO + VARIANTE. Dos tonos del mismo labial son dos
        líneas, no una: con la clave puesta solo en el id, la segunda se perdía
@@ -5085,9 +5294,12 @@ function validarPedido(p) {
     }
     if (cant >= 1) usado[llaveStock] = yaPedido + cant;
     if (cant < 1) return;
-    items.push({ id: id, nombre: prod.nombre, cantidad: cant, precio: prod.precio,
+    /* 0.24.0 · EL PRECIO ES EL DE LA COMBINACIÓN si tiene uno propio. Lo
+       decide la hoja, no la página: la página lo muestra, esto lo cobra. */
+    var precioLinea = (prod.precios && elegido && prod.precios[llano(elegido)]) || prod.precio;
+    items.push({ id: id, nombre: prod.nombre, cantidad: cant, precio: precioLinea,
                  variante: elegido });
-    sub += cant * prod.precio;
+    sub += cant * precioLinea;
   });
   /* Sin líneas, el motivo es lo único que sirve: «no hay productos válidos»
      a secas le escondía al segundo comprador que la última unidad la estaba
@@ -5545,6 +5757,7 @@ function aleatorio(n) {
    REGISTRO  —  POST desde navigator.sendBeacon
    ========================================================================== */
 function doPost(e) {
+  olvidarColumnas();
   try {
     if (!e || !e.postData || !e.postData.contents) throw new Error('POST vacío');
 
@@ -5631,9 +5844,25 @@ function catalogoPublico() {
   var inv = leerInventarioVariante();
   productos.forEach(function (p) {
     var s = skusDe(p.variantes, inv[p.id], 'Inventario por variante (' + p.id + ')');
-    if (!s) return;
-    p.stock = s.suma;
-    p.skus = s.lista;
+    if (s) {
+      p.stock = s.suma;
+      p.skus = s.lista;
+    }
+    /* 0.24.0 · el precio de cada combinación que tiene uno propio; las
+       vetadas (precio ilegible) salen con stock 0 para que no se elijan. */
+    var pr = preciosDe(p.variantes, inv[p.id], 'Inventario por variante (' + p.id + ')');
+    if (pr) {
+      p.precios = pr.lista;
+      var vetadas = Object.keys(pr.vetadas);
+      if (vetadas.length) {
+        var todas = combinacionesDe(p.variantes);
+        var skus = {};
+        (p.skus || todas.map(function (t) { return { eleccion: t, stock: p.stock }; }))
+          .forEach(function (k) { skus[llano(k.eleccion)] = k; });
+        vetadas.forEach(function (v) { if (skus[v]) skus[v] = { eleccion: skus[v].eleccion, stock: 0 }; });
+        p.skus = todas.map(function (t) { return skus[llano(t)] || { eleccion: t, stock: 0 }; });
+      }
+    }
   });
 
   var envios = filas(H_ENVIOS).map(function (f, i) {
@@ -6513,40 +6742,103 @@ function presentarHojas() {
     cfgH.getRange(2, 1, n, 1).setFontWeight('bold').setFontFamily('Roboto Mono').setFontSize(9);
     cfgH.getRange(2, 2, n, 2).setWrap(true);
     cfgH.getRange(2, 3, n, 1).setFontColor('#777777').setFontSize(9);
+    /* 0.24.0 · TODO LO QUE TIENE OPCIONES, CON SU LISTA (bitácora 110). Antes
+       eran cinco claves escritas aquí; ahora sale de la misma lista que usa el
+       panel, así que una opción nueva trae su desplegable sin acordarse de
+       venir aquí (patrón 2). */
+    cfgH.getRange(2, 2, n, 1).clearDataValidations();
     validarPorClave(cfgH, 'correo_siempre', lista(SI_NO, false));
     validarPorClave(cfgH, 'fotos_webp', lista(SI_NO, false));
     validarPorClave(cfgH, 'cobro_modo', lista(COBRO_MODOS, false));
     validarPorClave(cfgH, 'cobro_ambiente', lista(COBRO_AMBIENTES, false));
-    validarPorClave(cfgH, 'tienda_abierta', lista(SI_NO, false));
+    CLAVES_DEL_PANEL.forEach(function (d) {
+      if (d.tipo === 'sino') validarPorClave(cfgH, d.clave, lista(SI_NO, false));
+      else if (d.tipo === 'opcion' && d.opciones) validarPorClave(cfgH, d.clave, lista(d.opciones, false));
+    });
+    presentarSecciones(cfgH);
+    marcarClavesObligatorias(cfgH);
     sincronizarColores();
   }
 
-  // ---- Catálogo ----
+  // ---- Catálogo · por NOMBRE de columna, y hasta FILAS_CON_FORMATO ----
+  /* 0.24.0 · LO QUE SE ESCRIBE A MANO QUEDA DENTRO DEL FORMATO (bitácora 110).
+     Se formateaba hasta la última fila escrita: la fila que el comerciante
+     agregaba debajo nacía sin lista, sin formato de pesos y sin nada. Ahora
+     el formato y las listas cubren FILAS_CON_FORMATO filas por delante. */
   var cat = libro.getSheetByName(H_CATALOGO);
   if (cat) {
-    var c = encabezar(cat, [110, 230, 130, 120, 100, 80, 380, 320, 100, 90, 120, 110, 100]);
-    cat.getRange(2, 5, c.filas, 1).setNumberFormat('"$"#,##0');
-    cat.getRange(2, 6, c.filas, 1).setNumberFormat('#,##0').setHorizontalAlignment('center');
-    cat.getRange(2, 1, c.filas, 1).setFontFamily('Roboto Mono').setFontSize(9);
-    cat.getRange(2, 7, c.filas, 2).setWrap(true).setFontSize(9);
-    cat.getRange(2, 9, c.filas, 2).setHorizontalAlignment('center');
-    cat.getRange(2, 4, c.filas, 1).setDataValidation(lista(categoriasDelCatalogo(), true,
+    encabezar(cat, []);
+    var c = { filas: filasConFormato(cat) };
+    var col = function (n) { return columnaDe(cat, ENCABEZADO_CATALOGO, n); };
+    var ANCHO = { 'ID': 120, 'Nombre': 230, 'Categoría': 120, 'Formato': 110, 'Precio': 95, 'Precio antes': 95,
+                  'Stock': 70, 'Umbral bajo': 80, 'Variantes': 230, 'Imágenes': 280, 'Descripción': 340,
+                  'Destacado': 90, 'Activo': 75, 'Referencia': 110 };
+    Object.keys(ANCHO).forEach(function (n) { cat.setColumnWidth(col(n), ANCHO[n]); });
+    ['Precio', 'Precio antes'].forEach(function (n) { cat.getRange(2, col(n), c.filas, 1).setNumberFormat('"$"#,##0'); });
+    ['Stock', 'Umbral bajo'].forEach(function (n) {
+      cat.getRange(2, col(n), c.filas, 1).setNumberFormat('#,##0').setHorizontalAlignment('center'); });
+    cat.getRange(2, col('ID'), c.filas, 1).setFontFamily('Roboto Mono').setFontSize(9);
+    ['Descripción', 'Imágenes', 'Variantes'].forEach(function (n) {
+      cat.getRange(2, col(n), c.filas, 1).setWrap(true).setFontSize(9); });
+    cat.getRange(2, col('Categoría'), c.filas, 1).setDataValidation(lista(categoriasDelCatalogo(), true,
       'Elige una categoría o escribe una nueva'));
-    cat.getRange(2, 9, c.filas, 2).setDataValidation(lista(SI_NO, false));
+    cat.getRange(2, col('Formato'), c.filas, 1).setDataValidation(lista(formatosDelCatalogo(), true,
+      'Elige un formato o escribe uno nuevo'));
+    ['Destacado', 'Activo'].forEach(function (n) {
+      cat.getRange(2, col(n), c.filas, 1).setDataValidation(lista(SI_NO, false)).setHorizontalAlignment('center'); });
+    cat.setFrozenColumns(2);
+    /* LO OBLIGATORIO SE PINTA SOLO. Una fila con código y sin nombre o sin
+       precio no se vende, y hasta aquí eso solo lo decía el diagnóstico.
+       Reglas de formato condicional: se ven al escribir, sin correr nada. */
+    marcarObligatorias(cat, c.filas, [
+      { cual: 'ID', si: '=AND(LEN(TRIM({ID}))=0,LEN(TRIM({Nombre}))>0)' },
+      { cual: 'Nombre', si: '=AND(LEN(TRIM({ID}))>0,LEN(TRIM({Nombre}))=0)' },
+      { cual: 'Precio', si: '=AND(LEN(TRIM({ID}))>0,LEN(TRIM({Precio}))=0)' },
+      { cual: 'Activo', si: '=AND(LEN(TRIM({ID}))>0,LEN(TRIM({Activo}))=0)' }
+    ], function (n) { return col(n); });
+  }
+
+  // ---- Inventario por variante ----
+  var inv = libro.getSheetByName(H_INVENTARIO_VARIANTE);
+  if (inv) {
+    encabezar(inv, []);
+    var ci = function (n) { return columnaDe(inv, ENCABEZADO_INVENTARIO_VARIANTE, n); };
+    var ni = filasConFormato(inv);
+    var ANCHO_I = { 'ID producto': 140, 'Combinación': 260, 'Precio': 100, 'Stock': 80, 'Código': 120, 'Nota': 240 };
+    Object.keys(ANCHO_I).forEach(function (n) { inv.setColumnWidth(ci(n), ANCHO_I[n]); });
+    inv.getRange(2, ci('Precio'), ni, 1).setNumberFormat('"$"#,##0');
+    inv.getRange(2, ci('Stock'), ni, 1).setNumberFormat('#,##0').setHorizontalAlignment('center');
+    inv.getRange(2, ci('ID producto'), ni, 1).setFontFamily('Roboto Mono').setFontSize(9).setFontColor('#777777');
+    inv.getRange(2, ci('Combinación'), ni, 1).setFontColor('#777777');
+    inv.getRange(2, ci('Nota'), ni, 1).setFontSize(9).setFontColor('#B3261E');
+    inv.setFrozenColumns(2);
   }
 
   // ---- Envíos ----
   var env = libro.getSheetByName(H_ENVIOS);
   if (env) {
     var e = encabezar(env, [140, 320, 120]);
+    e.filas = filasConFormato(env);
     env.getRange(2, 1, e.filas, 1).setFontFamily('Roboto Mono').setFontSize(9);
     env.getRange(2, 3, e.filas, 1).setNumberFormat('"$"#,##0');
+    marcarObligatorias(env, e.filas, [
+      { cual: 'ID', si: '=AND(LEN(TRIM({ID}))=0,LEN(TRIM({Nombre}))>0)' },
+      { cual: 'Nombre', si: '=AND(LEN(TRIM({ID}))>0,LEN(TRIM({Nombre}))=0)' },
+      { cual: 'Valor', si: '=AND(LEN(TRIM({ID}))>0,LEN(TRIM({Valor}))=0)' }
+    ], function (n) { return ['ID', 'Nombre', 'Valor'].indexOf(n) + 1; });
   }
 
   // ---- Cupones ----
   var cup = libro.getSheetByName(H_CUPONES);
   if (cup) {
     var u = encabezar(cup, [140, 110, 100, 110, 110, 110, 130, 90, 260]);
+    u.filas = filasConFormato(cup);
+    marcarObligatorias(cup, u.filas, [
+      { cual: 'Tipo', si: '=AND(LEN(TRIM({Código}))>0,LEN(TRIM({Tipo}))=0)' },
+      { cual: 'Valor', si: '=AND(LEN(TRIM({Código}))>0,LEN(TRIM({Tipo}))>0,{Tipo}<>"envio",LEN(TRIM({Valor}))=0)' },
+      { cual: 'Activo', si: '=AND(LEN(TRIM({Código}))>0,LEN(TRIM({Activo}))=0)' }
+    ], function (n) { return ['Código', 'Tipo', 'Valor', 'Mínimo', 'Vence', 'Usos máximos',
+                              'Usos confirmados', 'Activo', 'Notas'].indexOf(n) + 1; });
     cup.getRange(2, 1, u.filas, 1).setFontFamily('Roboto Mono').setFontWeight('bold');
     cup.getRange(2, 3, u.filas, 2).setNumberFormat('#,##0');
     cup.getRange(2, 5, u.filas, 1).setNumberFormat('yyyy-mm-dd').setHorizontalAlignment('center');
@@ -6606,6 +6898,165 @@ function presentarHojas() {
     err.getRange(2, 2, e2.filas, 1).setFontColor('#B3261E');
   }
   return true;
+}
+
+/* Cuántas filas cubren el formato y las listas: las escritas y 500 más, y
+   nunca menos de 1000. */
+var FILAS_CON_FORMATO = 1000;
+function filasConFormato(h) { return Math.max(FILAS_CON_FORMATO, h.getLastRow() + 500) - 1; }
+
+/* Reglas de formato condicional para lo obligatorio. `si` lleva {Columna} por
+   nombre; se traduce a la letra física de la fila 2 ($ en la columna). Se
+   reemplazan SOLO las reglas propias (fondo ROJO_FALTA): las que haya puesto
+   el comerciante se quedan. */
+var ROJO_FALTA = '#F9D6D3';
+function letraDe(n) { var s = ''; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function marcarObligatorias(h, filasN, reglas, colDe) {
+  if (!h.getConditionalFormatRules) return;
+  var ajenas = h.getConditionalFormatRules().filter(function (x) { return !esReglaPropia(x); });
+  var nuevas = reglas.map(function (rg) {
+    var formula = rg.si.replace(/\{([^}]+)\}/g, function (_, nombre) { return '$' + letraDe(colDe(nombre)) + '2'; });
+    return SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(formula).setBackground(ROJO_FALTA)
+      .setRanges([h.getRange(2, colDe(rg.cual), filasN, 1)]).build();
+  });
+  h.setConditionalFormatRules(ajenas.concat(nuevas));
+}
+function esReglaPropia(regla) {
+  try {
+    var b = regla.getBooleanCondition && regla.getBooleanCondition();
+    var fondo = b && b.getBackgroundObject && b.getBackgroundObject();
+    var hex = fondo && fondo.asRgbColor ? fondo.asRgbColor().asHexString() : (b && b.getBackground ? b.getBackground() : '');
+    return String(hex || '').toUpperCase() === ROJO_FALTA;
+  } catch (e) { return false; }
+}
+
+function formatosDelCatalogo() {
+  var vistas = {}, salida = [];
+  filas(H_CATALOGO).forEach(function (f) {
+    var c = String(f[2]).trim();
+    if (c && !vistas[c]) { vistas[c] = true; salida.push(c); }
+  });
+  ['Unidad', 'Paquete', 'Caja', 'Kilo', 'Libra', 'Litro'].forEach(function (c) {
+    if (!vistas[c]) { vistas[c] = true; salida.push(c); } });
+  return salida.slice(0, 200);
+}
+
+/* ══ CONFIGURACIÓN POR SECCIONES (0.24.0 · bitácora 110) ══
+   Cincuenta y tantas claves en una sola columna, en el orden en que fueron
+   naciendo, no se leen. Se agrupan con los mismos títulos del panel —«Tu
+   tienda», «La venta», «El cobro»…— y lo técnico al final. Una fila de
+   sección empieza con «▸ » y NO es una clave: la lectura la salta. Como todo
+   se lee y se escribe por nombre (CONTRATOS §5), mover filas no rompe nada. */
+var MARCA_SECCION = '▸ ';
+var SECCION_TECNICA = 'Técnico: lo llena el alta o el sistema; no lo cambies sin saber para qué';
+function esSeccion(clave) { return String(clave || '').indexOf(MARCA_SECCION.trim()) === 0; }
+
+function grupoDeClave(clave) {
+  for (var i = 0; i < CLAVES_DEL_PANEL.length; i++) if (CLAVES_DEL_PANEL[i].clave === clave) return CLAVES_DEL_PANEL[i].grupo;
+  return SECCION_TECNICA;
+}
+
+/* Reescribe Configuración agrupada. Idempotente: si ya está así, no escribe. */
+function ordenarConfiguracion() {
+  var h = elLibro().getSheetByName(H_CONFIG);
+  if (!h || h.getLastRow() < 2) return false;
+  var n = h.getLastRow() - 1;
+  var actual = h.getRange(2, 1, n, 3).getValues();
+  var semilla = semillaDeConfiguracion().map(function (f) { return f[0]; });
+  var entradas = actual.filter(function (f) { var k = String(f[0]).trim(); return k && !esSeccion(k); });
+  var grupos = GRUPOS_DEL_PANEL.concat([SECCION_TECNICA]);
+  var orden = function (k) { var i = semilla.indexOf(k); return i === -1 ? 9999 : i; };
+  var salida = [];
+  grupos.forEach(function (g) {
+    var suyas = entradas.filter(function (f) { return grupoDeClave(String(f[0]).trim()) === g; })
+      .sort(function (a, b) { return orden(String(a[0]).trim()) - orden(String(b[0]).trim()); });
+    if (!suyas.length) return;
+    salida.push([MARCA_SECCION + g, '', '']);
+    suyas.forEach(function (f) { salida.push(f); });
+  });
+  var igual = salida.length === actual.length && salida.every(function (f, i) {
+    return f.every(function (v, j) { return String(v) === String(actual[i][j]); });
+  });
+  if (igual) return false;
+  h.getRange(2, 1, n, 3).clearContent();
+  h.getRange(2, 2, n, 1).setBackground('#FFFFFF');
+  h.getRange(2, 1, salida.length, 3).setValues(salida);
+  return true;
+}
+
+/* El aspecto de las filas de sección. */
+function presentarSecciones(h) {
+  var datos = h.getLastRow() >= 2 ? h.getRange(2, 1, h.getLastRow() - 1, 1).getValues() : [];
+  datos.forEach(function (f, i) {
+    var r = h.getRange(i + 2, 1, 1, 3);
+    if (esSeccion(f[0])) {
+      r.setBackground('#ECEFF1').setFontWeight('bold').setFontSize(10).setFontColor(TINTA_HOJA).setFontFamily('Arial');
+    }
+  });
+}
+
+/* En Configuración, las claves que bloquean la publicación, en rojo mientras
+   estén vacías (las mismas de LISTA_DE_ALTA que bloquean). */
+function marcarClavesObligatorias(h) {
+  if (!h.getConditionalFormatRules) return;
+  var datos = h.getLastRow() >= 2 ? h.getRange(2, 1, h.getLastRow() - 1, 1).getValues() : [];
+  var obligatorias = LISTA_DE_ALTA.filter(function (x) { return x.bloquea; }).map(function (x) { return x.clave; })
+    .concat(['empresa_correo', 'empresa_tel']);
+  var ajenas = h.getConditionalFormatRules().filter(function (x) { return !esReglaPropia(x); });
+  var nuevas = [];
+  datos.forEach(function (f, i) {
+    var k = String(f[0]).trim();
+    if (obligatorias.indexOf(k) === -1) return;
+    var fila = i + 2;
+    var si = (k === 'empresa_correo' || k === 'empresa_tel')
+      ? '=AND(LEN(TRIM($B' + fila + '))=0,COUNTIFS($A:$A,"empresa_correo",$B:$B,"<>")+COUNTIFS($A:$A,"empresa_tel",$B:$B,"<>")=0)'
+      : '=LEN(TRIM($B' + fila + '))=0';
+    nuevas.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(si)
+      .setBackground(ROJO_FALTA).setRanges([h.getRange(fila, 2)]).build());
+  });
+  h.setConditionalFormatRules(ajenas.concat(nuevas));
+}
+
+/* ══ LAS PESTAÑAS, EN EL ORDEN EN QUE SE USAN (0.24.0) ══
+   Primero lo que el comercio escribe, después la operación, los informes, y
+   al final lo que escribe el sistema. Las que no conoce (una del comercio) van
+   detrás de las suyas, en su orden. El color dice de quién es cada una. */
+var ORDEN_PESTANAS = [
+  ['Catálogo', '#1B5E3A'], ['Inventario por variante', '#1B5E3A'], ['Pedidos', '#1F3A5F'],
+  ['Envíos', '#1B5E3A'], ['Cupones', '#1B5E3A'], ['Configuración', '#1B5E3A'],
+  ['Tablero', '#8E6C00'], ['Más vendidos', '#8E6C00'], ['Avísame', '#8E6C00'],
+  ['Pagos', '#9E9E9E'], ['Datos de entrega', '#9E9E9E'], ['Validaciones', '#9E9E9E'],
+  ['Registro', '#9E9E9E'], ['Errores', '#9E9E9E'], ['Papelera', '#9E9E9E']
+];
+function ordenarPestanas() {
+  var libro = elLibro();
+  if (!libro.moveActiveSheet || !libro.setActiveSheet) return 0;
+  var pos = 0, movidas = 0;
+  ORDEN_PESTANAS.forEach(function (par) {
+    var h = libro.getSheetByName(par[0]);
+    if (!h) return;
+    pos++;
+    try { if (h.setTabColor) h.setTabColor(par[1]); } catch (e) { }
+    var ahora = libro.getSheets().map(function (x) { return x.getName(); }).indexOf(par[0]) + 1;
+    if (ahora !== pos) { libro.setActiveSheet(h); libro.moveActiveSheet(pos); movidas++; }
+  });
+  var primera = libro.getSheetByName(H_CATALOGO);
+  if (primera) libro.setActiveSheet(primera);
+  return movidas;
+}
+
+/* La «Hoja 1» con que nace toda hoja de Google, VACÍA, sobra: se borra. Con
+   algo escrito no se toca —puede ser del comercio—. */
+function quitarHojaVacia() {
+  var libro = elLibro();
+  if (!libro.deleteSheet) return 0;
+  var quitadas = 0;
+  libro.getSheets().forEach(function (h) {
+    if (/^(hoja|sheet)\s*1$/i.test(h.getName()) && h.getLastRow() === 0 && h.getLastColumn() === 0 &&
+        libro.getSheets().length > 1) { libro.deleteSheet(h); quitadas++; }
+  });
+  return quitadas;
 }
 
 function categoriasDelCatalogo() {
@@ -7070,7 +7521,7 @@ function aplicarInventario() {
 
   var anchoP = Math.max(hp.getLastColumn(), COL_INVENTARIO);
   var pedidos = hp.getRange(2, 1, hp.getLastRow() - 1, anchoP).getValues();
-  var cat = hc.getRange(2, 1, hc.getLastRow() - 1, 10).getValues();
+  var cat = filasCanonicas(hc, ENCABEZADO_CATALOGO);
 
   var filaDe = {};
   cat.forEach(function (f, i) {
@@ -7143,11 +7594,9 @@ function aplicarInventario() {
   }
   if (cambios) {
     hp.getRange(2, COL_INVENTARIO, marcas.length, 1).setValues(marcas);
-    hc.getRange(2, COL_STOCK, cat.length, 1).setValues(cat.map(function (f) {
-      return [f[COL_STOCK - 1]];
-    }));
+    escribirColumna(hc, ENCABEZADO_CATALOGO, 'Stock', cat.map(function (f) { return f[COL_STOCK - 1]; }));
     if (combos.cambioInv) {
-      combos.hi.getRange(2, 1, combos.inv.length, ENCABEZADO_INVENTARIO_VARIANTE.length).setValues(combos.inv);
+      escribirColumna(combos.hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Stock', combos.inv.map(function (f) { return f[2]; }));
       escribirSumas();
     }
     // Que la tienda vea el stock nuevo de una vez y no dentro de un minuto.
@@ -7587,8 +8036,9 @@ function alEditar(e) {
     /* C-1b · Cambió Variantes en Catálogo, o un número del inventario por
        combinación: se generan las filas que falten y se reescribe la suma. */
     if (h.getName() === H_INVENTARIO_VARIANTE ||
-        (h.getName() === H_CATALOGO && e.range.getColumn() <= 14 &&
-         e.range.getColumn() + e.range.getNumColumns() - 1 >= 14)) {
+        (h.getName() === H_CATALOGO && (function (c) {
+           return e.range.getColumn() <= c && e.range.getColumn() + e.range.getNumColumns() - 1 >= c;
+         })(columnaDe(h, ENCABEZADO_CATALOGO, 'Variantes')))) {
       sincronizarVariantes();
       return;
     }
@@ -8399,7 +8849,40 @@ function quitarConciliador() {
 function revisionHoraria() {
   try { if (Object.keys(leerCobros()).length) conciliarPagos(); }
   catch (err) { registrarError('revisionHoraria: ' + err.message, null); }
+  try { ponerHojaAlDia(); }
+  catch (err) { registrarError('ponerHojaAlDia: ' + err.message, null); }
   recalcularResumen();
+}
+
+/* 0.24.0 · LA HOJA SE PONE AL DÍA SOLA (bitácora 110). Lo que instalar() hace
+   con la hoja —columnas nuevas y en su orden, Configuración por secciones,
+   listas, lo obligatorio en rojo, pestañas en orden, sin «Hoja 1»— pedía
+   correr A0_instalar en el editor de cada tienda después de cada versión que
+   lo cambiara. Ahora lo hace la revisión de cada hora, UNA vez por versión del
+   maestro, bajo la llave. No toca datos: mueve columnas enteras y da formato. */
+function ponerHojaAlDia(forzar) {
+  var p = propiedades();
+  if (!forzar && p.getProperty('HOJA_AL_DIA') === VERSION_TIENDA) return false;
+  var llave = LockService.getScriptLock();
+  llave.waitLock(30000);
+  try {
+    olvidarColumnas();
+    asegurarColumnas(H_CATALOGO, ENCABEZADO_CATALOGO);
+    ordenarColumnas(H_CATALOGO, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
+    ordenarColumnas(H_PAPELERA, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
+    if (elLibro().getSheetByName(H_INVENTARIO_VARIANTE)) {
+      asegurarColumnas(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+      ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
+    }
+    var cfg = elLibro().getSheetByName(H_CONFIG);
+    if (cfg) agregarClavesQueFaltan(cfg, semillaDeConfiguracion());
+    ordenarConfiguracion();
+    presentarHojas();
+    ordenarPestanas();
+    quitarHojaVacia();
+    p.setProperty('HOJA_AL_DIA', VERSION_TIENDA);
+    return true;
+  } finally { llave.releaseLock(); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -8734,7 +9217,11 @@ function protegerRegistro() {
    correo— sigue funcionando sin tocarlo.
    ══════════════════════════════════════════════════════════════════════════ */
 var H_INVENTARIO_VARIANTE = 'Inventario por variante';
-var ENCABEZADO_INVENTARIO_VARIANTE = ['ID producto', 'Combinación', 'Stock', 'Código', 'Nota'];
+var ENCABEZADO_INVENTARIO_VARIANTE = ['ID producto', 'Combinación', 'Stock', 'Código', 'Nota',
+                                      /* 0.24.0 · al final del CÓDIGO (R1); en la hoja
+                                         va al lado de Stock (ORDEN_VISIBLE). Vacío =
+                                         el precio del producto (bitácora 110). */
+                                      'Precio'];
 var NOTA_NO_CASA = 'Ya no está en Variantes: no cuenta';
 
 /* Todas las combinaciones de los grupos, en el orden del catálogo y con el
@@ -8761,14 +9248,42 @@ function leerInventarioVariante() {
   var r = {};
   var h = elLibro().getSheetByName(H_INVENTARIO_VARIANTE);
   if (!h || h.getLastRow() < 2) return r;
-  h.getRange(2, 1, h.getLastRow() - 1, ENCABEZADO_INVENTARIO_VARIANTE.length).getValues()
+  filasCanonicas(h, ENCABEZADO_INVENTARIO_VARIANTE)
    .forEach(function (f, i) {
      var id = String(f[0]).trim(), texto = String(f[1]).trim();
      if (!id || !texto) return;
      if (!r[id]) r[id] = [];
-     r[id].push({ clave: llano(texto), texto: texto, crudo: f[2], fila: i + 2 });
+     r[id].push({ clave: llano(texto), texto: texto, crudo: f[2], precioCrudo: f[5], fila: i + 2 });
    });
   return r;
+}
+
+/* ══ EL PRECIO DE CADA COMBINACIÓN (0.24.0 · bitácora 110) ══
+   `Inventario por variante › Precio`: vacío = el precio del producto. Es
+   independiente del stock: una talla XL puede costar más sin que nadie lleve
+   inventario por combinación. Solo cuentan las combinaciones que casan con
+   Variantes. Un precio ilegible NO es un precio de cero ni el del producto: esa
+   combinación no se vende hasta que alguien arregle la celda (como un precio
+   ilegible en Catálogo tira el producto) y queda anotada.
+   Devuelve null si ninguna combinación tiene precio propio. */
+function preciosDe(grupos, filasInv, donde) {
+  if (!grupos || !grupos.length || !filasInv || !filasInv.length) return null;
+  if (cuantasCombinaciones(grupos) > MAX_COMBINACIONES) return null;
+  var validas = {};
+  combinacionesDe(grupos).forEach(function (t) { validas[llano(t)] = t; });
+  var porClave = {}, lista = [], vetadas = {}, hay = false;
+  filasInv.forEach(function (x) {
+    if (validas[x.clave] === undefined) return;
+    var crudo = String(x.precioCrudo === null || x.precioCrudo === undefined ? '' : x.precioCrudo).trim();
+    if (!crudo) return;
+    var n = cifra(x.precioCrudo, donde + ' fila ' + x.fila + ' (Precio)');
+    hay = true;
+    if (n === null || n <= 0) { vetadas[x.clave] = true; return; }
+    porClave[x.clave] = n;
+    lista.push({ eleccion: validas[x.clave], precio: n });
+  });
+  if (!hay) return null;
+  return { porClave: porClave, lista: lista, vetadas: vetadas };
 }
 
 /* Las existencias por combinación de UN producto, o null si no lleva
@@ -8806,7 +9321,7 @@ function sincronizarVariantes() {
   var libro = elLibro();
   var hc = libro.getSheetByName(H_CATALOGO);
   if (!hc || hc.getLastRow() < 2) return { nuevas: 0, marcadas: 0 };
-  var cat = hc.getRange(2, 1, hc.getLastRow() - 1, ENCABEZADO_CATALOGO.length).getValues();
+  var cat = filasCanonicas(hc, ENCABEZADO_CATALOGO);
   var hi = hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
   var inv = leerInventarioVariante();
   var nuevas = [], marcadas = 0, grandes = [];
@@ -8824,7 +9339,7 @@ function sincronizarVariantes() {
     validasPorId[id] = {};
     combinacionesDe(grupos).forEach(function (t) {
       validasPorId[id][llano(t)] = true;
-      if (!ya[llano(t)]) nuevas.push([id, t, '', '', '']);
+      if (!ya[llano(t)]) nuevas.push([id, t, '', '', '', '']);
     });
   });
   if (grandes.length) {
@@ -8841,15 +9356,16 @@ function sincronizarVariantes() {
     });
   });
   if (notas.length) {
-    var col = hi.getRange(2, 5, hi.getLastRow() - 1, 1).getValues();
+    var colNota = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Nota');
+    var col = hi.getRange(2, colNota, hi.getLastRow() - 1, 1).getValues();
     notas.forEach(function (x) {
       var actual = String(col[x.fila - 2][0] || '');
       if (!x.casa && actual !== NOTA_NO_CASA) { col[x.fila - 2][0] = NOTA_NO_CASA; marcadas++; cambiaNota = true; }
       if (x.casa && actual === NOTA_NO_CASA) { col[x.fila - 2][0] = ''; cambiaNota = true; }
     });
-    if (cambiaNota) hi.getRange(2, 5, col.length, 1).setValues(col);
+    if (cambiaNota) hi.getRange(2, colNota, col.length, 1).setValues(col);
   }
-  if (nuevas.length) hi.getRange(hi.getLastRow() + 1, 1, nuevas.length, ENCABEZADO_INVENTARIO_VARIANTE.length).setValues(nuevas);
+  agregarFilasCanonicas(hi, nuevas, ENCABEZADO_INVENTARIO_VARIANTE);
 
   escribirSumas();
   CacheService.getScriptCache().remove('catalogo');
@@ -8861,7 +9377,7 @@ function sincronizarVariantes() {
 function escribirSumas() {
   var hc = elLibro().getSheetByName(H_CATALOGO);
   if (!hc || hc.getLastRow() < 2) return 0;
-  var cat = hc.getRange(2, 1, hc.getLastRow() - 1, ENCABEZADO_CATALOGO.length).getValues();
+  var cat = filasCanonicas(hc, ENCABEZADO_CATALOGO);
   var inv = leerInventarioVariante();
   var col = cat.map(function (f) { return [f[COL_STOCK - 1]]; });
   var cambios = 0;
@@ -8873,7 +9389,7 @@ function escribirSumas() {
     if (Number(col[i][0]) !== s.suma || col[i][0] === '') { col[i][0] = s.suma; cambios++; }
   });
   CELDAS_ILEGIBLES = guardadas;
-  if (cambios) hc.getRange(2, COL_STOCK, col.length, 1).setValues(col);
+  if (cambios) escribirColumna(hc, ENCABEZADO_CATALOGO, 'Stock', col.map(function (c) { return c[0]; }));
   return cambios;
 }
 
@@ -8900,7 +9416,7 @@ function contextoCombinaciones() {
   var hi = libro.getSheetByName(H_INVENTARIO_VARIANTE);
   var ctx = { skus: {}, filaInv: {}, inv: [], hi: hi, cambioInv: false };
   if (!hi || hi.getLastRow() < 2) return ctx;
-  ctx.inv = hi.getRange(2, 1, hi.getLastRow() - 1, ENCABEZADO_INVENTARIO_VARIANTE.length).getValues();
+  ctx.inv = filasCanonicas(hi, ENCABEZADO_INVENTARIO_VARIANTE);
   var guardadas = CELDAS_ILEGIBLES; CELDAS_ILEGIBLES = [];
   var cat = leerCatalogo();
   CELDAS_ILEGIBLES = guardadas;
@@ -8949,6 +9465,9 @@ function atenderGuardarCombinaciones(p) {
   return conOperacion(p, function () {
     var id = String(p.id || '').trim();
     var cambios = p.cambios || {}, versiones = p.versiones || {};
+    /* 0.24.0 · y el precio de cada combinación: {combinación: precio} con sus
+       huellas aparte. Vacío = el del producto; si no, un número mayor que 0. */
+    var precios = p.precios || {}, versionesPrecio = p.versionesPrecio || {};
     var guardadas = CELDAS_ILEGIBLES; CELDAS_ILEGIBLES = [];
     var inv = leerInventarioVariante();
     CELDAS_ILEGIBLES = guardadas;
@@ -8966,17 +9485,37 @@ function atenderGuardarCombinaciones(p) {
       aEscribir.push({ fila: x.fila, combo: x.texto, antes: String(x.crudo === null || x.crudo === undefined ? '' : x.crudo),
                        valor: v === '' ? '' : Number(v) });
     });
+    var preciosAEscribir = [];
+    Object.keys(precios).forEach(function (combo) {
+      var x = filasDe[llano(combo)];
+      if (!x) { errores[combo] = 'Esa combinación no está en el inventario de este producto.'; return; }
+      if (String(versionesPrecio[combo] || '') !== versionDeValor(x.precioCrudo)) {
+        errores[combo] = 'Cambió en la hoja mientras la editabas. Vuelve a abrir el producto.'; return;
+      }
+      var v = String(precios[combo] === null || precios[combo] === undefined ? '' : precios[combo]).trim();
+      var n = v === '' ? '' : cifraDeTexto(v, 'Precio');
+      if (v !== '' && (n === null || n <= 0 || n > MAX_TOTAL)) { errores[combo] = 'El precio va en pesos, sin puntos ni signo (ej: 45000), o vacío para usar el del producto.'; return; }
+      preciosAEscribir.push({ fila: x.fila, combo: x.texto,
+                              antes: String(x.precioCrudo === null || x.precioCrudo === undefined ? '' : x.precioCrudo),
+                              valor: n });
+    });
     if (Object.keys(errores).length) {
       return { ok: false, errores: errores, error: 'No se guardó nada: hay ' + Object.keys(errores).length + ' valor(es) por corregir.' };
     }
     var hi = hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
-    aEscribir.forEach(function (w) { hi.getRange(w.fila, 3).setValue(w.valor); });
+    var colStockInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Stock');
+    aEscribir.forEach(function (w) { hi.getRange(w.fila, colStockInv).setValue(w.valor); });
+    var colPrecioInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Precio');
+    preciosAEscribir.forEach(function (w) { hi.getRange(w.fila, colPrecioInv).setValue(w.valor); });
     escribirSumas();
     CacheService.getScriptCache().remove('catalogo');
-    return { ok: true, guardadas: aEscribir.length,
+    return { ok: true, guardadas: aEscribir.length + preciosAEscribir.length,
              _registro: aEscribir.filter(function (w) { return String(w.valor) !== w.antes; }).map(function (w) {
                return { que: 'Cambió el stock de una combinación', donde: H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + w.combo,
                         antes: w.antes, despues: String(w.valor) };
-             }) };
+             }).concat(preciosAEscribir.filter(function (w) { return String(w.valor) !== w.antes; }).map(function (w) {
+               return { que: 'Cambió el precio de una combinación', donde: H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + w.combo,
+                        antes: w.antes || '(el del producto)', despues: w.valor === '' ? '(el del producto)' : String(w.valor) };
+             })) };
   }, true);
 }

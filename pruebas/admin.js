@@ -387,20 +387,20 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
     await abrir('baguette');
     await quizas(hasta(p, () => !document.querySelector('#combinaciones').hidden));
     ok('UN PRODUCTO CON VARIANTES enseña una fila por combinación, vacía, y el Stock de arriba editable',
-       (await p.locator('#filasCombinaciones input').count()) === 2 &&
+       (await p.locator('#filasCombinaciones input.stock').count()) === 2 &&
        !(await p.evaluate(() => document.querySelector('#f-stock').readOnly)));
     const opciones = await p.evaluate(() => [...document.querySelectorAll('#f-fotoOpcion option')].map(o => o.textContent));
     ok('  ...y al subir una foto se puede decir de qué opción es',
        opciones.length === 4 && opciones.some(o => /Foto de color: Rosa/.test(o)) &&
        await p.locator('#f-fotoOpcion').isVisible(), opciones.join(' / '));
-    await p.fill('#filasCombinaciones input >> nth=0', 'tres');
+    await p.fill('#filasCombinaciones input.stock >> nth=0', 'tres');
     await p.click('#guardarCombinaciones');
     await quizas(hasta(p, () => !document.querySelector('#avisoCombinaciones').hidden));
     ok('UN NÚMERO QUE NO ES NÚMERO se explica junto a su combinación y no se guarda nada',
        /entero/.test(await p.locator('#filasCombinaciones .error-campo >> nth=0').innerText()) &&
        ((await hojas())['Inventario por variante'] || []).filter(f => f[0] === 'baguette').every(f => f[2] === ''));
-    await p.fill('#filasCombinaciones input >> nth=0', '3');
-    await p.fill('#filasCombinaciones input >> nth=1', '2');
+    await p.fill('#filasCombinaciones input.stock >> nth=0', '3');
+    await p.fill('#filasCombinaciones input.stock >> nth=1', '2');
     await p.click('#guardarCombinaciones');
     await quizas(hasta(p, () => /Guardado/.test(document.querySelector('#avisoCombinaciones').textContent)));
     const filasB = ((await hojas())['Inventario por variante'] || []).filter(f => f[0] === 'baguette');
@@ -409,6 +409,20 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
        (await p.inputValue('#f-stock')) === '5', filasB.map(f => f[1] + '=' + f[2]).join(' · '));
     ok('  ...y el Stock de arriba queda bloqueado: ahora es una suma',
        await p.evaluate(() => document.querySelector('#f-stock').readOnly));
+    /* 0.24.0 · EL PRECIO DE CADA COMBINACIÓN (bitácora 110). */
+    ok('CADA COMBINACIÓN TIENE SU PRECIO, con el del producto de sugerencia',
+       (await p.locator('#filasCombinaciones input.precio').count()) === 2 &&
+       (await p.getAttribute('#filasCombinaciones input.precio >> nth=0', 'placeholder')) === (await p.inputValue('#f-precio')));
+    await p.fill('#filasCombinaciones input.precio >> nth=0', '45000');
+    await p.click('#guardarCombinaciones');
+    let filasP = [];
+    for (let i = 0; i < 40; i++) {
+      filasP = ((await hojas())['Inventario por variante'] || []).filter(f => f[0] === 'baguette');
+      if (filasP.length && Number(filasP[0][5]) === 45000) break;
+      await new Promise(l => setTimeout(l, 150));
+    }
+    ok('  ...y se guarda en su fila; la otra queda vacía = el precio del producto',
+       Number(filasP[0][5]) === 45000 && filasP[1][5] === '', filasP.map(f => f[1] + '=' + f[5]).join(' · '));
     await p.click('#cancelar');
   }
 

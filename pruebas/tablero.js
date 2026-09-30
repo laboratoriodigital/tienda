@@ -37,7 +37,7 @@ const POCAS = { 'torta-chocolate': 0, 'empanada-pollo': 4, 'galletas-avena': 3 }
 const sembrarInventario = libro => {
   const hc = libro.hojas.get('Catálogo');
   libro.filas('Catálogo').forEach((f, i) => {           // i = 0 es el encabezado
-    if (i > 0 && POCAS[f[0]] !== undefined) hc.getRange(i + 1, 6).setValue(POCAS[f[0]]);
+    if (i > 0 && POCAS[f[0]] !== undefined) hc.getRange(i + 1, libro.columna('Catálogo', 'Stock')).setValue(POCAS[f[0]]);
   });
 };
 sembrarInventario(g);

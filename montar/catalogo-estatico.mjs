@@ -113,6 +113,14 @@ function soloLoQueSePublica(d) {
                                        stock: Math.max(0, Math.floor(Number(k && k.stock) || 0)) }))
                           .filter(k => k.eleccion);
       }
+      /* 0.24.0 · el precio de cada combinación que tiene uno propio (bitácora
+         110). Sin esto la tienda publicada mostraría el del producto hasta que
+         contestara el maestro, y el sello cobraría otro. */
+      if (variantes.length && Array.isArray(p.precios) && p.precios.length) {
+        base.precios = p.precios.map(k => ({ eleccion: String((k && k.eleccion) || ''),
+                                             precio: Math.max(0, Number(k && k.precio) || 0) }))
+                                .filter(k => k.eleccion && k.precio > 0);
+      }
 
       return base;
     });

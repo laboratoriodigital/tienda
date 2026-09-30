@@ -130,7 +130,8 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
 .muestra{display:inline-block;width:22px;height:22px;border-radius:4px;border:1px solid var(--linea);vertical-align:middle;margin-left:8px}
 .error-campo{font-size:.78rem;color:var(--rojo);margin-top:4px}
 @media (max-width:520px){ .dos{grid-template-columns:1fr} .fila{grid-template-columns:1fr} }
-.fila-combo{display:grid;grid-template-columns:1fr 96px;gap:2px 10px;align-items:center;margin:0 0 6px}
+.fila-combo{display:grid;grid-template-columns:1fr 110px 80px;gap:2px 10px;align-items:center;margin:0 0 6px}
+.cabeza-combo{font-size:.78rem;color:var(--tenue);font-weight:600}
 .fila-combo label{margin:0;font-weight:500}
 .fila-combo .error-campo{grid-column:1/-1;margin:0}
 
@@ -529,11 +530,11 @@ input[type=checkbox]{accent-color:var(--negro)}
         <!-- C-1b · EL STOCK DE CADA COMBINACIÓN. Las filas las genera el maestro
              al guardar las variantes; aquí solo se ponen los números. -->
         <fieldset id="combinaciones" hidden>
-          <legend>Stock por combinación</legend>
+          <legend>Precio y stock por combinación</legend>
           <p class="ayuda" id="ayudaCombinaciones"></p>
           <div id="filasCombinaciones"></div>
           <p class="aviso" id="avisoCombinaciones" role="status" hidden></p>
-          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar el stock por combinación</button>
+          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar precio y stock por combinación</button>
         </fieldset>
 
         <label for="f-referencia">Referencia interna <span style="font-weight:400;color:var(--tenue)">(opcional)</span></label>
@@ -1123,10 +1124,18 @@ function pintarCombinaciones(p){
   $("#ayudaCombinaciones").textContent = p && p.porCombinacion
     ? "Este producto se vende por combinación: el Stock de arriba es la suma de estas."
     : "Mientras estén todas vacías, el producto se vende con el Stock de arriba. Al poner un número, pasa a venderse por combinación.";
-  $("#filasCombinaciones").innerHTML = vivas.map((c, i) => `
+  /* 0.24.0 · y el PRECIO de cada una (bitácora 110): vacío = el precio del
+     producto, que se ve como sugerencia gris. */
+  const base = $("#f-precio") ? $("#f-precio").value : "";
+  $("#filasCombinaciones").innerHTML = (vivas.length ? `
+    <div class="fila-combo cabeza-combo"><span></span><span>Precio</span><span>Stock</span></div>` : "") +
+    vivas.map((c, i) => `
     <div class="fila-combo">
       <label for="combo${i}">${escapar(c.combinacion)}</label>
-      <input class="campo" id="combo${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
+      <input class="campo precio" id="precio${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
+             data-version="${escapar(c.versionPrecio || "")}" data-antes="${escapar(c.precio || "")}" value="${escapar(c.precio || "")}"
+             placeholder="${escapar(base)}" aria-label="Precio de ${escapar(c.combinacion)} (vacío = el del producto)">
+      <input class="campo stock" id="combo${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
              data-version="${escapar(c.version)}" data-antes="${escapar(c.stock)}" value="${escapar(c.stock)}">
       <p class="error-campo" hidden></p>
     </div>`).join("");
@@ -1142,23 +1151,30 @@ function pintarCombinaciones(p){
 let opCombinaciones = null;
 async function guardarCombinaciones(){
   if (!editando) return;
-  const cambios = {}, versiones = {};
+  const cambios = {}, versiones = {}, precios = {}, versionesPrecio = {};
   document.querySelectorAll("#filasCombinaciones input").forEach(el => {
     const v = el.value.trim();
-    if (v !== el.dataset.antes) { cambios[el.dataset.combo] = v; versiones[el.dataset.combo] = el.dataset.version; }
+    const esPrecio = el.classList.contains("precio");
+    if (v !== el.dataset.antes) {
+      if (esPrecio) { precios[el.dataset.combo] = v; versionesPrecio[el.dataset.combo] = el.dataset.version; }
+      else { cambios[el.dataset.combo] = v; versiones[el.dataset.combo] = el.dataset.version; }
+    }
     el.classList.remove("mal");
-    el.nextElementSibling.hidden = true;
+    el.parentElement.querySelector(".error-campo").hidden = true;
   });
-  if (!Object.keys(cambios).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
+  if (!Object.keys(cambios).length && !Object.keys(precios).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
   if (!opCombinaciones) opCombinaciones = nuevaOperacion();
   $("#guardarCombinaciones").disabled = true;
   try {
-    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones });
+    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones, precios, versionesPrecio });
     opCombinaciones = null;
     if (!r.ok) {
-      document.querySelectorAll("#filasCombinaciones input").forEach(el => {
+      document.querySelectorAll("#filasCombinaciones .fila-combo").forEach(fila => {
+        const el = fila.querySelector("input.stock");
+        if (!el) return;
         const e = (r.errores || {})[el.dataset.combo];
-        if (e) { el.classList.add("mal"); el.nextElementSibling.hidden = false; el.nextElementSibling.textContent = e; }
+        const msj = fila.querySelector(".error-campo");
+        if (e) { fila.querySelectorAll("input").forEach(i => i.classList.add("mal")); msj.hidden = false; msj.textContent = e; }
       });
       aviso("#avisoCombinaciones", "mal", r.error || "No se guardó.");
       return;

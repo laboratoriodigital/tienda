@@ -32,7 +32,7 @@ function tienda(opciones) {
   const pocas = { 'torta-chocolate': 0, 'empanada-pollo': 4, 'galletas-avena': 3 };
   const hc = g.hojas.get('Catálogo');
   g.filas('Catálogo').forEach((f, i) => {               // i = 0 es el encabezado
-    if (i > 0 && pocas[f[0]] !== undefined) hc.getRange(i + 1, 6).setValue(pocas[f[0]]);
+    if (i > 0 && pocas[f[0]] !== undefined) hc.getRange(i + 1, g.columna('Catálogo', 'Stock')).setValue(pocas[f[0]]);
   });
   const hp = g.hojas.get('Pedidos');
   const L = (fecha, cod, estado, ciudad, id, nombre, cant, precio, total) =>
@@ -61,7 +61,7 @@ function tienda(opciones) {
   };
   if (o.stockSano) {
     const hc = g.hojas.get('Catálogo');
-    g.filas('Catálogo').slice(1).forEach((f, i) => hc.getRange(i + 2, 6).setValue(50));
+    g.filas('Catálogo').slice(1).forEach((f, i) => hc.getRange(i + 2, g.columna('Catálogo', 'Stock')).setValue(50));
   }
   const leer = clave => {
     const f = g.filas('Configuración').find(f => f[0] === clave);

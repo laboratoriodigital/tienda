@@ -22,7 +22,7 @@ const j = r => JSON.parse(r._texto);
 
 /* Escribe la celda Variantes (columna N) del producto que ocupa la fila `fila`. */
 const ponerVariantes = (g, fila, texto) =>
-  g.hojas.get('Catálogo').getRange(fila, 14).setValue(texto);
+  g.hojas.get('Catálogo').getRange(fila, g.columna('Catálogo', 'Variantes')).setValue(texto);
 
 const puerta = (g, o) => j(g.api.doGet({ parameter: Object.assign({ t: g.token }, o) }));
 
@@ -79,7 +79,7 @@ const puerta = (g, o) => j(g.api.doGet({ parameter: Object.assign({ t: g.token }
      se paga en plata. */
   {
     const g = nuevo();
-    g.hojas.get('Catálogo').getRange(2, 5).setValue('$12.000');   // precio como texto
+    g.hojas.get('Catálogo').getRange(2, g.columna('Catálogo', 'Precio')).setValue('$12.000');   // precio como texto
     const c = puerta(g, { a: 'catalogo' });
     ok('UN PRECIO ILEGIBLE sí tumba el producto: las dos reglas son distintas',
        !c.productos.some(x => x.id === 'pan-masa-madre'),
@@ -153,7 +153,7 @@ const puerta = (g, o) => j(g.api.doGet({ parameter: Object.assign({ t: g.token }
        dos tonos de veinte unidades pasaban con un stock de treinta. */
     const g2 = nuevo();
     ponerVariantes(g2, 2, 'Color: Rosa|Nude');
-    g2.hojas.get('Catálogo').getRange(2, 6).setValue(4);          // stock = 4
+    g2.hojas.get('Catálogo').getRange(2, g2.columna('Catálogo', 'Stock')).setValue(4);          // stock = 4
     const w = puerta(g2, { a: 'validar', envio: 'centro', sub: '1',
                            items: 'pan-masa-madre:3:Color=Rosa,pan-masa-madre:3:Color=Nude' });
     ok('EL STOCK ES DEL PRODUCTO: las dos líneas compiten por las mismas unidades',

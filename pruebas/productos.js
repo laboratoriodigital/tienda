@@ -76,9 +76,9 @@ const BASE = {
     const { g, k } = conSesion();
     // Una celda que la hoja no sabe leer, y un producto desactivado.
     const filaCroissant = g.filas('Catálogo').findIndex(f => String(f[0]) === 'croissant') + 1;
-    g.hojas.get('Catálogo').getRange(filaCroissant, 5).setValue('doce mil');
+    g.hojas.get('Catálogo').getRange(filaCroissant, g.columna('Catálogo', 'Precio')).setValue('doce mil');
     const filaBaguette = g.filas('Catálogo').findIndex(f => String(f[0]) === 'baguette') + 1;
-    g.hojas.get('Catálogo').getRange(filaBaguette, 10).setValue('No');
+    g.hojas.get('Catálogo').getRange(filaBaguette, g.columna('Catálogo', 'Activo')).setValue('No');
 
     const r = post(g, { a: 'productos', k });
     const croissant = r.productos.find(p => p.id === 'croissant');
@@ -191,7 +191,7 @@ const BASE = {
        tilde y guarda. Escribir la fila entera devolvería el 40. */
     const leido = post(g, { a: 'productos', k }).productos.find(p => p.id === 'croissant');
     const fila = g.filas('Catálogo').findIndex(f => String(f[0]) === 'croissant') + 1;
-    g.hojas.get('Catálogo').getRange(fila, 6).setValue(37);            // se vendieron tres
+    g.hojas.get('Catálogo').getRange(fila, g.columna('Catálogo', 'Stock')).setValue(37);            // se vendieron tres
     const tarde = post(g, { a: 'guardar_producto', k, op: op(), version: leido.version,
                             producto: Object.assign({}, leido, { nombre: 'Croissant de mantequilla francesa' }) });
     ok('GUARDAR UN FORMULARIO VIEJO NO RESUCITA LO QUE SE VENDIÓ ENTRE MEDIAS',
@@ -293,7 +293,9 @@ const BASE = {
        papelera.length === 2 && papelera[1][0] === 'croissant' && papelera[1][1] === c.nombre &&
        papelera[1][15] === 'Panel', JSON.stringify(papelera[1] || []).slice(0, 90));
     ok('  ...con las mismas columnas que Catálogo, para devolverlo copiando y pegando',
-       !!papelera[0] && JSON.stringify(papelera[0].slice(0, 14)) === JSON.stringify(g.filas('Catálogo')[0].slice(0, 14)));
+       /* 0.24.0: las dos en su orden VISIBLE (el físico), que es el que se copia y pega. */
+       !!papelera[0] && JSON.stringify(papelera[0].slice(0, 14)) === JSON.stringify(g.hojas.get('Catálogo')._datos[0].slice(0, 14)) &&
+       String(g.hojas.get('Papelera')._datos[1][g.hojas.get('Catálogo')._datos[0].indexOf('Precio')]) === String(c.precio));
   }
 
   // ═══ 11. Subir una foto (D-2c) ═══

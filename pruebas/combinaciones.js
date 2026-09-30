@@ -107,6 +107,61 @@ async function stockCombo(id, combo, n) {
   await quizas(hasta(p, () => producto('croissant') && producto('croissant').stock === 0));
   ok('  ...y sí, cuando se acabaron todas', /Agotado/.test(await tarjeta()), (await tarjeta()).slice(0, 80));
 
+  /* ═══ 0.24.0 · EL PRECIO DE CADA COMBINACIÓN (bitácora 110) ═══
+     Baguette a 8.000; la talla M, a 12.000 en la columna Precio de su fila. */
+  async function precioCombo(id, combo, v) {
+    const f = ((await hojas())['Inventario por variante'] || []).findIndex(x => x[0] === id && x[1] === combo) + 1;
+    if (f < 1) throw new Error('sin fila ' + combo);
+    await fetch(U + '/__celda?hoja=' + H + '&f=' + f + '&c=6&v=' + encodeURIComponent(v) + (/^\d+$/.test(v) ? '&num=1' : '') + '&disparar=1');
+  }
+  /* Un index publicado antes de la 0.24.0 no sabe mostrar el precio de una
+     combinación (el maestro sí lo cobra): se salta y se dice, hasta el montaje. */
+  const paginaNueva = /function precioDe\(/.test(await (await fetch(U)).text());
+  if (!paginaNueva) {
+    console.log('  SALTA | el precio por combinación en la página: este index.html es anterior a la 0.24.0.\n' +
+                '          Llega con el siguiente montaje (el maestro ya lo cobra: inventario.js).');
+  } else {
+  await celdaCat('baguette', 14, 'Talla: S|M|L');
+  await precioCombo('baguette', 'Talla: M', '12000');
+  await p.goto(U);
+  await catalogoListo(p);
+  await quizas(hasta(p, () => { const x = producto('baguette'); return !!(x && x.precios); }));
+  const tarjetaB = await p.evaluate(() => {
+    const t = [...document.querySelectorAll('#rejilla .tarjeta, #rejilla article')].find(x => /Baguette/.test(x.textContent));
+    return t ? t.querySelector('.precio').textContent.replace(/\s+/g, ' ') : '';
+  });
+  ok('UNA COMBINACIÓN CON PRECIO PROPIO: la tarjeta dice «Desde» el más barato', /^Desde \$\s?8\.000/.test(tarjetaB), tarjetaB);
+  await p.evaluate(() => abrirFicha('baguette'));
+  const sinElegir = await texto('#fichaPrecio');
+  await p.selectOption('#var0', 'M');
+  const conM = await texto('#fichaPrecio');
+  await p.selectOption('#var0', 'S');
+  const conS = await texto('#fichaPrecio');
+  ok('  ...y en la ficha el precio cambia con la elección: M 12.000, S el del producto',
+     /Desde/.test(sinElegir) && /12\.000/.test(conM) && /8\.000/.test(conS) && !/Desde/.test(conM),
+     [sinElegir, conM, conS].join(' · '));
+  await p.selectOption('#var0', 'M');
+  await p.click('.ficha-agregar .btn-solido');
+  const sub = await p.evaluate(() => subtotal());
+  ok('  ...y el carrito lo cobra a su precio', sub === 12000, String(sub));
+  await p.evaluate(() => abrirPanel());
+  const linea = await p.evaluate(() => [...document.querySelectorAll('.linea-item')].map(l => l.textContent.replace(/\s+/g, ' ')).find(t => /Baguette/.test(t)) || '');
+  ok('  ...y la línea del carrito dice 12.000 c/u', /12\.000 c\/u/.test(linea), linea.slice(0, 90));
+  const sellado = await quizas(hasta(p, () => typeof sello !== 'undefined' && sello && sello.sub === 12000, 8000)).then(() => true, () => false);
+  ok('  ...y la hoja lo sella igual: el precio lo decide el maestro, no la página',
+     await p.evaluate(() => !!(sello && sello.sub === 12000)), await p.evaluate(() => JSON.stringify(sello && { sub: sello.sub })));
+  await p.evaluate(() => { carrito = []; });
+  // Un precio ilegible veta esa combinación (no la regala ni la cobra al precio del producto)
+  await precioCombo('baguette', 'Talla: L', 'doce mil');
+  await p.goto(U);
+  await catalogoListo(p);
+  await quizas(hasta(p, () => { const x = producto('baguette'); return !!(x && x.skus); }));
+  await p.evaluate(() => abrirFicha('baguette'));
+  const opL = await p.evaluate(() => { const o = [...document.querySelector('#var0').options].find(x => x.value === 'L'); return o ? o.disabled : null; });
+  ok('UN PRECIO ILEGIBLE en una combinación: esa no se puede elegir', opL === true, String(opL));
+  await p.evaluate(() => cerrarTodo());
+  }
+
   ok('Ningún error de JavaScript en toda la corrida', errs.length === 0, errs.join(' | '));
   await b.close();
   console.log(T.join('\n'));
