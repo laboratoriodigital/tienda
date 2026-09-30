@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-22-8",
- "generado": "2026-09-30T03:29:38.696Z",
+ "generado": "2026-09-30T03:59:28.457Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -113,7 +113,7 @@
   "sitio_url": "https://tienda.laboratorio-digital.com/",
   "fotos_origen": "https://tienda.laboratorio-digital.com/fotos",
   "fotos_cdn": "",
-  "respaldo_carpeta": "",
+  "respaldo_carpeta": "https://drive.google.com/drive/folders/1VVXb4WTKB4tYk7EuWkluHHirQYlNhhc8?usp=sharing",
   "fotos_drive": "https://drive.google.com/drive/folders/1P8cJJDuKxs8Ylv-VZUt7Be8Z1KnZlLgV?usp=sharing",
   "fotos_webp": "Sí",
   "repositorio": "laboratoriodigital/tienda",
