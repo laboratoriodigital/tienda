@@ -15,9 +15,9 @@ operación.
 
 | Pieza | Dónde | Qué aporta |
 |---|---|---|
-| Entradas numeradas, citables por número | `docs/BITACORA.md` (1–106) | La historia, con la voz de quien se equivocó. El código y los documentos las citan: «bitácora 103» |
+| Entradas numeradas, citables por número | `docs/BITACORA.md` (1–111) | La historia, con la voz de quien se equivocó. El código y los documentos las citan: «bitácora 103» |
 | Ficha de cierre por entrada | `BITACORA.md` › *Cómo escribir una entrada* | Autoría · severidad · patrones · versión · fecha, en una línea que se puede leer con una expresión regular |
-| Patrones P1–P20 | `BITACORA.md` › *Lo aprendido* | La regla en una línea, las entradas que la prueban y **lo que la impide hoy** (batería, aserción o código) |
+| Patrones P1–P21 | `BITACORA.md` › *Lo aprendido* | La regla en una línea, las entradas que la prueban y **lo que la impide hoy** (batería, aserción o código) |
 | Otras bitácoras | `organico/docs/BITACORA.md` (línea Básica) y su copia en cada tienda Básica | La misma historia hasta la separación y otra después, con su propia numeración |
 
 Lo que falta: que esas piezas se lean entre proyectos y que alguien —una

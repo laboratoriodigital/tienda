@@ -50,7 +50,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   ok('El precio del catálogo lleva formato de pesos',
      fmt(g, 'Catálogo', 2, cc(g, 'Precio')).formato === '"$"#,##0', String(fmt(g, 'Catálogo', 2, cc(g, 'Precio')).formato));
   ok('El valor del envío también', fmt(g, 'Envíos', 2, 3).formato === '"$"#,##0');
-  g.hojas.get('Pedidos').appendRow([new Date(), 'A1', 'V', 'Por confirmar', 'Cali', '',
+  g.hojas.get('Pedidos').appendRow([new Date(), 'A1', 'V', 'Nuevo', 'Cali', '',
                                     'x', 'chonto', 1, 8900, 8900, 8900, '']);
   g.api.presentarHojas();
   ok('La fecha de un pedido se ve como fecha y hora',
@@ -233,6 +233,42 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   const antes = g.escrituras.length;
   g.api.revisionHoraria();
   ok('  ...y la hora siguiente no vuelve a tocar la hoja', !g.escrituras.slice(antes).some(e => e.como === 'moveColumns'));
+}
+
+// ═══ 3e. 0.24.1 · Ordenar una Configuración VIEJA que ya tiene listas por fila (bitácora 111) ═══
+{
+  /* Como estaba una tienda de la 0.23: sin secciones, las claves en el orden
+     en que nacieron, y con las listas de la 0.23 puestas EN SU FILA. Al meter
+     las secciones, cada valor cambia de fila: «WhatsApp» caía en la fila que
+     tenía Sí/No y Google lo rechazaba —y lo borrado antes ya no volvía—. */
+  const g = crear('./as.js');
+  const semilla = g.api.semillaDeConfiguracion();
+  const h = g.libro.insertSheet('Configuración');
+  h.appendRow(['Clave', 'Valor', 'Qué es']);
+  semilla.forEach(f => h.appendRow([f[0], f[1], f[2]]));
+  const fila = k => semilla.findIndex(f => f[0] === k) + 2;
+  h.getRange(fila('cobro_modo'), 2).setValue('WhatsApp');
+  h.getRange(fila('negocio'), 2).setValue('Mi Comercio');
+  h.getRange(fila('sitio_url'), 2).setValue('https://mi.tienda.co');
+  const lista = (ops) => g.api.lista(ops, false);
+  // las listas de la 0.23, en la fila de su clave
+  ['tienda_abierta', 'correo_siempre', 'fotos_webp', 'f_avisame', 'f_rastreo'].forEach(k => h.getRange(fila(k), 2).setDataValidation(lista(['Sí', 'No'])));
+  h.getRange(fila('cobro_modo'), 2).setDataValidation(lista(['WhatsApp', 'Pasarela']));
+  h.getRange(fila('cobro_ambiente'), 2).setDataValidation(lista(['Pruebas', 'Producción']));
+  let error = '';
+  const decir = console.log; console.log = () => {};
+  try { g.api.instalar(); } catch (e) { error = e.message; }
+  console.log = decir;
+  const cfg = g.api.leerConfiguracion();
+  ok('INSTALAR SOBRE UNA CONFIGURACIÓN VIEJA con listas por fila no revienta con «Elige de la lista»', !error, error);
+  ok('  ...y no pierde ni un valor: cada clave sigue con lo suyo',
+     cfg.cobro_modo === 'WhatsApp' && cfg.negocio === 'Mi Comercio' && cfg.sitio_url === 'https://mi.tienda.co' &&
+     Object.keys(cfg).length >= semilla.length, [cfg.cobro_modo, cfg.negocio, cfg.sitio_url, Object.keys(cfg).length].join(' · '));
+  const filaN = k => g.filas('Configuración').findIndex(f => f[0] === k) + 1;
+  const val = k => ((fmt(g, 'Configuración', filaN(k), 2) || {}).validacion || {})._lista || [];
+  ok('  ...y cada lista queda en la fila de SU clave después de ordenar',
+     val('cobro_modo').join() === 'WhatsApp,Pasarela' && val('tienda_abierta').join() === 'Sí,No' &&
+     val('negocio').length === 0, [val('cobro_modo'), val('tienda_abierta'), val('negocio')].map(x => x.join('/')).join(' · '));
 }
 
 // ═══ 4. Los colores se pintan, no se escriben ═══

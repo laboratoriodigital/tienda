@@ -84,6 +84,39 @@ ok('SE PIDE POR NÚMERO, por nombre o por id, y «ultimo» es la más nueva',
    /No encuentro esa copia/.test(error(() => g.api.restaurarDatos('la-de-mayo', 'Catálogo'))));
 
 /* ═══ Lo que decide el flujo `restaurar`: el sitio y la versión ═══ */
+// 0.24.1 · Una copia de ANTES de las secciones (bitácora 111): las claves en otro
+// orden, así que cada valor cae en una fila cuya lista es de otra clave. Google
+// rechaza el valor aunque lo escriba el script; restaurar no puede reventar a
+// medias ni dejar Configuración vacía, y las listas tienen que volver a su clave.
+{
+  const g2 = crear('./as.js');
+  g2.enDrive('CARPETA-DE-PRUEBA', []);
+  console.log = () => {};
+  g2.api.instalar(); configurar(g2);
+  const vivas = g2.filas('Configuración').slice(1).filter(f => f[0] && !String(f[0]).startsWith('▸'));
+  const copia = [['Clave', 'Valor', 'Qué es']].concat(vivas.slice().reverse().map(f => {
+    const v = f[0] === 'cobro_modo' ? 'Pasarela' : f[0] === 'cobro_ambiente' ? 'Producción' : f[1];
+    return [f[0], v, f[2]];
+  }));
+  g2.enDrive('CARPETA-DE-PRUEBA', [{ id: 'copia-023', nombre: 'Copia_de_Orgánico — pedidos_2026-09-21', creado: '2026-09-21T10:00:00Z' }]);
+  g2.otroLibro('copia-023', { 'Configuración': copia }, 'Copia_de_Orgánico — pedidos_2026-09-21');
+  let fallo = '';
+  try { g2.api.restaurarDatos('ultimo', 'Configuración'); } catch (e) { fallo = e.message; }
+  console.log = decir;
+  const cfg = g2.api.leerConfiguracion();
+  ok('RESTAURAR UNA CONFIGURACIÓN de otro orden no revienta con «Elige de la lista»', !fallo, fallo);
+  ok('  ...y cada clave queda con el valor de la copia',
+     cfg.cobro_modo === 'Pasarela' && cfg.cobro_ambiente === 'Producción' &&
+     vivas.every(f => f[0] === 'cobro_modo' || f[0] === 'cobro_ambiente' || String(cfg[f[0]] ?? '') === String(f[1] ?? '') || f[0] === 'color_principal' || f[0] === 'color_secundario' || f[0] === 'color_alterno'),
+     [cfg.cobro_modo, cfg.cobro_ambiente].join(' · '));
+  const filaN = k => g2.filas('Configuración').findIndex(f => f[0] === k) + 1;
+  const val = k => (((g2.hojas.get('Configuración')._formato.get(filaN(k) + ',2') || {}).validacion) || {})._lista || [];
+  ok('  ...y las listas vuelven a la fila de SU clave, y las secciones también',
+     val('cobro_modo').join() === 'WhatsApp,Pasarela' && val('negocio').length === 0 &&
+     g2.filas('Configuración').some(f => String(f[0]).startsWith('▸')),
+     [val('cobro_modo').join('/'), val('negocio').join('/')].join(' · '));
+}
+
 (async () => {
   const fs = require('fs');
   const v = await import('../montar/volver-atras.mjs');

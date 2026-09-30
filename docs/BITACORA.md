@@ -34,7 +34,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P1 · El fallo que funciona es el caro
 - **Regla:** lo que cae a un respaldo, a un valor de fábrica o a un «no pasa nada» tiene que gritar; si no, el respaldo se vuelve el estado normal.
-- **Entradas:** 1, 17, 31, 36, 73, 81, 108; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
+- **Entradas:** 1, 17, 31, 36, 73, 81, 108, 111; Críticos: *El maestro publicado se quedaba sin su hoja*, *La configuración de fábrica traía el celular…*, *Una batería de pruebas que reventaba contaba 0/0*, *`Number(celda) || 0`…*.
 - **Lo impide hoy:** `pruebas/todas.sh` cuenta como rota la batería que no arranca; `montar/preparar-index.mjs` se niega a hornear una clave vacía o entre corchetes; `montar/publicar-maestro.mjs` repone `HOJA_ID` antes de subir.
 
 ### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
@@ -49,7 +49,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P4 · Una prueba que solo sabe ver la primera tienda no prueba el producto
 - **Regla:** ninguna prueba del producto nombra a un comercio real; se prueba con un comercio de prueba y, además, con OTRO.
-- **Entradas:** 4, 11, 12, 14, 55, 93, 102, 107; Medios: *Cinco baterías daban por hecho que la tienda se llamaba «Orgánico»*.
+- **Entradas:** 4, 11, 12, 14, 55, 93, 102, 107, 111; Medios: *Cinco baterías daban por hecho que la tienda se llamaba «Orgánico»*.
 - **Lo impide hoy:** `pruebas/marca.js` con la lista única `terminos-prohibidos.json`; `pruebas/respaldo.js` monta un comercio que no es el de la plantilla; `pruebas/tiendita.js` hornea otro comercio.
 
 ### P5 · Una comprobación que da lo mismo con el defecto y sin él no comprueba nada
@@ -114,8 +114,8 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P17 · El instrumento también miente
 - **Regla:** un emulador o un doble que simplifica una propiedad que el código real promete miente el día que alguien depende de ella; se implementa de verdad antes de apoyarse en él. Y lo que se prueba junto —la página y la hoja emulada— tiene que ser del mismo comercio.
-- **Entradas:** 14, 24, 35, 39, 43, 48, 59.
-- **Lo impide hoy:** `pruebas/gas.js` usa el crypto de Node (con los bytes con signo, como Google), un `getUuid` aleatorio y un `LockService` que sabe si la llave está tomada.
+- **Entradas:** 14, 24, 35, 39, 43, 48, 59, 111.
+- **Lo impide hoy:** `pruebas/gas.js` usa el crypto de Node (con los bytes con signo, como Google), un `getUuid` aleatorio, un `LockService` que sabe si la llave está tomada y, desde la 0.24.1, una lista que rechaza también al código del maestro (111).
 
 ### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** un procedimiento, un documento; el redundante se borra, no se marca. Lo que un documento o un comentario afirma del código lo ata una aserción, y «esto lo comprueba X» se verifica abriendo X.
@@ -131,6 +131,11 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 - **Regla:** se prueba desde quien mira —el comprador, el comerciante que no entra a GitHub, el rastreador que no ejecuta JavaScript—, no desde el estado interno.
 - **Entradas:** 17, 31, 34, 57, 78, 85, 88, 109, 110; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
 - **Lo impide hoy:** las baterías de navegador miran la pantalla, no las listas internas (34, `pruebas/hoja.js`); el SEO se hornea y lo revisa `pruebas/seo.js` (31).
+
+### P21 · Lo que borra antes de escribir convierte un fallo en una pérdida
+- **Regla:** reescribir datos del comercio es escribir primero (o guardar lo de antes en memoria) y borrar después; si escribir falla, lo de antes vuelve a su sitio. Y lo que escribe el script pasa por las mismas reglas que lo que escribe una persona.
+- **Entradas:** 111.
+- **Lo impide hoy:** `pruebas/presentacion.js` 3e (instalar sobre una Configuración con listas por fila) y `pruebas/restaurar.js` (restaurar una copia en otro orden), las dos vistas en rojo con el código de antes.
 
 ---
 
@@ -2967,3 +2972,47 @@ Chromium y la variable de las fotos). La suite entera corrió además sobre un
 index con el código nuevo trasplantado, como lo dejará el montaje.
 
 *Ficha:* *(mío)* · 🟠 Grave · P2, P4, P14, P20 · 0.24.0 · 2026-09-29
+
+**111 · Ordenar Configuración borraba primero, y Google no dejaba escribir
+después.** Con la 0.24.0 en la semilla, el dueño corrió `A0_instalar` en la
+tienda de prueba del alta y salió «Exception: Elige de la lista: Sí, No»; al
+repetirlo, «…WhatsApp, Pasarela» y «…Pruebas, Producción». Cada corrida, otro
+texto. La causa: hasta la 0.23 las listas de Configuración se ponían **en la
+fila de su clave**. `ordenarConfiguracion` (0.24.0) mete las secciones «▸ …», así
+que cada valor cambia de fila y cae en una que tiene la lista de OTRA clave —
+«WhatsApp» donde se espera Sí/No—. En Google, una lista con «rechazar la
+entrada» rechaza también lo que escribe el script, con su texto de ayuda como
+mensaje. Y la función hacía `clearContent()` antes de `setValues()`: al fallar
+la escritura, Configuración quedaba vacía, y la corrida siguiente volvía a
+agregar las claves con sus valores de fábrica. **Se perdieron los valores de
+Configuración de esa tienda.** Lo mismo le pasa, en la revisión de cada hora
+(`ponerHojaAlDia`), a toda tienda de antes de la 0.24.0 que reciba el maestro
+0.24.0.
+
+Por qué no lo vio nadie: el emulador aceptaba cualquier valor en una celda con
+lista (P17), y la prueba de «hoja vieja que se ordena sin perder datos» de la
+entrada 110 armaba la hoja vieja **sin** las listas de la 0.23 (P4: probaba la
+tienda recién hecha, no la que existe). Esa afirmación de la 110 era falsa.
+
+**El arreglo** (0.24.1): `ordenarConfiguracion` guarda lo de antes, quita las
+listas de las filas que toca, escribe todo de una vez y, si falla, vuelve a
+dejar lo que había; después `presentarConfiguracion` pone cada lista en la fila
+de SU clave. Al hacer que el emulador rechace como Google salieron dos más del
+mismo tipo: `migrarEstados` reescribía la columna Estado entera —también los
+estados ilegibles que deja como están, que la lista rechaza— y ahora escribe
+solo las celdas que cambian; y `restaurarDatos` escribía la copia sobre las
+listas de hoy —una copia de antes de las secciones revienta igual, justo en la
+herramienta para recuperar— y ahora las quita, vuelve a lo de antes si falla y
+las repone siempre al final. El emulador solo rechaza lo que escribe el
+**código**: las pruebas siguen pudiendo escribir a mano erratas y estados viejos,
+que es lo que hay en las hojas de verdad.
+
+**Lo prueban** `pruebas/presentacion.js` 3e (Configuración con las listas de la
+0.23 en su fila: instalar no revienta, no pierde un valor y cada lista queda en
+su clave) y `pruebas/restaurar.js` (restaurar una Configuración en otro orden),
+ambas vistas en rojo con el código de antes —«Elige de la lista: Sí, No» y los
+valores de fábrica—; `pruebas/pedidos.js` ya tenía el estado ilegible que hizo
+caer a `migrarEstados`. Suite completa en verde (salvo el ícono de
+`config.js`, que falta en el entorno y no en la tienda).
+
+*Ficha:* *(mío)* · 🔴 Crítico · P1, P4, P17, P21 · 0.24.1 · 2026-09-29

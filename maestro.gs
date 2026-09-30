@@ -1847,7 +1847,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.24.0';
+var VERSION_TIENDA = '0.24.1';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -3286,7 +3286,7 @@ function agregarClavesQueFaltan(h, semilla) {
   h.getRange(desde, 1, faltan.length, 3).setValues(faltan);
   h.getRange(desde, 2, faltan.length, 2).setWrap(true);
   /* 0.24.0 · En una hoja por secciones, cada clave nueva va a la suya. */
-  if (filas(H_CONFIG).some(function (f) { return esSeccion(f[0]); })) ordenarConfiguracion();
+  if (filas(H_CONFIG).some(function (f) { return esSeccion(f[0]); }) && ordenarConfiguracion()) presentarConfiguracion(h);
   return faltan.map(function (f) { return f[0]; });
 }
 
@@ -4253,12 +4253,26 @@ function restaurarDatos(copia, pestanas) {
     /* SOLO EL CONTENIDO, no clear(): el formato, los anchos y las validaciones
        de la pestaña viva son de la versión de hoy, no de la copia. Lo que se
        restaura son los DATOS. */
-    if (filasAntes) a.getRange(1, 1, filasAntes, Math.max(1, a.getLastColumn())).clearContent();
-    a.getRange(1, 1, datos.length, ancho).setValues(datos.map(function (f) {
-      var g = f.slice(0, ancho);
-      while (g.length < ancho) g.push('');
-      return g;
-    }));
+    /* 0.24.1 · Las listas que rechazan (Estado, Sí/No, cobro…) se quitan
+       antes de escribir y se vuelven a poner al final con presentarHojas():
+       una copia vieja trae estados de antes o las claves en otro orden, y
+       Google rechaza el valor aunque lo escriba el script (bitácora 111). Si
+       escribir falla igual, lo de antes vuelve a su sitio. */
+    var anchoAntes = Math.max(1, a.getLastColumn());
+    var previo = filasAntes ? a.getRange(1, 1, filasAntes, anchoAntes).getValues() : [];
+    a.getRange(1, 1, Math.max(filasAntes, datos.length), Math.max(anchoAntes, ancho)).clearDataValidations();
+    if (filasAntes) a.getRange(1, 1, filasAntes, anchoAntes).clearContent();
+    try {
+      a.getRange(1, 1, datos.length, ancho).setValues(datos.map(function (f) {
+        var g = f.slice(0, ancho);
+        while (g.length < ancho) g.push('');
+        return g;
+      }));
+    } catch (e) {
+      if (filasAntes) try { a.getRange(1, 1, filasAntes, anchoAntes).setValues(previo); } catch (e2) { }
+      try { presentarHojas(); } catch (e3) { }
+      throw e;
+    }
     hechas.push({ pestana: nombre, filas: datos.length - 1, antes: Math.max(0, filasAntes - 1) });
     anotaciones.push({ que: 'Restaurado desde una copia', donde: nombre,
                        antes: Math.max(0, filasAntes - 1) + ' filas',
@@ -4278,9 +4292,11 @@ function restaurarDatos(copia, pestanas) {
     if (hechas.some(function (x) { return x.pestana === H_CATALOGO || x.pestana === H_INVENTARIO_VARIANTE; })) {
       ordenarColumnas(H_CATALOGO, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
       ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
-      presentarHojas();
     }
+    if (hechas.some(function (x) { return x.pestana === H_CONFIG; })) ordenarConfiguracion();
   } catch (e) { }
+  /* Siempre: devuelve las listas que se quitaron antes de escribir. */
+  try { presentarHojas(); } catch (e) { anotarError('restaurar · presentar', e); }
   try { cacheFuera(); } catch (e) { }
 
   console.log('Restaurado desde ' + elegida.nombre + ': ' +
@@ -6701,7 +6717,20 @@ function migrarEstados() {
     return f;
   });
 
-  if (cambios) rango.setValues(nuevos);
+  /* Solo se escriben las celdas que cambian, en tramos seguidos (bitácora 111):
+     reescribir la columna entera devolvía también los estados ilegibles que se
+     dejan como están, y Google rechaza un valor fuera de la lista de Estado
+     aunque lo escriba el script. */
+  if (cambios) {
+    var i = 0;
+    while (i < nuevos.length) {
+      if (nuevos[i] === celdas[i]) { i++; continue; }
+      var j = i;
+      while (j < nuevos.length && nuevos[j] !== celdas[j]) j++;
+      hp.getRange(2 + i, COL_ESTADO, j - i, 1).setValues(nuevos.slice(i, j));
+      i = j;
+    }
+  }
   return cambios;
 }
 var SI_NO          = ['Sí', 'No'];
@@ -6746,18 +6775,7 @@ function presentarHojas() {
        eran cinco claves escritas aquí; ahora sale de la misma lista que usa el
        panel, así que una opción nueva trae su desplegable sin acordarse de
        venir aquí (patrón 2). */
-    cfgH.getRange(2, 2, n, 1).clearDataValidations();
-    validarPorClave(cfgH, 'correo_siempre', lista(SI_NO, false));
-    validarPorClave(cfgH, 'fotos_webp', lista(SI_NO, false));
-    validarPorClave(cfgH, 'cobro_modo', lista(COBRO_MODOS, false));
-    validarPorClave(cfgH, 'cobro_ambiente', lista(COBRO_AMBIENTES, false));
-    CLAVES_DEL_PANEL.forEach(function (d) {
-      if (d.tipo === 'sino') validarPorClave(cfgH, d.clave, lista(SI_NO, false));
-      else if (d.tipo === 'opcion' && d.opciones) validarPorClave(cfgH, d.clave, lista(d.opciones, false));
-    });
-    presentarSecciones(cfgH);
-    marcarClavesObligatorias(cfgH);
-    sincronizarColores();
+    presentarConfiguracion(cfgH);
   }
 
   // ---- Catálogo · por NOMBRE de columna, y hasta FILAS_CON_FORMATO ----
@@ -6979,10 +6997,44 @@ function ordenarConfiguracion() {
     return f.every(function (v, j) { return String(v) === String(actual[i][j]); });
   });
   if (igual) return false;
-  h.getRange(2, 1, n, 3).clearContent();
-  h.getRange(2, 2, n, 1).setBackground('#FFFFFF');
-  h.getRange(2, 1, salida.length, 3).setValues(salida);
+  /* 0.24.1 · LAS LISTAS SON DE LA FILA, NO DE LA CLAVE (bitácora 111). Al
+     mover filas, un «WhatsApp» caía en una fila que tenía la lista Sí/No, y
+     Google RECHAZA el valor: «Exception: Elige de la lista: Sí, No». Peor: se
+     había borrado antes el contenido para escribir encima, y el error dejaba
+     la pestaña a medias —claves perdidas—. Ahora: se quitan primero las
+     listas del rango, se escribe TODO en una sola operación (sin borrar antes)
+     y, si aun así fallara, se devuelve lo que había. Las listas y los rojos
+     los vuelve a poner presentarConfiguracion() en la fila de cada clave. */
+  var alto = Math.max(n, salida.length);
+  var nuevo = salida.slice();
+  while (nuevo.length < alto) nuevo.push(['', '', '']);
+  h.getRange(2, 1, alto, 3).clearDataValidations();
+  h.getRange(2, 2, alto, 1).setBackground('#FFFFFF');
+  try {
+    h.getRange(2, 1, alto, 3).setValues(nuevo);
+  } catch (e) {
+    try { h.getRange(2, 1, n, 3).setValues(actual); } catch (e2) { }
+    throw e;
+  }
   return true;
+}
+
+/* Todo lo que depende de EN QUÉ FILA está cada clave: listas, títulos de
+   sección, obligatorios en rojo y colores. Se llama después de ordenar. */
+function presentarConfiguracion(cfgH) {
+  var n = Math.max(cfgH.getLastRow() - 1, 1);
+  cfgH.getRange(2, 2, n, 1).clearDataValidations();
+  validarPorClave(cfgH, 'correo_siempre', lista(SI_NO, false));
+  validarPorClave(cfgH, 'fotos_webp', lista(SI_NO, false));
+  validarPorClave(cfgH, 'cobro_modo', lista(COBRO_MODOS, false));
+  validarPorClave(cfgH, 'cobro_ambiente', lista(COBRO_AMBIENTES, false));
+  CLAVES_DEL_PANEL.forEach(function (d) {
+    if (d.tipo === 'sino') validarPorClave(cfgH, d.clave, lista(SI_NO, false));
+    else if (d.tipo === 'opcion' && d.opciones) validarPorClave(cfgH, d.clave, lista(d.opciones, false));
+  });
+  presentarSecciones(cfgH);
+  marcarClavesObligatorias(cfgH);
+  sincronizarColores();
 }
 
 /* El aspecto de las filas de sección. */

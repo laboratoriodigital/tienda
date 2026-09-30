@@ -21,6 +21,10 @@ const HOJA_EMULADA = '1AbC-hoja-de-prueba';
 const TOKEN_EMULADO = 'token-de-prueba-largo';
 
 function crear(rutaScript, opciones) {
+  /* Solo el CÓDIGO del maestro se topa con la lista que rechaza: las pruebas
+     escriben a mano erratas y estados viejos a propósito (datos de antes de la
+     lista, o pegados), y eso tiene que seguir siendo posible. */
+  let enCodigo = 0;
   opciones = opciones || {};
   const hojas = new Map();
   let cache = {};
@@ -110,6 +114,19 @@ function crear(rutaScript, opciones) {
       if (!formato.has(k)) formato.set(k, {});
       return formato.get(k);
     };
+    /* 0.24.1 · UNA LISTA QUE RECHAZA, RECHAZA TAMBIÉN AL SCRIPT (bitácora 111).
+       En Google, escribir desde el código un valor que no está en una lista
+       con «rechazar la entrada» lanza una excepción con el texto de ayuda
+       («Elige de la lista: Sí, No»). El emulador lo dejaba pasar, y por eso no
+       se vio que ordenar Configuración movía valores a filas con otra lista. */
+    const validar = (f, c, v) => {
+      const regla = (formato.get(f + ',' + c) || {}).validacion;
+      if (!enCodigo || !regla || !regla._lista || regla._permiteOtros !== false) return;
+      const x = String(v === undefined || v === null ? '' : v).trim();
+      if (x === '') return;
+      const llanoV = t => String(t).trim().toLowerCase();
+      if (!regla._lista.some(o => llanoV(o) === llanoV(x))) throw new Error(regla._ayuda || ('Elige de la lista: ' + regla._lista.join(', ')));
+    };
     const asegurar = (f, c) => {
       while (datos.length < f) datos.push([]);
       const fila = datos[f - 1];
@@ -138,6 +155,7 @@ function crear(rutaScript, opciones) {
       get _sinCuadricula() { return ocultarCuadricula; },
       appendRow(fila) {
         anotarEscritura(nombre, 'appendRow');
+        fila.forEach((x, j) => validar(datos.length + 1, j + 1, x));
         datos.push(fila.map(celda));
         return h;
       },
@@ -190,6 +208,7 @@ function crear(rutaScript, opciones) {
           setValues(v) {
             anotarEscritura(nombre, 'setValues');
             if (v.length !== nf) throw new Error('setValues: esperaba ' + nf + ' filas, recibió ' + v.length);
+            v.forEach((fila, i) => fila.forEach((x, j) => validar(f + i, c + j, x)));
             v.forEach((fila, i) => {
               if (fila.length !== nc) throw new Error('setValues: esperaba ' + nc + ' columnas, recibió ' + fila.length);
               const destino = asegurar(f + i, c + nc - 1);
@@ -197,7 +216,7 @@ function crear(rutaScript, opciones) {
             });
             return r;
           },
-          setValue(x) { anotarEscritura(nombre, 'setValue'); asegurar(f, c)[c - 1] = celda(x); return r; },
+          setValue(x) { anotarEscritura(nombre, 'setValue'); validar(f, c, x); asegurar(f, c)[c - 1] = celda(x); return r; },
           clearContent() {
             for (let i = 0; i < nf; i++) { const fila = datos[f - 1 + i];
               if (fila) for (let j = 0; j < nc; j++) fila[c - 1 + j] = ''; }
@@ -513,6 +532,13 @@ function crear(rutaScript, opciones) {
   const devolver = '\n; return {' +
     declaradas.concat([...new Set(constantes)]).map(f => f + ': ' + f).join(', ') + '};';
   const api = new Function(...nombres, codigo + devolver).apply({}, nombres.map(k => entorno[k]));
+  Object.keys(api).forEach(k => {
+    const f = api[k];
+    if (typeof f !== 'function') return;
+    const envuelta = function () { enCodigo++; try { return f.apply(this, arguments); } finally { enCodigo--; } };
+    envuelta.toString = () => f.toString();   // hay pruebas que leen el fuente
+    api[k] = envuelta;
+  });
   const encabezadoCanonico = n => (n === 'Catálogo' ? api.ENCABEZADO_CATALOGO
                                    : n === 'Inventario por variante' ? api.ENCABEZADO_INVENTARIO_VARIANTE : null);
 

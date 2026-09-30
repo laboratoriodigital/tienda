@@ -107,7 +107,7 @@ Actions). Ninguno se copia a otro sitio, salvo los dos que se dice:
 | Nombre | Permisos mínimos | Quién lo usa, y para qué |
 |---|---|---|
 | `FLOTA_TOKEN` (desde la 0.24.0, también el del alta) | De grano fino, del **mismo dueño** que las tiendas, sobre **todos** sus repositorios —una tienda que el token no ve contesta 404 y la flota la **salta**; el repositorio nuevo aún no existe al crearlo—: *Administration*, *Contents*, *Pull requests*, *Workflows*, *Secrets* y *Actions* en lectura y escritura; *Metadata* lectura | `alta`: ver la semilla, crear el repositorio, clonar la etiqueta y empujarla, permisos de Actions y fusiones, poner `SEMILLA_TOKEN`. `conectar`: poner los secretos de la tienda y disparar su `montaje`. `flota`: `estado`, `actualizar` (disparar y esperar el `montaje` de cada tienda; en la Básica, ramas y pull requests) y `flujos` (escribir y retirar `.github/workflows` en cada tienda). `panel`: leer la semilla |
-| `ALTA_TOKEN` (en retiro) | El mismo que `FLOTA_TOKEN` hacía antes por separado. **Decisión 34:** se funde en `FLOTA_TOKEN`; mientras exista, `alta`, `conectar` y `panel` lo prefieren (`ALTA_TOKEN \|\| FLOTA_TOKEN`) y el resumen de `alta` dice cuál usó | Para retirarlo: dar a `FLOTA_TOKEN` *Administration* y *Secrets* en escritura, borrar el secreto `ALTA_TOKEN` de `tiendas` y revocar el token |
+| `ALTA_TOKEN` (retirado el 29-sep-2026, decisión 34) | El mismo que `FLOTA_TOKEN` hacía antes por separado. **Borrado de `tiendas` el 29-sep-2026**; lo que sigue queda como historia. **Decisión 34:** se funde en `FLOTA_TOKEN`; mientras exista, `alta`, `conectar` y `panel` lo prefieren (`ALTA_TOKEN \|\| FLOTA_TOKEN`) y el resumen de `alta` dice cuál usó | Para retirarlo: dar a `FLOTA_TOKEN` *Administration* y *Secrets* en escritura, borrar el secreto `ALTA_TOKEN` de `tiendas` y revocar el token |
 | `SEMILLA_TOKEN` | De grano fino: *Contents* lectura sobre la semilla. Solo hace falta si la semilla es privada *(sin verificar aquí si lo es)* | No lo usa `tiendas`: `alta` lo **copia** a cada tienda al nacer y `conectar` lo **refresca** cada vez que corre (0.21.2). Ver la tabla de la tienda |
 | `DISPARO_TOKEN` | De grano fino, sobre **todos** los repositorios del dueño (no «Only select repositories»: una lista fija no incluye las tiendas que nacen después), **solo** *Actions: Read and write* | `conectar`: comprueba que ve la tienda (`GET /repos/…`) y **solo entonces** se lo siembra al maestro por POST (`a=permiso`), que lo guarda como `GITHUB_TOKEN` |
 | `PANEL_URL` · `PANEL_CLAVE` | No son de GitHub: la URL `/exec` de la hoja *Panel de tiendas* y la clave de su menú › *Clave para el alta* | `conectar`: registra la tienda en esa hoja (POST `registrar_tienda`). Opcionales: sin ellos lo dice y sigue |
@@ -188,7 +188,7 @@ invierten. Están marcados con ⚠ más abajo.
   Panel) y `organico` (Tienda Básica). El alta clona **etiquetas**, así que cada
   semilla necesita al menos una versión publicada con `release`.
 - El repositorio de servicio `laboratoriodigital/tiendas`, con los secretos de
-  la tabla de arriba. Imprescindibles: `ALTA_TOKEN` y `FLOTA_TOKEN`; para que
+  la tabla de arriba. Imprescindible: `FLOTA_TOKEN` (con *Administration* y *Secrets*; `ALTA_TOKEN` se retiró el 29-sep-2026); para que
   el panel y el menú publiquen, `DISPARO_TOKEN`; para que la hoja de
   administración se llene sola, `PANEL_URL` y `PANEL_CLAVE`.
 - La hoja **Panel de tiendas**: una hoja de cálculo tuya con `panel.gs` pegado
@@ -218,8 +218,8 @@ invierten. Están marcados con ⚠ más abajo.
    producto que exista en `flota.json`, y que ni el repositorio
    (`<dueño de la semilla>/<nombre>`) ni el sitio (`https://<nombre>.<dominio>`)
    estén ya en `flota.json`. Los errores salen en el registro de ese paso.
-3. **Que `ALTA_TOKEN` ve la semilla**, y que el repositorio no existe ya. Si
-   no: «ALTA_TOKEN no ve la semilla» con las tres causas, o «Ya existe … No
+3. **Que `FLOTA_TOKEN` ve la semilla**, y que el repositorio no existe ya. Si
+   no: «FLOTA_TOKEN no ve la semilla» con las tres causas, o «Ya existe … No
    toco nada».
 4. **La última etiqueta** `vX.Y.Z` de la semilla (`nucleo.mjs ›
    ultimaEtiqueta`). Sin ninguna: «Corre su **release** primero».
@@ -454,7 +454,7 @@ archivo. Es el único de los secretos de la tienda que se muere solo.
 
 | | Dónde vive | Por qué ahí |
 |---|---|---|
-| `FLOTA_TOKEN` (y `ALTA_TOKEN` mientras exista) | **Solo** en `laboratoriodigital/tiendas` | es el único token capaz de crear repositorios y escribir flujos. En una tienda no pinta nada, y ponerlo ahí convierte cada tienda en una llave maestra |
+| `FLOTA_TOKEN` | **Solo** en `laboratoriodigital/tiendas` | es el único token capaz de crear repositorios y escribir flujos. En una tienda no pinta nada, y ponerlo ahí convierte cada tienda en una llave maestra |
 | `GITHUB_TOKEN` de «Publicar ahora» | Script Properties del maestro de **esa** tienda | lo leen *Publicar ahora* y *Actualizar*. **Las Script Properties no están cifradas**: es el `DISPARO_TOKEN` que siembra `conectar` —de grano fino, sobre todos los repositorios del dueño, **solo** `Actions: Read and write`, **con vencimiento**—. Se crea en *GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens* |
 | La llave de pago (`pago_llave`) | La pestaña `Configuración` de la hoja, y de ahí **a ninguna parte** | el filtro `pago_*` la borra antes de que salga por cualquier puerta. No va en la página ni en el repositorio: llega al comprador por la respuesta automática de WhatsApp (paso 14) |
 
@@ -926,7 +926,7 @@ con **la misma herramienta** que el maestro de cada tienda, no con una copia
 - **Entradas:** `version` (la etiqueta **con `v`**; vacío = la última, con la
   misma regla `ultimaEtiqueta` que el alta y la flota).
 - **Secretos:** `PANEL_SCRIPT_ID`, `PANEL_CLASPRC`; para leer la semilla,
-  `ALTA_TOKEN`, o `FLOTA_TOKEN`, o el `GITHUB_TOKEN` de la corrida.
+  `FLOTA_TOKEN` (o `ALTA_TOKEN`, si alguien lo vuelve a poner), o el `GITHUB_TOKEN` de la corrida.
 - **Qué hace:** si falta alguno de los dos secretos, «Faltan los secretos» y
   no toca nada; clona la semilla en esa etiqueta, comprueba que traiga
   `panel.gs` y `montar/publicar-maestro.mjs`, instala clasp 3 y corre

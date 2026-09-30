@@ -5,7 +5,7 @@ página de **una tienda**. Primero lo que el sistema comprueba solo —para sabe
 dónde mirar cuando se queja—, después lo que sigue siendo tuyo. Está ordenado
 por lo que más duele si sale mal, no por lo que más trabajo cuesta.
 
-_Vigente a la 0.24.0 (29 de septiembre de 2026)._
+_Vigente a la 0.24.1 (29 de septiembre de 2026)._
 
 ---
 

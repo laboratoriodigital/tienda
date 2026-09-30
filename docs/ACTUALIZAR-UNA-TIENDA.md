@@ -1,6 +1,6 @@
 # Actualizar una tienda que ya está montada
 
-_Vigente a la 0.24.0 (29 de septiembre de 2026). Tienda Panel: semilla
+_Vigente a la 0.24.1 (29 de septiembre de 2026). Tienda Panel: semilla
 `laboratoriodigital/tienda`. La Tienda Básica (`organico`) se actualiza por
 pull request desde la flota y no se cuenta aquí._
 

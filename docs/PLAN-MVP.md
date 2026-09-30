@@ -1756,6 +1756,21 @@ próxima.*
       arreglados el falso «NO se pudieron traer las fotos» y la ficha de `release`.
 - [x] Permisos: `ALTA_TOKEN` se funde en `FLOTA_TOKEN` (compatible hacia atrás).
 
+### 0.24.1 · Ordenar Configuración sin perder un valor
+
+**C-23**  · 1 pt · ✅ (bitácora 111)
+- [x] `ordenarConfiguracion` ya no borra antes de escribir: quita las listas de
+      las filas que mueve, escribe de una vez y, si falla, deja lo de antes;
+      luego `presentarConfiguracion` pone cada lista en la fila de SU clave.
+- [x] `migrarEstados` escribe solo las celdas que cambian (un estado ilegible
+      reescrito tal cual también lo rechaza la lista de Estado).
+- [x] `restaurarDatos` quita las listas antes de escribir la copia, vuelve a lo
+      de antes si falla y siempre las repone al final.
+- [x] El emulador rechaza, como Google, lo que el CÓDIGO escribe fuera de una
+      lista que rechaza (`pruebas/gas.js`).
+- [x] `ALTA_TOKEN` retirado de `tiendas` por el dueño (29-sep); `FLOTA_TOKEN`
+      con Administration y Secrets.
+
 ---
 
 ### Lo que sigue después del MVP

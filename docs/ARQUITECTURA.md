@@ -19,7 +19,7 @@ flujos) es normativo y vive aparte, en `CONTRATOS.md`.
  ────────────────────────────────────────────────          ───────────────────────────────────────────────────
  flota.json   flota/*.mjs   panel/ (estático)               maestro.gs  panel.gs  plantilla/  montar/  pruebas/
  alta · conectar · flota{estado,actualizar,flujos} · panel  semilla.json  release · pruebas  (+ los flujos de tienda)
-   │  ALTA_TOKEN      │ FLOTA_TOKEN          │ PANEL_CLASPRC          │ release: etiqueta vX.Y.Z
+   │  FLOTA_TOKEN     │ FLOTA_TOKEN          │ PANEL_CLASPRC          │ release: etiqueta vX.Y.Z
    │  crea, pone      │ dispara montaje,     │ clasp push             │
    │  secretos,       │ entrega flujos       ▼                        ▼
    │  dispara         │ (API contents)   Hoja «Panel de tiendas»   etiquetas vX.Y.Z ──(se clonan)──┐
@@ -283,7 +283,7 @@ donde vive.
 
 | Credencial | Vive en | Lo usa | Permisos mínimos |
 |---|---|---|---|
-| `ALTA_TOKEN` (en retiro, decisión 34) | secretos de `tiendas` | `alta`, `conectar`, `panel` si existe; si no, `FLOTA_TOKEN` | lo mismo que `FLOTA_TOKEN` + *Administration* y *Secrets*: por eso se funden |
+| `ALTA_TOKEN` (retirado el 29-sep-2026, decisión 34) | ya no existe; el código lo prefiere si reaparece (`ALTA_TOKEN \|\| FLOTA_TOKEN`) | nadie | lo mismo que `FLOTA_TOKEN` + *Administration* y *Secrets*: por eso se funden |
 | `FLOTA_TOKEN` | secretos de `tiendas` | `flota` (`estado`, `actualizar`, `flujos`), y desde la 0.24.0 también `alta`, `conectar` y `panel` | grano fino, todos los repositorios del dueño: *Administration*, *Contents*, *Pull requests*, *Workflows*, *Secrets*, *Actions* en escritura; *Metadata* lectura. Quedan tres tokens: este, `SEMILLA_TOKEN` y `DISPARO_TOKEN` |
 | `DISPARO_TOKEN` | secretos de `tiendas` → propiedad `GITHUB_TOKEN` de cada maestro | `conectar` lo comprueba y lo siembra; el maestro dispara `fotos.yml` y `montaje.yml` | grano fino sobre **todos** los repositorios del dueño, **solo** *Actions: Read and write* |
 | `SEMILLA_TOKEN` | secretos de `tiendas` → copia en los secretos de cada tienda | la tienda: `montaje` › `semilla` (clonar la semilla) y `restaurar` › `la-version` (leer sus etiquetas) | *Contents* lectura sobre la semilla. Hace falta porque la semilla es privada (decisión D1 de `PLAN-MVP.md`) |
@@ -300,7 +300,7 @@ Ese repositorio es **privado** y es el único con poder sobre los demás.
 
 | Secreto | Qué es | Qué permite | Dónde se crea | Cómo se renueva |
 |---|---|---|---|---|
-| `ALTA_TOKEN` | Token de grano fino del dueño de las tiendas, sobre **todos** sus repositorios (la tienda nueva todavía no existe al crearlo) | Crear el repositorio, clonar la semilla y empujarla, permisos de Actions, fusiones automáticas, poner secretos en la tienda, disparar su `montaje`; leer la semilla para `panel` | GitHub › Settings › Developer settings › Fine-grained tokens | Vence: se crea otro con los mismos permisos y se pega en Settings › Secrets › Actions de `tiendas`. Nada más lo usa |
+| `ALTA_TOKEN` (retirado el 29-sep-2026, decisión 34) | Token de grano fino del dueño de las tiendas, sobre **todos** sus repositorios (la tienda nueva todavía no existe al crearlo) | Crear el repositorio, clonar la semilla y empujarla, permisos de Actions, fusiones automáticas, poner secretos en la tienda, disparar su `montaje`; leer la semilla para `panel` | GitHub › Settings › Developer settings › Fine-grained tokens | Vence: se crea otro con los mismos permisos y se pega en Settings › Secrets › Actions de `tiendas`. Nada más lo usa |
 | `FLOTA_TOKEN` | Token de grano fino sobre semillas y tiendas (mejor todos los repositorios del dueño: una tienda que no ve contesta 404 y la flota la **salta**) | Leer versiones y etiquetas (`estado`); disparar y esperar el `montaje` de cada tienda (`actualizar`); **escribir los `.github/workflows` de cada tienda por la API de contenidos** (`flujos`, y `actualizar` después de cada tienda buena, §13d) | Igual que el anterior | Igual |
 | `SEMILLA_TOKEN` | Token de grano fino con lectura de la semilla | No lo usa `tiendas`: `alta` lo **copia** a cada tienda al nacer y `conectar` lo **refresca** cada vez que corre. Desde la 0.22.1 **no empuja flujos** (bitácora 103) | Igual | Se cambia en `tiendas` y se vuelve a correr `conectar` en cada tienda (o se pega a mano en la tienda) |
 | `DISPARO_TOKEN` | Token de grano fino **sobre TODOS los repositorios del dueño** (no «Only select repositories»: el alta crea tiendas nuevas y una lista fija envejece con cada una), **solo** *Actions: Read and write* | Disparar flujos de las tiendas: es el que hace que *Publicar ahora* y *Actualizar* funcionen desde el panel y el menú del comercio | Igual | Se cambia en `tiendas` y se vuelve a correr `conectar`: el maestro reemplaza el que ya no sirve (0.20.2), o se marca `forzar_permiso` |
@@ -540,10 +540,10 @@ fuera de este documento.
 
 | Flujo | Entradas | Token | Qué hace |
 |---|---|---|---|
-| `alta` | `nombre`, `comercio`, `producto` | `ALTA_TOKEN` | Crea el repositorio **privado** de la tienda clonando la última etiqueta de su semilla, lo limpia de lo que es de otra tienda (`NO_SE_HEREDA` en `flota/alta.mjs`: `release.yml`, catálogo, fotos, fichas, sitemap, imagen, `servicio`…), le pone su `name` de Cloudflare, los permisos de Actions, las fusiones automáticas y `SEMILLA_TOKEN`, y escribe su fila en `flota.json` |
-| `conectar` | `nombre`, `maestro_url`, `maestro_token`, `forzar_permiso` | `ALTA_TOKEN`, `DISPARO_TOKEN` | Le pregunta al maestro su hoja y su proyecto (`identidad`), siembra en la hoja lo que ya se sabe (`sembrar`), comprueba `DISPARO_TOKEN` y **solo si sirve** se lo siembra al maestro (`permiso`, POST), registra la tienda en el Panel de tiendas, escribe `MAESTRO_URL`, `MAESTRO_TOKEN`, `HOJA_ID`, `SCRIPT_ID`, refresca `SEMILLA_TOKEN` y dispara el primer `montaje` |
+| `alta` | `nombre`, `comercio`, `producto` | `FLOTA_TOKEN` | Crea el repositorio **privado** de la tienda clonando la última etiqueta de su semilla, lo limpia de lo que es de otra tienda (`NO_SE_HEREDA` en `flota/alta.mjs`: `release.yml`, catálogo, fotos, fichas, sitemap, imagen, `servicio`…), le pone su `name` de Cloudflare, los permisos de Actions, las fusiones automáticas y `SEMILLA_TOKEN`, y escribe su fila en `flota.json` |
+| `conectar` | `nombre`, `maestro_url`, `maestro_token`, `forzar_permiso` | `FLOTA_TOKEN`, `DISPARO_TOKEN` | Le pregunta al maestro su hoja y su proyecto (`identidad`), siembra en la hoja lo que ya se sabe (`sembrar`), comprueba `DISPARO_TOKEN` y **solo si sirve** se lo siembra al maestro (`permiso`, POST), registra la tienda en el Panel de tiendas, escribe `MAESTRO_URL`, `MAESTRO_TOKEN`, `HOJA_ID`, `SCRIPT_ID`, refresca `SEMILLA_TOKEN` y dispara el primer `montaje` |
 | `flota` | `accion` (`estado` \| `actualizar` \| `flujos`), `linea`, `anillo`, `version`, `ensayo`, `tienda`, `sin_base` | `FLOTA_TOKEN` | `estado` (también los lunes 12:23 UTC): versión de cada tienda y de su semilla, `ESTADO.md` y `panel/`. `actualizar`: por anillos (§13e). `flujos`: entrega los `.github/workflows` (§13d). De fábrica, `ensayo` = sí |
-| `panel` | `version` | `ALTA_TOKEN` \|\| `FLOTA_TOKEN` para leer la semilla; `PANEL_CLASPRC` | Clona la semilla en esa etiqueta y publica `panel.gs` con `montar/publicar-maestro.mjs` y `ARCHIVO=panel.gs`, actualizando la implementación que ya existe (la URL no cambia) |
+| `panel` | `version` | `FLOTA_TOKEN` para leer la semilla; `PANEL_CLASPRC` | Clona la semilla en esa etiqueta y publica `panel.gs` con `montar/publicar-maestro.mjs` y `ARCHIVO=panel.gs`, actualizando la implementación que ya existe (la URL no cambia) |
 
 ### Quién dispara qué
 
