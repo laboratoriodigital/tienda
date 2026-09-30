@@ -242,10 +242,25 @@ html[data-columnas="5"]{--max:1400px}
   font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:var(--radio);
   letter-spacing:.02em;text-transform:uppercase;
 }
-.mas-fotos{
-  position:absolute;right:9px;bottom:9px;background:rgba(0,0,0,.72);color:var(--blanco);
-  font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:var(--radio);
-}
+/* 1.0.0 · LAS FOTOS SE PASAN DESDE LA TARJETA. Un carril con scroll-snap: en el
+   celular se desliza con el dedo, sin una línea de JavaScript para moverlo; en
+   el computador salen dos flechas al pasar el ratón. Solo la primera foto se
+   descarga al pintar: las demás esperan a que alguien toque la tarjeta
+   (bitácora 113), así que la portada pesa lo mismo que antes. */
+.tarjeta-img{cursor:pointer}
+.carril{display:flex;width:100%;height:100%;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.carril::-webkit-scrollbar{display:none}
+.carril img{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always}
+@media(prefers-reduced-motion:no-preference){.carril{scroll-behavior:smooth}}
+.puntos{position:absolute;left:0;right:0;bottom:9px;display:flex;justify-content:center;gap:5px;pointer-events:none}
+.puntos i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 0 1px rgba(0,0,0,.18)}
+.puntos i.activo{background:var(--blanco);transform:scale(1.25)}
+.flecha{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;
+  border:none;background:rgba(255,255,255,.92);color:var(--texto,#111);font-size:20px;line-height:1;
+  cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.flecha.ant{left:8px}.flecha.sig{right:8px}
+@media(hover:hover){.tarjeta-img:hover .flecha,.tarjeta-img:focus-within .flecha{display:flex}}
 .tarjeta h3{font-size:1.02rem;font-weight:600;letter-spacing:-.015em;margin-top:14px}
 .formato{font-size:.84rem;color:var(--tenue);margin-top:3px}
 .fila-precio{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:12px}
@@ -884,7 +899,7 @@ const CONFIG_SEMILLA = {
   "correo_hora": "7",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_siempre": "No",
-  "correo_ultimo": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Wed Sep 30 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "empresa_ciudad": "Colombia",
   "empresa_correo": "laboratoriodigital.la@gmail.com",
   "empresa_direccion": "Medellín",
@@ -1912,11 +1927,10 @@ function pintarRejilla(){
     const st = estadoStock(p);
     return `
       <article class="tarjeta">
-        <button class="tarjeta-img" onclick="abrirFicha('${p.id}')" aria-label="Ver ${escapar(p.nombre)}">
+        ${fotos.length > 1 ? carrilDeFotos(p, fotos) : `<button class="tarjeta-img" onclick="abrirFicha('${p.id}')" aria-label="Ver ${escapar(p.nombre)}">
           <img src="${fotos[0]}" data-plano="${fotoPlana(p, 0)}" alt="${escapar(p.nombre)}" loading="lazy">
           ${p.destacado ? `<span class="destacado">Destacado</span>` : ""}
-          ${fotos.length > 1 ? `<span class="mas-fotos">${fotos.length} fotos</span>` : ""}
-        </button>
+        </button>`}
         <h3>${escapar(p.nombre)}</h3>
         <p class="formato">${escapar(p.formato)}</p>
         <div class="fila-precio">
@@ -1933,6 +1947,46 @@ function pintarRejilla(){
         ${botonAvisame(p)}
       </article>`;
   }).join("");
+}
+
+/* 1.0.0 · Varias fotos en la tarjeta. La caja deja de ser un <button> —un
+   carril que se desliza no puede vivir dentro de un botón— y abrir la ficha
+   sigue siendo tocar la foto (el botón «Ver» es el camino del teclado). Las
+   fotos 2 en adelante llevan su dirección en data-src y se piden la primera
+   vez que alguien toca, pasa el ratón o desliza: la portada no descarga fotos
+   que nadie va a ver. */
+function carrilDeFotos(p, fotos){
+  const nombre = escapar(p.nombre);
+  return `<div class="tarjeta-img" onclick="abrirFicha('${p.id}')" onpointerenter="despertarFotos(this)"
+       ontouchstart="despertarFotos(this)" onfocusin="despertarFotos(this)">
+    <div class="carril" onscroll="marcarFoto(this)">
+      ${fotos.map((f, i) => i === 0
+        ? `<img src="${f}" data-plano="${fotoPlana(p, 0)}" alt="${nombre}" loading="lazy">`
+        : `<img data-src="${f}" data-plano="${fotoPlana(p, i)}" alt="${nombre}, foto ${i + 1} de ${fotos.length}">`).join("")}
+    </div>
+    ${p.destacado ? `<span class="destacado">Destacado</span>` : ""}
+    <button class="flecha ant" type="button" aria-label="Foto anterior de ${nombre}" onclick="event.stopPropagation();pasarFoto(this,-1)">‹</button>
+    <button class="flecha sig" type="button" aria-label="Foto siguiente de ${nombre}" onclick="event.stopPropagation();pasarFoto(this,1)">›</button>
+    <span class="puntos" aria-hidden="true">${fotos.map((_, i) => `<i${i === 0 ? ' class="activo"' : ""}></i>`).join("")}</span>
+  </div>`;
+}
+function despertarFotos(caja){
+  if(!caja || caja.dataset.despierta) return;
+  caja.dataset.despierta = "1";
+  caja.querySelectorAll("img[data-src]").forEach(img => { img.src = img.dataset.src; img.removeAttribute("data-src"); });
+}
+function marcarFoto(carril){
+  const caja = carril.parentNode;
+  despertarFotos(caja);
+  const n = Math.round(carril.scrollLeft / Math.max(1, carril.clientWidth));
+  caja.querySelectorAll(".puntos i").forEach((p, i) => p.classList.toggle("activo", i === n));
+}
+function pasarFoto(boton, paso){
+  const caja = boton.parentNode, carril = caja.querySelector(".carril");
+  despertarFotos(caja);
+  const total = carril.children.length, ancho = Math.max(1, carril.clientWidth);
+  const n = (Math.round(carril.scrollLeft / ancho) + paso + total) % total;   // da la vuelta
+  carril.scrollTo({ left: n * ancho });
 }
 
 /* ── 4.1 · «Avísame cuando llegue» ─────────────────────────────────────────
