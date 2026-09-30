@@ -200,60 +200,69 @@ const foto = async (p, nombre, uso) =>
   /* ═══ 6b. 1.0.0 · LAS FOTOS SE PASAN DESDE LA TARJETA (bitácora 113) ═══
      Lo que se vigila: que se pueda, que la portada no descargue la segunda
      foto hasta que alguien toque, y que pasar foto no abra la ficha. */
-  await p.evaluate(() => cerrarTodo());
-  const pedidas = [];
-  const anotar = r => pedidas.push(r.url());
-  p.on('request', anotar);
-  await p.goto(U); await catalogoListo(p);
-  /* La hoja emulada contesta después del catálogo horneado: se espera a que la
-     tarjeta tenga las dos fotos que dice la hoja. */
-  await hasta(p, () => !!document.querySelector('#rejilla .carril'));
-  const tarjeta = () => p.evaluate(() => {
-    const t = [...document.querySelectorAll('#rejilla .tarjeta')]
-      .find(x => /pan-masa-madre/.test(x.querySelector('.tarjeta-img').getAttribute('onclick')));
-    const imgs = t ? [...t.querySelectorAll('.carril img')] : [];
-    return { carril: imgs.length, conSrc: imgs.map(i => !!i.getAttribute('src')),
-             puntos: t ? t.querySelectorAll('.puntos i').length : 0,
-             activo: t ? [...t.querySelectorAll('.puntos i')].findIndex(i => i.classList.contains('activo')) : -1,
-             x: t && t.querySelector('.carril') ? t.querySelector('.carril').scrollLeft : -1,
-             anidado: t ? !!t.querySelector('button .carril, button button') : true };
-  });
-  const antes = await tarjeta();
-  ok('UNA TARJETA CON DOS FOTOS las pone en un carril, con dos puntos',
-     antes.carril === 2 && antes.puntos === 2 && antes.activo === 0, JSON.stringify(antes));
-  ok('  ...sin botones dentro de botones (un carril no cabe en un <button>)', !antes.anidado);
-  ok('  ...y la portada NO descarga la segunda foto mientras nadie toque',
-     antes.conSrc.join() === 'true,false' && !pedidas.some(u => /chonto-2/.test(u)),
-     pedidas.filter(u => /chonto/.test(u)).join(' · '));
-  await p.evaluate(() => {
-    const t = [...document.querySelectorAll('#rejilla .tarjeta')]
-      .find(x => /pan-masa-madre/.test(x.querySelector('.tarjeta-img').getAttribute('onclick')));
-    t.querySelector('.flecha.sig').click();
-  });
-  /* El desplazamiento es suave: se espera a que el punto llegue, no a que empiece. */
-  await hasta(p, () => [...document.querySelectorAll('#rejilla .puntos')]
-    .some(x => x.children[1] && x.children[1].classList.contains('activo')));
-  const despues = await tarjeta();
-  ok('LA FLECHA pasa a la segunda foto, la descarga y mueve el punto',
-     despues.x > 0 && despues.conSrc.join() === 'true,true' && despues.activo === 1, JSON.stringify(despues));
-  ok('  ...y pasar foto NO abre la ficha',
-     !(await p.evaluate(() => document.querySelector('#ficha').classList.contains('abierta'))));
-  await p.evaluate(() => {
-    const t = [...document.querySelectorAll('#rejilla .tarjeta')]
-      .find(x => /pan-masa-madre/.test(x.querySelector('.tarjeta-img').getAttribute('onclick')));
-    t.querySelector('.carril img').click();
-  });
-  ok('  ...y tocar la foto sí la abre',
-     await p.evaluate(() => document.querySelector('#ficha').classList.contains('abierta')));
-  await p.evaluate(() => cerrarTodo());
-  const unaSola = await p.evaluate(() => {
-    const t = [...document.querySelectorAll('#rejilla .tarjeta')]
-      .find(x => !x.querySelector('.carril'));
-    return t ? t.querySelector('.tarjeta-img').tagName + ' ' + t.querySelectorAll('.puntos, .flecha').length : '';
-  });
-  ok('UNA TARJETA CON UNA FOTO queda como siempre: un botón, sin puntos ni flechas',
-     unaSola === 'BUTTON 0', unaSola);
-  p.off('request', anotar);
+  /* Un index publicado antes de la 1.0.0 no tiene el carril: en la semilla,
+     `pruebas` corre sobre el publicar/ de la versión anterior hasta el
+     siguiente montaje (bitácora 113). Se salta y se dice, como combinaciones.js. */
+  const conCarril = /function carrilDeFotos\(/.test(await (await fetch(U)).text());
+  if (!conCarril) {
+    console.log('  SALTA | las fotos que se pasan desde la tarjeta: este index.html es anterior a la 1.0.0.\n' +
+                '          Llega con el siguiente montaje.');
+  } else {
+    await p.evaluate(() => cerrarTodo());
+    const pedidas = [];
+    const anotar = r => pedidas.push(r.url());
+    p.on('request', anotar);
+    await p.goto(U); await catalogoListo(p);
+    /* La hoja emulada contesta después del catálogo horneado: se espera a que la
+       tarjeta tenga las dos fotos que dice la hoja. */
+    await hasta(p, () => !!document.querySelector('#rejilla .carril'));
+    const tarjeta = () => p.evaluate(() => {
+      const t = [...document.querySelectorAll('#rejilla .tarjeta')]
+        .find(x => /pan-masa-madre/.test(x.querySelector('.tarjeta-img').getAttribute('onclick')));
+      const imgs = t ? [...t.querySelectorAll('.carril img')] : [];
+      return { carril: imgs.length, conSrc: imgs.map(i => !!i.getAttribute('src')),
+               puntos: t ? t.querySelectorAll('.puntos i').length : 0,
+               activo: t ? [...t.querySelectorAll('.puntos i')].findIndex(i => i.classList.contains('activo')) : -1,
+               x: t && t.querySelector('.carril') ? t.querySelector('.carril').scrollLeft : -1,
+               anidado: t ? !!t.querySelector('button .carril, button button') : true };
+    });
+    const antes = await tarjeta();
+    ok('UNA TARJETA CON DOS FOTOS las pone en un carril, con dos puntos',
+       antes.carril === 2 && antes.puntos === 2 && antes.activo === 0, JSON.stringify(antes));
+    ok('  ...sin botones dentro de botones (un carril no cabe en un <button>)', !antes.anidado);
+    ok('  ...y la portada NO descarga la segunda foto mientras nadie toque',
+       antes.conSrc.join() === 'true,false' && !pedidas.some(u => /chonto-2/.test(u)),
+       pedidas.filter(u => /chonto/.test(u)).join(' · '));
+    await p.evaluate(() => {
+      const t = [...document.querySelectorAll('#rejilla .tarjeta')]
+        .find(x => /pan-masa-madre/.test(x.querySelector('.tarjeta-img').getAttribute('onclick')));
+      t.querySelector('.flecha.sig').click();
+    });
+    /* El desplazamiento es suave: se espera a que el punto llegue, no a que empiece. */
+    await hasta(p, () => [...document.querySelectorAll('#rejilla .puntos')]
+      .some(x => x.children[1] && x.children[1].classList.contains('activo')));
+    const despues = await tarjeta();
+    ok('LA FLECHA pasa a la segunda foto, la descarga y mueve el punto',
+       despues.x > 0 && despues.conSrc.join() === 'true,true' && despues.activo === 1, JSON.stringify(despues));
+    ok('  ...y pasar foto NO abre la ficha',
+       !(await p.evaluate(() => document.querySelector('#ficha').classList.contains('abierta'))));
+    await p.evaluate(() => {
+      const t = [...document.querySelectorAll('#rejilla .tarjeta')]
+        .find(x => /pan-masa-madre/.test(x.querySelector('.tarjeta-img').getAttribute('onclick')));
+      t.querySelector('.carril img').click();
+    });
+    ok('  ...y tocar la foto sí la abre',
+       await p.evaluate(() => document.querySelector('#ficha').classList.contains('abierta')));
+    await p.evaluate(() => cerrarTodo());
+    const unaSola = await p.evaluate(() => {
+      const t = [...document.querySelectorAll('#rejilla .tarjeta')]
+        .find(x => !x.querySelector('.carril'));
+      return t ? t.querySelector('.tarjeta-img').tagName + ' ' + t.querySelectorAll('.puntos, .flecha').length : '';
+    });
+    ok('UNA TARJETA CON UNA FOTO queda como siempre: un botón, sin puntos ni flechas',
+       unaSola === 'BUTTON 0', unaSola);
+    p.off('request', anotar);
+  }
 
   const sinFotos = await p.evaluate(() => {
     const p2 = producto('croissant');

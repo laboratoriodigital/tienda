@@ -3110,4 +3110,15 @@ maestro de mentira cuenta los tokens que llegan en una dirección: cero),
 `pruebas/panel.js` §2 y §2b, `flota/pruebas.mjs` en `tiendas`, y `pruebas/test.js`
 corrido con la suite entera en paralelo.
 
-*Ficha:* *(mío)* · 🟠 Grave · P1, P10, P19 · 1.0.0 · 2026-09-30
+**Y un rojo después del push, del que ya había aviso.** `pruebas` en la
+semilla corre sobre el `publicar/index.html` que está en el repositorio, que es
+el de la versión ANTERIOR hasta que el siguiente montaje lo hornea. La batería
+nueva de `fotos.js` esperaba un carril que esa página no tiene y se colgaba.
+Pasó igual con el precio por combinación en la 0.24.0 (`combinaciones.js`), y
+la salida es la misma: si la página publicada no trae el carril, la batería lo
+dice con un SALTA y sigue. Aquí no se vio porque la copia de trabajo prueba con
+un `publicar/` rehorneado desde la plantilla: probar solo contra la página
+nueva es la forma en que P11 vuelve (la prueba da por hecho ser la semilla
+recién horneada).
+
+*Ficha:* *(mío)* · 🟠 Grave · P1, P10, P11, P19 · 1.0.0 · 2026-09-30
