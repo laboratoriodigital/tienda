@@ -1255,18 +1255,22 @@ var CLAVES_DEL_PANEL = [
   /* 0.19.0 · AL FINAL (R1). La medición. Vacío = la tienda no carga NADA de
      Google y no pone una sola cookie: es el valor de fábrica y es el que hace
      que una tienda sin política de cookies siga siendo legal. */
-  { clave: 'analytics_id',         grupo: 'Google y WhatsApp', tipo: 'medicion',
+  { clave: 'analytics_id',         grupo: 'Medición y anuncios', tipo: 'medicion',
     rotulo: 'Google Analytics 4 (G-…)' },
   /* 0.23.0 · AL FINAL (R1). El orden en el panel lo da el grupo, no esta lista. */
   { clave: 'logo_tamano',          grupo: 'Tu tienda',  tipo: 'opcion', rotulo: 'Tamaño del logo en la barra (alto, en píxeles)',
-    opciones: ['40', '80', '120'] }
+    opciones: ['40', '80', '120'] },
+  /* 0.25.0 · AL FINAL (R1). El píxel de Meta, con las mismas reglas que GA4:
+     vacío = nada de Meta en la página (bitácora 112, decisión 35). */
+  { clave: 'meta_pixel_id',        grupo: 'Medición y anuncios', tipo: 'pixel',
+    rotulo: 'Píxel de Meta: Facebook e Instagram (solo números)' }
 ];
 
 /* EL ORDEN EN QUE SE ENSEÑAN LOS GRUPOS. La lista de arriba solo crece al
    final (así se lee la historia de qué entró cuándo); el orden de pantalla es
    otra cosa y vive aquí. */
 var GRUPOS_DEL_PANEL = ['Tu tienda', 'La venta', 'El cobro', 'La portada', 'Los textos', 'Los colores',
-                        'Google y WhatsApp', 'Datos legales', 'El correo del día', 'Avanzado'];
+                        'Google y WhatsApp', 'Medición y anuncios', 'Datos legales', 'El correo del día', 'Avanzado'];
 
 /* ¿Se entiende este valor? Devuelve null si sí, o el motivo. Vacío siempre se
    entiende: toda clave puede estar vacía (CONTRATOS §5). */
@@ -1303,6 +1307,14 @@ function problemaDeValor(def, valor) {
   if (def.tipo === 'medicion' && !ANALITICA_VALIDA.test(v)) {
     return 'El identificador de Google Analytics 4 se ve así: G-ABCD123456 ' +
            '(Analytics › Administrar › Flujos de datos › Web). Vacío = sin medición.';
+  }
+  /* 0.25.0 · El identificador del píxel es SOLO números (15 o 16 hoy). Lo que
+     se suele pegar por error: el fragmento entero, el token de la API de
+     conversiones (letras) o el id de la cuenta publicitaria («act_…»). */
+  if (def.tipo === 'pixel' && !PIXEL_VALIDO.test(v)) {
+    return 'El identificador del píxel de Meta son solo números, como 123456789012345 ' +
+           '(Administrador de eventos › Orígenes de datos › tu píxel › Configuración). ' +
+           'No pegues el código entero ni el token. Vacío = sin píxel.';
   }
   return null;
 }
@@ -1847,7 +1859,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '0.24.1';
+var VERSION_TIENDA = '0.25.0';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -2314,6 +2326,43 @@ function bloqueDeAnalitica(id) {
   ];
 }
 
+/* 0.25.0 · EL PÍXEL DE META, igual que GA4 (decisión 35). Una clave, el
+   fragmento oficial horneado en el <head> y sus hosts en la CSP de ESA tienda.
+   Vacío = nada de Meta: ni script, ni cookie, ni host en su política.
+
+   Del fragmento oficial se deja fuera el <noscript><img> de PageView: esta
+   tienda no funciona sin JavaScript (el catálogo lo pinta el script), así que
+   medía una visita que no puede comprar, y un <img> dentro de <head> no es
+   HTML válido. Los eventos de la compra NO se escriben aquí: salen por
+   `medir()` en la página, el mismo camino que usan GA4 y el medidor propio. */
+var PIXEL_VALIDO = /^\d{8,20}$/;
+
+function idDePixel(c) {
+  var v = String((c || {}).meta_pixel_id || '').trim();
+  return PIXEL_VALIDO.test(v) ? v : '';
+}
+
+/* connect.facebook.net   el script fbevents.js (script-src) y su configuración (connect-src)
+   www.facebook.com       donde se manda cada evento: /tr por imagen o por fetch */
+function cspDePixel(id) {
+  if (!id) return { script: '', conecta: '', imagen: '' };
+  return { script: ' https://connect.facebook.net',
+           conecta: ' https://www.facebook.com https://connect.facebook.net',
+           imagen: ' https://www.facebook.com' };
+}
+
+function bloqueDePixel(id) {
+  if (!id) return [];
+  return [
+    '<!-- Medición: píxel de Meta. Lo enciende la clave meta_pixel_id de la hoja. -->',
+    "<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?" +
+      "n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;" +
+      "n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;" +
+      "s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script'," +
+      "'https://connect.facebook.net/en_US/fbevents.js');fbq('init','" + id + "');fbq('track','PageView');</script>"
+  ];
+}
+
 function generarConfiguracion() {
   var c = leerConfiguracion();
   var url = conEsquema(c.sitio_url).replace(/\/+$/, '') + '/';
@@ -2331,7 +2380,11 @@ function generarConfiguracion() {
      pasarela encendida y la política vieja, el botón de pagar no abriría nada
      y el navegador ni siquiera lo diría en la página. */
   var medicion = idDeAnalitica(c);
-  var cspMed = cspDeAnalitica(medicion);
+  var cspGa = cspDeAnalitica(medicion);
+  var pixel = idDePixel(c);
+  var cspPx = cspDePixel(pixel);
+  var cspMed = { script: cspGa.script + cspPx.script, conecta: cspGa.conecta + cspPx.conecta,
+                 imagen: cspGa.imagen + cspPx.imagen };
   var csp = "default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co" + cspMed.script + '; ' +
             /* 0.20.0 · Ya no se carga tipografía de fuera (bitácora 84): la
                página usa la pila del sistema. Un permiso que sobra es una
@@ -2367,7 +2420,7 @@ function generarConfiguracion() {
     '<meta name="theme-color" content="' + (c.color_principal || '#D0211C') + '">',
     '<link rel="icon" href="' + icono + '">',
     '<link rel="apple-touch-icon" href="' + icono + '">'
-  ].concat(bloqueDeAnalitica(medicion)).concat([
+  ].concat(bloqueDeAnalitica(medicion)).concat(bloqueDePixel(pixel)).concat([
     '<!-- ═══ FIN DE LA CONFIGURACIÓN ═══ -->'
   ]).join('\n');
 
@@ -2882,6 +2935,18 @@ function diagnostico(mostrarSecretos) {
     decir('   Flujos de datos > Web). Un UA- o un GTM- no sirven.');
   } else {
     decir('Medición: apagada. La tienda no carga nada de Google ni pone cookies.');
+  }
+  var idPx = idDePixel(cfgDiag);
+  var crudoPx = String(cfgDiag.meta_pixel_id || '').trim();
+  if (idPx) {
+    decir('Píxel de Meta: encendido (' + idPx + '). Se hornea al publicar.');
+    decir('   Compruébalo en el Administrador de eventos › Probar eventos.');
+  } else if (crudoPx) {
+    marcar('REVISAR');
+    decir('Píxel de Meta: «' + crudoPx.slice(0, 40) + '» NO es el número de un píxel y no se hornea.');
+    decir('   Son solo números (Administrador de eventos > Orígenes de datos).');
+  } else {
+    decir('Píxel de Meta: apagado. La tienda no carga nada de Meta.');
   }
 
   decir('');
@@ -5105,10 +5170,13 @@ function semillaDeConfiguracion() {
 
       /* AL FINAL (R1). La medición, apagada de fábrica: una tienda que no mide
          no carga nada de Google, no pone cookies y no necesita banner. */
-      ['analytics_id',      '', 'Google Analytics 4: el identificador G-XXXXXXXXXX de tu flujo de datos web (analytics.google.com › Administrar › Flujos de datos › Web). Vacío = la tienda NO carga nada de Google y no pone cookies de medición. Al ponerlo, la tienda mide visitas, agregar al carrito, pedidos enviados y pagos: hay que publicar para que tome efecto, y hay que avisarlo en la política de privacidad'],
+      ['analytics_id',      '', 'Google Analytics 4: el identificador G-XXXXXXXXXX de tu flujo de datos web (analytics.google.com › Administrar › Flujos de datos › Web). Vacío = la tienda NO carga nada de Google y no pone cookies de medición. Al ponerlo, la tienda mide visitas, agregar al carrito, pedidos enviados y pagos: hay que publicar para que tome efecto. La política de datos de la tienda lo dice sola'],
 
       /* AL FINAL (R1). 0.23.0: el alto del logo en la barra (bitácora 109). */
-      ['logo_tamano',       '80', 'El alto de tu logo en la barra de arriba, en píxeles: 40, 80 o 120. La barra crece con él. En el celular se ve un poco más chico para no tapar la pantalla. Hay que publicar para verlo']
+      ['logo_tamano',       '80', 'El alto de tu logo en la barra de arriba, en píxeles: 40, 80 o 120. La barra crece con él. En el celular se ve un poco más chico para no tapar la pantalla. Hay que publicar para verlo'],
+
+      /* AL FINAL (R1). 0.25.0: el píxel de Meta (bitácora 112). */
+      ['meta_pixel_id',     '', 'Píxel de Meta (Facebook e Instagram): solo el número del píxel, como 123456789012345 (business.facebook.com › Administrador de eventos › Orígenes de datos). Vacío = la tienda NO carga nada de Meta. Al ponerlo, Meta ve las visitas, los productos que se miran, lo que se agrega al carrito, los pedidos enviados y los pagos confirmados (nunca el nombre, el celular ni la dirección), y tus anuncios pueden medir ventas y volver a mostrarse a quien visitó. La política de datos de la tienda lo dice sola. Hay que publicar para que tome efecto']
   ];
 }
 

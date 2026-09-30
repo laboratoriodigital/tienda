@@ -138,8 +138,8 @@ tienda.
 - **Stock por combinación** de variantes.
 - **Ajustes de tu tienda**: todo lo que antes solo se cambiaba en la hoja
   salvo `correo_ultimo` y `panel_usuario`, agrupado (Tu tienda · La venta · El
-  cobro · La portada · Los textos · Los colores · Google y WhatsApp · Datos
-  legales · El correo del día · Avanzado), con validación por campo y aviso de
+  cobro · La portada · Los textos · Los colores · Google y WhatsApp ·
+  Medición y anuncios · Datos legales · El correo del día · Avanzado), con validación por campo y aviso de
   qué está mal. El WhatsApp, el ambiente del cobro y los datos de
   transferencia piden la clave otra vez. Entre ellos, **el logo y el icono**
   (Tu tienda).
@@ -241,14 +241,20 @@ tienda.
 - **JSON-LD** de la tienda y sus productos.
 - **Tipos y caché correctos** para el catálogo, el sitemap y el robots.
 
-## 8. Medición · Comercio (0.19.0)
+## 8. Medición · Comercio (0.19.0 · Meta desde la 0.25.0)
 
 - **Google Analytics 4 opcional**: la clave `analytics_id` en la hoja y nada
   más. Vacía —de fábrica— la tienda no carga nada de Google ni pone cookies.
-- **Eventos ya puestos**: `agregar_al_carrito`, `enviar_pedido` y
-  `pagar_en_linea`.
+- **Píxel de Meta opcional** (Facebook e Instagram): la clave `meta_pixel_id`,
+  solo el número. Mismas reglas: vacía, nada de Meta. Con él, los anuncios
+  miden ventas y pueden volver a mostrarle el producto a quien lo miró.
+- **Eventos ya puestos**: `ver_producto`, `agregar_al_carrito`,
+  `enviar_pedido`, `pagar_en_linea` y `pago_confirmado`, sin datos personales
+  (CONTRATOS §6). En Meta: `ViewContent`, `AddToCart`, `InitiateCheckout`,
+  `AddPaymentInfo` y `Purchase` (solo el pago confirmado).
+- **La política de datos lo dice sola** cuando la página mide, y con quién.
 - **Una sola costura**: la función `medir()` de la página. El medidor propio
-  que viene después es una línea dentro de ella.
+  que viene después es un destino más dentro de ella (decisión 35).
 - **No mide la vista previa** y no rompe una venta si algo falla.
 
 ## 9. Seguridad · Todos
@@ -267,7 +273,7 @@ tienda.
 - **Sin datos del comprador** más allá del pedido: por WhatsApp la hoja no
   guarda su nombre ni su celular (del pedido, solo la ciudad); cobrando en línea, sus datos de entrega quedan en la
   pestaña *Datos de entrega*, que no sale por ninguna puerta. Ni perfilado, ni
-  terceros, salvo Google Analytics si el comercio pone `analytics_id`.
+  terceros, salvo Google Analytics o el píxel de Meta si el comercio los pone.
 - **Riesgo conocido**: el token de montaje todavía viaja como `t=` en
   peticiones GET del montaje al maestro (`PLAN-MVP.md` §7).
 

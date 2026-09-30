@@ -17,7 +17,7 @@ fecha, en lo más viejo) ·
 anotado, sin fecha · `[NO]` está descartado con su razón. *(Antes había también `[MVP]`,
 `[1.1]` y `[MEDIDO]`: lo que llevaba esas marcas hoy está HECHO.)*
 
-**Al 29 de septiembre de 2026 la semilla va en la 0.24.1.** Lo pendiente
+**Al 30 de septiembre de 2026 la semilla va en la 0.25.0.** Lo pendiente
 inmediato —los secretos y la primera corrida del flujo `panel`, la causa 4, el
 sitio principal— está en `PLAN-MVP.md` › *Dónde estamos*; aquí, marcado
 `[SIGUIENTE]`: 3.9, 5.5, 5.6 y 5.7.
@@ -215,13 +215,18 @@ escribía. Falta ponerle los secretos y correrlo por primera vez.
 Está documentado en `DESPLIEGUE.md` › *Volver atrás*, con la tabla de qué se
 pierde, dónde está su respaldo y cómo se vuelve.
 
-**3.13 Medición propia**   [PENSADO · la costura, `medir()`, HECHA en la 0.19.0 — decisión 23]
-La tienda mide con Google Analytics 4 si la hoja pone `analytics_id`, y la
-página manda todo por una sola función, `medir()`. Lo que falta es el otro
-lado: una puerta o un Worker con almacenamiento que reciba esos eventos, y un
-tablero que los enseñe junto a las ventas. Con eso, los datos de comportamiento
-dejan de ser de Google y pasan a ser del comercio y nuestros — que es, además,
-lo que un comercio pequeño no puede comprar en ninguna otra parte.
+**3.13 Medición propia**   [PENSADO · la costura, `medir()`, HECHA en la 0.19.0 — decisión 23 · 0.25.0: el contrato de los cinco eventos y el píxel de Meta como segundo destino — decisión 35]
+La tienda mide con Google Analytics 4 (`analytics_id`) y con el píxel de Meta
+(`meta_pixel_id`), y la página manda todo por una sola función, `medir()`, con
+cinco eventos propios que no llevan datos personales (CONTRATOS §6). Lo que
+falta es el otro lado: la puerta `/m` en el mismo dominio de cada tienda, un
+almacén (Workers Analytics Engine) y un tablero junto a las ventas — el diseño
+está en la decisión 35. Con eso, los datos de comportamiento dejan de ser de
+Google y de Meta y pasan a ser del comercio y nuestros — que es, además, lo que
+un comercio pequeño no puede comprar en ninguna otra parte. Pasos: (1) la
+puerta y el almacén con una tienda de prueba; (2) el destino en `medir()` con
+una clave `medicion_propia` Sí/No; (3) el resumen diario en la hoja; (4) la
+vista comparada en el panel de la flota.
 
 **3.14 La flota retira flujos**   [HECHO 0.22.3]
 `semilla.json › retirados` borra en la tienda lo que la semilla quitó (0.20.7),

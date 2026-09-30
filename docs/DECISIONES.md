@@ -1561,6 +1561,64 @@ vista del comercio; si esa cuenta se compartiera, habría que acotarlo.
 
 ---
 
+## 35 · El píxel de Meta, y un contrato de eventos para el medidor propio
+
+**Estado:** CERRADA en la 0.25.0 (bitácora 112). **Vigencia:** VIGENTE.
+
+**Qué hace hoy.** La tienda mide con GA4 si la hoja pone `analytics_id`
+(decisión 23). Los comercios que anuncian en Facebook e Instagram no podían
+medir qué ventas traen sus anuncios ni volver a mostrarle el producto a quien
+lo miró: para eso Meta pide su píxel en la página.
+
+**La decisión.** `meta_pixel_id`, con las mismas reglas que GA4: vacío de
+fábrica = nada de Meta; un número válido hornea el fragmento oficial en el
+`<head>` y abre la CSP **de esa tienda**; lo que no es un número (el código
+pegado entero, un token, la cuenta publicitaria `act_…`) no se hornea y el
+panel dice por qué. Los dos van en un grupo nuevo del panel y de la hoja:
+*Medición y anuncios*.
+
+Y lo que la hace durar: **los eventos son nuestros.** `medir()` recibe cinco
+nombres propios (`ver_producto`, `agregar_al_carrito`, `enviar_pedido`,
+`pagar_en_linea`, `pago_confirmado`) con datos que nunca son personales
+(CONTRATOS §6), y cada destino los traduce **dentro** de `medir()`. Google los
+recibe tal cual; Meta, como `ViewContent`, `AddToCart`, `InitiateCheckout`,
+`AddPaymentInfo` y `Purchase`. Un pedido por WhatsApp es `InitiateCheckout` y
+no `Purchase`: aún no está pagado, y contarlo como compra inflaría lo que Meta
+atribuye a los anuncios. `Purchase` es solo el pago que el maestro confirmó.
+
+**La política de datos se escribe sola.** Dice quién mide leyendo lo que de
+verdad cargó la página (`medidores()`), no lo que cree la hoja. Sin medidores,
+no habla de cookies.
+
+**El medidor propio, cuando llegue** (ROADMAP 3.13), es un destino más en
+`medir()` —`navigator.sendBeacon` a nuestra puerta— y hereda los cinco eventos
+sin tocar una pantalla. El diseño que se prefiere hoy:
+
+| Pieza | Propuesta | Por qué |
+|---|---|---|
+| Puerta | `/m` en el **mismo dominio** de la tienda, con `run_worker_first: ["/m"]` en su `wrangler.jsonc` | Mismo origen: la CSP ya lo permite (`'self'`) y los bloqueadores de anuncios no lo tratan como de terceros. Solo esa ruta ejecuta código; el resto sigue siendo recurso estático |
+| Almacén | Workers Analytics Engine (un conjunto de datos por cuenta, la tienda como índice) | Hecho para esto; consulta por SQL; en el plan gratis incluye 100.000 puntos al día **para toda la cuenta**, compartidos por todas las tiendas |
+| Qué se guarda | Los cinco eventos, el sitio, la ruta, el origen de la visita (solo el dominio del `referrer` y los `utm_*`), celular o computador, y un número de sesión al azar por pestaña | Sin cookies ni identificador que dure más que la pestaña: no hay que pedir permiso para reconocer a nadie |
+| Qué NO se guarda | IP, nombre, celular, dirección, correo | Ley 1581: lo que no se guarda no hay que protegerlo |
+| Tablero | Un resumen diario que el maestro trae a la hoja (junto a las ventas) y, para Laboratorio Digital, el panel de la flota con todas las tiendas | Las cifras viven donde el comercio ya mira, y la flota puede comparar tiendas |
+
+**Condición de disparo del medidor propio.** Cuando haya un comercio que pida
+saber de dónde vienen sus ventas sin depender de Google o Meta, o cuando la
+flota pase de ~10 tiendas y el tablero comparado valga el trabajo. Antes de
+construirlo: comprobar con una tienda que los 100.000 puntos diarios de la
+cuenta alcanzan (≈ 5 eventos por visita → unas 20.000 visitas al día entre
+todas).
+
+**Contrapartida.** Con el píxel encendido, Meta ve el comportamiento de los
+compradores de ese comercio y pone cookies. Es decisión del comercio, lo dice la
+política, y vacío sigue siendo lo de fábrica. **Riesgo abierto:** la tienda no
+pide consentimiento antes de cargar GA4 o Meta; si un abogado o la SIC lo
+exigen para cookies de publicidad, hace falta un aviso con «Aceptar» que
+retrase la carga (`fbq('consent','revoke')` hasta aceptar). No se construye sin
+esa confirmación.
+
+---
+
 ## Cómo se escribe una decisión aquí
 
 Cinco partes, y las dos últimas son las que la hacen ejecutable:

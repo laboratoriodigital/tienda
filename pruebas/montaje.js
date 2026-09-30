@@ -1733,8 +1733,10 @@ const configurar = (g, clave, valor) => {
      host no carga nada. Así que la comparación es: quitando esos hosts —los
      que el propio maestro declara, no una lista escrita aparte— las tres
      copias tienen que decir exactamente lo mismo. */
-  const deMedicion = ((maestro.match(/conecta: '([^']+)'/) || [])[1] || '')
-    .trim().split(/\s+/).filter(Boolean);
+  /* 0.25.0 · Todos los medidores que el maestro declara (GA4 y el píxel de
+     Meta), no solo el primero: cada uno trae su `conecta:`. */
+  const deMedicion = [...new Set([...maestro.matchAll(/conecta: '([^']+)'/g)]
+    .map(m => m[1]).join(' ').trim().split(/\s+/).filter(Boolean))];
   const listas = [conectan(pag), conectan(maestro), conectan(cabeceras)]
     .map(x => x.trim().split(/\s+/).filter(Boolean));
   const tres = listas.map(l => l.filter(h => deMedicion.indexOf(h) === -1).sort().join(' '));
@@ -1746,7 +1748,7 @@ const configurar = (g, clave, valor) => {
      tres.every(x => /'self'/.test(x)),
      "sin 'self' en _headers el fetch se bloquea en produccion y aqui no se nota");
   ok('  ...y los hosts de medición están en _headers, que es igual para todas',
-     deMedicion.length === 3 && deMedicion.every(h => listas[2].indexOf(h) !== -1) &&
+     deMedicion.length === 5 && deMedicion.every(h => listas[2].indexOf(h) !== -1) &&
      deMedicion.every(h => listas[0].indexOf(h) === -1),
      deMedicion.join(' ') || 'el maestro no declara ninguno');
 

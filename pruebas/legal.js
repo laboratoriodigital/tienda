@@ -51,10 +51,13 @@ const LEGALES_SRC = extraer('const LEGALES = {', '\nfunction abrirLegal', 'LEGAL
 
 /* Arma los tres textos legales para una configuración dada. `tarifas` imita
    ENVIOS: solo se usa para el aviso de "recoger sin costo" de Términos. */
-function armar(negocio, empresa, excepciones, tarifas, enLinea) {
+function armar(negocio, empresa, excepciones, tarifas, enLinea, mide) {
   const cuerpo = [
     /* M3.5: los textos dicen cómo se cierra la venta. */
     'const cobraEnLinea = () => ' + (enLinea ? 'true' : 'false') + ';',
+    /* 0.25.0: la política dice quién mide, leído de lo que cargó la página. */
+    'const medidores = () => ' + JSON.stringify(mide || []) + ';',
+    ((mide || []).some(m => /Meta/.test(m)) ? 'const fbq = function () {};' : ''),
     'let NEGOCIO = ' + JSON.stringify(negocio) + ';',
     'let EMPRESA = ' + JSON.stringify(empresa) + ';',
     'let EXCEPCIONES_RETRACTO = ' + JSON.stringify(excepciones || []) + ';',
@@ -166,6 +169,25 @@ const PANADERIA = {
      -maestro.gs se niega a escribir el index si estas claves faltan-, pero el
      texto en sí, si alguien lo mira en el editor antes de llenar la hoja,
      tampoco puede mostrar un corchete de otro comercio. */
+}
+
+
+// ═══ 0.25.0 · La política dice quién mide, y solo si mide ═══
+{
+  const sin = armar(PANADERIA.negocio, PANADERIA.empresa, [], PANADERIA.tarifas).datos;
+  ok('SIN MEDIDORES la política no habla de medición ni de cookies',
+     !/Qué medimos/.test(sin) && !/cookies/i.test(sin) && /no guarda nada en tu navegador/.test(sin));
+  const ga = armar(PANADERIA.negocio, PANADERIA.empresa, [], PANADERIA.tarifas, false, ['Google Analytics']).datos;
+  ok('CON GA4 lo dice, con las cookies y sin datos personales',
+     /Qué medimos/.test(ga) && /Google Analytics/.test(ga) && /cookies/.test(ga) &&
+     /nunca tu nombre, tu celular ni tu dirección/.test(ga) && !/anuncios/.test(ga));
+  ok('  ...y ya no promete que «no guarda nada en tu navegador»',
+     !/no guarda nada en tu navegador/.test(ga));
+  const meta = armar(PANADERIA.negocio, PANADERIA.empresa, [], PANADERIA.tarifas, true,
+                     ['Google Analytics', 'el píxel de Meta']).datos;
+  ok('CON EL PÍXEL DE META dice los dos, y que Meta lo usa para anuncios',
+     /Google Analytics y el píxel de Meta/.test(meta) && /anuncios de esta tienda en Facebook e Instagram/.test(meta),
+     (meta.match(/usa [^.]*\./) || [''])[0].replace(/\s+/g, ' ').slice(0, 80));
 }
 
 console.log(T.join('\n'));

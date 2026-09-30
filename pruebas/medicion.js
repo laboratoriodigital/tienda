@@ -109,6 +109,89 @@ ok('  ...y están puestos los tres puntos de medida',
 ok('  ...también en la página publicada, que es la que se sirve',
    /function medir\(evento, datos\)/.test(publicada) && /medir\("enviar_pedido"/.test(publicada));
 
+
+/* ═══ 0.25.0 · EL PÍXEL DE META, con las mismas cuatro reglas ═══ */
+config('analytics_id', '');
+const sinPixel = head();
+ok('SIN meta_pixel_id la tienda no carga NADA de Meta, ni lo nombra en su política',
+   !/facebook/.test(sinPixel) && !/fbq/.test(sinPixel));
+ok('  ...y la clave existe en la hoja de fábrica, vacía, en «Medición y anuncios» con GA4',
+   g.filas('Configuración').some(f => String(f[0]).trim() === 'meta_pixel_id' && !String(f[1] || '').trim()) &&
+   g.api.CLAVES_DEL_PANEL.filter(d => /^(meta_pixel_id|analytics_id)$/.test(d.clave))
+     .every(d => d.grupo === 'Medición y anuncios'));
+config('meta_pixel_id', '123456789012345');
+const conPixel = head();
+ok('CON meta_pixel_id se hornea el fragmento oficial, con ESE número y su PageView',
+   /connect\.facebook\.net\/en_US\/fbevents\.js/.test(conPixel) &&
+   /fbq\('init','123456789012345'\);fbq\('track','PageView'\)/.test(conPixel));
+ok('  ...sin el <noscript><img>: la tienda no funciona sin JavaScript y en <head> no es HTML válido',
+   !/<noscript>/.test(conPixel));
+ok('  ...y la política de seguridad lo permite: script, conexión e imagen',
+   /script-src[^;]*https:\/\/connect\.facebook\.net/.test(conPixel) &&
+   /connect-src[^;]*https:\/\/www\.facebook\.com/.test(conPixel) &&
+   /img-src[^;]*https:\/\/www\.facebook\.com/.test(conPixel) &&
+   !/googletagmanager/.test(conPixel), (conPixel.match(/script-src[^;]*/) || [''])[0]);
+ok('  ...dentro del bloque que el montaje reemplaza',
+   conPixel.indexOf('fbevents') !== -1 && conPixel.indexOf('fbevents') < conPixel.indexOf('FIN DE LA CONFIGURACIÓN'));
+config('analytics_id', 'G-AB12CD34EF');
+const losDos = head();
+ok('CON LOS DOS van los dos fragmentos y los hosts de los dos en la MISMA política',
+   /gtag\/js\?id=G-AB12CD34EF/.test(losDos) && /fbevents/.test(losDos) &&
+   (losDos.match(/Content-Security-Policy/g) || []).length === 1 &&
+   /script-src[^;]*googletagmanager[^;]*connect\.facebook\.net/.test(losDos));
+ok('LAS CABECERAS de Cloudflare nombran también a Meta, para todas las tiendas',
+   /script-src[^;]*connect\.facebook\.net/.test(cabeceras) &&
+   /connect-src[^;]*www\.facebook\.com/.test(cabeceras) && /img-src[^;]*www\.facebook\.com/.test(cabeceras));
+const defPixel = g.api.CLAVES_DEL_PANEL.filter(d => d.clave === 'meta_pixel_id')[0];
+const malos = ['act_123456789', '<script>fbq("init","1")</script>', 'EAAGm0PX4ZCpsBA', '12345'];
+malos.forEach(v => { config('meta_pixel_id', v); });
+ok('LO QUE SE SUELE PEGAR POR ERROR no se hornea: la cuenta publicitaria, el código entero, un token',
+   malos.every(v => { config('meta_pixel_id', v); return !/fbevents/.test(head()); }));
+ok('  ...y el panel dice cómo se ve el bueno',
+   !!defPixel && malos.every(v => /solo números/.test(String(g.api.problemaDeValor(defPixel, v)))) &&
+   g.api.problemaDeValor(defPixel, '123456789012345') === null && g.api.problemaDeValor(defPixel, '') === null);
+
+/* La página: Meta sale por el MISMO medir(), con sus eventos estándar, y un
+   pedido por WhatsApp NO es una compra. Se evalúa el trozo de verdad de la
+   plantilla con un gtag y un fbq de mentira que anotan lo que reciben. */
+{
+  const i = pagina.indexOf('const EVENTOS_META');
+  const j = pagina.indexOf('function medidores(){');
+  const trozo = i !== -1 && j !== -1 ? pagina.slice(i, j) : '';
+  const llamadas = { g: [], m: [] };
+  const correr = (vista, conMeta) => new Function('VISTA', 'gtag', 'fbq', trozo + '; return medir;')(
+    vista, (...a) => llamadas.g.push(a), conMeta ? (...a) => llamadas.m.push(a) : undefined);
+  const medirDePrueba = trozo ? correr(false, true) : () => {};
+  medirDePrueba('ver_producto', { item_id: 'pan', value: 8900, currency: 'COP' });
+  medirDePrueba('agregar_al_carrito', { item_id: 'pan', quantity: 2, value: 17800, currency: 'COP' });
+  medirDePrueba('enviar_pedido', { transaction_id: 'AB12', value: 17800, currency: 'COP' });
+  medirDePrueba('pago_confirmado', { transaction_id: 'AB12', value: 17800, currency: 'COP' });
+  const nombres = llamadas.m.map(a => a[1]).join(',');
+  ok('MEDIR() LE HABLA A META en sus eventos estándar, y un pedido por WhatsApp no es una compra',
+     nombres === 'ViewContent,AddToCart,InitiateCheckout,Purchase', nombres);
+  ok('  ...con los datos que entiende, sin nada personal',
+     JSON.stringify(llamadas.m[1][2]) === JSON.stringify({ content_ids: ['pan'], content_type: 'product', num_items: 2, value: 17800, currency: 'COP' }),
+     JSON.stringify(llamadas.m[1] && llamadas.m[1][2]));
+  ok('  ...y lo que lleva pedido va con eventID, para que Meta no lo cuente dos veces',
+     llamadas.m[3] && llamadas.m[3][3] && llamadas.m[3][3].eventID === 'pago_confirmado-AB12');
+  ok('  ...y Google recibe lo mismo, tal cual, con nuestros nombres',
+     llamadas.g.map(a => a[1]).join(',') === 'ver_producto,agregar_al_carrito,enviar_pedido,pago_confirmado');
+  const antes = llamadas.m.length + llamadas.g.length;
+  (trozo ? correr(true, true) : () => {})('ver_producto', { item_id: 'pan' });
+  ok('  ...y en la vista previa, nada', llamadas.m.length + llamadas.g.length === antes);
+  let reviento = '';
+  try {
+    new Function('VISTA', 'gtag', 'fbq', trozo + '; return medir;')(false, () => { throw new Error('g'); }, () => { throw new Error('m'); })
+      ('enviar_pedido', { transaction_id: 'X' });
+  } catch (e) { reviento = e.message; }
+  ok('  ...y si Google o Meta revientan, la venta sigue', !reviento, reviento);
+}
+ok('LA PÁGINA LE HABLA A META POR UN SOLO SITIO',
+   (pagina.match(/\bfbq\("track"/g) || []).length === 2 && pagina.indexOf('fbq("track"') > pagina.indexOf('function medir('),
+   (pagina.match(/\bfbq\(/g) || []).length + ' llamadas a fbq');
+ok('  ...y están los puntos nuevos: la ficha y el pago confirmado',
+   /medir\("ver_producto"/.test(pagina) && /medir\("pago_confirmado"/.test(pagina));
+
 console.log(T.join('\n'));
 console.log('\nResultado: ' + T.filter(x => x.startsWith('  OK')).length + '/' + T.length);
 process.exit(T.every(x => x.startsWith('  OK')) ? 0 : 1);

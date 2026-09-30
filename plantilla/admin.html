@@ -1741,7 +1741,7 @@ function campoDe(c){
       opciones.map(o => `<option value="${escapar(o)}" ${o === actual ? "selected" : ""}>${escapar(o)}</option>`).join("") + `</select>`;
   }
   const muestra = c.tipo === "color" && /^#[0-9a-f]{6}$/i.test(v) ? `<span class="muestra" style="background:${escapar(v)}"></span>` : "";
-  const modo = (c.tipo === "cifra" || c.tipo === "hora") ? ' inputmode="numeric"' : c.tipo === "celular" ? ' inputmode="tel"' :
+  const modo = (c.tipo === "cifra" || c.tipo === "hora" || c.tipo === "pixel") ? ' inputmode="numeric"' : c.tipo === "celular" ? ' inputmode="tel"' :
                c.tipo === "correo" ? ' inputmode="email"' : c.tipo === "url" ? ' inputmode="url"' : "";
   return `<input class="campo${mal}" id="${id}" data-clave="${escapar(c.clave)}" value="${escapar(v)}"${modo} spellcheck="false">${muestra}`;
 }

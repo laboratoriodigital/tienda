@@ -745,7 +745,17 @@ error visible.
 
 La página no llama a `gtag` suelto: llama a **`medir(evento, datos)`**, que se
 lo pasa a Google si está y se calla si no. Los puntos de medida son
-`agregar_al_carrito`, `enviar_pedido` y `pagar_en_linea`.
+`ver_producto`, `agregar_al_carrito`, `enviar_pedido`, `pagar_en_linea` y
+`pago_confirmado` (este y el primero desde la 0.25.0; contrato en CONTRATOS §6).
+
+**El píxel de Meta (0.25.0, decisión 35)** sigue el mismo camino: la clave
+`meta_pixel_id`, el fragmento oficial sin su `<noscript>`, los hosts
+`connect.facebook.net` y `www.facebook.com` en la CSP de esa tienda y siempre en
+`_headers`, y los eventos traducidos a los estándar de Meta dentro de `medir()`
+(un pedido por WhatsApp es `InitiateCheckout`; solo el pago confirmado es
+`Purchase`). La política de datos de la página dice quién mide leyendo lo que
+de verdad se cargó (`medidores()`). El medidor propio será un tercer destino en
+esa misma función; su diseño está en la decisión 35.
 
 ## 16. Cloudflare: qué hace, y qué sería Access
 

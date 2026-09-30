@@ -119,7 +119,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** un procedimiento, un documento; el redundante se borra, no se marca. Lo que un documento o un comentario afirma del código lo ata una aserción, y «esto lo comprueba X» se verifica abriendo X.
-- **Entradas:** 23, 26, 52, 80, 82, 96; Graves: *El documento mandaba a sacar el stub de donde no sale*; *Afirmaciones mías que resultaron falsas* 3 y 4.
+- **Entradas:** 23, 26, 52, 80, 82, 96, 112; Graves: *El documento mandaba a sacar el stub de donde no sale*; *Afirmaciones mías que resultaron falsas* 3 y 4.
 - **Lo impide hoy:** las guardias de documentación de `pruebas/montaje.js` (secretos en `ARQUITECTURA.md`, funciones y flujos que nombra el runbook, de dónde sale el stub); `pruebas/esquema.js` con `CONTRATOS.md`; `flota/pruebas.mjs` lee el orden real de `conectar` (96).
 
 ### P19 · Un rojo que no significa nada enseña a no mirar los rojos
@@ -129,7 +129,7 @@ de otros proyectos y aplicarlo antes de equivocarse: `CONOCIMIENTO.md`.
 
 ### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
 - **Regla:** se prueba desde quien mira —el comprador, el comerciante que no entra a GitHub, el rastreador que no ejecuta JavaScript—, no desde el estado interno.
-- **Entradas:** 17, 31, 34, 57, 78, 85, 88, 109, 110; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
+- **Entradas:** 17, 31, 34, 57, 78, 85, 88, 109, 110, 112; Críticos: *El botón de WhatsApp se apagaba sin decir por qué*.
 - **Lo impide hoy:** las baterías de navegador miran la pantalla, no las listas internas (34, `pruebas/hoja.js`); el SEO se hornea y lo revisa `pruebas/seo.js` (31).
 
 ### P21 · Lo que borra antes de escribir convierte un fallo en una pérdida
@@ -3016,3 +3016,39 @@ caer a `migrarEstados`. Suite completa en verde (salvo el ícono de
 `config.js`, que falta en el entorno y no en la tienda).
 
 *Ficha:* *(mío)* · 🔴 Crítico · P1, P4, P17, P21 · 0.24.1 · 2026-09-29
+
+**112 · La política de datos prometía que la tienda no guarda nada en el
+navegador, y desde la 0.19.0 podía poner cookies de Google.** El dueño pidió el
+píxel de Meta «de manera fácil desde configuración» y pensar en la analítica
+propia. Al escribir el texto legal del píxel salió lo que nadie había mirado: la
+política de tratamiento de datos, en la rama de WhatsApp, dice «no guarda nada
+en tu navegador», y **no cambia** cuando la hoja pone `analytics_id`. La clave
+decía «hay que avisarlo en la política de privacidad», pero la política la
+escribe la página, no el comercio: nadie podía avisarlo. Una afirmación legal
+falsa en todas las tiendas que midieran (P18), y la prueba de medición miraba el
+`<head>` pero no lo que el comprador lee (P20).
+
+**El arreglo** (0.25.0): la política dice quién mide leyendo lo que **de verdad
+se cargó** en la página (`medidores()`: `gtag` o `fbq` definidos), no lo que la
+hoja cree; con medidores explica qué se mide, que nunca va el nombre, el celular
+ni la dirección, las cookies y cómo bloquearlas, y con Meta, que puede usarse
+para anuncios. Sin medidores no habla de cookies. El píxel entra por el mismo
+camino que GA4 (clave vacía de fábrica, fragmento horneado, CSP de esa tienda y
+siempre en `_headers`) y sus eventos salen por `medir()`, que ahora traduce
+**nuestros** cinco eventos a cada destino. Dos cosas que se decidieron con
+cuidado: un pedido por WhatsApp es `InitiateCheckout` y no `Purchase` —no está
+pagado, y Meta le atribuiría a los anuncios ventas que no existen—, y
+`pagar_en_linea` sale al **abrir** la pasarela, no al pagar: el pago
+confirmado es un evento nuevo, `pago_confirmado`, que sale una sola vez cuando
+el maestro lo confirma.
+
+**Lo prueban** `pruebas/medicion.js` (vacío es vacío, el fragmento y su CSP, lo
+que se suele pegar mal, `_headers`, y `medir()` evaluado de la plantilla con un
+`gtag` y un `fbq` de mentira: nombres de Meta, datos sin nada personal,
+`eventID`, vista previa y un destino que revienta), `pruebas/legal.js` (la
+política con y sin medidores) y `pruebas/montaje.js` (las tres copias de la CSP
+con todos los hosts de medición que declara el maestro, no solo los primeros).
+Controles negativos vistos en rojo: `enviar_pedido` como `Purchase` y la CSP sin
+la imagen de Meta.
+
+*Ficha:* *(mío)* · 🟠 Grave · P18, P20 · 0.25.0 · 2026-09-30

@@ -7,8 +7,9 @@
 # iframe invisible para robarte el clic de "Enviar pedido". No funcionan desde una
 # etiqueta <meta>, por eso este archivo existe.
 #
-# LA MEDICIÓN (0.19.0). Los hosts de Google Analytics van aquí SIEMPRE, y en el
-# <meta> de cada tienda solo cuando esa tienda tiene `analytics_id`. Permitir un
+# LA MEDICIÓN (0.19.0; Meta desde la 0.25.0). Los hosts de Google Analytics y
+# del píxel de Meta van aquí SIEMPRE, y en el
+# <meta> de cada tienda solo cuando esa tienda tiene `analytics_id` o `meta_pixel_id`. Permitir un
 # host no carga nada: lo que carga es el <script> que el montaje hornea, y ese
 # solo aparece si la hoja lo pidió. Al revés no se puede: este archivo es igual
 # en todas las tiendas, así que si no los nombrara, la tienda que sí mide vería
@@ -24,7 +25,7 @@
 # las tres.
 
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net https://*.google-analytics.com https://www.googletagmanager.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; form-action 'none'; base-uri 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' https://checkout.bold.co https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com https://ik.imagekit.io https://imagedelivery.net https://*.google-analytics.com https://www.googletagmanager.com https://www.facebook.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net; form-action 'none'; base-uri 'none'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

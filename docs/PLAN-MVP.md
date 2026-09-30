@@ -1771,6 +1771,23 @@ próxima.*
 - [x] `ALTA_TOKEN` retirado de `tiendas` por el dueño (29-sep); `FLOTA_TOKEN`
       con Administration y Secrets.
 
+### 0.25.0 · El píxel de Meta, y los eventos son nuestros
+
+**C-24**  · 2 pts · ✅ (decisión 35, bitácora 112)
+- [x] `meta_pixel_id` en *Medición y anuncios* (con `analytics_id`): vacío =
+      nada de Meta; un número hornea el fragmento oficial y abre la CSP de esa
+      tienda; lo demás no se hornea y el panel dice por qué. Diagnóstico.
+- [x] `medir()` reparte a GA4 y a Meta: cinco eventos propios sin datos
+      personales (`ver_producto` y `pago_confirmado` nuevos); en Meta,
+      `ViewContent`, `AddToCart`, `InitiateCheckout`, `AddPaymentInfo`,
+      `Purchase` con `eventID`.
+- [x] La política de datos dice quién mide, leído de lo que cargó la página;
+      ya no promete «no guarda nada en tu navegador» cuando hay cookies.
+- [x] Diseño del medidor propio (puerta `/m`, Analytics Engine, tablero) en la
+      decisión 35 y el ROADMAP 3.13.
+- [ ] Riesgo abierto: consentimiento antes de cargar GA4/Meta, si un abogado lo
+      confirma para Colombia.
+
 ---
 
 ### Lo que sigue después del MVP

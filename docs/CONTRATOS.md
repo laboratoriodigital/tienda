@@ -441,8 +441,9 @@ en rojo mientras estén vacías. Lo hacen `instalar()` y la revisión de cada ho
 | **El rastreo (M5)** | `f_rastreo` — `Sí` de fábrica (vacío también es Sí): cada pedido lleva en su mensaje de WhatsApp el enlace `pedido.html?n=…&s=…`. `No` = sin enlace, y la página de seguimiento dice que la tienda no lo tiene |
 | **Vender más (0.11.0)** | `f_avisame` — `Sí` de fábrica (vacío también): en lo agotado sale «Avísame cuando llegue». `catalogo_columnas` — `3` (de fábrica), `4` o `5` productos por fila en pantalla ancha; cualquier otra cosa se lee como 3. Con 4 la paginación va de 24 en 24 |
 | **Cómo se cierra la venta (M3.5)** | `cobro_modo` — `WhatsApp` (de fábrica, como siempre) o `Pasarela` (paga en línea con Bold). `cobro_ambiente` — `Pruebas` o `Producción`. **Las llaves de Bold no van aquí**: van en las propiedades del script (`BOLD_IDENTIDAD_SANDBOX`, `BOLD_SECRETA_SANDBOX`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`). Pedir Pasarela sin sus llaves, o sin `sitio_url`, deja la tienda en WhatsApp y el diagnóstico lo dice |
-| **La medición (0.19.0)** | `analytics_id` — el identificador de Google Analytics 4 de esa tienda (`G-XXXXXXXXXX`). **Vacío de fábrica**, y vacío significa que la página no carga nada de Google, no pone cookies de medición y su política de seguridad ni siquiera nombra a `googletagmanager.com`. Con un valor válido, el montaje hornea el fragmento oficial de GA4 en el `<head>` y añade a la CSP de ESA tienda `https://www.googletagmanager.com`, `https://*.google-analytics.com` y `https://*.analytics.google.com`. Un valor que no sea `G-…` (un `UA-…` o un `GTM-…`) no se hornea y el panel dice por qué. Los eventos los manda la función `medir()` de la página: `agregar_al_carrito`, `enviar_pedido` y `pagar_en_linea` |
+| **La medición (0.19.0)** | `analytics_id` — el identificador de Google Analytics 4 de esa tienda (`G-XXXXXXXXXX`). **Vacío de fábrica**, y vacío significa que la página no carga nada de Google, no pone cookies de medición y su política de seguridad ni siquiera nombra a `googletagmanager.com`. Con un valor válido, el montaje hornea el fragmento oficial de GA4 en el `<head>` y añade a la CSP de ESA tienda `https://www.googletagmanager.com`, `https://*.google-analytics.com` y `https://*.analytics.google.com`. Un valor que no sea `G-…` (un `UA-…` o un `GTM-…`) no se hornea y el panel dice por qué. Los eventos los manda la función `medir()` de la página (§6, *Los eventos de medición*) |
 | **El logo en la barra (0.23.0)** | `logo_tamano` — el alto del logo en píxeles: `40`, `80` (de fábrica) o `120`. Cualquier otro valor, o una hoja sin la clave, se lee como `80`. La barra crece con él; en el celular baja a 34, 52 o 68 px. Lo puede cambiar el colaborador |
+| **El píxel de Meta (0.25.0)** | `meta_pixel_id` — el número del píxel (solo dígitos, 8 a 20). **Vacío de fábrica** = nada de Meta en la página. Con un valor válido, el montaje hornea el fragmento oficial (sin el `<noscript>`) en el `<head>` y añade a la CSP de ESA tienda `https://connect.facebook.net` (script y conexión) y `https://www.facebook.com` (imagen y conexión). Un valor con letras (el código entero, un token, un `act_…`) no se hornea y el panel dice por qué. Grupo del panel: *Medición y anuncios*, con `analytics_id` |
 | **El panel del comerciante** | `panel_usuario` — con qué nombre entra al panel. **La clave no está aquí y no puede estarlo**: vive como huella con sal en las propiedades del proyecto. Vacío = el panel está cerrado |
 
 **`orden_catalogo` (C-4).** Uno de estos cinco, escrito tal cual —se lee sin
@@ -954,6 +955,28 @@ la configuración por `String()`: **quien lo lea tiene que convertirlo.**
 > campo, decir **quién lo lee**; si nadie, no se agrega.
 
 ---
+
+### Los eventos de medición (0.19.0; contrato desde la 0.25.0)
+
+La página mide por **una sola función**, `medir(evento, datos)`. Los nombres son
+nuestros y los datos siempre los mismos, **nunca personales** (ni nombre, ni
+celular, ni dirección, ni correo). Cada destino los traduce dentro de `medir()`.
+
+| Evento | Cuándo | Datos | GA4 | Meta |
+|---|---|---|---|---|
+| `ver_producto` | Se abre la ficha | `item_id`, `value`, `currency` | tal cual | `ViewContent` |
+| `agregar_al_carrito` | Entra al carrito | `item_id`, `quantity`, `value` (precio × cantidad), `currency` | tal cual | `AddToCart` |
+| `enviar_pedido` | Sale el mensaje a WhatsApp | `transaction_id` (el código del pedido), `value`, `currency` | tal cual | `InitiateCheckout` |
+| `pagar_en_linea` | Se abre la pasarela | `transaction_id` (el de Bold), `value`, `currency` | tal cual | `AddPaymentInfo` |
+| `pago_confirmado` | El maestro confirma el pago | `transaction_id` (el código del pedido), `value`, `currency` | tal cual | `Purchase` |
+
+- **R1 vale aquí también**: un evento o un dato nuevo se agrega; ninguno se
+  renombra ni cambia de significado, porque los informes del comercio y el
+  medidor propio dependen de ellos.
+- En la **vista previa** no se mide nada.
+- En Meta, lo que lleva `transaction_id` va con `eventID` = `evento-transaction_id`,
+  para que no se cuente dos veces.
+- Un pedido por WhatsApp es `InitiateCheckout`, no `Purchase`: aún no está pagado.
 
 ## 7. Cómo se hace cumplir
 

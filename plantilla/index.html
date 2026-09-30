@@ -750,10 +750,48 @@ const FOTOS_HOSTS = ["res.cloudinary.com", "ik.imagekit.io", "imagedelivery.net"
    tocar ni una pantalla. Y en la VISTA PREVIA no mide: mirar cómo quedó la
    tienda no es una visita.
 
-   Nunca revienta: una medida que rompe una venta es peor que no medir. */
+   Nunca revienta: una medida que rompe una venta es peor que no medir.
+
+   0.25.0 · EL CONTRATO DEL EVENTO (decisión 35). Los nombres son NUESTROS
+   —ver_producto, agregar_al_carrito, enviar_pedido, pagar_en_linea,
+   pago_confirmado— y los datos, siempre los mismos y nunca personales:
+   item_id, quantity, value, currency, transaction_id (el vocabulario de
+   comercio de GA4, que es el que entienden todos). Cada destino lo traduce a su
+   idioma aquí dentro: Google lo recibe tal cual; Meta, con sus eventos
+   estándar. El medidor propio será un destino más, en este mismo sitio.
+
+   Por qué enviar_pedido es InitiateCheckout y no Purchase: un pedido por
+   WhatsApp todavía no está pagado; contarlo como compra inflaría las ventas
+   que Meta le atribuye a los anuncios. Purchase es solo el pago confirmado.
+   El eventID (evento + pedido) deja que Meta no cuente dos veces lo mismo. */
+const EVENTOS_META = { ver_producto:"ViewContent", agregar_al_carrito:"AddToCart",
+  enviar_pedido:"InitiateCheckout", pagar_en_linea:"AddPaymentInfo", pago_confirmado:"Purchase" };
+function paraMeta(d){
+  const m = {};
+  if(d.item_id){ m.content_ids = [String(d.item_id)]; m.content_type = "product"; }
+  if(d.quantity) m.num_items = d.quantity;
+  if(typeof d.value === "number" && isFinite(d.value)){ m.value = d.value; m.currency = d.currency || "COP"; }
+  return m;
+}
 function medir(evento, datos){
   if(VISTA) return;
-  try{ if(typeof gtag === "function") gtag("event", evento, datos || {}); }catch(e){}
+  const d = datos || {};
+  try{ if(typeof gtag === "function") gtag("event", evento, d); }catch(e){}
+  try{
+    if(typeof fbq === "function" && EVENTOS_META[evento]){
+      if(d.transaction_id) fbq("track", EVENTOS_META[evento], paraMeta(d), { eventID: evento + "-" + d.transaction_id });
+      else fbq("track", EVENTOS_META[evento], paraMeta(d));
+    }
+  }catch(e){}
+}
+/* Quién mide en ESTA página, leído de lo que de verdad se cargó (el montaje
+   solo hornea el fragmento si la hoja lo pidió). Lo usa la política de datos:
+   dice lo que pasa, no lo que la hoja cree. */
+function medidores(){
+  const m = [];
+  if(typeof gtag === "function") m.push("Google Analytics");
+  if(typeof fbq === "function") m.push("el píxel de Meta");
+  return m;
 }
 
 // Respaldo mínimo por si la hoja no contesta. La pestaña Configuración manda.
@@ -1926,6 +1964,7 @@ function abrirFicha(id, desdeEnlace){
   eleccionFicha = {};            // cada ficha empieza sin nada elegido
   if(!desdeEnlace) apuntarEnHistoria(id);
   pintarFicha();
+  medir("ver_producto", { item_id: id, value: fichaActual.precio, currency: "COP" });
   $("#ficha").classList.add("abierta");
   $("#capa").classList.add("activa");
   $("#flotante").classList.add("oculto");
@@ -2119,7 +2158,7 @@ function agregar(id, n, eleccion){
   else if(elegido) carrito.push({ id, cantidad:n, variante:elegido });
   else carrito.push({ id, cantidad:n });
   cantidades[id] = 1;              // la tarjeta vuelve a 1 tras agregar
-  medir("agregar_al_carrito", { item_id: id, quantity: n });
+  medir("agregar_al_carrito", { item_id: id, quantity: n, value: precioDe(p, elegido) * n, currency: "COP" });
   refrescar();
 }
 
@@ -2781,6 +2820,10 @@ function alTerminarCobro(c){
   /* Pagado es pagado: el carrito se vacía, y un recargar no lo vuelve a
      ofrecer. Rechazado o vencido: el carrito se queda, para intentarlo. */
   if(c.estado === "pagado"){
+    /* 0.25.0 · la única compra de verdad que ve la página: el maestro
+       confirmó el pago. Una sola vez: olvidarCobro() ya borró lo guardado, y
+       la dirección se limpió al volver de Bold, así que recargar no repite. */
+    medir("pago_confirmado", { transaction_id: c.pedido, value: Number(c.total) || 0, currency: "COP" });
     carrito = []; cuponActivo = null; codigoActual = null;
     avisoCupon = { clase:"", texto:"" };
   }
@@ -3263,7 +3306,7 @@ datos: { titulo:"Política de tratamiento de datos personales", cuerpo: () => `
      solo queda, mientras pagas, el número del pedido y el carrito — no tu nombre
      ni tus datos de contacto.</p>` : `
   <p>Esta tienda es una página estática: <strong>no tiene servidor ni base de datos</strong>
-     y no guarda nada en tu navegador. Lo que escribes se usa únicamente para armar el
+     y ${medidores().length ? "no guarda tus datos en tu navegador (solo las cookies de medición que explicamos abajo)" : "no guarda nada en tu navegador"}. Lo que escribes se usa únicamente para armar el
      mensaje que se abre en WhatsApp. Los datos quedan en esa conversación cuando tú
      decides enviarla, y solo entonces llegan a nosotros.</p>`}
 
@@ -3289,6 +3332,17 @@ datos: { titulo:"Política de tratamiento de datos personales", cuerpo: () => `
   ${cobraEnLinea() ? "" : `<p>Para saber cuántas unidades se venden de cada producto guardamos un registro
      con la ciudad, el cupón y los productos del pedido, <strong>sin tu nombre,
      celular ni dirección</strong>.</p>`}
+
+  ${medidores().length ? `<h3>Qué medimos, y con quién</h3>
+  <p>Para saber qué productos interesan y de dónde llegan las visitas, esta página
+     usa ${medidores().join(" y ")}. Registran las visitas, los productos que miras,
+     lo que agregas al carrito y que enviaste o pagaste un pedido, con su valor
+     —<strong>nunca tu nombre, tu celular ni tu dirección</strong>—, y ponen cookies
+     en tu navegador para reconocer tu visita.${typeof fbq === "function"
+     ? " Meta puede usarlo para mostrarte anuncios de esta tienda en Facebook e Instagram." : ""}</p>
+  <p>Puedes borrar o bloquear esas cookies desde tu navegador${typeof fbq === "function"
+     ? ", y decidir qué anuncios ves en la configuración de anuncios de tu cuenta de Meta" : ""}.
+     Si las bloqueas, la tienda funciona igual.</p>` : ""}
 
   <h3>Quién opera ${escapar(NEGOCIO)}</h3>
   <p>${NEGOCIO} lo opera una persona natural en ${EMPRESA.ciudad}.
