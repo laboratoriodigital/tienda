@@ -563,9 +563,32 @@ input[type="email"],textarea{
 .ventana .caja,.legal-caja,.ficha-caja,.carrito-caja{border-radius:14px;box-shadow:var(--sombra-alta)}
 .legal-cerrar{transition:background var(--paso),border-color var(--paso)}
 .legal-cerrar:hover{background:#F6F6F7}
+
+/* Navegación directa para teclado y objetivos cómodos en pantallas táctiles. */
+.salto-contenido{position:fixed;top:12px;left:12px;z-index:120;transform:translateY(-180%);
+  padding:11px 16px;border-radius:var(--radio-pildora);background:var(--negro);color:var(--blanco);
+  font-weight:650;text-decoration:none;box-shadow:var(--sombra-alta)}
+.salto-contenido:focus{transform:translateY(0)}
+#catalogo{scroll-margin-top:80px}
+#catalogo:focus{outline:none}
+.campo-grupo{min-width:0;margin-bottom:10px}
+.rotulo-campo{display:block;margin:0 0 5px;font-size:.79rem;font-weight:600;color:var(--negro)}
+.campo-ayuda{display:block;margin-top:4px;color:var(--tenue);font-size:.76rem;line-height:1.4}
+.dos-col{margin-bottom:10px}
+.dos-col .campo-grupo{margin:0}
+@media(pointer:coarse){
+  .btn,.btn-solido,.btn-linea,.pagina,.btn-carrito,.chip,.btn-whatsapp,.cerrar,.ficha-cerrar,.legal-cerrar,
+  .cantidad button,.ficha .flecha,.miniaturas button{min-height:44px}
+  .cerrar,.ficha-cerrar,.legal-cerrar{width:44px;height:44px}
+  .cantidad button{width:44px}
+  .ficha .flecha{width:44px;height:44px}
+  .miniaturas button{width:62px;height:62px}
+}
 </style>
 </head>
 <body>
+
+<a class="salto-contenido" href="#catalogo">Saltar al catálogo</a>
 
 <!-- ============================ BARRA ============================ -->
 <header class="barra">
@@ -624,7 +647,7 @@ input[type="email"],textarea{
 </section>
 
 <!-- ============================ CATÁLOGO ============================ -->
-<main class="envoltura">
+<main class="envoltura" id="catalogo" tabindex="-1">
   <!-- Sale solo cuando la tienda está sirviendo su propio catálogo porque la
        hoja no contestó. Vacío y oculto el resto del tiempo. -->
   <p class="aviso-archivo" id="avisoArchivo" hidden></p>
@@ -2579,14 +2602,21 @@ function pintarPanel(datos){
 
     <div class="bloque" id="bloqueDatos">
       <p class="titulo">Datos de entrega</p>
-      <div class="dos-col" style="margin-bottom:10px">
-        <input class="campo" id="fNombre" maxlength="60" placeholder="Nombre y apellido" oninput="revisarFormulario()" value="${datos ? escapar(datos.nombre) : ""}">
-        <input class="campo" id="fTel" maxlength="15" placeholder="Celular" inputmode="tel" oninput="revisarFormulario()" value="${datos ? escapar(datos.tel) : ""}">
+      <div class="dos-col">
+        <div class="campo-grupo"><label class="rotulo-campo" for="fNombre">Nombre y apellido</label>
+          <input class="campo" id="fNombre" maxlength="60" autocomplete="name" required oninput="revisarFormulario()" value="${datos ? escapar(datos.nombre) : ""}"></div>
+        <div class="campo-grupo"><label class="rotulo-campo" for="fTel">Celular</label>
+          <input class="campo" id="fTel" maxlength="15" inputmode="tel" autocomplete="tel" required oninput="revisarFormulario()" value="${datos ? escapar(datos.tel) : ""}"></div>
       </div>
-      ${cobraEnLinea() ? `<input class="campo" id="fCorreo" maxlength="120" placeholder="Correo (ahí te llega la confirmación del pago)" inputmode="email" autocomplete="email" style="margin-bottom:10px" oninput="revisarFormulario()" value="${datos ? escapar(datos.correo || "") : ""}">` : ""}
-      <input class="campo" id="fCiudad" maxlength="40" placeholder="Ciudad" style="margin-bottom:10px" oninput="revisarFormulario()" value="${datos ? escapar(datos.ciudad) : ""}">
-      <input class="campo" id="fDir" maxlength="120" placeholder="Dirección de entrega" style="margin-bottom:10px" oninput="revisarFormulario()" value="${datos ? escapar(datos.dir) : ""}">
-      <textarea class="campo" id="fNotas" maxlength="300" placeholder="Notas: punto de referencia, horario, indicaciones para la portería">${datos ? escapar(datos.notas) : ""}</textarea>
+      ${cobraEnLinea() ? `<div class="campo-grupo"><label class="rotulo-campo" for="fCorreo">Correo</label>
+        <input class="campo" id="fCorreo" maxlength="120" placeholder="nombre@correo.com" inputmode="email" autocomplete="email" aria-describedby="fCorreoAyuda" required oninput="revisarFormulario()" value="${datos ? escapar(datos.correo || "") : ""}">
+        <span class="campo-ayuda" id="fCorreoAyuda">Ahí te llega la confirmación del pago.</span></div>` : ""}
+      <div class="campo-grupo"><label class="rotulo-campo" for="fCiudad">Ciudad</label>
+        <input class="campo" id="fCiudad" maxlength="40" autocomplete="address-level2" required oninput="revisarFormulario()" value="${datos ? escapar(datos.ciudad) : ""}"></div>
+      <div class="campo-grupo"><label class="rotulo-campo" for="fDir">Dirección de entrega</label>
+        <input class="campo" id="fDir" maxlength="120" autocomplete="street-address" required oninput="revisarFormulario()" value="${datos ? escapar(datos.dir) : ""}"></div>
+      <div class="campo-grupo"><label class="rotulo-campo" for="fNotas">Indicaciones de entrega <span class="campo-ayuda">Opcional: punto de referencia, horario o indicaciones para la portería.</span></label>
+        <textarea class="campo" id="fNotas" maxlength="300" placeholder="Escribe aquí las indicaciones">${datos ? escapar(datos.notas) : ""}</textarea></div>
     </div>`;
 
   // El aviso del cupón lo escribió la respuesta de la hoja; aquí solo se

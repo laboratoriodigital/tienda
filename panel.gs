@@ -1319,22 +1319,32 @@ function portalHtml(tiendas, metricas, ctx) {
                      .reduce(function (a, t) { return a + (t.precio || 0); }, 0);
 
   var css = 'body{margin:0;background:' + FONDO + ';color:' + TINTA + ';' +
-    'font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}' +
-    '.c{max-width:980px;margin:0 auto;padding:18px 16px 40px}' +
-    'h1{font-size:19px;margin:0 0 2px;font-weight:650}' +
-    '.g{color:' + GRIS + ';font-size:12.5px;margin:0 0 16px}' +
-    '.b{display:inline-block;margin:0 6px 8px 0;padding:7px 12px;border:1px solid ' + LINEA + ';' +
-    'border-radius:8px;background:#FFF;color:' + TINTA + ';text-decoration:none;font-size:12.5px}' +
-    '.b:hover{border-color:' + TINTA + '}' +
-    '.t{background:#FFF;border:1px solid ' + LINEA + ';border-radius:10px;padding:14px 16px;margin:10px 0}' +
-    '.t h2{font-size:15px;margin:0;font-weight:600;display:inline-block}' +
-    '.e{font-size:11.5px;border-radius:999px;padding:2px 9px;margin-left:8px;vertical-align:2px}' +
-    '.n{display:flex;flex-wrap:wrap;gap:18px;margin:10px 0 8px}' +
-    '.n div{font-size:12.5px;color:' + GRIS + '}' +
-    '.n b{display:block;font-size:16px;color:' + TINTA + ';font-weight:600;' +
-    'font-variant-numeric:tabular-nums}' +
-    '.f{color:' + GRIS + ';font-size:12px;margin:2px 0 0}' +
-    '.r{color:' + ROJO + '}.a{color:' + AMBAR + '}.v{color:' + VERDE + '}';
+    'font:14px/1.55 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;' +
+    '-webkit-font-smoothing:antialiased}' +
+    '.c{max-width:1040px;margin:0 auto;padding:24px 20px 40px}' +
+    'h1{font-size:21px;line-height:1.25;letter-spacing:-.02em;margin:0 0 4px;font-weight:650}' +
+    '.g{color:' + GRIS + ';font-size:12.5px;line-height:1.5;margin:0 0 16px}' +
+    '.acciones{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 22px}' +
+    '.b{display:inline-flex;align-items:center;min-height:40px;margin:0;padding:8px 14px;' +
+    'border:1px solid ' + LINEA + ';border-radius:999px;background:#FFF;color:' + TINTA + ';' +
+    'text-decoration:none;font-size:12.5px;font-weight:550;line-height:1.3}' +
+    'a.b{transition:background .15s,border-color .15s,transform .15s}' +
+    'a.b:hover{background:' + FONDO + ';border-color:#C9CDD3}' +
+    'a.b:active{transform:scale(.98)}' +
+    'a.b:focus-visible{outline:3px solid ' + TINTA + ';outline-offset:3px}' +
+    '.t{background:#FFF;border:1px solid ' + LINEA + ';border-radius:14px;padding:18px 20px;margin:12px 0;' +
+    'box-shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06)}' +
+    '.t h2{font-size:15px;line-height:1.35;margin:0;font-weight:600;display:inline-block;overflow-wrap:anywhere}' +
+    '.e{display:inline-block;font-size:11.5px;border-radius:999px;padding:4px 9px;margin:4px 0 0 8px;vertical-align:2px}' +
+    '.n{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px 18px;margin:14px 0 10px}' +
+    '.n div{min-width:0;font-size:12.5px;color:' + GRIS + '}' +
+    '.n b{display:block;margin-top:2px;font-size:16px;line-height:1.3;color:' + TINTA + ';font-weight:600;' +
+    'font-variant-numeric:tabular-nums;overflow-wrap:anywhere}' +
+    '.f{color:' + GRIS + ';font-size:12px;line-height:1.45;margin:6px 0 0;overflow-wrap:anywhere}' +
+    '.r{color:' + ROJO + '}.a{color:' + AMBAR + '}.v{color:' + VERDE + '}' +
+    '@media(max-width:520px){.c{padding:18px 12px 28px}.t{padding:15px}.n{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}' +
+    '@media(pointer:coarse){a.b{min-height:44px}}' +
+    '@media(prefers-reduced-motion:reduce){a.b{transition:none}}';
 
   var partes = ['<!DOCTYPE html><meta charset="utf-8"><style>' + css + '</style><div class="c">'];
   partes.push('<h1>Portal de tiendas</h1>');
@@ -1342,12 +1352,12 @@ function portalHtml(tiendas, metricas, ctx) {
               tiendas.filter(function (t) { return t.estado === 'Activa'; }).length + ' activas · ' +
               'ingreso mensual ' + Math.round(ingreso).toLocaleString('es-CO') + ' · ' +
               'las cifras son las de la última actualización de esta hoja.</p>');
-  partes.push('<p>' +
-    '<a class="b" href="' + acciones + 'alta.yml" target="_blank">Dar de alta una tienda</a>' +
-    '<a class="b" href="' + acciones + 'conectar.yml" target="_blank">Conectar una tienda con su hoja</a>' +
-    '<a class="b" href="' + acciones + 'flota.yml" target="_blank">Actualizar la flota</a>' +
-    '<a class="b" href="https://github.com/' + flota + '" target="_blank">' + escaparPortal(flota) + '</a>' +
-    '</p>');
+  partes.push('<nav class="acciones" aria-label="Acciones de la flota">' +
+    '<a class="b" href="' + acciones + 'alta.yml" target="_blank" rel="noopener noreferrer">Dar de alta una tienda</a>' +
+    '<a class="b" href="' + acciones + 'conectar.yml" target="_blank" rel="noopener noreferrer">Conectar una tienda con su hoja</a>' +
+    '<a class="b" href="' + acciones + 'flota.yml" target="_blank" rel="noopener noreferrer">Actualizar la flota</a>' +
+    '<a class="b" href="https://github.com/' + flota + '" target="_blank" rel="noopener noreferrer">' + escaparPortal(flota) + '</a>' +
+    '</nav>');
 
   if (!vivas.length) {
     partes.push('<div class="t"><h2>Todavía no hay tiendas</h2><p class="f">' +
@@ -1384,23 +1394,23 @@ function portalHtml(tiendas, metricas, ctx) {
     var deLaFila = String(t.sitio || '').trim();
     var elegido = /^https?:\/\//i.test(suyo) ? suyo : deLaFila;
     var sitio = /^https?:\/\//i.test(elegido) ? elegido.replace(/\/+$/, '') : '';
-    if (sitio) enlaces.push('<a class="b" href="' + escaparPortal(sitio) + '" target="_blank">Ver la tienda</a>');
+    if (sitio) enlaces.push('<a class="b" href="' + escaparPortal(sitio) + '" target="_blank" rel="noopener noreferrer">Ver la tienda</a>');
     if (sitio && t.producto !== 'Tienda Básica') {
       enlaces.push('<a class="b" href="' + escaparPortal(sitio + '/admin.html') +
-                   '" target="_blank">Su panel</a>');
+                   '" target="_blank" rel="noopener noreferrer">Su panel</a>');
     }
     var repo = repoNormalizado(t.repo);
     if (repo) {
-      enlaces.push('<a class="b" href="https://github.com/' + repo + '" target="_blank">Repositorio</a>');
+      enlaces.push('<a class="b" href="https://github.com/' + repo + '" target="_blank" rel="noopener noreferrer">Repositorio</a>');
       enlaces.push('<a class="b" href="https://github.com/' + repo +
-                   '/actions/workflows/montaje.yml" target="_blank">Publicar / actualizar</a>');
+                   '/actions/workflows/montaje.yml" target="_blank" rel="noopener noreferrer">Publicar / actualizar</a>');
       enlaces.push('<a class="b" href="https://github.com/' + repo +
-                   '/actions/workflows/restaurar.yml" target="_blank">Volver atrás</a>');
+                   '/actions/workflows/restaurar.yml" target="_blank" rel="noopener noreferrer">Volver atrás</a>');
     } else if (t.repo) {
       enlaces.push('<span class="b" style="color:' + AMBAR + '">Repositorio mal escrito: ' +
                    escaparPortal(t.repo) + '</span>');
     }
-    partes.push('<p style="margin:8px 0 0">' + enlaces.join('') + '</p>');
+    partes.push('<nav class="acciones" aria-label="Acciones para ' + escaparPortal(t.comercio) + '">' + enlaces.join('') + '</nav>');
     if (t.notas) partes.push('<p class="f">' + escaparPortal(t.notas) + '</p>');
     partes.push('</div>');
   });
