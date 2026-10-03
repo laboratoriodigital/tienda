@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-09-22-8",
- "generado": "2026-09-30T18:15:48.342Z",
+ "generado": "2026-10-03T20:13:28.797Z",
  "productos": [
   {
    "id": "ejemplo1",
@@ -120,7 +120,7 @@
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
   "autoria_url": "https://tienda.laboratorio-digital.com/",
-  "correo_ultimo": "Wed Sep 30 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Sat Oct 03 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "panel_usuario": "sebas",
   "tope_pago": "12110000",
   "cobro": "pasarela",
