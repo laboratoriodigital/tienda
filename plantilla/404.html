@@ -2,18 +2,26 @@
 <html lang="es-CO">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>[NOMBRE DE LA TIENDA — sin hornear] — esa página no existe</title>
 <meta name="robots" content="noindex">
 <style>
-  html,body{margin:0;height:100%}
-  body{display:grid;place-items:center;text-align:center;padding:24px;
-       background:#fff;color:#000;font:400 16px/1.5 Archivo,system-ui,sans-serif}
-  svg{width:88px;height:88px}
-  h1{font-size:26px;font-weight:800;margin:20px 0 8px}
-  p{color:#6E6E6E;margin:0 0 24px;max-width:32ch}
-  a{display:inline-block;background:#2B2B2B;color:#fff;text-decoration:none;
-    font-weight:600;padding:13px 26px;border-radius:2px}
+  :root{color-scheme:light;--tinta:#18181B;--suave:#5F6068;--linea:#E8E8EA;--acento:#18181B}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{display:grid;place-items:center;min-height:100svh;text-align:center;padding:24px;
+       background:#F7F7F5;color:var(--tinta);font:400 16px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  main{width:min(100%,440px);padding:36px 28px;border:1px solid var(--linea);border-radius:16px;background:#fff;box-shadow:0 1px 2px rgba(16,18,24,.04),0 1px 3px rgba(16,18,24,.06)}
+  svg{width:64px;height:64px;color:var(--suave)}
+  h1{font-size:1.5rem;line-height:1.2;letter-spacing:-.025em;font-weight:700;margin:18px 0 8px}
+  p{color:var(--suave);margin:0 auto 24px;max-width:34ch}
+  a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;background:var(--acento);color:#fff;text-decoration:none;
+    font-weight:650;padding:11px 22px;border-radius:999px;transition:background .15s,transform .15s}
+  a:hover{background:#303036}
+  a:active{transform:scale(.98)}
+  a:focus-visible{outline:3px solid #7F56D9;outline-offset:3px}
+  @media(max-width:420px){main{padding:30px 22px}}
+  @media(prefers-reduced-motion:reduce){a{transition:none}}
 </style>
 </head>
 <body>

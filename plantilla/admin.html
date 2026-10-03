@@ -281,9 +281,26 @@ input[type=checkbox]{accent-color:var(--negro)}
 .quien{flex-shrink:0;min-width:0}
 .quien #usuarioActual{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}
 @media (max-width:520px){ .envoltura{padding:0 16px} .tarjeta{padding:18px} .barra h1 small{display:none} }
+.salto-contenido{position:fixed;top:12px;left:12px;z-index:20;transform:translateY(-180%);
+  padding:11px 16px;border-radius:999px;background:var(--negro);color:var(--blanco);
+  font-weight:650;text-decoration:none;box-shadow:var(--sombra)}
+.salto-contenido:focus{transform:translateY(0)}
+#contenido{scroll-margin-top:72px}
+#formTienda .pie-form{z-index:4;padding:12px 0 calc(8px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--linea);box-shadow:0 -8px 16px rgba(16,24,40,.06)}
+#entrar{margin:clamp(32px,14vh,112px) auto 0}
+@media(pointer:coarse){
+  .btn{min-height:44px}
+  .btn.chico{min-height:44px}
+  .pestanas button{min-height:48px}
+  .chips button{min-height:40px;padding-inline:14px}
+}
+@media(max-width:520px){#entrar{margin:32px auto 0}}
 </style>
 </head>
 <body>
+
+<a class="salto-contenido" href="#contenido">Saltar al contenido</a>
 
 <header class="barra">
   <div class="envoltura">
@@ -295,7 +312,7 @@ input[type=checkbox]{accent-color:var(--negro)}
   </div>
 </header>
 
-<main class="envoltura">
+<main class="envoltura" id="contenido" tabindex="-1">
 
   <!-- ═══ ENTRAR ═══ -->
   <section id="entrar" class="tarjeta" hidden>
