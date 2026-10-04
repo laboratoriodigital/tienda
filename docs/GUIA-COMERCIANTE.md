@@ -38,15 +38,13 @@ cuando vuelve a haber, Ventas te dice **Te están esperando**.
 llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si
 arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 
-**Tienda** — tus **productos** (precio, stock y fotos generales; con variantes aparece **Precio,
-stock y fotos por combinación**. En cada fila puedes subir fotos o editar sus nombres separados
-por `|`; si dejas ese campo vacío, se muestran las fotos generales del producto. Cada combinación
-admite hasta seis fotos. Con varias fotos, en la portada se pasan deslizando, o con las flechas en
-el computador) y **todos los ajustes**, por secciones: tu
-tienda, la venta, el cobro, la portada, los textos, los colores, Google y WhatsApp, **medición y
-anuncios** (Google Analytics y el píxel de Meta: solo el número), datos legales, el correo del día
-y **Avanzado** (no lo toques si no sabes para qué). También las **zonas de envío** y los
-**cupones**. Cambiar el WhatsApp o los datos de pago **pide tu clave otra vez**.
+**Tienda** — tus **productos** (precio, stock y fotos generales; con variantes, **Precio, stock y
+fotos por combinación**. En cada fila puedes subir hasta seis fotos o escribir sus nombres
+separados por `|`; vacío = fotos generales. En la portada, desliza o usa las flechas para verlas)
+y **todos los ajustes**: tienda, venta, cobro, portada, textos, colores, Google, WhatsApp,
+**medición y anuncios** (Google Analytics y el píxel de Meta: solo el número), datos legales,
+correo del día, **Avanzado** (no lo toques si no sabes para qué), **zonas de envío** y **cupones**.
+Cambiar el WhatsApp o los datos de pago **pide tu clave otra vez**.
 
 **Tu logo** (Tienda › Tu tienda › *Logo*): súbelo a tu carpeta de fotos del
 Drive y escribe su nombre tal cual (`logo.png`; mejor un PNG con fondo

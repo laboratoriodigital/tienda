@@ -994,13 +994,18 @@ function atenderSubirFoto(p) {
     /* El archivo ya está en Drive: ahora la celda que le corresponde. */
     enCelda.push(nombre);
     var encabezadoDestino = destino === 'variante' ? ENCABEZADO_INVENTARIO_VARIANTE : ENCABEZADO_CATALOGO;
+    var imagenesGuardadas = celdaSegura(enCelda.join('|'), 1900);
     hojaDestino.getRange(filaDestino, columnaDe(hojaDestino, encabezadoDestino, 'Imágenes'))
-      .setValue(celdaSegura(enCelda.join('|'), 1900));
+      .setValue(imagenesGuardadas);
+    /* La versión del editor incluye la celda Imágenes del Catálogo. Reflejar
+       lo que acabamos de escribir evita que su siguiente guardado choque con
+       una huella vieja de su propia subida. Las variantes tienen huella aparte. */
+    if (destino === 'generales') cat.filas[i][7] = imagenesGuardadas;
     CacheService.getScriptCache().remove('catalogo');
-    return { ok: true, id: id, nombre: nombre, imagenes: enCelda.join('|'),
+    return { ok: true, id: id, nombre: nombre, imagenes: imagenesGuardadas,
              destino: destino, combinacion: combinacion,
              version: versionDeFila(cat.filas[i]),
-             versionImagenes: destino === 'variante' ? versionDeValor(enCelda.join('|')) : '',
+             versionImagenes: destino === 'variante' ? versionDeValor(imagenesGuardadas) : '',
              _registro: [{ que: 'Subió una foto' + (combinacion ? ' de una variante' : ' general'), donde: donde, antes: '', despues: nombre }] };
   }, true);
 }
