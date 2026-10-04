@@ -1,64 +1,28 @@
 {
  "esquema": 1,
- "version": "2026-09-22-8",
- "generado": "2026-10-03T20:13:28.797Z",
+ "version": "2026-10-04-1",
+ "generado": "2026-10-04T23:53:00.762Z",
  "productos": [
   {
-   "id": "ejemplo1",
-   "nombre": "Producto de ejemplo — edítalo o bórralo",
-   "formato": "Unidad",
-   "categoria": "Ejemplos",
-   "precio": 10000,
-   "stock": 10,
-   "descripcion": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
-   "imagenes": [
-    "tienda-virtual.png"
-   ],
-   "destacado": true,
-   "referencia": "",
-   "precioAntes": 15000,
-   "umbralBajo": 5,
+   "id": "smarthphone",
+   "nombre": "Smarthphone",
+   "formato": "unidad",
+   "categoria": "Tecnología",
+   "precio": 100000,
+   "stock": 2,
+   "descripcion": "Smarthpone barato",
+   "imagenes": [],
+   "destacado": false,
+   "referencia": "honor",
+   "precioAntes": 150000,
+   "umbralBajo": 2,
    "variantes": [
-    {
-     "nombre": "Talla",
-     "opciones": [
-      "S",
-      "M",
-      "L"
-     ]
-    },
     {
      "nombre": "Color",
      "opciones": [
-      "Rosa",
-      "verde"
+      "Verde",
+      "Rojo"
      ]
-    }
-   ],
-   "skus": [
-    {
-     "eleccion": "Talla: S · Color: Rosa",
-     "stock": 1
-    },
-    {
-     "eleccion": "Talla: S · Color: verde",
-     "stock": 6
-    },
-    {
-     "eleccion": "Talla: M · Color: Rosa",
-     "stock": 3
-    },
-    {
-     "eleccion": "Talla: M · Color: verde",
-     "stock": 0
-    },
-    {
-     "eleccion": "Talla: L · Color: Rosa",
-     "stock": 0
-    },
-    {
-     "eleccion": "Talla: L · Color: verde",
-     "stock": 0
     }
    ]
   }
@@ -120,17 +84,11 @@
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
   "autoria_url": "https://tienda.laboratorio-digital.com/",
-  "correo_ultimo": "Sat Oct 03 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Sun Oct 04 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "panel_usuario": "sebas",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""
  },
- "fotos": {
-  "tienda-virtual.png": [
-   160,
-   600,
-   900
-  ]
- }
+ "fotos": {}
 }

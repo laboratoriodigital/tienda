@@ -71,17 +71,16 @@
   },
   {
    "@type": "Product",
-   "sku": "ejemplo1",
-   "name": "Producto de ejemplo — edítalo o bórralo",
-   "description": "Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala.",
-   "category": "Ejemplos",
-   "image": "https://tienda.laboratorio-digital.com/fotos/tienda-virtual.png",
+   "sku": "smarthphone",
+   "name": "Smarthphone",
+   "description": "Smarthpone barato",
+   "category": "Tecnología",
    "offers": {
     "@type": "Offer",
-    "price": "10000",
+    "price": "100000",
     "priceCurrency": "COP",
     "availability": "https://schema.org/InStock",
-    "url": "https://tienda.laboratorio-digital.com/?p=ejemplo1",
+    "url": "https://tienda.laboratorio-digital.com/?p=smarthphone",
     "seller": {
      "@id": "https://tienda.laboratorio-digital.com/#comercio"
     }
@@ -900,7 +899,7 @@ let EMPRESA = {
    excepción — no se puede inventar QUÉ producto es perecedero por él. */
 let EXCEPCIONES_RETRACTO = [];
 
-/* ═══ CATÁLOGO DE RESPALDO — versión 2026-09-22-8 ═══
+/* ═══ CATÁLOGO DE RESPALDO — versión 2026-10-04-1 ═══
    Lo que la página pinta ANTES de que conteste nadie, y lo único que le
    queda si no contesta nadie. Sale de la hoja de ESTA tienda: lo repone
    `montar/sembrar-respaldo.mjs` desde el catalogo.json que hornea el mismo
@@ -922,7 +921,7 @@ const CONFIG_SEMILLA = {
   "correo_hora": "7",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_siempre": "No",
-  "correo_ultimo": "Sat Oct 03 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Sun Oct 04 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "empresa_ciudad": "Colombia",
   "empresa_correo": "laboratoriodigital.la@gmail.com",
   "empresa_direccion": "Medellín",
@@ -969,12 +968,11 @@ const ENVIOS = [
 ];
 
 const PRODUCTOS = [
-  { id:"ejemplo1", nombre:"Producto de ejemplo — edítalo o bórralo", formato:"Unidad", categoria:"Ejemplos",
-    precio:10000, stock:10,
-    imagenes:["tienda-virtual.png"],
-    variantes:[{ nombre:"Talla", opciones:["S", "M", "L"] }, { nombre:"Color", opciones:["Rosa", "verde"] }],
-    skus:[{ eleccion:"Talla: S · Color: Rosa", stock:1 }, { eleccion:"Talla: S · Color: verde", stock:6 }, { eleccion:"Talla: M · Color: Rosa", stock:3 }, { eleccion:"Talla: M · Color: verde", stock:0 }, { eleccion:"Talla: L · Color: Rosa", stock:0 }, { eleccion:"Talla: L · Color: verde", stock:0 }],
-    descripcion:"Así se ve una ficha completa: nombre, formato, categoría, precio, stock y esta descripción. Cámbiala por tu primer producto, o bórrala." }
+  { id:"smarthphone", nombre:"Smarthphone", formato:"unidad", categoria:"Tecnología",
+    precio:100000, stock:2,
+    imagenes:[""],
+    variantes:[{ nombre:"Color", opciones:["Verde", "Rojo"] }],
+    descripcion:"Smarthpone barato" }
 ];
 /* ═══ FIN DEL CATÁLOGO DE RESPALDO ═══ */
 
