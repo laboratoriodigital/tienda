@@ -389,10 +389,11 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
     ok('UN PRODUCTO CON VARIANTES enseña una fila por combinación, vacía, y el Stock de arriba editable',
        (await p.locator('#filasCombinaciones input.stock').count()) === 2 &&
        !(await p.evaluate(() => document.querySelector('#f-stock').readOnly)));
-    const opciones = await p.evaluate(() => [...document.querySelectorAll('#f-fotoOpcion option')].map(o => o.textContent));
-    ok('  ...y al subir una foto se puede decir de qué opción es',
-       opciones.length === 4 && opciones.some(o => /Foto de color: Rosa/.test(o)) &&
-       await p.locator('#f-fotoOpcion').isVisible(), opciones.join(' / '));
+    const combinacionesFoto = await p.evaluate(() => [...document.querySelectorAll('[data-foto-combinacion]')]
+      .map(o => o.dataset.fotoCombinacion));
+    ok('  ...y cada fila puede subir una foto para su combinación exacta',
+       combinacionesFoto.length === 2 && combinacionesFoto.includes('Talla: S · Color: Rosa') &&
+       combinacionesFoto.includes('Talla: M · Color: Rosa'), combinacionesFoto.join(' / '));
     await p.fill('#filasCombinaciones input.stock >> nth=0', 'tres');
     await p.click('#guardarCombinaciones');
     await quizas(hasta(p, () => !document.querySelector('#avisoCombinaciones').hidden));

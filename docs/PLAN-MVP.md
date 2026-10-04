@@ -877,14 +877,15 @@ hablaban del panel los cerró D-5.
       anota en Errores.)*
 - [x] **La página**: opción sin existencias marcada y deshabilitada, «Últimas
       N» de la combinación, «Agotado» en la tarjeta solo si se acabaron todas.
-- [x] **Las fotos por opción, y el nombre es el dato**:
-      `camiseta-basica--color-rosa-1.jpg`. El panel pregunta «¿de qué opción es
-      la foto?» y el maestro la nombra.
-- [x] **Lo que ve el comprador**: al elegir Rosa, las fotos de Rosa; sin
-      fotos propias, las generales. 6 generales y 4 por opción.
-- [x] **Contrato**: `skus: [{ eleccion, stock }]`, al final y solo si manda.
-      Horneado en `catalogo.json` y en el respaldo. *(Sin `imagenes` por sku:
-      las fotos se leen del nombre.)*
+- [x] **Las fotos de cada combinación viven en su fila**: `Inventario por
+      variante › Imágenes`. El panel permite subirlas o editar la lista de
+      nombres. Vacío usa las fotos generales de `Catálogo › Imágenes`.
+- [x] **Lo que ve el comprador**: al elegir una combinación completa, sus
+      fotos; sin fotos propias, las generales. Hasta 6 generales y 6 por
+      combinación. (La decisión 37 reemplazó el vínculo inferido por nombre.)
+- [x] **Contrato**: `skus: [{ eleccion, stock }]`, al final y solo si manda;
+      `imagenesVariantes: [{ eleccion, imagenes }]` solo cuando hay fotos.
+      Horneados en `catalogo.json` y en el respaldo.
 - [x] **Compatibilidad**: con `Variantes` y sin números, exactamente como hoy.
 - [x] **Fuera de esta historia**: precio por variante. Sigue fuera.
 - [x] **Con D-2**: el stock de cada combinación se edita desde el panel

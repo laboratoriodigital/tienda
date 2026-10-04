@@ -55,6 +55,7 @@ Revisada contra el código de la 1.0.0 el 30 de septiembre de 2026.
 | 34 | Tres tokens de GitHub: FLOTA, SEMILLA y DISPARO | VIGENTE · `ALTA_TOKEN` borrado de `tiendas` el 29-sep |
 | 35 | El píxel de Meta y los eventos propios | VIGENTE · el medidor propio sin construir; riesgo abierto: consentimiento |
 | 36 | Un solo producto: la Tienda 2.0 | VIGENTE · desde el 30-sep-2026 |
+| 37 | La foto de variante pertenece a su combinación | VIGENTE · desde el 4-oct-2026 |
 
 ---
 
@@ -1704,6 +1705,47 @@ y darla de alta como una tienda más (`alta` + `conectar`). Y mientras dure la
 convivencia, **la flota sigue teniendo dos líneas**: `organico` conserva su
 modo pull request en `tiendas/flota.json` y sus correcciones se siguen
 haciendo a mano.
+
+---
+
+## 37 · La foto de variante pertenece a su combinación
+
+**Estado:** DECIDIDA e implementada el 4 de octubre de 2026 (1.1.1).
+**Vigencia:** VIGENTE. Completa la decisión 11 sobre variantes.
+
+### Qué hace hoy
+
+Las fotos de una opción se reconocían por un fragmento del nombre dentro de la
+galería general del producto. El panel pedía elegir una opción y el comprador
+dependía de que el archivo siguiera ese patrón.
+
+### El límite real
+
+El nombre del archivo no identifica una combinación completa cuando el
+producto tiene varios grupos; además, las fotos propias quedaban mezcladas con
+la galería general y el panel no permitía corregir o quitar una asociación.
+
+### La decisión
+
+`Catálogo › Imágenes` guarda solo las fotos generales. Cada fila de
+`Inventario por variante` tiene `Imágenes` para las fotos de esa combinación,
+separadas por `|`. Vacío hereda las generales. El panel puede subir fotos,
+editar la lista o dejarla vacía; cada combinación admite seis. El catálogo y el
+respaldo publican la asociación exacta. Al actualizar la hoja, las fotos
+antiguas reconocidas por nombre se copian a las filas que coinciden antes de
+retirarlas de la galería general.
+
+### Condición de disparo
+
+Una foto distinta para una talla, color u otra combinación se guarda en la fila
+exacta. `Revisión de tu tienda` permite comprobar que el catálogo publicado
+tenga esos nombres en la carpeta de fotos.
+
+### Contrapartida
+
+Si una misma imagen corresponde a varias combinaciones, se repite su nombre en
+cada fila; por eso conviene dejar vacía la lista cuando todas usan las fotos
+generales. El límite de seis aplica por combinación.
 
 ---
 

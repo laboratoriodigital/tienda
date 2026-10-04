@@ -207,6 +207,13 @@ En la hoja se escribe **solo el nombre**: `chonto-1.jpg|chonto-2.jpg`. La
 tienda arma la URL. El `logo` y el `favicon` de Configuración se nombran igual y
 salen de la misma carpeta (0.21.0).
 
+En `Catálogo › Imágenes` viven las fotos generales del producto. Las fotos que
+cambian con una variante viven en `Inventario por variante › Imágenes`, junto
+a su combinación; el catálogo publicado las entrega como
+`imagenesVariantes: [{ eleccion, imagenes }]`. Un campo vacío hereda las fotos
+generales. El panel sube a esa fila y permite quitar o reemplazar nombres. El
+respaldo sin red y el catálogo estático conservan la misma asociación.
+
 Los tres proveedores externos están **autorizados de antemano** en la política
 de seguridad (`img-src`) y en `FOTOS_HOSTS`; Cloudflare en el propio dominio
 (`/cdn-cgi/image/…`) no necesita autorización porque es el mismo origen.
@@ -404,7 +411,7 @@ comparte con el comercio— ni en un repositorio.
 | `BOLD_IDENTIDAD_SANDBOX` · `BOLD_SECRETA_SANDBOX` · `BOLD_IDENTIDAD_PRODUCCION` · `BOLD_SECRETA_PRODUCCION` | Las llaves de la pasarela de pago | A mano, el operador | Cobrar en línea. **Nunca** viajan a la página: la firma se calcula en el maestro. Se aceptan los alias `BOLD_BOTON_*` y el sufijo `PRUEBAS` |
 | `COBROS_ABIERTOS` | Los cobros en línea que falta cerrar | El maestro | La lista de trabajo del disparador `conciliarPagos` (`CONTRATOS.md`) |
 | `RESPALDO` · `RESTAURACION` | Qué pasó en la última copia y en la última restauración | El maestro | Que el panel pueda decir «último respaldo: hace 3 días» |
-| `HOJA_AL_DIA` | La `VERSION_TIENDA` con la que la hoja se ordenó por última vez (0.24.0) | `instalar()` y `ponerHojaAlDia()` | Que la revisión de cada hora ordene la hoja una sola vez por versión |
+| `HOJA_AL_DIA` | La `VERSION_TIENDA` con la que la hoja se ordenó por última vez (0.24.0) | `instalar()` y `ponerHojaAlDia()` | Que la revisión de cada hora ordene la hoja una sola vez por versión y ejecute migraciones de columnas |
 | `TOKEN_POR_GET` | Por puerta de montaje, la fecha de la última vez que el token llegó en la dirección (GET). Nunca el token (1.0.0) | `doGet` › `anotarTokenPorGet` | Que el diagnóstico diga quién sigue mandándolo por GET: la hoja *Panel de tiendas* sin actualizar, o una herramienta anterior a la 1.0.0 al volver a una versión vieja |
 | `STUB_VISTO` · `STUB_CON_TOKEN_VIEJO` | Qué versión del stub está pegada en la hoja, y si todavía usa el token viejo | La puerta `menu`, en cada petición | Saber en qué hojas falta repegar el stub sin abrirlas una por una |
 | `LECTURAS` · `RESCATES` · `PEDIDA_PUBLICACION` · `ULTIMA_EDICION` | Contadores y marcas de operación | El maestro | Cuota, pedidos rescatados, publicar pendiente, última edición de la hoja |
@@ -436,16 +443,16 @@ puertas de montaje; ningún token de GitHub ni llave de pago pasa por esa hoja.
 
 | Código | Constante | Qué numera | Con qué compara |
 |---|---|---|---|
-| `maestro.gs` | `VERSION` (fecha; a la 1.0.0, `2026-09-22-8`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
+| `maestro.gs` | `VERSION` (fecha; hoy `2026-10-04-1`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
 | `publicar/index.html` | `SCRIPT_VERSION` | Lo que la tienda espera del maestro | Se hornea con lo que **contesta el maestro publicado**; el montaje se para si no es la `VERSION` del repositorio (bitácora 56) |
-| `maestro.gs` | `VERSION_TIENDA` (`1.1.0`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
+| `maestro.gs` | `VERSION_TIENDA` (`1.1.1`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
 | `panel.gs` | `VERSION_PANEL` (`2026-09-30-a`) | El archivo de gestión | **Con nada.** Es otro programa |
 
-La 1.0.0 es un ejemplo de por qué van separadas: sube el producto
-(`package.json` y `VERSION_TIENDA` en `1.0.0`, antes 0.25.0) y no el contrato
-página↔maestro (`VERSION` sigue en `2026-09-22-8`), porque lo que la página le
-pide al maestro no cambió; lo que cambió es cómo le hablan las herramientas de
-montaje.
+La 1.0.0 fue un ejemplo de por qué van separadas: subió el producto
+(`package.json` y `VERSION_TIENDA` de `0.25.0` a `1.0.0`) sin cambiar el
+contrato página↔maestro. En la 1.1.1 sí cambia ese contrato: el catálogo añade
+el campo opcional `imagenesVariantes`; por eso `VERSION` y `SCRIPT_VERSION`
+pasan juntos a `2026-10-04-1`.
 
 `version` en `package.json` es la del producto: la que corta `release` como
 etiqueta `vX.Y.Z` y la que exige subir el flujo `pruebas` cuando un pull

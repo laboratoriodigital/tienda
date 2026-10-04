@@ -3122,3 +3122,28 @@ nueva es la forma en que P11 vuelve (la prueba da por hecho ser la semilla
 recién horneada).
 
 *Ficha:* *(mío)* · 🟠 Grave · P1, P10, P11, P19 · 1.0.0 · 2026-09-30
+
+**114 · El nombre del archivo no basta para relacionar una foto con una
+variante.** En la tienda el panel solo subía fotos generales o infería la opción
+por el nombre; `Catálogo › Imágenes` mezclaba las fotos de todo el producto con
+las de un color. Para productos con talla y color, una elección parcial no
+identifica su galería exacta, y el cliente no podía corregir la lista desde el
+panel.
+
+**El arreglo** (1.1.1): las fotos generales permanecen en `Catálogo ›
+Imágenes`; las propias van en `Inventario por variante › Imágenes`, junto a la
+combinación exacta. El panel permite subir fotos, editar los nombres separados
+por `|` o dejar la lista vacía para heredar las generales. El comprador recibe
+`imagenesVariantes` en el catálogo estático y en el respaldo; al elegir la
+combinación completa, la galería cambia a sus fotos. La actualización agrega la
+columna y copia las fotos antiguas reconocidas por nombre a las filas destino
+con espacio; solo las quita de Catálogo cuando todas las filas coincidentes las
+recibieron. Así conserva lo que no pudo mover. Cada combinación admite seis
+fotos. El panel acepta JPG, PNG y
+WebP; si el navegador no puede abrir un HEIC, indica cómo exportarlo como JPG.
+
+**Comprobación:** se actualizaron las expectativas existentes de inventario,
+orden visible y panel para el nuevo contrato. La suite no se ejecutó en esta
+sesión.
+
+*Ficha:* *(mío)* · 🟠 Grave · P1, P4, P9, P20 · 1.1.1 · 2026-10-04

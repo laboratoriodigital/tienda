@@ -233,24 +233,26 @@ const RM = 'Talla: M · Color: Rosa', RS = 'Talla: S · Color: Rosa', NM = 'Tall
     post(g, { a: 'guardar_combinaciones', k, op: op(), id: 'croissant',
               precios: { [RM]: '' }, versionesPrecio: { [RM]: post(g, { a: 'productos', k }).productos.find(x => x.id === 'croissant').combinaciones.find(c => c.combinacion === RM).versionPrecio } });
 
-    // La foto de una opción: el nombre es el dato.
+    // La foto pertenece a la combinación exacta y queda en esa fila.
     const fc = g.filas('Configuración').findIndex(x => x[0] === 'fotos_drive') + 1;
     g.hojas.get('Configuración').getRange(fc, 2).setValue('carpeta-de-fotos');
     g.enDrive('carpeta-de-fotos', []);
     const datos = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]).toString('base64');
-    const f1 = post(g, { a: 'subir_foto', k, op: op(), id: 'croissant', tipo: 'image/jpeg', datos, opcion: 'Color=Rosa' });
-    ok('LA FOTO DE UNA OPCIÓN se nombra sola: código--grupo-opción-n', f1.ok && f1.nombre === 'croissant--color-rosa-1.jpg', f1.nombre || f1.error);
-    const f2 = post(g, { a: 'subir_foto', k, op: op(), id: 'croissant', tipo: 'image/jpeg', datos, opcion: 'Color=Verde' });
-    ok('  ...y una opción que el producto no tiene no se inventa', !f2.ok && /no tiene la opción/.test(f2.error));
+    const f1 = post(g, { a: 'subir_foto', k, op: op(), id: 'croissant', tipo: 'image/jpeg', datos, combinacion: RM });
+    const filaFoto = inv(g).find(f => f[0] === 'croissant' && f[1] === RM);
+    ok('LA FOTO DE UNA COMBINACIÓN se nombra y se guarda en su fila', f1.ok && f1.destino === 'variante' &&
+       f1.nombre === 'croissant--talla-m-color-rosa-1.jpg' && filaFoto[6] === f1.nombre, f1.nombre || f1.error);
+    const f2 = post(g, { a: 'subir_foto', k, op: op(), id: 'croissant', tipo: 'image/jpeg', datos, combinacion: 'Talla: M · Color: Verde' });
+    ok('  ...y una combinación que el producto no tiene no se inventa', !f2.ok && /no está en Inventario/.test(f2.error));
   }
 
-  // ═══ 12. Las fotos: 6 generales y 4 por opción ═══
+  // ═══ 12. Compatibilidad: límite de fotos de opción antiguas ═══
   const muchas = [];
   for (let i = 1; i <= 8; i++) muchas.push('x-' + i + '.jpg');
   for (let i = 1; i <= 6; i++) muchas.push('x--color-rosa-' + i + '.jpg');
   for (let i = 1; i <= 2; i++) muchas.push('x--color-nude-' + i + '.jpg');
   const tope = g.api.fotosConTope(muchas);
-  ok('LAS FOTOS: 6 generales y 4 por opción',
+  ok('LAS FOTOS LEGADAS: 6 generales y hasta 4 por opción',
      tope.filter(n => n.indexOf('--') === -1).length === 6 && tope.filter(n => /rosa/.test(n)).length === 4 &&
      tope.filter(n => /nude/.test(n)).length === 2, tope.join(' '));
 

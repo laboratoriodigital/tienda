@@ -768,7 +768,7 @@ const MENSAJE_VISTA = "Esto es la vista previa: aquí no se hacen pedidos. Publi
 
 // Debe coincidir con la constante VERSION de apps-script.gs. Si no coincide, la
 // tienda deja de sellar los pedidos y avisa por consola.
-const SCRIPT_VERSION = "2026-09-21-7";
+const SCRIPT_VERSION = "2026-10-04-1";
 
 // Los hosts de imagen que permite la política de seguridad de arriba. Si la
 // hoja pide otro, las fotos se sirven directo del origen y se avisa por
@@ -1136,9 +1136,10 @@ function aplicarConfiguracion(c){
 const RESERVADOS_VARIANTE = /[,:;=|]/;
 const MAX_GRUPOS_VARIANTE = 3;
 const MAX_OPCIONES_VARIANTE = 20;
+const MAX_COMBINACIONES = 100;
 
-/* C-1b · 6 fotos generales y 4 por opción. De qué opción es una foto se lee
-   de su nombre: <código>--<grupo>-<opción>-<n>.jpg. Mismo tope que el maestro. */
+/* C-1b · Compatibilidad con fotos antiguas por opción, reconocidas por
+   nombre mientras se migran a Inventario por variante › Imágenes. */
 const FOTO_DE_OPCION = /--([a-z0-9]+(?:-[a-z0-9]+)*?)-(\d+)\.[a-z0-9]+$/i;
 function fotosConTope(lista){
   const salida = [], porOpcion = {};
@@ -1250,6 +1251,12 @@ function aplicarCatalogo(datos){
                        ? Number(c.precioAntes) : 0,
         umbralBajo:  Math.max(0, Math.floor(Number(c.umbralBajo) || 0)),
         variantes:   gruposDeVariantes(c.variantes, c.nombre),
+        imagenesVariantes: Array.isArray(c.imagenesVariantes) ? c.imagenesVariantes
+          .slice(0, MAX_COMBINACIONES).map(v => ({
+            eleccion: String((v && v.eleccion) || ''),
+            imagenes: (Array.isArray(v && v.imagenes) ? v.imagenes : [])
+              .map(n => String(n || '').trim()).filter(Boolean).slice(0, 6)
+          })).filter(v => v.eleccion && v.imagenes.length) : [],
         /* C-1b: el stock de cada combinación, cuando el comercio lo lleva así.
            Llave sin tildes ni mayúsculas → unidades. Sin skus, como antes. */
         skus:        skusDe(c.skus),
@@ -1581,8 +1588,14 @@ function imagenesDe(p, eleccion){
   const todas = p.imagenes || [];
   const generales = todas.filter(n => !FOTO_DE_OPCION.test(n));
   const e = eleccion || {};
+  const grupos = gruposDe(p);
+  if(grupos.length && grupos.every(g => e[g.nombre])){
+    const texto = textoVariante(p, e);
+    const variante = (p.imagenesVariantes || []).find(v => llano(v.eleccion) === llano(texto));
+    if(variante && variante.imagenes && variante.imagenes.length) return variante.imagenes;
+  }
   const propias = [];
-  gruposDe(p).forEach(g => {
+  grupos.forEach(g => {
     if(!e[g.nombre]) return;
     const prefijo = "--" + trozoDeOpcion(g.nombre, e[g.nombre]) + "-";
     todas.forEach(n => { if(n.toLowerCase().indexOf(prefijo) !== -1 && propias.indexOf(n) === -1) propias.push(n); });
@@ -2002,7 +2015,8 @@ function marcarEleccion(){
   eleccionFicha = leerEleccionFicha(fichaActual);
   /* C-1b: elegir cambia qué hay (el stock de esa combinación, qué opciones
      quedan) y qué fotos se ven; se repinta la ficha con la elección puesta. */
-  if(fichaActual.skus || fichaActual.precios || fichaActual.imagenes.some(n => FOTO_DE_OPCION.test(n))){
+  if(fichaActual.skus || fichaActual.precios || (fichaActual.imagenesVariantes || []).length ||
+     fichaActual.imagenes.some(n => FOTO_DE_OPCION.test(n))){
     fotoActual = 0;
     pintarFicha();
   }

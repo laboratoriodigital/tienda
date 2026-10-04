@@ -134,6 +134,10 @@ export function bloque(catalogo, version) {
       .filter(v => v && v.nombre && Array.isArray(v.opciones) && v.opciones.length)
       .map(v => '{ nombre:' + literal(v.nombre) + ', opciones:[' +
                 v.opciones.map(literal).join(', ') + '] }');
+    const imagenesVariantes = (Array.isArray(p.imagenesVariantes) ? p.imagenesVariantes : [])
+      .filter(v => v && v.eleccion && Array.isArray(v.imagenes) && v.imagenes.length)
+      .map(v => '{ eleccion:' + literal(v.eleccion) + ', imagenes:[' +
+                v.imagenes.slice(0, 6).map(literal).join(', ') + '] }');
     return '  { id:' + literal(p.id) + ', nombre:' + literal(p.nombre) +
            ', formato:' + literal(p.formato) + ', categoria:' + literal(p.categoria) + ',\n' +
            '    precio:' + (Number(p.precio) || 0) +
@@ -148,6 +152,8 @@ export function bloque(catalogo, version) {
            (variantes.length && Array.isArray(p.precios) && p.precios.length
              ? '    precios:[' + p.precios.map(k => '{ eleccion:' + literal(k.eleccion) + ', precio:' +
                  Math.max(0, Number(k.precio) || 0) + ' }').join(', ') + '],\n' : '') +
+           (imagenesVariantes.length
+             ? '    imagenesVariantes:[' + imagenesVariantes.join(', ') + '],\n' : '') +
            '    descripcion:' + literal(p.descripcion) + ' }';
   }).join(',\n\n'));
   L.push('];');

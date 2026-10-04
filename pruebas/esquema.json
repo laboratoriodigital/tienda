@@ -22,7 +22,8 @@
       "Stock",
       "Código",
       "Nota",
-      "Precio"
+      "Precio",
+      "Imágenes"
     ],
     "Pedidos": [
       "Fecha",

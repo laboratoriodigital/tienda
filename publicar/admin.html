@@ -130,10 +130,16 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
 .muestra{display:inline-block;width:22px;height:22px;border-radius:4px;border:1px solid var(--linea);vertical-align:middle;margin-left:8px}
 .error-campo{font-size:.78rem;color:var(--rojo);margin-top:4px}
 @media (max-width:520px){ .dos{grid-template-columns:1fr} .fila{grid-template-columns:1fr} }
-.fila-combo{display:grid;grid-template-columns:1fr 110px 80px;gap:2px 10px;align-items:center;margin:0 0 6px}
+.fila-combo{display:grid;grid-template-columns:minmax(0,1fr) 110px 80px;gap:2px 10px;align-items:center;margin:0 0 10px}
 .cabeza-combo{font-size:.78rem;color:var(--tenue);font-weight:600}
 .fila-combo label{margin:0;font-weight:500}
 .fila-combo .error-campo{grid-column:1/-1;margin:0}
+.fotos-combinacion{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.fotos-combinacion .nombres-foto{min-width:0;overflow-wrap:anywhere}
+.fotos-combinacion .ayuda{margin:0}
+.fotos-combinacion>label:not(.btn){font-size:.82rem;font-weight:600;white-space:nowrap}
+.fotos-combinacion .campo{flex:1;min-width:180px;width:auto}
+@media(max-width:520px){.fila-combo:not(.cabeza-combo){grid-template-columns:minmax(0,1fr) 90px}.fila-combo:not(.cabeza-combo)>label{grid-column:1/-1}}
 
 /* ── Dos pantallas y ajustes (0.9.0) ── */
 .titulo-bloque{font-size:1.05rem;margin:22px 0 6px}
@@ -523,17 +529,13 @@ input[type=checkbox]{accent-color:var(--negro)}
         <label for="f-descripcion">Descripción</label>
         <textarea class="campo" id="f-descripcion" maxlength="2000"></textarea>
 
-        <label for="f-imagenes">Fotos</label>
+        <label for="f-imagenes">Fotos generales</label>
         <input class="campo" id="f-imagenes" spellcheck="false">
-        <p class="ayuda">Los nombres de los archivos en tu carpeta de fotos, separados por <b>|</b>
-          (ej: <code>camiseta-basica-1.jpg|camiseta-basica-2.jpg</code>). Hasta seis generales y cuatro por opción
-          (las de una opción se llaman <code>camiseta-basica--color-rosa-1.jpg</code>; al subirla desde aquí, el nombre se pone solo).</p>
+        <p class="ayuda">Fotos de todo el producto. Puedes subir hasta seis; las fotos propias se cargan en cada fila de <b>Inventario por variante</b>.</p>
         <div id="subirFoto" hidden style="margin-top:8px">
-          <!-- C-1b · ¿de qué opción es la foto? El nombre lo pone el maestro. -->
-          <select class="campo" id="f-fotoOpcion" hidden aria-label="De qué opción es la foto" style="margin-bottom:8px"></select>
           <label class="btn linea chico" style="display:inline-block;margin:0">
-            Subir una foto
-            <input type="file" id="f-foto" accept="image/*" hidden>
+            Subir foto general
+            <input type="file" id="f-foto" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden>
           </label>
           <span class="ayuda" id="estadoFoto" role="status"></span>
         </div>
@@ -544,14 +546,13 @@ input[type=checkbox]{accent-color:var(--negro)}
         <p class="ayuda">Grupos separados por <b>;</b>, el nombre antes de <b>:</b> y las opciones con <b>|</b>.
           Sin comas dentro de una opción: escribe 40.5, no 40,5.</p>
 
-        <!-- C-1b · EL STOCK DE CADA COMBINACIÓN. Las filas las genera el maestro
-             al guardar las variantes; aquí solo se ponen los números. -->
+        <!-- El inventario por combinación también guarda las fotos propias. -->
         <fieldset id="combinaciones" hidden>
-          <legend>Precio y stock por combinación</legend>
+          <legend>Precio, stock y fotos por combinación</legend>
           <p class="ayuda" id="ayudaCombinaciones"></p>
           <div id="filasCombinaciones"></div>
           <p class="aviso" id="avisoCombinaciones" role="status" hidden></p>
-          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar precio y stock por combinación</button>
+          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar precio, stock y fotos por combinación</button>
         </fieldset>
 
         <label for="f-referencia">Referencia interna <span style="font-weight:400;color:var(--tenue)">(opcional)</span></label>
@@ -1052,13 +1053,11 @@ async function guardar(ev){
   }
 }
 
-/* ── Subir una foto (D-2c) ─────────────────────────────────────────────────
+/* ── Subir una foto desde el panel ─────────────────────────────────────────
    SE ACHICA AQUÍ, ANTES DE MANDARLA. Una foto de celular pesa 4 MB, y en
    base64 un tercio más; por la señal de un mostrador eso es medio minuto o un
    corte a la mitad. A 1600 px de lado y en JPEG queda en unos cientos de KB y
-   se ve igual en la tienda, que no la sirve a más de 900. Si el navegador no
-   sabe leer el formato —un HEIC en Chrome—, se dice y se ofrece el camino de
-   siempre: subirla a mano al Drive. */
+   se ve igual en la tienda, que no la sirve a más de 900. */
 const LADO_MAXIMO = 1600;
 
 function achicar(archivo){
@@ -1093,15 +1092,13 @@ async function subirFoto(){
   try { datos = await achicar(archivo); }
   catch (e) {
     estado.textContent = "";
-    aviso("#avisoEditor", "mal", "Esa foto no se puede leer aquí (¿es HEIC?). Súbela a mano a tu carpeta " +
-          "de fotos en Drive y escribe su nombre en Fotos.");
+    aviso("#avisoEditor", "mal", "No pudimos abrir esa foto. El panel acepta JPG, PNG y WebP. Si es HEIC, expórtala como JPG y vuelve a subirla.");
     return;
   }
   estado.textContent = "Subiendo…";
   const opFoto = nuevaOperacion();
   try {
-    const opcion = $("#f-fotoOpcion").hidden ? "" : $("#f-fotoOpcion").value;
-    const r = await llamar("subir_foto", { op: opFoto, id: editando.id, tipo: "image/jpeg", datos: datos, opcion: opcion });
+    const r = await llamar("subir_foto", { op: opFoto, id: editando.id, tipo: "image/jpeg", datos: datos });
     if (!r.ok) { estado.textContent = ""; aviso("#avisoEditor", "mal", r.error); return; }
     /* LA FOTO CAMBIÓ LA FILA, así que la versión de este formulario ya es
        vieja. Se toma la nueva AQUÍ: si no, el siguiente «Guardar» contestaría
@@ -1116,7 +1113,50 @@ async function subirFoto(){
     if (e.message === "sesion") return;
     estado.textContent = "";
     aviso("#avisoEditor", "mal", "No sabemos si la foto subió: se perdió la conexión. " +
-          "Vuelve a abrir el producto para ver si ya está en Fotos antes de subirla otra vez.");
+          "Vuelve a abrir el producto para ver si ya aparece entre las fotos generales antes de subirla otra vez.");
+  }
+}
+
+async function subirFotoCombinacion(entrada){
+  const archivo = entrada.files && entrada.files[0];
+  const fila = entrada.closest(".fila-combo");
+  entrada.value = "";
+  if (!archivo || !fila || !editando) return;
+  const combinacion = entrada.dataset.fotoCombinacion || "";
+  const estado = fila.querySelector(".estado-foto-combo");
+  const nombres = fila.querySelector("textarea.imagenes");
+  if (nombres && nombres.value.trim() !== nombres.dataset.antes) {
+    estado.textContent = "Guarda primero los cambios de Fotos y vuelve a subirla.";
+    return;
+  }
+  const boton = entrada.closest("label");
+  estado.textContent = "Preparando la foto…";
+  entrada.disabled = true;
+  if (boton) boton.setAttribute("aria-disabled", "true");
+  try {
+    const datos = await achicar(archivo);
+    estado.textContent = "Subiendo…";
+    const r = await llamar("subir_foto", { op: nuevaOperacion(), id: editando.id,
+      combinacion: combinacion, tipo: "image/jpeg", datos: datos });
+    if (!r.ok) { estado.textContent = r.error || "No se pudo subir la foto."; return; }
+    const combo = (editando.combinaciones || []).find(c => c.combinacion === combinacion);
+    if (combo) { combo.imagenes = r.imagenes; combo.versionImagenes = r.versionImagenes; }
+    const nombres = fila.querySelector("textarea.imagenes");
+    if (nombres) {
+      nombres.value = r.imagenes || "";
+      nombres.dataset.antes = nombres.value;
+      nombres.dataset.versionImagenes = r.versionImagenes || "";
+    }
+    estado.textContent = "Subida: " + r.nombre + ". Se verá al publicar.";
+    revisarPublicacion();
+  } catch (e) {
+    if (e.message === "sesion") return;
+    estado.textContent = e.message === "formato"
+      ? "No pudimos abrir esa foto. El panel acepta JPG, PNG y WebP. Si es HEIC, expórtala como JPG y vuelve a subirla."
+      : "No sabemos si la foto subió. Vuelve a abrir el producto para comprobar esta variante antes de intentarlo otra vez.";
+  } finally {
+    entrada.disabled = false;
+    if (boton) boton.removeAttribute("aria-disabled");
   }
 }
 
@@ -1139,37 +1179,46 @@ function pintarCombinaciones(p){
   $("#f-stock").readOnly = !!(p && p.porCombinacion);
   $("#f-stock").title = p && p.porCombinacion ? "Es la suma del stock por combinación" : "";
   $("#ayudaCombinaciones").textContent = p && p.porCombinacion
-    ? "Este producto se vende por combinación: el Stock de arriba es la suma de estas."
-    : "Mientras estén todas vacías, el producto se vende con el Stock de arriba. Al poner un número, pasa a venderse por combinación.";
-  /* 0.24.0 · y el PRECIO de cada una (bitácora 110): vacío = el precio del
-     producto, que se ve como sugerencia gris. */
+    ? "El Stock de arriba suma estas combinaciones. En Fotos, separa los nombres con |; vacío muestra las generales. Cada combinación admite seis."
+    : "Al poner stock en una combinación, ese inventario empieza a mandar. También puedes asignar fotos propias: separa los nombres con | y déjalo vacío para mostrar las generales. Cada combinación admite seis.";
+  /* Precio y stock por combinación; las fotos se guardan en la misma fila. */
   const base = $("#f-precio") ? $("#f-precio").value : "";
   $("#filasCombinaciones").innerHTML = (vivas.length ? `
     <div class="fila-combo cabeza-combo"><span></span><span>Precio</span><span>Stock</span></div>` : "") +
-    vivas.map((c, i) => `
-    <div class="fila-combo">
-      <label for="combo${i}">${escapar(c.combinacion)}</label>
-      <input class="campo precio" id="precio${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
-             data-version="${escapar(c.versionPrecio || "")}" data-antes="${escapar(c.precio || "")}" value="${escapar(c.precio || "")}"
-             placeholder="${escapar(base)}" aria-label="Precio de ${escapar(c.combinacion)} (vacío = el del producto)">
-      <input class="campo stock" id="combo${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
-             data-version="${escapar(c.version)}" data-antes="${escapar(c.stock)}" value="${escapar(c.stock)}">
-      <p class="error-campo" hidden></p>
-    </div>`).join("");
+    vivas.map((c, i) => {
+      return `
+      <div class="fila-combo">
+        <label for="combo${i}">${escapar(c.combinacion)}</label>
+        <input class="campo precio" id="precio${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
+               data-version="${escapar(c.versionPrecio || "")}" data-antes="${escapar(c.precio || "")}" value="${escapar(c.precio || "")}"
+               placeholder="${escapar(base)}" aria-label="Precio de ${escapar(c.combinacion)} (vacío = el del producto)">
+        <input class="campo stock" id="combo${i}" inputmode="numeric" data-combo="${escapar(c.combinacion)}"
+               data-version="${escapar(c.version)}" data-antes="${escapar(c.stock)}" value="${escapar(c.stock)}"
+               aria-label="Stock de ${escapar(c.combinacion)}">
+        <div class="fotos-combinacion">
+          <label for="imagenes${i}">Fotos</label>
+          <textarea class="campo imagenes" id="imagenes${i}" rows="2" data-combo="${escapar(c.combinacion)}"
+                    data-version-imagenes="${escapar(c.versionImagenes || "")}" data-antes="${escapar(c.imagenes || "")}"
+                    maxlength="1805" placeholder="Vacío = fotos generales" aria-label="Nombres de fotos de ${escapar(c.combinacion)} (separa con |)">${escapar(c.imagenes || "")}</textarea>
+          <label class="btn linea chico" style="display:inline-block;margin:0">
+            Subir foto
+            <input type="file" data-foto-combinacion="${escapar(c.combinacion)}"
+                   accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden
+                   aria-label="Subir foto para ${escapar(c.combinacion)}">
+          </label>
+          <span class="ayuda estado-foto-combo" role="status"></span>
+        </div>
+        <p class="error-campo" hidden></p>
+      </div>`;
+    }).join("");
   aviso("#avisoCombinaciones", "", "");
-  /* ¿De qué opción es la foto? «General» o una opción de un grupo. */
-  const grupos = gruposDeTexto(p ? p.variantes : "");
-  const sel = $("#f-fotoOpcion");
-  sel.hidden = !grupos.length;
-  sel.innerHTML = `<option value="">Foto general del producto</option>` + grupos.map(g =>
-    g.opciones.map(o => `<option value="${escapar(g.nombre + "=" + o)}">Foto de ${escapar(g.nombre.toLowerCase())}: ${escapar(o)}</option>`).join("")).join("");
 }
 
 let opCombinaciones = null;
 async function guardarCombinaciones(){
   if (!editando) return;
-  const cambios = {}, versiones = {}, precios = {}, versionesPrecio = {};
-  document.querySelectorAll("#filasCombinaciones input").forEach(el => {
+  const cambios = {}, versiones = {}, precios = {}, versionesPrecio = {}, imagenes = {}, versionesImagenes = {};
+  document.querySelectorAll("#filasCombinaciones input.precio, #filasCombinaciones input.stock").forEach(el => {
     const v = el.value.trim();
     const esPrecio = el.classList.contains("precio");
     if (v !== el.dataset.antes) {
@@ -1179,11 +1228,20 @@ async function guardarCombinaciones(){
     el.classList.remove("mal");
     el.parentElement.querySelector(".error-campo").hidden = true;
   });
-  if (!Object.keys(cambios).length && !Object.keys(precios).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
+  document.querySelectorAll("#filasCombinaciones textarea.imagenes").forEach(el => {
+    const v = el.value.trim();
+    if (v !== el.dataset.antes) {
+      imagenes[el.dataset.combo] = v;
+      versionesImagenes[el.dataset.combo] = el.dataset.versionImagenes;
+    }
+    el.classList.remove("mal");
+    el.parentElement.parentElement.querySelector(".error-campo").hidden = true;
+  });
+  if (!Object.keys(cambios).length && !Object.keys(precios).length && !Object.keys(imagenes).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
   if (!opCombinaciones) opCombinaciones = nuevaOperacion();
   $("#guardarCombinaciones").disabled = true;
   try {
-    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones, precios, versionesPrecio });
+    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones, precios, versionesPrecio, imagenes, versionesImagenes });
     opCombinaciones = null;
     if (!r.ok) {
       document.querySelectorAll("#filasCombinaciones .fila-combo").forEach(fila => {
@@ -1191,7 +1249,7 @@ async function guardarCombinaciones(){
         if (!el) return;
         const e = (r.errores || {})[el.dataset.combo];
         const msj = fila.querySelector(".error-campo");
-        if (e) { fila.querySelectorAll("input").forEach(i => i.classList.add("mal")); msj.hidden = false; msj.textContent = e; }
+        if (e) { fila.querySelectorAll("input.precio, input.stock, textarea.imagenes").forEach(i => i.classList.add("mal")); msj.hidden = false; msj.textContent = e; }
       });
       aviso("#avisoCombinaciones", "mal", r.error || "No se guardó.");
       return;
@@ -2197,6 +2255,10 @@ $("#formProducto").addEventListener("submit", guardar);
 $("#borrar").addEventListener("click", pedirBorrar);
 $("#borrarSi").addEventListener("click", borrar);
 $("#f-foto").addEventListener("change", subirFoto);
+$("#filasCombinaciones").addEventListener("change", ev => {
+  const entrada = ev.target.closest("input[data-foto-combinacion]");
+  if (entrada) subirFotoCombinacion(entrada);
+});
 $("#guardarCombinaciones").addEventListener("click", guardarCombinaciones);
 document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.vista)));
 $("#publicar").addEventListener("click", publicar);

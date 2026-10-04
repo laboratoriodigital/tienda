@@ -600,6 +600,7 @@ function filaDelProducto(filasCat, id) {
    en rojo, no un 0 que el comerciante guardaría sin mirar. Una cifra que no se
    puede leer no vale cero, tampoco en el panel. */
 function atenderProductos() {
+  ponerHojaAlDia();
   var cat = filasDelCatalogo();
   var categorias = {};
   var inv = leerInventarioVariante();
@@ -629,7 +630,9 @@ function atenderProductos() {
                  version: versionDeValor(x.crudo), noCasa: !combinacionValida(f[13], x.clave),
                  /* 0.24.0 · su precio propio, tal como está escrito (vacío = el del producto). */
                  precio: String(x.precioCrudo === null || x.precioCrudo === undefined ? '' : x.precioCrudo),
-                 versionPrecio: versionDeValor(x.precioCrudo) };
+                 versionPrecio: versionDeValor(x.precioCrudo),
+                 imagenes: String(x.imagenesCrudo === null || x.imagenesCrudo === undefined ? '' : x.imagenesCrudo),
+                 versionImagenes: versionDeValor(x.imagenesCrudo) };
       }),
       porCombinacion: !!skusDe(variantesDeCelda(f[13], ''), inv[id], '')
     };
@@ -922,10 +925,12 @@ function atenderSubirFoto(p) {
   var tipo = String(p.tipo || '').toLowerCase();
   var ext = TIPOS_DE_FOTO[tipo];
   var datos = String(p.datos || '');
+  var combinacion = String(p.combinacion || '').trim();
   var comoAntes = function (nombre) {
     return ' Mientras tanto, el camino de siempre funciona: sube la foto a tu carpeta ' +
            'de fotos en Drive con el nombre «' + nombre + '» y escribe ese nombre en ' +
-           'Fotos, separado de los demás con |.';
+           (combinacion ? 'Imágenes de esa fila en Inventario por variante' :
+                          'Imágenes de esa fila en Catálogo') + ', separado de los demás con |.';
   };
 
   if (!ext) return { ok: false, error: 'Esa foto no es JPG, PNG ni WEBP.' };
@@ -940,24 +945,28 @@ function atenderSubirFoto(p) {
     var i = filaDelProducto(cat.filas, id);
     if (i === -1) return { ok: false, error: 'Ese producto ya no existe en la hoja.' };
 
+    var destino = 'generales', hojaDestino = cat.h, filaDestino = i + 2;
     var enCelda = String(cat.filas[i][7] || '').split('|')
       .map(function (x) { return x.trim(); }).filter(function (x) { return x; });
-    /* C-1b · ¿DE QUÉ OPCIÓN ES ESTA FOTO? Si se dice («Color=Rosa»), el
-       nombre la lleva: <código>--color-rosa-<n>. Una opción que el producto
-       no tiene no se inventa. Tope: 6 generales y 4 por opción. */
-    var base = id, deOpcion = '';
-    if (String(p.opcion || '').trim()) {
-      var par = String(p.opcion).split('=');
-      var grupos = variantesDeCelda(cat.filas[i][13], '');
-      var g0 = grupos.filter(function (g) { return llano(g.nombre) === llano(par[0]); })[0];
-      var o0 = g0 && g0.opciones.filter(function (o) { return llano(o) === llano(par[1] || ''); })[0];
-      if (!o0) return { ok: false, error: 'Este producto no tiene la opción «' + String(p.opcion).slice(0, 40) + '».' };
-      base = id + '--' + trozoDeOpcion(g0.nombre, o0);
-      deOpcion = g0.nombre + ': ' + o0;
+    var base = id, donde = 'Catálogo · ' + id;
+    if (combinacion) {
+      var claveCombinacion = llano(combinacion);
+      var inv = leerInventarioVariante();
+      var filaInv = (inv[id] || []).filter(function (x) {
+        return x.clave === claveCombinacion && combinacionValida(cat.filas[i][13], x.clave);
+      })[0];
+      if (!filaInv) return { ok: false, error: 'Esa combinación ya no está en Inventario por variante. Vuelve a abrir el producto.' };
+      enCelda = String(filaInv.imagenesCrudo || '').split('|')
+        .map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+      if (enCelda.length >= 6) return { ok: false, error: 'Esta combinación ya tiene seis fotos, que es el máximo. Quita un nombre en Fotos de esa combinación y guarda antes de subir otra.' };
+      destino = 'variante';
+      hojaDestino = hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
+      filaDestino = filaInv.fila;
+      base = id + '--' + trozoDeCombinacion(filaInv.texto);
+      donde = H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + filaInv.texto;
+    } else if (enCelda.length >= 6) {
+      return { ok: false, error: 'Este producto ya tiene seis fotos generales, que es el máximo. Quita una en Catálogo antes de subir otra.' };
     }
-    var deEsa = enCelda.filter(function (n) { return deOpcion ? n.indexOf(base + '-') === 0 : n.indexOf('--') === -1; });
-    if (!deOpcion && deEsa.length >= 6) return { ok: false, error: 'Este producto ya tiene seis fotos generales, que es el máximo. Quita una antes de subir otra.' };
-    if (deOpcion && deEsa.length >= 4) return { ok: false, error: 'Esa opción ya tiene cuatro fotos, que es el máximo. Quita una antes de subir otra.' };
 
     var carpeta, enCarpeta = [];
     try {
@@ -982,16 +991,22 @@ function atenderSubirFoto(p) {
                comoAntes(nombre) };
     }
 
-    /* El archivo ya está en Drive: ahora la celda. Si esto fallara, la foto
-       quedaría en la carpeta sin estar en la hoja — que es exactamente el
-       estado del camino viejo a medias, y se arregla escribiendo el nombre. */
+    /* El archivo ya está en Drive: ahora la celda que le corresponde. */
     enCelda.push(nombre);
-    cat.h.getRange(i + 2, columnaDe(cat.h, ENCABEZADO_CATALOGO, 'Imágenes')).setValue(celdaSegura(enCelda.join('|'), 1900));
-    cat.filas[i][7] = enCelda.join('|');
+    var encabezadoDestino = destino === 'variante' ? ENCABEZADO_INVENTARIO_VARIANTE : ENCABEZADO_CATALOGO;
+    hojaDestino.getRange(filaDestino, columnaDe(hojaDestino, encabezadoDestino, 'Imágenes'))
+      .setValue(celdaSegura(enCelda.join('|'), 1900));
+    CacheService.getScriptCache().remove('catalogo');
     return { ok: true, id: id, nombre: nombre, imagenes: enCelda.join('|'),
+             destino: destino, combinacion: combinacion,
              version: versionDeFila(cat.filas[i]),
-             _registro: [{ que: 'Subió una foto' + (deOpcion ? ' de ' + deOpcion : ''), donde: 'Catálogo · ' + id, antes: '', despues: nombre }] };
+             versionImagenes: destino === 'variante' ? versionDeValor(enCelda.join('|')) : '',
+             _registro: [{ que: 'Subió una foto' + (combinacion ? ' de una variante' : ' general'), donde: donde, antes: '', despues: nombre }] };
   }, true);
+}
+
+function trozoDeCombinacion(texto) {
+  return llano(texto).replace(/ñ/g, 'n').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1859,7 +1874,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '1.1.0';
+var VERSION_TIENDA = '1.1.1';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1971,7 +1986,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-09-22-8';
+var VERSION = '2026-10-04-1';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -3420,7 +3435,7 @@ function asegurarColumnas(nombre, encabezados) {
 var ORDEN_VISIBLE_CATALOGO = ['ID', 'Nombre', 'Categoría', 'Formato', 'Precio', 'Precio antes',
                               'Stock', 'Umbral bajo', 'Variantes', 'Imágenes', 'Descripción',
                               'Destacado', 'Activo', 'Referencia'];
-var ORDEN_VISIBLE_INVENTARIO = ['ID producto', 'Combinación', 'Precio', 'Stock', 'Código', 'Nota'];
+var ORDEN_VISIBLE_INVENTARIO = ['ID producto', 'Combinación', 'Precio', 'Stock', 'Código', 'Nota', 'Imágenes'];
 
 /* Mueve columnas enteras —valores, fórmulas, formato— hasta dejar `visible`
    a la izquierda y en ese orden. Solo si están todas: si falta una, no toca
@@ -4760,15 +4775,29 @@ function atenderFotos(p) {
 }
 
 function fotosQueUsaElCatalogo() {
+  ponerHojaAlDia();
   var vistas = {}, salida = [];
+  var agregar = function (nombre) {
+    var limpio = String(nombre || '').trim();
+    if (!limpio || /^https?:\/\//i.test(limpio) || vistas[limpio]) return;
+    vistas[limpio] = true;
+    salida.push(limpio);
+  };
   filas(H_CATALOGO).forEach(function (f) {
     if (!String(f[0]).trim()) return;
-    String(f[7] || '').split('|').forEach(function (n) {
-      var limpio = n.trim();
-      // Una URL completa no sale de la carpeta de Drive: no aplica.
-      if (!limpio || /^https?:\/\//i.test(limpio) || vistas[limpio]) return;
-      vistas[limpio] = true;
-      salida.push(limpio);
+    String(f[7] || '').split('|').forEach(agregar);
+  });
+  var cat = {};
+  filas(H_CATALOGO).forEach(function (f) {
+    var id = String(f[0] || '').trim();
+    if (id) cat[id] = f;
+  });
+  var inv = leerInventarioVariante();
+  Object.keys(inv).forEach(function (id) {
+    if (!cat[id] || !esSi(cat[id][9])) return;
+    inv[id].forEach(function (x) {
+      if (!combinacionValida(cat[id][13], x.clave)) return;
+      String(x.imagenesCrudo || '').split('|').forEach(agregar);
     });
   });
   /* 0.21.0 · EL LOGO Y EL ICONO TAMBIÉN SALEN DE ESA CARPETA (bitácora 98).
@@ -5273,6 +5302,8 @@ function leerCatalogo() {
     /* 0.24.0 · y el precio de cada combinación, si tiene uno propio. */
     var pr = preciosDe(mapa[id].variantes, inv[id], 'Inventario por variante (' + id + ')');
     if (pr) { mapa[id].precios = pr.porClave; mapa[id].vetadas = pr.vetadas; }
+    var imagenes = imagenesDeCombinaciones(mapa[id].variantes, inv[id]);
+    if (imagenes.length) mapa[id].imagenesVariantes = imagenes;
   });
   return mapa;
 }
@@ -5920,6 +5951,7 @@ function doPost(e) {
    Va en caché un minuto para no leer la hoja en cada visita.
    ========================================================================== */
 function catalogoPublico() {
+  ponerHojaAlDia();
   var cache = CacheService.getScriptCache();
   var guardado = cache.get('catalogo');
   if (guardado) return JSON.parse(guardado);
@@ -5964,6 +5996,8 @@ function catalogoPublico() {
      y solo si el producto lleva inventario por combinación. */
   var inv = leerInventarioVariante();
   productos.forEach(function (p) {
+    var imagenes = imagenesDeCombinaciones(p.variantes, inv[p.id]);
+    if (imagenes.length) p.imagenesVariantes = imagenes;
     var s = skusDe(p.variantes, inv[p.id], 'Inventario por variante (' + p.id + ')');
     if (s) {
       p.stock = s.suma;
@@ -7993,13 +8027,28 @@ function revisarDatos() {
    nosotros no tenemos nada que verificar.
    ========================================================================== */
 function revisarFotos() {
+  ponerHojaAlDia();
   var pide = {};
+  var idsActivos = {};
   filas(H_CATALOGO).forEach(function (f, i) {
     var id = String(f[0]).trim();
     if (!id || !esSi(f[9])) return;                    // solo lo que está Activo
+    idsActivos[id] = f;
     String(f[7] || '').split('|').forEach(function (u) {
       var t = u.trim();
       if (t && !/^https?:\/\//i.test(t)) pide[t] = (pide[t] || id);
+    });
+  });
+  var inv = leerInventarioVariante();
+  Object.keys(inv).forEach(function (id) {
+    var f = idsActivos[id];
+    if (!f) return;
+    inv[id].forEach(function (x) {
+      if (!combinacionValida(f[13], x.clave)) return;
+      String(x.imagenesCrudo || '').split('|').forEach(function (nombre) {
+        var t = nombre.trim();
+        if (t && !/^https?:\/\//i.test(t)) pide[t] = pide[t] || (id + ' · ' + x.texto);
+      });
     });
   });
 
@@ -9016,7 +9065,8 @@ function revisionHoraria() {
    listas, lo obligatorio en rojo, pestañas en orden, sin «Hoja 1»— pedía
    correr A0_instalar en el editor de cada tienda después de cada versión que
    lo cambiara. Ahora lo hace la revisión de cada hora, UNA vez por versión del
-   maestro, bajo la llave. No toca datos: mueve columnas enteras y da formato. */
+   maestro, bajo la llave. También corre la migración de fotos antiguas de
+   opciones al añadir Imágenes a Inventario por variante. */
 function ponerHojaAlDia(forzar) {
   var p = propiedades();
   if (!forzar && p.getProperty('HOJA_AL_DIA') === VERSION_TIENDA) return false;
@@ -9030,6 +9080,7 @@ function ponerHojaAlDia(forzar) {
     if (elLibro().getSheetByName(H_INVENTARIO_VARIANTE)) {
       asegurarColumnas(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
       ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
+      sincronizarVariantes();
     }
     var cfg = elLibro().getSheetByName(H_CONFIG);
     if (cfg) agregarClavesQueFaltan(cfg, semillaDeConfiguracion());
@@ -9378,7 +9429,7 @@ var ENCABEZADO_INVENTARIO_VARIANTE = ['ID producto', 'Combinación', 'Stock', 'C
                                       /* 0.24.0 · al final del CÓDIGO (R1); en la hoja
                                          va al lado de Stock (ORDEN_VISIBLE). Vacío =
                                          el precio del producto (bitácora 110). */
-                                      'Precio'];
+                                      'Precio', 'Imágenes'];
 var NOTA_NO_CASA = 'Ya no está en Variantes: no cuenta';
 
 /* Todas las combinaciones de los grupos, en el orden del catálogo y con el
@@ -9410,9 +9461,92 @@ function leerInventarioVariante() {
      var id = String(f[0]).trim(), texto = String(f[1]).trim();
      if (!id || !texto) return;
      if (!r[id]) r[id] = [];
-     r[id].push({ clave: llano(texto), texto: texto, crudo: f[2], precioCrudo: f[5], fila: i + 2 });
+     r[id].push({ clave: llano(texto), texto: texto, crudo: f[2], precioCrudo: f[5],
+                  imagenesCrudo: f[6], fila: i + 2 });
    });
   return r;
+}
+
+/* La foto propia se publica aunque el inventario por combinación siga vacío.
+   Vacío en la celda de una variante significa heredar la galería general. */
+function imagenesDeCombinaciones(grupos, filasInv) {
+  if (!grupos || !grupos.length || !filasInv || !filasInv.length ||
+      cuantasCombinaciones(grupos) > MAX_COMBINACIONES) return [];
+  var validas = {};
+  combinacionesDe(grupos).forEach(function (t) { validas[llano(t)] = t; });
+  var salida = [];
+  filasInv.forEach(function (x) {
+    if (validas[x.clave] === undefined) return;
+    var imagenes = String(x.imagenesCrudo || '').split('|')
+      .map(function (n) { return n.trim(); }).filter(function (n) { return n; }).slice(0, 6);
+    if (imagenes.length) salida.push({ eleccion: validas[x.clave], imagenes: imagenes });
+  });
+  return salida;
+}
+
+/* Migra una vez las fotos antiguas que seguían en Catálogo con nombre
+   «id--grupo-opción-n.ext». Las copia a cada fila compatible antes de quitarlas
+   de la galería general; si no puede copiarlas todas, conserva la celda vieja. */
+function migrarFotosDeOpcionesEnCatalogo(cat, hi) {
+  if (!cat || !cat.h || !cat.filas.length || !hi) return 0;
+  var colCatalogo = columnaDe(cat.h, ENCABEZADO_CATALOGO, 'Imágenes');
+  var colVariantes = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Imágenes');
+  var inv = leerInventarioVariante();
+  var movidas = 0;
+  cat.filas.forEach(function (f, indice) {
+    var id = String(f[0] || '').trim();
+    var grupos = variantesDeCelda(f[13], '');
+    if (!id || !grupos.length || !(inv[id] || []).length) return;
+    var tokens = {};
+    grupos.forEach(function (g) {
+      g.opciones.forEach(function (o) {
+        tokens[trozoDeOpcion(g.nombre, o)] = { grupo: llano(g.nombre), opcion: llano(o) };
+      });
+    });
+    var lista = String(f[7] || '').split('|').map(function (n) { return n.trim(); }).filter(function (n) { return n; });
+    var candidatas = lista.map(function (nombre) {
+      var prefijo = id + '--';
+      if (nombre.indexOf(prefijo) !== 0) return null;
+      var resto = nombre.slice(prefijo.length);
+      var final = resto.match(/-(\d+)\.[a-z0-9]+$/i);
+      if (!final) return null;
+      var token = resto.slice(0, final.index);
+      return tokens[token] ? { nombre: nombre, token: tokens[token] } : null;
+    }).filter(Boolean);
+    if (!candidatas.length) return;
+
+    var quitar = {};
+    candidatas.forEach(function (foto) {
+      var destinos = (inv[id] || []).filter(function (x) {
+        if (!combinacionValida(f[13], x.clave)) return false;
+        var opciones = {};
+        String(x.texto).split(/\s*·\s*/).forEach(function (parte) {
+          var dosPuntos = parte.indexOf(':');
+          if (dosPuntos > 0) opciones[llano(parte.slice(0, dosPuntos))] = llano(parte.slice(dosPuntos + 1));
+        });
+        return opciones[foto.token.grupo] === foto.token.opcion;
+      });
+      if (!destinos.length) return;
+      var todosReciben = true, algunoRecibe = false;
+      destinos.forEach(function (x) {
+        var imgs = String(x.imagenesCrudo || '').split('|').map(function (n) { return n.trim(); }).filter(Boolean);
+        if (imgs.indexOf(foto.nombre) !== -1) return;
+        if (imgs.length >= 6) { todosReciben = false; return; }
+        imgs.push(foto.nombre);
+        x.imagenesCrudo = imgs.join('|');
+        hi.getRange(x.fila, colVariantes).setValue(celdaSegura(x.imagenesCrudo, 1900));
+        algunoRecibe = true;
+      });
+      if (todosReciben) quitar[foto.nombre] = true;
+      if (algunoRecibe) movidas++;
+    });
+    if (Object.keys(quitar).length) {
+      var generales = lista.filter(function (n) { return !quitar[n]; });
+      cat.h.getRange(indice + 2, colCatalogo).setValue(celdaSegura(generales.join('|'), 1900));
+      f[7] = generales.join('|');
+    }
+  });
+  return movidas;
 }
 
 /* ══ EL PRECIO DE CADA COMBINACIÓN (0.24.0 · bitácora 110) ══
@@ -9496,7 +9630,7 @@ function sincronizarVariantes() {
     validasPorId[id] = {};
     combinacionesDe(grupos).forEach(function (t) {
       validasPorId[id][llano(t)] = true;
-      if (!ya[llano(t)]) nuevas.push([id, t, '', '', '', '']);
+      if (!ya[llano(t)]) nuevas.push([id, t, '', '', '', '', '']);
     });
   });
   if (grandes.length) {
@@ -9523,10 +9657,11 @@ function sincronizarVariantes() {
     if (cambiaNota) hi.getRange(2, colNota, col.length, 1).setValues(col);
   }
   agregarFilasCanonicas(hi, nuevas, ENCABEZADO_INVENTARIO_VARIANTE);
-
-  escribirSumas();
+  var fotosMigradas = migrarFotosDeOpcionesEnCatalogo(cat, hi);
+  var sumas = escribirSumas();
+  if (fotosMigradas || sumas) marcarEdicion();
   CacheService.getScriptCache().remove('catalogo');
-  return { nuevas: nuevas.length, marcadas: marcadas };
+  return { nuevas: nuevas.length, marcadas: marcadas, fotosMigradas: fotosMigradas };
 }
 
 /* Catálogo › Stock = la suma de sus combinaciones, para los productos que
@@ -9585,10 +9720,11 @@ function contextoCombinaciones() {
   return ctx;
 }
 
-/* ── Las fotos: 6 generales y 4 por opción, y EL NOMBRE ES EL DATO ──────
-   Una foto del color rosa se llama `camiseta-basica--color-rosa-1.jpg`:
-   código, doble guion, grupo, opción y número. De qué opción es una foto se
-   lee de su nombre, así que no hay tabla que mantener. */
+/* ── Las fotos: 6 generales y 6 por combinación ──────────────────────────
+   La celda Imágenes de Catálogo contiene las fotos generales. Cada fila de
+   Inventario por variante puede tener seis nombres propios; vacío hereda las
+   generales. Se conserva el límite antiguo por opción solo para leer hojas
+   que todavía no han pasado por la migración. */
 function fotosConTope(lista) {
   var generales = [], porOpcion = {}, salida = [];
   lista.forEach(function (n) {
@@ -9625,6 +9761,9 @@ function atenderGuardarCombinaciones(p) {
     /* 0.24.0 · y el precio de cada combinación: {combinación: precio} con sus
        huellas aparte. Vacío = el del producto; si no, un número mayor que 0. */
     var precios = p.precios || {}, versionesPrecio = p.versionesPrecio || {};
+    /* Las fotos van en la misma fila de cada combinación. Vacío hereda las
+       fotos generales del producto; los nombres usan | como separador. */
+    var imagenes = p.imagenes || {}, versionesImagenes = p.versionesImagenes || {};
     var guardadas = CELDAS_ILEGIBLES; CELDAS_ILEGIBLES = [];
     var inv = leerInventarioVariante();
     CELDAS_ILEGIBLES = guardadas;
@@ -9656,6 +9795,22 @@ function atenderGuardarCombinaciones(p) {
                               antes: String(x.precioCrudo === null || x.precioCrudo === undefined ? '' : x.precioCrudo),
                               valor: n });
     });
+    var imagenesAEscribir = [];
+    Object.keys(imagenes).forEach(function (combo) {
+      var x = filasDe[llano(combo)];
+      if (!x) { errores[combo] = 'Esa combinación no está en el inventario de este producto.'; return; }
+      if (String(versionesImagenes[combo] || '') !== versionDeValor(x.imagenesCrudo)) {
+        errores[combo] = 'Cambió en la hoja mientras la editabas. Vuelve a abrir el producto.'; return;
+      }
+      var antes = String(x.imagenesCrudo === null || x.imagenesCrudo === undefined ? '' : x.imagenesCrudo);
+      var nombres = String(imagenes[combo] === null || imagenes[combo] === undefined ? '' : imagenes[combo])
+        .split('|').map(function (nombre) { return String(nombre).trim(); }).filter(function (nombre) { return nombre; });
+      if (nombres.length > 6) { errores[combo] = 'Puedes guardar hasta seis fotos por combinación.'; return; }
+      if (nombres.some(function (nombre) { return nombre.length > 300; })) {
+        errores[combo] = 'El nombre de una de las fotos es demasiado largo.'; return;
+      }
+      imagenesAEscribir.push({ fila: x.fila, combo: x.texto, antes: antes, valor: nombres.join('|') });
+    });
     if (Object.keys(errores).length) {
       return { ok: false, errores: errores, error: 'No se guardó nada: hay ' + Object.keys(errores).length + ' valor(es) por corregir.' };
     }
@@ -9664,15 +9819,22 @@ function atenderGuardarCombinaciones(p) {
     aEscribir.forEach(function (w) { hi.getRange(w.fila, colStockInv).setValue(w.valor); });
     var colPrecioInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Precio');
     preciosAEscribir.forEach(function (w) { hi.getRange(w.fila, colPrecioInv).setValue(w.valor); });
+    var colImagenesInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Imágenes');
+    imagenesAEscribir.forEach(function (w) {
+      hi.getRange(w.fila, colImagenesInv).setValue(celdaSegura(w.valor, 1900));
+    });
     escribirSumas();
     CacheService.getScriptCache().remove('catalogo');
-    return { ok: true, guardadas: aEscribir.length + preciosAEscribir.length,
+    return { ok: true, guardadas: aEscribir.length + preciosAEscribir.length + imagenesAEscribir.length,
              _registro: aEscribir.filter(function (w) { return String(w.valor) !== w.antes; }).map(function (w) {
                return { que: 'Cambió el stock de una combinación', donde: H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + w.combo,
                         antes: w.antes, despues: String(w.valor) };
              }).concat(preciosAEscribir.filter(function (w) { return String(w.valor) !== w.antes; }).map(function (w) {
                return { que: 'Cambió el precio de una combinación', donde: H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + w.combo,
-                        antes: w.antes || '(el del producto)', despues: w.valor === '' ? '(el del producto)' : String(w.valor) };
+                       antes: w.antes || '(el del producto)', despues: w.valor === '' ? '(el del producto)' : String(w.valor) };
+             })).concat(imagenesAEscribir.filter(function (w) { return w.valor !== w.antes; }).map(function (w) {
+               return { que: 'Cambió las fotos de una combinación', donde: H_INVENTARIO_VARIANTE + ' · ' + id + ' · ' + w.combo,
+                        antes: w.antes || '(fotos generales)', despues: w.valor || '(fotos generales)' };
              })) };
   }, true);
 }

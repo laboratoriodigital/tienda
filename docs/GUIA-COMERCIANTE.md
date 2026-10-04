@@ -38,10 +38,11 @@ cuando vuelve a haber, Ventas te dice **Te están esperando**.
 llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si
 arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 
-**Tienda** — tus **productos** (precio, stock, fotos, variantes: con variantes aparece **Precio y
-stock por combinación** —vacío = el precio del producto—; las fotos de un color, eligiendo «Foto de
-color: Rosa», o en la hoja `codigo--color-rosa-1.jpg`; con varias fotos, en la portada de la tienda
-se pasan deslizando, o con las flechas en el computador) y **todos los ajustes**, por secciones: tu
+**Tienda** — tus **productos** (precio, stock y fotos generales; con variantes aparece **Precio,
+stock y fotos por combinación**. En cada fila puedes subir fotos o editar sus nombres separados
+por `|`; si dejas ese campo vacío, se muestran las fotos generales del producto. Cada combinación
+admite hasta seis fotos. Con varias fotos, en la portada se pasan deslizando, o con las flechas en
+el computador) y **todos los ajustes**, por secciones: tu
 tienda, la venta, el cobro, la portada, los textos, los colores, Google y WhatsApp, **medición y
 anuncios** (Google Analytics y el píxel de Meta: solo el número), datos legales, el correo del día
 y **Avanzado** (no lo toques si no sabes para qué). También las **zonas de envío** y los

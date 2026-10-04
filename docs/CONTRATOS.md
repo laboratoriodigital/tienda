@@ -4,9 +4,9 @@
 con una decisión, y esa decisión tiene reglas. El resto de `/docs` explica cómo
 se hacen las cosas; este archivo dice qué **no** se puede hacer.
 
-_Vigente a la **1.0.0 (30 de septiembre de 2026)** de la Tienda 2.0
+_Vigente a la **1.1.1 (4 de octubre de 2026)** de la Tienda 2.0
 (`laboratoriodigital/tienda`). Contrato página↔maestro: `VERSION`
-`2026-09-22-8`; esquema 1 (§8)._
+`2026-10-04-1`; esquema 1 (§8)._
 
 ---
 
@@ -95,6 +95,9 @@ Activo · Referencia. Lo que no se puede cambiar es el **nombre** de una columna
 si una no se encuentra, la hoja se lee por posición, como antes, y queda anotado
 en Errores. La `Papelera` va en el mismo orden visible.
 
+`Catálogo › Imágenes` contiene las fotos generales del producto. Las fotos que
+dependen de una variante se escriben en su fila de `Inventario por variante`.
+
 
 | # | Columna |
 |---|---|
@@ -114,8 +117,7 @@ en Errores. La `Papelera` va en el mismo orden visible.
 | 14 | `Variantes` |
 
 **`Variantes` (C-1).** Opcional. Grupos separados por `;`, el nombre antes de
-`:`, y las opciones con `|` — el mismo separador que ya usa `Imágenes`, para no
-tener dos convenciones en la misma hoja:
+`:`, y las opciones con `|` — el mismo separador que usan las listas de fotos:
 
 ```
 Talla: S|M|L ; Color: Rosa|Nude
@@ -324,7 +326,8 @@ stock vacío; el comerciante solo pone los números.
 | 3 | `Stock` | unidades de esa combinación. **Vacío = todavía no se cuenta** |
 | 4 | `Código` | opcional, el SKU del comercio |
 | 5 | `Nota` | la escribe el maestro: `Ya no está en Variantes: no cuenta` si la combinación dejó de existir |
-| 6 | `Precio` | (0.24.0) el precio de esa combinación. **Vacío = el del producto.** Un valor ilegible veta la combinación (no se vende) y queda anotado. En la hoja va al lado de `Stock` (orden visible: ID producto · Combinación · Precio · Stock · Código · Nota); se lee por nombre |
+| 6 | `Precio` | (0.24.0) el precio de esa combinación. **Vacío = el del producto.** Un valor ilegible veta la combinación (no se vende) y queda anotado. Se lee por nombre; orden visible: ID producto · Combinación · Precio · Stock · Código · Nota · Imágenes |
+| 7 | `Imágenes` | nombres de las fotos propias de esta combinación, separados por `|`. Hasta seis. Vacío = usar `Catálogo › Imágenes` |
 
 **Cuándo manda.** Un producto se vende por combinación en cuanto **una** de sus
 filas tiene un número. Entonces cada combinación compite solo por sus unidades,
@@ -335,10 +338,13 @@ que migrar nada. Las filas que dejan de casar no se borran —llevan un stock qu
 alguien contó—: se marcan y dejan de contar. Tope: **3 grupos, 20 opciones y
 100 combinaciones** por producto; por encima no se genera nada y se avisa.
 
-**Las fotos de una opción** se reconocen por el nombre:
-`<código>--<grupo>-<opción>-<n>.<ext>` (`camiseta-basica--color-rosa-1.jpg`),
-en la misma celda Imágenes y la misma carpeta de Drive. Tope: 6 generales y 4
-por opción.
+**Fotos.** `Catálogo › Imágenes` guarda hasta seis fotos generales del
+producto. Cada fila de `Inventario por variante › Imágenes` guarda hasta seis
+fotos de esa combinación, separadas por `|`; vacía significa heredar las
+generales. Las fotos se sirven desde la misma carpeta de Drive. Las fotos
+antiguas con nombre `<código>--<grupo>-<opción>-<n>.<ext>` se reparten a las
+filas que coinciden cuando la hoja se pone al día; se conservan en Catálogo si
+alguna fila no puede recibirlas.
 
 ### `Registro` (D-6)
 
@@ -639,7 +645,9 @@ stub en cada hoja.
 **`productos`** — `ok`, `productos`, `categorias`. Cada producto: `id`, `nombre`,
 `formato`, `categoria`, `precio`, `stock`, `descripcion`, `imagenes`,
 `destacado`, `activo`, `referencia`, `precioAntes`, `umbralBajo`, `variantes`,
-`version`, `problemas`. **Las cifras van como texto, tal como están escritas en
+`combinaciones`, `porCombinacion`, `version`, `problemas`. Cada combinación
+incluye `stock`, `version`, `noCasa`, `precio`, `versionPrecio`, `imagenes` y
+`versionImagenes`. **Las cifras van como texto, tal como están escritas en
 la hoja**, y `problemas` nombra las que no se pueden leer: si la hoja dice «doce
 mil», el panel enseña «doce mil» marcado, no un 0 que se guardaría sin mirar.
 Trae también los desactivados.
@@ -656,14 +664,14 @@ Una respuesta repetida trae además `repetida: true`.
 `borrado`.
 
 **`subir_foto`** — pide `op`, `id`, `tipo` (`image/jpeg`, `image/png` o
-`image/webp`) y `datos` (la foto en base64, sin el prefijo `data:`). Guarda el
-archivo en la carpeta de `fotos_drive` **con el nombre que le toca** —
-`<id>-<n>.<ext>`, con el primer número que no esté ni en la celda ni en la
-carpeta— y lo agrega a `Imágenes`, las dos cosas bajo la misma llave. Contesta
-`ok`, `id`, `nombre`, `imagenes`, `version` (la nueva: la foto cambió la fila).
-Si no puede, el error **dice el nombre exacto** con el que subirla a mano al
-Drive, que es el camino de siempre y sigue funcionando. La foto sale en la
-tienda al publicar, no al subirla.
+`image/webp`) y `datos` (la foto en base64, sin el prefijo `data:`). Sin
+`combinacion`, guarda una foto general en `Catálogo › Imágenes`; con la
+combinación exacta (`Talla: M · Color: Rosa`), la agrega a `Inventario por
+variante › Imágenes` de esa fila. En ambos casos, guarda el archivo en
+`fotos_drive` con un nombre libre en la carpeta y la hoja bajo la misma llave.
+Contesta `ok`, `id`, `nombre`, `imagenes`, `destino`, `combinacion`, `version` y
+`versionImagenes` cuando es una foto de variante. La foto sale en la tienda al
+publicar, no al subirla.
 
 **`pedidos`** (D-3) — pide opcionalmente `estado` (un id de estado, o `revisar`
 para los que la hoja no entiende) y `q` (busca en el código del pedido, sin tildes ni mayúsculas).
@@ -898,16 +906,19 @@ Catálogo. `productos` trae además, por producto, `combinaciones`
 (`combinacion`, `stock` tal como está, `version`, `noCasa`, y desde la 0.24.0
 `precio` y `versionPrecio`) y `porCombinacion`. Desde la 0.24.0 acepta además
 `precios` (`{combinación: pesos o vacío}`) con `versionesPrecio`, con la misma
-regla de todo o nada.
-`subir_foto` acepta `opcion` (`Color=Rosa`) y nombra la foto
-`<código>--color-rosa-<n>`.
+regla de todo o nada. Acepta también `imagenes` (`{combinación: nombres
+separados por |}`) con `versionesImagenes`, con la misma regla de todo o nada
+y máximo seis nombres por combinación. Vacío hereda la galería general. Las
+combinaciones de `productos` traen además `imagenes` y `versionImagenes`.
 
 **`?a=validar`** (C-3 y C-1b) — además: `cerrada`, `faltaMinimo`, `cobrable`,
 `recortado`, `envioTarifa`. Con inventario por combinación, el aviso de stock
 nombra la combinación.
 
 **`?a=catalogo`** (C-1b) — cada producto con inventario por combinación trae
-`skus: [{ eleccion, stock }]` al final, y su `stock` es la suma. Horneado igual
+`skus: [{ eleccion, stock }]` al final, y su `stock` es la suma. Cada producto
+con fotos propias de combinación trae `imagenesVariantes: [{ eleccion,
+imagenes }]`, aunque el inventario siga vacío. Horneado igual
 en `catalogo.json` y en el respaldo. Desde la 0.24.0, un producto con precios por
 combinación trae `precios: [{ eleccion, precio }]` (solo las que tienen uno
 propio), y `?a=validar` cobra cada línea a ese precio.
@@ -964,7 +975,7 @@ la toca. `publicacion` la compara con el `generado` servido.
 
 Y dentro de `?a=catalogo`:
 
-**cada producto** — `id`, `nombre`, `formato`, `categoria`, `precio`, `stock`, `descripcion`, `imagenes`, `destacado`, `activo`, `referencia`, `precioAntes`, `umbralBajo`, `variantes` (C-1) y, con inventario por combinación, `skus` (C-1b)
+**cada producto** — `id`, `nombre`, `formato`, `categoria`, `precio`, `stock`, `descripcion`, `imagenes` (fotos generales), `destacado`, `activo`, `referencia`, `precioAntes`, `umbralBajo`, `variantes` (C-1), `imagenesVariantes: [{ eleccion, imagenes }]` si hay fotos propias de combinación y, con inventario por combinación, `skus` (C-1b)
 
 **cada envio** — `id`, `nombre`, `valor`
 

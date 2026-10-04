@@ -229,10 +229,10 @@ fuente es `CONTRATOS.md` de la 2.0; aquí lo esencial.
 
 - **Producto**: ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral
   bajo, Variantes (hasta 3 grupos, 20 opciones, 100 combinaciones), Imágenes
-  (6 generales y 4 por opción; las de una opción se llaman
-  `<código>--<grupo>-<opción>-<n>.jpg`), Descripción, Destacado, Activo, Referencia.
+  (hasta 6 generales), Descripción, Destacado, Activo, Referencia.
 - **Combinación** (inventario por variante): ID producto, Combinación, Precio (vacío
-  = el del producto; ilegible = no se vende), Stock, Código, Nota.
+  = el del producto; ilegible = no se vende), Stock, Código, Nota e Imágenes
+  (hasta 6; vacío hereda las generales).
 - **Estados de un pedido**: Nuevo · Pendiente de pago · Pagado · Despachado ·
   Entregado · Cancelado. Solo Pagado descuenta; Despachado y Entregado lo mantienen;
   Cancelado lo devuelve.

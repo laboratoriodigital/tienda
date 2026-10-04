@@ -119,7 +119,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   ok('EL CATÁLOGO se ve en orden lógico: lo de vender junto (precio, antes, stock, umbral, variantes)',
      cab('Catálogo').join('|') === g.api.ORDEN_VISIBLE_CATALOGO.join('|'), cab('Catálogo').join(' · '));
   ok('  ...y el inventario por variante con Precio al lado de Stock',
-     cab('Inventario por variante').join('|') === 'ID producto|Combinación|Precio|Stock|Código|Nota',
+     cab('Inventario por variante').join('|') === 'ID producto|Combinación|Precio|Stock|Código|Nota|Imágenes',
      cab('Inventario por variante').join(' · '));
   const pestañas = Array.from(g.hojas.keys());
   ok('LAS PESTAÑAS van en el orden en que se usan: Catálogo primero',

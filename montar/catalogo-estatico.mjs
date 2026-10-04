@@ -46,8 +46,8 @@ const ANCHOS = [160, 600, 900];
    se puede es que digan números distintos, y eso lo comprueba variantes.js. */
 const MAX_GRUPOS_VARIANTE = 3;
 const MAX_OPCIONES_VARIANTE = 20;
-/* C-1b: 6 fotos generales y 4 por opción. De qué opción es una foto se lee de
-   su nombre (<código>--<grupo>-<opción>-<n>), igual que en el maestro. */
+/* C-1b: compatibilidad con fotos antiguas de opción, reconocidas por nombre
+   mientras se migran a Inventario por variante › Imágenes. */
 function fotosConTope(lista) {
   const salida = [], porOpcion = {};
   let generales = 0;
@@ -122,6 +122,15 @@ function soloLoQueSePublica(d) {
                                 .filter(k => k.eleccion && k.precio > 0);
       }
 
+      /* Fotos de cada combinación: independientes del inventario y del precio. */
+      if (variantes.length && Array.isArray(p.imagenesVariantes) && p.imagenesVariantes.length) {
+        base.imagenesVariantes = p.imagenesVariantes.map(k => ({
+          eleccion: String((k && k.eleccion) || ''),
+          imagenes: (Array.isArray(k && k.imagenes) ? k.imagenes : [])
+            .map(n => String(n || '').trim()).filter(Boolean).slice(0, 6)
+        })).filter(k => k.eleccion && k.imagenes.length);
+      }
+
       return base;
     });
 
@@ -171,6 +180,10 @@ async function medidasEnDisco(productos, carpeta = CARPETA_FOTOS) {
        que listar, y meterla aquí sería prometer archivos de otro. */
     if (t && !/^https?:\/\//i.test(t)) nombres.add(t);
   }));
+  productos.forEach(p => (p.imagenesVariantes || []).forEach(v => (v.imagenes || []).forEach(n => {
+    const t = String(n || '').trim();
+    if (t && !/^https?:\/\//i.test(t)) nombres.add(t);
+  })));
 
   const mapa = {};
   nombres.forEach(n => {
