@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-10-04-2",
- "generado": "2026-10-05T00:55:27.871Z",
+ "generado": "2026-10-05T00:58:25.574Z",
  "productos": [
   {
    "id": "smarthphone",
@@ -22,6 +22,14 @@
      "opciones": [
       "Verde",
       "Rojo"
+     ]
+    }
+   ],
+   "imagenesVariantes": [
+    {
+     "eleccion": "Color: Verde",
+     "imagenes": [
+      "smarthphone--color-verde-1.jpg"
      ]
     }
    ]
@@ -71,7 +79,7 @@
   "empresa_direccion": "Medellín",
   "empresa_ciudad": "Colombia",
   "empresa_tel": "573008610480",
-  "legal_actualizado": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "legal_actualizado": "Tue Sep 29 2026 00:00:00 GMT-0500 (hora estándar de Colombia)",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_hora": "7",
   "correo_siempre": "No",
@@ -84,11 +92,17 @@
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
   "autoria_url": "https://tienda.laboratorio-digital.com/",
-  "correo_ultimo": "Sun Oct 04 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Sun Oct 04 2026 00:00:00 GMT-0500 (hora estándar de Colombia)",
   "panel_usuario": "sebas",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""
  },
- "fotos": {}
+ "fotos": {
+  "smarthphone--color-verde-1.jpg": [
+   160,
+   600,
+   900
+  ]
+ }
 }
