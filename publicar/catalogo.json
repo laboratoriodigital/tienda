@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-10-04-2",
- "generado": "2026-10-05T00:58:25.574Z",
+ "generado": "2026-10-05T01:51:41.485Z",
  "productos": [
   {
    "id": "smarthphone",
@@ -9,9 +9,12 @@
    "formato": "unidad",
    "categoria": "Tecnología",
    "precio": 100000,
-   "stock": 2,
+   "stock": 6,
    "descripcion": "Smarthpone barato",
-   "imagenes": [],
+   "imagenes": [
+    "tienda-virtual.png",
+    "smarthphone--color-verde-1.jpg"
+   ],
    "destacado": false,
    "referencia": "honor",
    "precioAntes": 150000,
@@ -23,6 +26,26 @@
       "Verde",
       "Rojo"
      ]
+    }
+   ],
+   "skus": [
+    {
+     "eleccion": "Color: Verde",
+     "stock": 1
+    },
+    {
+     "eleccion": "Color: Rojo",
+     "stock": 5
+    }
+   ],
+   "precios": [
+    {
+     "eleccion": "Color: Verde",
+     "precio": 101000
+    },
+    {
+     "eleccion": "Color: Rojo",
+     "precio": 102000
     }
    ],
    "imagenesVariantes": [
@@ -79,7 +102,7 @@
   "empresa_direccion": "Medellín",
   "empresa_ciudad": "Colombia",
   "empresa_tel": "573008610480",
-  "legal_actualizado": "Tue Sep 29 2026 00:00:00 GMT-0500 (hora estándar de Colombia)",
+  "legal_actualizado": "Tue Sep 29 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "correo_resumen": "laboratoriodigital.la@gmail.com",
   "correo_hora": "7",
   "correo_siempre": "No",
@@ -92,13 +115,18 @@
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
   "autoria_url": "https://tienda.laboratorio-digital.com/",
-  "correo_ultimo": "Sun Oct 04 2026 00:00:00 GMT-0500 (hora estándar de Colombia)",
+  "correo_ultimo": "Sun Oct 04 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "panel_usuario": "sebas",
   "tope_pago": "12110000",
   "cobro": "pasarela",
   "cobro_pruebas": ""
  },
  "fotos": {
+  "tienda-virtual.png": [
+   160,
+   600,
+   900
+  ],
   "smarthphone--color-verde-1.jpg": [
    160,
    600,
