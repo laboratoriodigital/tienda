@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-10-04-2",
- "generado": "2026-10-05T01:51:41.485Z",
+ "generado": "2026-10-05T01:59:46.587Z",
  "productos": [
   {
    "id": "smarthphone",
@@ -46,14 +46,6 @@
     {
      "eleccion": "Color: Rojo",
      "precio": 102000
-    }
-   ],
-   "imagenesVariantes": [
-    {
-     "eleccion": "Color: Verde",
-     "imagenes": [
-      "smarthphone--color-verde-1.jpg"
-     ]
     }
    ]
   }
