@@ -56,6 +56,7 @@ Revisada contra el código de la 1.0.0 el 30 de septiembre de 2026.
 | 35 | El píxel de Meta y los eventos propios | VIGENTE · el medidor propio sin construir; riesgo abierto: consentimiento |
 | 36 | Un solo producto: la Tienda 2.0 | VIGENTE · desde el 30-sep-2026 |
 | 37 | La foto de variante pertenece a su combinación | VIGENTE · desde el 4-oct-2026 |
+| 38 | Las variantes se eligen con botones | VIGENTE · desde el 4-oct-2026 |
 
 ---
 
@@ -1746,6 +1747,38 @@ tenga esos nombres en la carpeta de fotos.
 Si una misma imagen corresponde a varias combinaciones, se repite su nombre en
 cada fila; por eso conviene dejar vacía la lista cuando todas usan las fotos
 generales. El límite de seis aplica por combinación.
+
+## 38 · Las variantes se eligen con botones
+
+**Estado:** DECIDIDA e implementada el 4 de octubre de 2026 (1.1.3).
+**Vigencia:** VIGENTE.
+
+### Qué hace hoy
+
+La ficha presenta un selector desplegable por grupo de variantes. El comprador
+abre cada lista para conocer y cambiar talla, color u otra opción.
+
+### El límite real
+
+El desplegable oculta las opciones disponibles y el estado de cada una. En
+celular, el comprador debe abrir la lista y cerrarla para comparar opciones.
+
+### La decisión
+
+Cada grupo se presenta como botones accesibles dentro de un `fieldset`, con el
+nombre del grupo en su `legend`. `aria-pressed` comunica cuál está elegido y
+las opciones sin stock se muestran deshabilitadas. Precio, existencia y fotos
+siguen correspondiendo a la combinación elegida, igual que en Cinnamon.
+
+### Condición de disparo
+
+Se aplica en la ficha cuando el producto tiene variantes. Los productos sin
+variantes no muestran controles.
+
+### Contrapartida
+
+Los grupos con muchas opciones ocupan más espacio vertical; los botones se
+envuelven en varias líneas. La hoja limita cada grupo a veinte opciones.
 
 ---
 

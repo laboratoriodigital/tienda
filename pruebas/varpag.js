@@ -23,6 +23,7 @@ const U = 'http://localhost:' + (process.env.PUERTO || 8099);
 const { catalogoListo, selloListo, pintado, hasta } = require('./esperar.js');
 
 const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -> '+d:''));
+const botonVariante = (grupo, opcion) => `.variante-opcion[data-grupo="${grupo}"][data-opcion="${opcion}"]`;
 
 const celda = (hoja, f, c, v) =>
   fetch(U + '/__celda?hoja=' + encodeURIComponent(hoja) + '&f=' + f + '&c=' + c +
@@ -81,15 +82,16 @@ async function sembrarLabial(variantes) {
      (await p.locator('#ficha').getAttribute('class')).includes('abierta') &&
      (await contador()) === 0, 'contador ' + (await contador()));
 
-  ok('LA FICHA PINTA UN SELECTOR POR GRUPO, en el orden de la hoja',
-     (await p.locator('.variantes select').count()) === 2 &&
-     (await p.locator('.variantes label').first().innerText()).trim() === 'Talla',
-     (await p.locator('.variantes select').count()) + ' selectores');
-  ok('  ...con las opciones de la hoja y una entrada vacía delante',
-     (await p.locator('#var0 option').count()) === 4 &&
-     (await p.locator('#var1 option').count()) === 3 &&
-     (await p.locator('#var0').inputValue()) === '',
-     (await p.locator('#var0 option').count()) + ' y ' + (await p.locator('#var1 option').count()));
+  ok('LA FICHA PINTA BOTONES POR GRUPO, en el orden de la hoja',
+     (await p.locator('.variante-grupo').count()) === 2 &&
+     (await p.locator('.variante-grupo legend').first().innerText()).trim() === 'Talla',
+     (await p.locator('.variante-grupo').count()) + ' grupos');
+  ok('  ...con las opciones de la hoja y ninguna elegida al abrir',
+     (await p.locator('.variante-grupo').nth(0).locator('.variante-opcion').count()) === 3 &&
+     (await p.locator('.variante-grupo').nth(1).locator('.variante-opcion').count()) === 2 &&
+     (await p.locator(botonVariante('Talla', 'M')).getAttribute('aria-pressed')) === 'false',
+     (await p.locator('.variante-grupo').nth(0).locator('.variante-opcion').count()) + ' y ' +
+     (await p.locator('.variante-grupo').nth(1).locator('.variante-opcion').count()));
 
   // Agregar sin elegir: no agrega, Y DICE QUÉ FALTA.
   await p.locator('.ficha-agregar .btn-solido').click(); await pintado(p);
@@ -99,13 +101,14 @@ async function sembrarLabial(variantes) {
      await p.locator('#avisoVariante').innerText());
 
   await abrirF();
-  await p.selectOption('#var0', 'M'); await pintado(p);
+  await p.locator(botonVariante('Talla', 'M')).click(); await pintado(p);
 
   /* La ficha se repinta al cambiar de foto. Si eso borrara lo elegido, el
      comprador pierde la talla por mirar la segunda foto y nadie se lo dice. */
   await p.evaluate(() => pintarFicha()); await pintado(p);
   ok('LO ELEGIDO SOBREVIVE AL REPINTADO de la ficha',
-     (await p.locator('#var0').inputValue()) === 'M', await p.locator('#var0').inputValue());
+     (await p.locator(botonVariante('Talla', 'M')).getAttribute('aria-pressed')) === 'true',
+     await p.locator(botonVariante('Talla', 'M')).getAttribute('aria-pressed'));
 
   await p.locator('.ficha-agregar .btn-solido').click(); await pintado(p);
   ok('  ...y con una elegida y otra no, nombra SOLO la que falta',
@@ -114,7 +117,8 @@ async function sembrarLabial(variantes) {
      await p.locator('#avisoVariante').innerText());
 
   await abrirF();
-  await p.selectOption('#var0', 'M'); await p.selectOption('#var1', 'Rosa'); await pintado(p);
+  await p.locator(botonVariante('Talla', 'M')).click();
+  await p.locator(botonVariante('Color', 'Rosa')).click(); await pintado(p);
   await p.locator('.ficha-agregar .btn-solido').click(); await pintado(p);
   ok('CON TODO ELEGIDO SÍ AGREGA', (await contador()) === 1, 'contador ' + (await contador()));
   ok('  ...y el carrito muestra la elección, no solo el producto',
@@ -125,7 +129,8 @@ async function sembrarLabial(variantes) {
   // 2. Dos líneas del mismo producto, unas solas existencias
   // ═══════════════════════════════════════════════════════════════════════════
   await abrirF();
-  await p.selectOption('#var0', 'S'); await p.selectOption('#var1', 'Nude'); await pintado(p);
+  await p.locator(botonVariante('Talla', 'S')).click();
+  await p.locator(botonVariante('Color', 'Nude')).click(); await pintado(p);
   await p.locator('.ficha-agregar .btn-solido').click(); await pintado(p);
   ok('OTRO TONO ES OTRA LÍNEA, no una unidad más de la primera',
      (await lineas()) === 2 && (await contador()) === 2,
@@ -200,9 +205,9 @@ async function sembrarLabial(variantes) {
   await p.goto(U); await catalogoListo(p);
   await p.evaluate(() => abrirFicha('labial')); await pintado(p);
   ok('UN GRUPO CON , : ; = o | SE CAE: rompería la línea del pedido en silencio',
-     (await p.locator('.variantes select').count()) === 1 &&
-     (await p.locator('.variantes label').first().innerText()).trim() === 'Color',
-     (await p.locator('.variantes select').count()) + ' selectores');
+     (await p.locator('.variante-grupo').count()) === 1 &&
+     (await p.locator('.variante-grupo legend').first().innerText()).trim() === 'Color',
+     (await p.locator('.variante-grupo').count()) + ' grupos');
   ok('  ...y queda dicho en la consola, no solo desaparece',
      avisosConsola.some(t => /variantes/.test(t) && /Talla/.test(t)),
      avisosConsola.join(' | ').slice(0, 120));
@@ -224,7 +229,7 @@ async function sembrarLabial(variantes) {
      (await tarjeta().locator('.acciones .btn-solido').innerText()).trim());
   await p.evaluate(() => abrirFicha('labial')); await pintado(p);
   ok('  ...y la ficha no pinta ningún selector',
-     (await p.locator('.variantes select').count()) === 0);
+     (await p.locator('.variante-opcion').count()) === 0);
   await p.locator('.ficha-agregar .btn-solido').click(); await pintado(p);
   ok('  ...y agregar funciona sin elegir nada', (await contador()) === 1,
      'contador ' + (await contador()));

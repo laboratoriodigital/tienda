@@ -16,6 +16,7 @@ const U = 'http://localhost:' + (process.env.PUERTO || 8099);
 const { catalogoListo, hasta } = require('./esperar.js');
 
 const T = []; const ok = (n, c, d) => T.push((c ? '  OK  ' : ' FALLA') + ' | ' + n + (d ? '  -> ' + d : ''));
+const botonVariante = (grupo, opcion) => `.variante-opcion[data-grupo="${grupo}"][data-opcion="${opcion}"]`;
 const hojas = async () => (await fetch(U + '/__hojas')).json();
 const H = encodeURIComponent('Inventario por variante');
 const quizas = pr => pr.catch(() => {});
@@ -56,23 +57,24 @@ async function stockCombo(id, combo, n) {
   await p.evaluate(() => abrirFicha('croissant'));
   const general = await p.getAttribute('#galeriaPrincipal img', 'src');
   ok('SIN ELEGIR, la ficha enseña la foto general', /croissant-1/.test(general) && !/color-rosa/.test(general), general);
-  await p.selectOption('#var1', 'Rosa');
+  await p.locator(botonVariante('Color', 'Rosa')).click();
   const rosa = await p.getAttribute('#galeriaPrincipal img', 'src');
   ok('AL ELEGIR ROSA, la galería pasa a las fotos de Rosa', /color-rosa-1/.test(rosa), rosa);
-  const opcionL = await p.evaluate(() => { const o = [...document.querySelector('#var0').options].find(x => x.value === 'L');
+  const opcionL = await p.evaluate(() => { const o = document.querySelector('.variante-opcion[data-grupo="Talla"][data-opcion="L"]');
                                           return { d: o.disabled, t: o.textContent }; });
   ok('  ...y con Rosa elegida, la talla L —sin existencias en rosa— sale marcada y no se puede elegir',
      opcionL.d && /agotado/.test(opcionL.t), JSON.stringify(opcionL));
-  await p.selectOption('#var0', 'M');
+  await p.locator(botonVariante('Talla', 'M')).click();
   ok('«ÚLTIMAS N» habla de la combinación: rosa M tiene 1',
      /Últimas 1 unidades/.test(await texto('.ficha-texto .disponible')), await texto('.ficha-texto .disponible'));
   await p.click('.ficha-agregar .btn-solido');
   await p.evaluate(() => abrirFicha('croissant'));
-  await p.selectOption('#var1', 'Rosa'); await p.selectOption('#var0', 'M');
+  await p.locator(botonVariante('Color', 'Rosa')).click();
+  await p.locator(botonVariante('Talla', 'M')).click();
   ok('CON LA ÚNICA ROSA M EN EL CARRITO, no se puede agregar otra',
      /Todo en tu carrito/.test(await texto('.ficha-texto .disponible')) &&
      await p.locator('.ficha-agregar .btn-solido').isDisabled());
-  await p.selectOption('#var1', 'Nude');
+  await p.locator(botonVariante('Color', 'Nude')).click();
   ok('  ...pero la nude M sí: cada combinación compite por lo suyo',
      /Últimas 2 unidades/.test(await texto('.ficha-texto .disponible')) &&
      !(await p.locator('.ficha-agregar .btn-solido').isDisabled()), await texto('.ficha-texto .disponible'));
@@ -133,14 +135,14 @@ async function stockCombo(id, combo, n) {
   ok('UNA COMBINACIÓN CON PRECIO PROPIO: la tarjeta dice «Desde» el más barato', /^Desde \$\s?8\.000/.test(tarjetaB), tarjetaB);
   await p.evaluate(() => abrirFicha('baguette'));
   const sinElegir = await texto('#fichaPrecio');
-  await p.selectOption('#var0', 'M');
+  await p.locator(botonVariante('Talla', 'M')).click();
   const conM = await texto('#fichaPrecio');
-  await p.selectOption('#var0', 'S');
+  await p.locator(botonVariante('Talla', 'S')).click();
   const conS = await texto('#fichaPrecio');
   ok('  ...y en la ficha el precio cambia con la elección: M 12.000, S el del producto',
      /Desde/.test(sinElegir) && /12\.000/.test(conM) && /8\.000/.test(conS) && !/Desde/.test(conM),
      [sinElegir, conM, conS].join(' · '));
-  await p.selectOption('#var0', 'M');
+  await p.locator(botonVariante('Talla', 'M')).click();
   await p.click('.ficha-agregar .btn-solido');
   const sub = await p.evaluate(() => subtotal());
   ok('  ...y el carrito lo cobra a su precio', sub === 12000, String(sub));
@@ -157,7 +159,7 @@ async function stockCombo(id, combo, n) {
   await catalogoListo(p);
   await quizas(hasta(p, () => { const x = producto('baguette'); return !!(x && x.skus); }));
   await p.evaluate(() => abrirFicha('baguette'));
-  const opL = await p.evaluate(() => { const o = [...document.querySelector('#var0').options].find(x => x.value === 'L'); return o ? o.disabled : null; });
+  const opL = await p.evaluate(() => { const o = document.querySelector('.variante-opcion[data-grupo="Talla"][data-opcion="L"]'); return o ? o.disabled : null; });
   ok('UN PRECIO ILEGIBLE en una combinación: esa no se puede elegir', opL === true, String(opL));
   await p.evaluate(() => cerrarTodo());
   }

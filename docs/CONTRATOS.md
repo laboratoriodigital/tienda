@@ -4,7 +4,7 @@
 con una decisión, y esa decisión tiene reglas. El resto de `/docs` explica cómo
 se hacen las cosas; este archivo dice qué **no** se puede hacer.
 
-_Vigente a la **1.1.2 (4 de octubre de 2026)** de la Tienda 2.0
+_Vigente a la **1.1.3 (4 de octubre de 2026)** de la Tienda 2.0
 (`laboratoriodigital/tienda`). Contrato página↔maestro: `VERSION`
 `2026-10-04-2`; esquema 1 (§8)._
 

@@ -44,7 +44,9 @@ Cómo leer las marcas:
   debajo del umbral del producto (columna Umbral bajo) dice «Últimas N
   unidades», de la combinación elegida si el stock va por variante.
 - **Variantes** (`f_variantes`): talla, color o lo que el comercio defina, con
-  **stock por combinación** y elección obligatoria antes de agregar.
+  **botones por grupo**, stock por combinación y elección obligatoria antes de
+  agregar. Las opciones agotadas se deshabilitan y la selección actual queda
+  marcada, como en Cinnamon.
 - **Fotos en tres tamaños** (160/600/900) servidas en WebP cuando existen
   (`fotos_webp`), o transformadas en el borde por Cloudflare u otro proveedor
   (`fotos_cdn`), o tal cual si no hay nada de eso.

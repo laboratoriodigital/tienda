@@ -3194,3 +3194,15 @@ generales siguen en `Catálogo › Imágenes`. `pruebas/presentacion.js` comprue
 migración automática del encabezado anterior.
 
 *Ficha:* *(mío)* · 🟠 Grave · P1, P4, P20 · 1.1.2 · 2026-10-04
+
+**118 · La ficha escondía las variantes en listas desplegables.** Cinnamon ya
+presenta cada talla y color como botones; en Tienda 2.0, los desplegables
+obligaban a abrir y cerrar una lista para ver sus opciones.
+
+**El arreglo (1.1.3):** cada grupo usa botones tipo píldora con el nombre en un
+`legend`, estado seleccionado accesible y opciones agotadas deshabilitadas. Al
+elegir, la ficha mantiene la selección y actualiza disponibilidad, precio y
+galería de esa combinación. Se ajustaron las baterías existentes para la nueva
+interfaz; no se ejecutaron en esta sesión.
+
+*Ficha:* *(mío)* · ⚪ Menor · P2, P4 · 1.1.3 · 2026-10-04

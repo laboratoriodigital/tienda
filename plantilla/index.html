@@ -306,9 +306,15 @@ html[data-columnas="5"]{--max:1400px}
 .cantidad-elegir{margin-top:0;flex:none;align-items:stretch;background:var(--blanco)}
 .cantidad-elegir button{height:auto;align-self:stretch;padding:0}
 .cantidad-elegir span{display:grid;place-items:center;min-width:30px}
-.variantes{margin:0 0 14px}
-.variantes label{display:block;font-size:.8rem;font-weight:600;margin:10px 0 5px;color:#000}
-.variantes select{width:100%}
+.variantes{display:grid;gap:14px;margin:18px 0}
+.variante-grupo{border:0;padding:0;margin:0;min-width:0}
+.variante-grupo legend{font-size:.82rem;font-weight:700;margin-bottom:7px}
+.variante-opciones{display:flex;flex-wrap:wrap;gap:7px}
+.variante-opcion{border:1px solid #B8B8B8;border-radius:999px;background:var(--blanco);
+  padding:8px 13px;font-size:.84rem;transition:background var(--paso),color var(--paso),border-color var(--paso)}
+.variante-opcion:hover:not(:disabled){border-color:var(--negro)}
+.variante-opcion[aria-pressed="true"]{border-color:var(--negro);background:var(--negro);color:var(--blanco)}
+.variante-opcion:disabled{opacity:.38;text-decoration:line-through;cursor:not-allowed}
 .ficha-agregar{display:flex;gap:10px;align-items:stretch}
 .ficha-agregar .btn-solido{flex:1;padding:14px}
 .ficha-agregar .cantidad-elegir button{width:38px}
@@ -1984,42 +1990,51 @@ function cambiarPorPagina(n){
    al comprador y nadie le decía por qué. */
 let eleccionFicha = {};
 
-/* Los selectores de la ficha, uno por grupo. Sin grupos no pinta nada, así que
+/* Los botones de la ficha, uno por grupo. Sin grupos no pinta nada, así que
    el producto sin variantes queda exactamente como estaba. */
 function bloqueVariantes(p){
   const grupos = gruposDe(p);
   if(!grupos.length) return "";
-  return `<div class="variantes">` + grupos.map((g, n) => `
-      <label for="var${n}">${escapar(g.nombre)}</label>
-      <select class="campo" id="var${n}" onchange="marcarEleccion()">
-        <option value="">Elegir ${escapar(g.nombre.toLowerCase())}…</option>
-        ${g.opciones.map(o => { const hay = opcionPosible(p, g.nombre, o, sinGrupo(eleccionFicha, g.nombre));
-            return `<option value="${escapar(o)}" ${eleccionFicha[g.nombre] === o ? "selected" : ""} ${hay ? "" : "disabled"}>${escapar(o)}${hay ? "" : " — agotado"}</option>`; }).join("")}
-      </select>`).join("") +
+  return `<div class="variantes">` + grupos.map(g => `
+      <fieldset class="variante-grupo">
+        <legend>${escapar(g.nombre)}</legend>
+        <div class="variante-opciones">
+          ${g.opciones.map(o => { const hay = opcionPosible(p, g.nombre, o, sinGrupo(eleccionFicha, g.nombre));
+              return `<button type="button" class="variante-opcion" data-grupo="${escapar(g.nombre)}" data-opcion="${escapar(o)}"
+                aria-pressed="${eleccionFicha[g.nombre] === o}" onclick="marcarEleccion(this)" ${hay ? "" : "disabled"}>${escapar(o)}${hay ? "" : " — agotado"}</button>`; }).join("")}
+        </div>
+      </fieldset>`).join("") +
     `<p class="aviso" id="avisoVariante"></p></div>`;
 }
 
 function leerEleccionFicha(p){
   const e = {};
-  gruposDe(p).forEach((g, n) => {
-    const sel = document.getElementById("var" + n);
-    if(sel && sel.value) e[g.nombre] = sel.value;
+  const caja = $("#fichaCaja");
+  if(!caja) return e;
+  caja.querySelectorAll('.variante-opcion[aria-pressed="true"]').forEach(boton => {
+    const grupo = boton.dataset.grupo, opcion = boton.dataset.opcion;
+    if(grupo && opcion) e[grupo] = opcion;
   });
   return e;
 }
 
 function sinGrupo(e, nombre){ const c = Object.assign({}, e || {}); delete c[nombre]; return c; }
 
-function marcarEleccion(){
-  if(!fichaActual) return;
+function marcarEleccion(boton){
+  if(!fichaActual || !boton || boton.disabled) return;
   eleccionFicha = leerEleccionFicha(fichaActual);
+  const grupo = boton.dataset.grupo, opcion = boton.dataset.opcion;
+  if(!grupo || !opcion) return;
+  eleccionFicha[grupo] = opcion;
   /* C-1b: elegir cambia qué hay (el stock de esa combinación, qué opciones
-     quedan) y qué fotos se ven; se repinta la ficha con la elección puesta. */
-  if(fichaActual.skus || fichaActual.precios || (fichaActual.imagenesVariantes || []).length ||
-     fichaActual.imagenes.some(n => FOTO_DE_OPCION.test(n))){
-    fotoActual = 0;
-    pintarFicha();
-  }
+     quedan) y qué fotos y precio se ven. El repintado también actualiza
+     aria-pressed y disponibilidad al elegir una opción. */
+  fotoActual = 0;
+  pintarFicha();
+  /* El repintado actualiza precio, stock, fotos y botones. Devolver el foco al
+     botón equivalente mantiene fluida la selección con teclado. */
+  const botones = $("#fichaCaja").querySelectorAll(".variante-opcion");
+  Array.from(botones).find(b => b.dataset.grupo === grupo && b.dataset.opcion === opcion)?.focus();
   const aviso = $("#avisoVariante");
   if(aviso){ aviso.className = "aviso"; aviso.textContent = ""; }
 }

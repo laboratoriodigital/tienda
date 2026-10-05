@@ -446,7 +446,7 @@ puertas de montaje; ningún token de GitHub ni llave de pago pasa por esa hoja.
 |---|---|---|---|
 | `maestro.gs` | `VERSION` (fecha; hoy `2026-10-04-2`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
 | `publicar/index.html` | `SCRIPT_VERSION` | Lo que la tienda espera del maestro | Se hornea con lo que **contesta el maestro publicado**; el montaje se para si no es la `VERSION` del repositorio (bitácora 56) |
-| `maestro.gs` | `VERSION_TIENDA` (`1.1.2`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
+| `maestro.gs` | `VERSION_TIENDA` (`1.1.3`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
 | `panel.gs` | `VERSION_PANEL` (`2026-09-30-a`) | El archivo de gestión | **Con nada.** Es otro programa |
 
 La 1.0.0 fue un ejemplo de por qué van separadas: subió el producto
