@@ -39,8 +39,8 @@ llega **ya Pagado** con un correo que dice a quién y a dónde despachar. Si
 arriba sale un aviso rojo, la pasarela no está lista y dice por qué.
 
 **Tienda** — tus **productos** (precio, stock y fotos generales; con variantes, **Precio, stock y
-fotos por combinación**. En cada fila puedes subir hasta seis fotos o escribir sus nombres
-separados por `|`; vacío = fotos generales. En la portada, desliza o usa las flechas para verlas)
+fotos por combinación**. En cada fila puedes subir hasta seis; sus nombres se guardan en la hoja.
+Sin fotos propias, se muestran las generales. En la portada, desliza o usa las flechas para verlas)
 y **todos los ajustes**: tienda, venta, cobro, portada, textos, colores, Google, WhatsApp,
 **medición y anuncios** (Google Analytics y el píxel de Meta: solo el número), datos legales,
 correo del día, **Avanzado** (no lo toques si no sabes para qué), **zonas de envío** y **cupones**.

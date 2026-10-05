@@ -4,9 +4,9 @@
 con una decisión, y esa decisión tiene reglas. El resto de `/docs` explica cómo
 se hacen las cosas; este archivo dice qué **no** se puede hacer.
 
-_Vigente a la **1.1.1 (4 de octubre de 2026)** de la Tienda 2.0
+_Vigente a la **1.1.2 (4 de octubre de 2026)** de la Tienda 2.0
 (`laboratoriodigital/tienda`). Contrato página↔maestro: `VERSION`
-`2026-10-04-1`; esquema 1 (§8)._
+`2026-10-04-2`; esquema 1 (§8)._
 
 ---
 
@@ -326,8 +326,8 @@ stock vacío; el comerciante solo pone los números.
 | 3 | `Stock` | unidades de esa combinación. **Vacío = todavía no se cuenta** |
 | 4 | `Código` | opcional, el SKU del comercio |
 | 5 | `Nota` | la escribe el maestro: `Ya no está en Variantes: no cuenta` si la combinación dejó de existir |
-| 6 | `Precio` | (0.24.0) el precio de esa combinación. **Vacío = el del producto.** Un valor ilegible veta la combinación (no se vende) y queda anotado. Se lee por nombre; orden visible: ID producto · Combinación · Precio · Stock · Código · Nota · Imágenes |
-| 7 | `Imágenes` | nombres de las fotos propias de esta combinación, separados por `|`. Hasta seis. Vacío = usar `Catálogo › Imágenes` |
+| 6 | `Precio` | (0.24.0) el precio de esa combinación. **Vacío = el del producto.** Un valor ilegible veta la combinación (no se vende) y queda anotado. Se lee por nombre; orden visible: ID producto · Combinación · Precio · Stock · Código · Nota · Foto |
+| 7 | `Foto` | nombres de las fotos propias de esta combinación, separados por `|`. Hasta seis. Vacío = usar `Catálogo › Imágenes`. El panel escribe aquí el nombre al subir una foto. |
 
 **Cuándo manda.** Un producto se vende por combinación en cuanto **una** de sus
 filas tiene un número. Entonces cada combinación compite solo por sus unidades,
@@ -339,7 +339,7 @@ alguien contó—: se marcan y dejan de contar. Tope: **3 grupos, 20 opciones y
 100 combinaciones** por producto; por encima no se genera nada y se avisa.
 
 **Fotos.** `Catálogo › Imágenes` guarda hasta seis fotos generales del
-producto. Cada fila de `Inventario por variante › Imágenes` guarda hasta seis
+producto. Cada fila de `Inventario por variante › Foto` guarda hasta seis
 fotos de esa combinación, separadas por `|`; vacía significa heredar las
 generales. Las fotos se sirven desde la misma carpeta de Drive. Las fotos
 antiguas con nombre `<código>--<grupo>-<opción>-<n>.<ext>` se reparten a las
@@ -667,7 +667,7 @@ Una respuesta repetida trae además `repetida: true`.
 `image/webp`) y `datos` (la foto en base64, sin el prefijo `data:`). Sin
 `combinacion`, guarda una foto general en `Catálogo › Imágenes`; con la
 combinación exacta (`Talla: M · Color: Rosa`), la agrega a `Inventario por
-variante › Imágenes` de esa fila. En ambos casos, guarda el archivo en
+variante › Foto` de esa fila. En ambos casos, guarda el archivo en
 `fotos_drive` con un nombre libre en la carpeta y la hoja bajo la misma llave.
 Contesta `ok`, `id`, `nombre`, `imagenes`, `destino`, `combinacion`, `version` y
 `versionImagenes` cuando es una foto de variante. La foto sale en la tienda al
@@ -909,7 +909,9 @@ Catálogo. `productos` trae además, por producto, `combinaciones`
 regla de todo o nada. Acepta también `imagenes` (`{combinación: nombres
 separados por |}`) con `versionesImagenes`, con la misma regla de todo o nada
 y máximo seis nombres por combinación. Vacío hereda la galería general. Las
-combinaciones de `productos` traen además `imagenes` y `versionImagenes`.
+combinaciones de `productos` traen además `imagenes` y `versionImagenes`. El
+Admin actual sube la foto por `subir_foto` y muestra el nombre como solo lectura;
+`imagenes` se conserva en esta puerta para clientes de Admin anteriores.
 
 **`?a=validar`** (C-3 y C-1b) — además: `cerrada`, `faltaMinimo`, `cobrable`,
 `recortado`, `envioTarifa`. Con inventario por combinación, el aviso de stock

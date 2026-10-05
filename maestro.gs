@@ -929,7 +929,7 @@ function atenderSubirFoto(p) {
   var comoAntes = function (nombre) {
     return ' Mientras tanto, el camino de siempre funciona: sube la foto a tu carpeta ' +
            'de fotos en Drive con el nombre «' + nombre + '» y escribe ese nombre en ' +
-           (combinacion ? 'Imágenes de esa fila en Inventario por variante' :
+           (combinacion ? 'la columna Foto de esa fila en Inventario por variante' :
                           'Imágenes de esa fila en Catálogo') + ', separado de los demás con |.';
   };
 
@@ -958,7 +958,7 @@ function atenderSubirFoto(p) {
       if (!filaInv) return { ok: false, error: 'Esa combinación ya no está en Inventario por variante. Vuelve a abrir el producto.' };
       enCelda = String(filaInv.imagenesCrudo || '').split('|')
         .map(function (x) { return x.trim(); }).filter(function (x) { return x; });
-      if (enCelda.length >= 6) return { ok: false, error: 'Esta combinación ya tiene seis fotos, que es el máximo. Quita un nombre en Fotos de esa combinación y guarda antes de subir otra.' };
+      if (enCelda.length >= 6) return { ok: false, error: 'Esta combinación ya tiene seis fotos, que es el máximo. Quita un nombre de la columna Foto en la hoja antes de subir otra.' };
       destino = 'variante';
       hojaDestino = hoja(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
       filaDestino = filaInv.fila;
@@ -994,8 +994,9 @@ function atenderSubirFoto(p) {
     /* El archivo ya está en Drive: ahora la celda que le corresponde. */
     enCelda.push(nombre);
     var encabezadoDestino = destino === 'variante' ? ENCABEZADO_INVENTARIO_VARIANTE : ENCABEZADO_CATALOGO;
+    var nombreColumnaFoto = destino === 'variante' ? 'Foto' : 'Imágenes';
     var imagenesGuardadas = celdaSegura(enCelda.join('|'), 1900);
-    hojaDestino.getRange(filaDestino, columnaDe(hojaDestino, encabezadoDestino, 'Imágenes'))
+    hojaDestino.getRange(filaDestino, columnaDe(hojaDestino, encabezadoDestino, nombreColumnaFoto))
       .setValue(imagenesGuardadas);
     /* La versión del editor incluye la celda Imágenes del Catálogo. Reflejar
        lo que acabamos de escribir evita que su siguiente guardado choque con
@@ -1879,7 +1880,7 @@ function atenderPublicar(p) {
    con el mismo permiso; si el permiso no alcanza al repositorio de la semilla,
    se dice «no lo sé», no «estás al día».
    ══════════════════════════════════════════════════════════════════════════ */
-var VERSION_TIENDA = '1.1.1';
+var VERSION_TIENDA = '1.1.2';
 var SEMILLA_REPO = 'laboratoriodigital/tienda';
 
 function versionMayor(a, b) {
@@ -1991,7 +1992,7 @@ function atenderActualizar(p) {
   });
 }
 
-var VERSION = '2026-10-04-1';
+var VERSION = '2026-10-04-2';
 
 /* Antes esto era getActiveSpreadsheet(): el script vivía dentro de la hoja.
    Ahora abre la del cliente por su ID, y esa es toda la diferencia. */
@@ -2193,6 +2194,7 @@ function instalar() {
   /* C-1b. La pestaña existe siempre, y se llenan las filas de lo que ya tenga
      Variantes. Con el stock vacío: nada cambia hasta que alguien lo llene. */
   hoja(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO);
+  adoptarColumnaFotoVariante();
   asegurarColumnas(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
   ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
   /* 0.11.0 · 4.1. Cuántos esperan cada producto agotado. Sin datos de nadie. */
@@ -3229,7 +3231,7 @@ function cifra(valor, donde) {
        Talla: S|M|L ; Color: Rosa|Nude
 
    Grupos separados por `;`, el nombre antes de `:`, y las opciones con `|` — el
-   mismo separador que ya usa la columna Imágenes, para no inventar una segunda
+   mismo separador que ya usa la columna Foto, para no inventar una segunda
    convención en la misma hoja.
 
    EL CATÁLOGO FALLA ABIERTO, y aquí eso importa. Una celda que no se entiende NO
@@ -3435,12 +3437,26 @@ function asegurarColumnas(nombre, encabezados) {
   }
 }
 
+/* 1.1.2 · «Imágenes» era el encabezado de las fotos por combinación. Renombrar
+   en su sitio conserva todos los valores y el formato de las hojas existentes. */
+function adoptarColumnaFotoVariante() {
+  var h = elLibro().getSheetByName(H_INVENTARIO_VARIANTE);
+  if (!h || h.getLastColumn() < 1) return false;
+  var cab = h.getRange(1, 1, 1, h.getLastColumn()).getValues()[0].map(function (x) { return llano(x); });
+  var vieja = cab.indexOf(llano('Imágenes'));
+  var nueva = cab.indexOf(llano('Foto'));
+  if (vieja < 0 || nueva >= 0) return false;
+  h.getRange(1, vieja + 1).setValue('Foto').setFontWeight('bold');
+  olvidarColumnas();
+  return true;
+}
+
 /* EL ORDEN EN QUE SE VE (0.24.0 · bitácora 110). El del código solo crece por
    el final; este es el que busca quien abre la hoja: lo de vender junto. */
 var ORDEN_VISIBLE_CATALOGO = ['ID', 'Nombre', 'Categoría', 'Formato', 'Precio', 'Precio antes',
                               'Stock', 'Umbral bajo', 'Variantes', 'Imágenes', 'Descripción',
                               'Destacado', 'Activo', 'Referencia'];
-var ORDEN_VISIBLE_INVENTARIO = ['ID producto', 'Combinación', 'Precio', 'Stock', 'Código', 'Nota', 'Imágenes'];
+var ORDEN_VISIBLE_INVENTARIO = ['ID producto', 'Combinación', 'Precio', 'Stock', 'Código', 'Nota', 'Foto'];
 
 /* Mueve columnas enteras —valores, fórmulas, formato— hasta dejar `visible`
    a la izquierda y en ese orden. Solo si están todas: si falta una, no toca
@@ -6966,7 +6982,7 @@ function presentarHojas() {
     encabezar(inv, []);
     var ci = function (n) { return columnaDe(inv, ENCABEZADO_INVENTARIO_VARIANTE, n); };
     var ni = filasConFormato(inv);
-    var ANCHO_I = { 'ID producto': 140, 'Combinación': 260, 'Precio': 100, 'Stock': 80, 'Código': 120, 'Nota': 240 };
+    var ANCHO_I = { 'ID producto': 140, 'Combinación': 260, 'Precio': 100, 'Stock': 80, 'Código': 120, 'Nota': 240, 'Foto': 280 };
     Object.keys(ANCHO_I).forEach(function (n) { inv.setColumnWidth(ci(n), ANCHO_I[n]); });
     inv.getRange(2, ci('Precio'), ni, 1).setNumberFormat('"$"#,##0');
     inv.getRange(2, ci('Stock'), ni, 1).setNumberFormat('#,##0').setHorizontalAlignment('center');
@@ -9071,7 +9087,7 @@ function revisionHoraria() {
    correr A0_instalar en el editor de cada tienda después de cada versión que
    lo cambiara. Ahora lo hace la revisión de cada hora, UNA vez por versión del
    maestro, bajo la llave. También corre la migración de fotos antiguas de
-   opciones al añadir Imágenes a Inventario por variante. */
+   opciones al cambiar Imágenes por Foto en Inventario por variante. */
 function ponerHojaAlDia(forzar) {
   var p = propiedades();
   if (!forzar && p.getProperty('HOJA_AL_DIA') === VERSION_TIENDA) return false;
@@ -9083,6 +9099,7 @@ function ponerHojaAlDia(forzar) {
     ordenarColumnas(H_CATALOGO, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
     ordenarColumnas(H_PAPELERA, ORDEN_VISIBLE_CATALOGO, ENCABEZADO_CATALOGO);
     if (elLibro().getSheetByName(H_INVENTARIO_VARIANTE)) {
+      adoptarColumnaFotoVariante();
       asegurarColumnas(H_INVENTARIO_VARIANTE, ENCABEZADO_INVENTARIO_VARIANTE);
       ordenarColumnas(H_INVENTARIO_VARIANTE, ORDEN_VISIBLE_INVENTARIO, ENCABEZADO_INVENTARIO_VARIANTE);
       sincronizarVariantes();
@@ -9434,7 +9451,7 @@ var ENCABEZADO_INVENTARIO_VARIANTE = ['ID producto', 'Combinación', 'Stock', 'C
                                       /* 0.24.0 · al final del CÓDIGO (R1); en la hoja
                                          va al lado de Stock (ORDEN_VISIBLE). Vacío =
                                          el precio del producto (bitácora 110). */
-                                      'Precio', 'Imágenes'];
+                                      'Precio', 'Foto'];
 var NOTA_NO_CASA = 'Ya no está en Variantes: no cuenta';
 
 /* Todas las combinaciones de los grupos, en el orden del catálogo y con el
@@ -9495,7 +9512,7 @@ function imagenesDeCombinaciones(grupos, filasInv) {
 function migrarFotosDeOpcionesEnCatalogo(cat, hi) {
   if (!cat || !cat.h || !cat.filas.length || !hi) return 0;
   var colCatalogo = columnaDe(cat.h, ENCABEZADO_CATALOGO, 'Imágenes');
-  var colVariantes = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Imágenes');
+  var colVariantes = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Foto');
   var inv = leerInventarioVariante();
   var movidas = 0;
   cat.filas.forEach(function (f, indice) {
@@ -9824,7 +9841,7 @@ function atenderGuardarCombinaciones(p) {
     aEscribir.forEach(function (w) { hi.getRange(w.fila, colStockInv).setValue(w.valor); });
     var colPrecioInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Precio');
     preciosAEscribir.forEach(function (w) { hi.getRange(w.fila, colPrecioInv).setValue(w.valor); });
-    var colImagenesInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Imágenes');
+    var colImagenesInv = columnaDe(hi, ENCABEZADO_INVENTARIO_VARIANTE, 'Foto');
     imagenesAEscribir.forEach(function (w) {
       hi.getRange(w.fila, colImagenesInv).setValue(celdaSegura(w.valor, 1900));
     });

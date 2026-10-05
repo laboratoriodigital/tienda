@@ -135,10 +135,9 @@ legend{font-weight:700;font-size:.95rem;margin-bottom:2px}
 .fila-combo label{margin:0;font-weight:500}
 .fila-combo .error-campo{grid-column:1/-1;margin:0}
 .fotos-combinacion{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
-.fotos-combinacion .nombres-foto{min-width:0;overflow-wrap:anywhere}
+.fotos-combinacion .nombres-foto{flex:1;min-width:180px;overflow-wrap:anywhere}
 .fotos-combinacion .ayuda{margin:0}
-.fotos-combinacion>label:not(.btn){font-size:.82rem;font-weight:600;white-space:nowrap}
-.fotos-combinacion .campo{flex:1;min-width:180px;width:auto}
+.fotos-combinacion>.rotulo-foto{font-size:.82rem;font-weight:600;white-space:nowrap}
 @media(max-width:520px){.fila-combo:not(.cabeza-combo){grid-template-columns:minmax(0,1fr) 90px}.fila-combo:not(.cabeza-combo)>label{grid-column:1/-1}}
 
 /* ── Dos pantallas y ajustes (0.9.0) ── */
@@ -552,7 +551,7 @@ input[type=checkbox]{accent-color:var(--negro)}
           <p class="ayuda" id="ayudaCombinaciones"></p>
           <div id="filasCombinaciones"></div>
           <p class="aviso" id="avisoCombinaciones" role="status" hidden></p>
-          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar precio, stock y fotos por combinación</button>
+          <button class="btn linea chico" type="button" id="guardarCombinaciones">Guardar precio y stock por combinación</button>
         </fieldset>
 
         <label for="f-referencia">Referencia interna <span style="font-weight:400;color:var(--tenue)">(opcional)</span></label>
@@ -1060,39 +1059,61 @@ async function guardar(ev){
    se ve igual en la tienda, que no la sirve a más de 900. */
 const LADO_MAXIMO = 1600;
 
-function achicar(archivo){
-  return new Promise((resolver, fallar) => {
-    const url = URL.createObjectURL(archivo);
-    const img = new Image();
-    img.onload = () => {
-      const escala = Math.min(1, LADO_MAXIMO / Math.max(img.naturalWidth, img.naturalHeight));
-      const w = Math.max(1, Math.round(img.naturalWidth * escala));
-      const h = Math.max(1, Math.round(img.naturalHeight * escala));
-      const lienzo = document.createElement("canvas");
-      lienzo.width = w; lienzo.height = h;
-      const ctx = lienzo.getContext("2d");
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);      // un PNG transparente no sale negro
-      ctx.drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      resolver(lienzo.toDataURL("image/jpeg", 0.85).split(",")[1]);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); fallar(new Error("formato")); };
-    img.src = url;
-  });
+async function achicar(archivo){
+  /* La URL nace ANTES del primer await. En la carga de variantes se limpia el
+     selector enseguida; así el navegador ya tiene una referencia de lectura. */
+  const url = URL.createObjectURL(archivo);
+  let bitmap = null;
+  try {
+    if (typeof createImageBitmap === "function") {
+      try { bitmap = await createImageBitmap(archivo); } catch (e) { bitmap = null; }
+    }
+    let imagen = null;
+    if (!bitmap) {
+      imagen = await new Promise((resolver, fallar) => {
+        const img = new Image();
+        img.onload = () => resolver(img);
+        img.onerror = () => fallar(new Error("formato"));
+        img.src = url;
+      });
+    }
+    const fuente = bitmap || imagen;
+    const ancho = bitmap ? bitmap.width : imagen.naturalWidth;
+    const alto = bitmap ? bitmap.height : imagen.naturalHeight;
+    if (!ancho || !alto) throw new Error("formato");
+    const escala = Math.min(1, LADO_MAXIMO / Math.max(ancho, alto));
+    const w = Math.max(1, Math.round(ancho * escala));
+    const h = Math.max(1, Math.round(alto * escala));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = w; lienzo.height = h;
+    const ctx = lienzo.getContext("2d");
+    if (!ctx) throw new Error("formato");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);      // un PNG transparente no sale negro
+    ctx.drawImage(fuente, 0, 0, w, h);
+    const base64 = lienzo.toDataURL("image/jpeg", 0.85).split(",")[1];
+    if (!base64) throw new Error("formato");
+    return base64;
+  } catch (e) {
+    throw new Error("formato");
+  } finally {
+    URL.revokeObjectURL(url);
+    if (bitmap && typeof bitmap.close === "function") bitmap.close();
+  }
 }
 
 async function subirFoto(){
   const entrada = $("#f-foto");
   const archivo = entrada.files && entrada.files[0];
+  const lectura = archivo && editando ? achicar(archivo) : null;
   entrada.value = "";
   if (!archivo || !editando) return;
   const estado = $("#estadoFoto");
   estado.textContent = "Preparando la foto…";
   let datos;
-  try { datos = await achicar(archivo); }
+  try { datos = await lectura; }
   catch (e) {
     estado.textContent = "";
-    aviso("#avisoEditor", "mal", "No pudimos abrir esa foto. El panel acepta JPG, PNG y WebP. Si es HEIC, expórtala como JPG y vuelve a subirla.");
+    aviso("#avisoEditor", "mal", "No pudimos leer el archivo. Comprueba que sea un JPG, PNG o WebP válido e inténtalo de nuevo. Si viene de iPhone, expórtalo como JPG.");
     return;
   }
   estado.textContent = "Subiendo…";
@@ -1120,43 +1141,49 @@ async function subirFoto(){
 async function subirFotoCombinacion(entrada){
   const archivo = entrada.files && entrada.files[0];
   const fila = entrada.closest(".fila-combo");
+  if (!archivo || !fila || !editando) { entrada.value = ""; return; }
+  /* Empieza la lectura antes de resetear o deshabilitar el input. */
+  const lectura = achicar(archivo);
   entrada.value = "";
-  if (!archivo || !fila || !editando) return;
   const combinacion = entrada.dataset.fotoCombinacion || "";
   const estado = fila.querySelector(".estado-foto-combo");
-  const nombres = fila.querySelector("textarea.imagenes");
-  if (nombres && nombres.value.trim() !== nombres.dataset.antes) {
-    estado.textContent = "Guarda primero los cambios de Fotos y vuelve a subirla.";
-    return;
-  }
   const boton = entrada.closest("label");
   estado.textContent = "Preparando la foto…";
   entrada.disabled = true;
   if (boton) boton.setAttribute("aria-disabled", "true");
   try {
-    const datos = await achicar(archivo);
+    const datos = await lectura;
     estado.textContent = "Subiendo…";
     const r = await llamar("subir_foto", { op: nuevaOperacion(), id: editando.id,
       combinacion: combinacion, tipo: "image/jpeg", datos: datos });
     if (!r.ok) { estado.textContent = r.error || "No se pudo subir la foto."; return; }
     const combo = (editando.combinaciones || []).find(c => c.combinacion === combinacion);
     if (combo) { combo.imagenes = r.imagenes; combo.versionImagenes = r.versionImagenes; }
-    const nombres = fila.querySelector("textarea.imagenes");
-    if (nombres) {
-      nombres.value = r.imagenes || "";
-      nombres.dataset.antes = nombres.value;
-      nombres.dataset.versionImagenes = r.versionImagenes || "";
+    const nombres = fila.querySelector(".nombres-foto");
+    if (nombres) nombres.textContent = r.imagenes || "Usa las fotos generales";
+    const total = String(r.imagenes || "").split("|").filter(Boolean).length;
+    const textoBoton = fila.querySelector(".texto-boton-foto");
+    if (textoBoton) textoBoton.textContent = total >= 6 ? "Máximo de 6" : "Añadir otra foto";
+    entrada.disabled = total >= 6;
+    if (boton) {
+      if (total >= 6) { boton.setAttribute("aria-disabled", "true"); boton.title = "Esta combinación ya tiene seis fotos."; }
+      else { boton.removeAttribute("aria-disabled"); boton.removeAttribute("title"); }
     }
     estado.textContent = "Subida: " + r.nombre + ". Se verá al publicar.";
     revisarPublicacion();
   } catch (e) {
     if (e.message === "sesion") return;
     estado.textContent = e.message === "formato"
-      ? "No pudimos abrir esa foto. El panel acepta JPG, PNG y WebP. Si es HEIC, expórtala como JPG y vuelve a subirla."
+      ? "No pudimos leer el archivo. Comprueba que sea un JPG, PNG o WebP válido e inténtalo de nuevo. Si viene de iPhone, expórtalo como JPG."
       : "No sabemos si la foto subió. Vuelve a abrir el producto para comprobar esta variante antes de intentarlo otra vez.";
   } finally {
-    entrada.disabled = false;
-    if (boton) boton.removeAttribute("aria-disabled");
+    const comboActual = (editando && editando.combinaciones || []).find(c => c.combinacion === combinacion);
+    const maximo = String(comboActual && comboActual.imagenes || "").split("|").filter(Boolean).length >= 6;
+    entrada.disabled = maximo;
+    if (boton) {
+      if (maximo) { boton.setAttribute("aria-disabled", "true"); boton.title = "Esta combinación ya tiene seis fotos."; }
+      else { boton.removeAttribute("aria-disabled"); boton.removeAttribute("title"); }
+    }
   }
 }
 
@@ -1179,8 +1206,8 @@ function pintarCombinaciones(p){
   $("#f-stock").readOnly = !!(p && p.porCombinacion);
   $("#f-stock").title = p && p.porCombinacion ? "Es la suma del stock por combinación" : "";
   $("#ayudaCombinaciones").textContent = p && p.porCombinacion
-    ? "El Stock de arriba suma estas combinaciones. En Fotos, separa los nombres con |; vacío muestra las generales. Cada combinación admite seis."
-    : "Al poner stock en una combinación, ese inventario empieza a mandar. También puedes asignar fotos propias: separa los nombres con | y déjalo vacío para mostrar las generales. Cada combinación admite seis.";
+    ? "El Stock de arriba suma estas combinaciones. Puedes subir hasta seis fotos por fila; si no hay fotos propias, se muestran las generales."
+    : "Al poner stock en una combinación, ese inventario empieza a mandar. También puedes subir hasta seis fotos propias por fila; si no hay, se muestran las generales.";
   /* Precio y stock por combinación; las fotos se guardan en la misma fila. */
   const base = $("#f-precio") ? $("#f-precio").value : "";
   $("#filasCombinaciones").innerHTML = (vivas.length ? `
@@ -1196,12 +1223,10 @@ function pintarCombinaciones(p){
                data-version="${escapar(c.version)}" data-antes="${escapar(c.stock)}" value="${escapar(c.stock)}"
                aria-label="Stock de ${escapar(c.combinacion)}">
         <div class="fotos-combinacion">
-          <label for="imagenes${i}">Fotos</label>
-          <textarea class="campo imagenes" id="imagenes${i}" rows="2" data-combo="${escapar(c.combinacion)}"
-                    data-version-imagenes="${escapar(c.versionImagenes || "")}" data-antes="${escapar(c.imagenes || "")}"
-                    maxlength="1805" placeholder="Vacío = fotos generales" aria-label="Nombres de fotos de ${escapar(c.combinacion)} (separa con |)">${escapar(c.imagenes || "")}</textarea>
+          <span class="rotulo-foto">Foto</span>
+          <span class="nombres-foto">${escapar(c.imagenes || "Usa las fotos generales")}</span>
           <label class="btn linea chico" style="display:inline-block;margin:0">
-            Subir foto
+            <span class="texto-boton-foto">${c.imagenes ? "Añadir otra foto" : "Subir foto"}</span>
             <input type="file" data-foto-combinacion="${escapar(c.combinacion)}"
                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden
                    aria-label="Subir foto para ${escapar(c.combinacion)}">
@@ -1217,7 +1242,7 @@ function pintarCombinaciones(p){
 let opCombinaciones = null;
 async function guardarCombinaciones(){
   if (!editando) return;
-  const cambios = {}, versiones = {}, precios = {}, versionesPrecio = {}, imagenes = {}, versionesImagenes = {};
+  const cambios = {}, versiones = {}, precios = {}, versionesPrecio = {};
   document.querySelectorAll("#filasCombinaciones input.precio, #filasCombinaciones input.stock").forEach(el => {
     const v = el.value.trim();
     const esPrecio = el.classList.contains("precio");
@@ -1228,20 +1253,11 @@ async function guardarCombinaciones(){
     el.classList.remove("mal");
     el.parentElement.querySelector(".error-campo").hidden = true;
   });
-  document.querySelectorAll("#filasCombinaciones textarea.imagenes").forEach(el => {
-    const v = el.value.trim();
-    if (v !== el.dataset.antes) {
-      imagenes[el.dataset.combo] = v;
-      versionesImagenes[el.dataset.combo] = el.dataset.versionImagenes;
-    }
-    el.classList.remove("mal");
-    el.parentElement.parentElement.querySelector(".error-campo").hidden = true;
-  });
-  if (!Object.keys(cambios).length && !Object.keys(precios).length && !Object.keys(imagenes).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
+  if (!Object.keys(cambios).length && !Object.keys(precios).length) { aviso("#avisoCombinaciones", "info", "No cambiaste nada."); return; }
   if (!opCombinaciones) opCombinaciones = nuevaOperacion();
   $("#guardarCombinaciones").disabled = true;
   try {
-    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones, precios, versionesPrecio, imagenes, versionesImagenes });
+    const r = await llamar("guardar_combinaciones", { op: opCombinaciones, id: editando.id, cambios, versiones, precios, versionesPrecio });
     opCombinaciones = null;
     if (!r.ok) {
       document.querySelectorAll("#filasCombinaciones .fila-combo").forEach(fila => {
@@ -1249,7 +1265,7 @@ async function guardarCombinaciones(){
         if (!el) return;
         const e = (r.errores || {})[el.dataset.combo];
         const msj = fila.querySelector(".error-campo");
-        if (e) { fila.querySelectorAll("input.precio, input.stock, textarea.imagenes").forEach(i => i.classList.add("mal")); msj.hidden = false; msj.textContent = e; }
+        if (e) { fila.querySelectorAll("input.precio, input.stock").forEach(i => i.classList.add("mal")); msj.hidden = false; msj.textContent = e; }
       });
       aviso("#avisoCombinaciones", "mal", r.error || "No se guardó.");
       return;

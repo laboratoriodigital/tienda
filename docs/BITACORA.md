@@ -3175,3 +3175,22 @@ de cien; `pruebas/calendario.js` comprueba el mismo marcador bajo tres horas y
 el huso de Colombia.
 
 *Ficha:* *(mío)* · ⚪ Menor · P2 · 1.1.1 · 2026-10-04
+
+**117 · El selector del Admin soltaba la imagen antes de leerla.** El flujo de
+variantes vaciaba y deshabilitaba el selector antes de iniciar la decodificación.
+En algunos navegadores el JPG o PNG elegido terminaba en el mensaje de formato
+no compatible. Además, el formulario repetía los nombres que ya guarda la hoja
+y podía dejar la galería de la combinación fuera de sincronía.
+
+**El arreglo (1.1.2):** iniciar la lectura antes de limpiar el selector, decodificar
+con `createImageBitmap` y conservar el lector de imagen como respaldo. El panel
+ya no edita una segunda lista: muestra los nombres en solo lectura y cada carga
+los agrega a `Inventario por variante › Foto`. `instalar()` y `ponerHojaAlDia()`
+renombran la antigua columna `Imágenes` en el mismo lugar, preservando las celdas.
+
+**Comprobación:** `pruebas/admin.js` cubre carga PNG y JPG por combinaciones,
+confirma que el nombre escrito en `Foto` aparece en el panel y que las fotos
+generales siguen en `Catálogo › Imágenes`. `pruebas/presentacion.js` comprueba la
+migración automática del encabezado anterior.
+
+*Ficha:* *(mío)* · 🟠 Grave · P1, P4, P20 · 1.1.2 · 2026-10-04

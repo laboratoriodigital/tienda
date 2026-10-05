@@ -119,7 +119,7 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   ok('EL CATÁLOGO se ve en orden lógico: lo de vender junto (precio, antes, stock, umbral, variantes)',
      cab('Catálogo').join('|') === g.api.ORDEN_VISIBLE_CATALOGO.join('|'), cab('Catálogo').join(' · '));
   ok('  ...y el inventario por variante con Precio al lado de Stock',
-     cab('Inventario por variante').join('|') === 'ID producto|Combinación|Precio|Stock|Código|Nota|Imágenes',
+     cab('Inventario por variante').join('|') === 'ID producto|Combinación|Precio|Stock|Código|Nota|Foto',
      cab('Inventario por variante').join(' · '));
   const pestañas = Array.from(g.hojas.keys());
   ok('LAS PESTAÑAS van en el orden en que se usan: Catálogo primero',
@@ -233,6 +233,24 @@ const valorDe = (g, clave) => g.filas('Configuración')[filaDe(g, clave) - 1][1]
   const antes = g.escrituras.length;
   g.api.revisionHoraria();
   ok('  ...y la hora siguiente no vuelve a tocar la hoja', !g.escrituras.slice(antes).some(e => e.como === 'moveColumns'));
+}
+
+// ═══ 3d bis. 1.1.2 · Cambiar el nombre de la columna conserva las fotos ═══
+{
+  const g = crear('./as.js');
+  const h = g.libro.insertSheet('Inventario por variante');
+  const viejo = g.api.ENCABEZADO_INVENTARIO_VARIANTE.slice();
+  viejo[6] = 'Imágenes';
+  h.appendRow(viejo);
+  h.appendRow(['vieja', 'Talla: S', '', '', '', '', 'vieja--talla-s-1.jpg']);
+  const decir = console.log; console.log = () => {};
+  g.api.ponerHojaAlDia(true);
+  console.log = decir;
+  const datos = h._datos;
+  ok('LA ACTUALIZACIÓN RENOMBRA Imágenes A Foto en su sitio y conserva los nombres existentes',
+     datos[0].includes('Foto') && !datos[0].includes('Imágenes') &&
+     datos[1][datos[0].indexOf('Foto')] === 'vieja--talla-s-1.jpg',
+     datos[0].join(' · ') + ' / ' + datos[1][datos[0].indexOf('Foto')]);
 }
 
 // ═══ 3e. 0.24.1 · Ordenar una Configuración VIEJA que ya tiene listas por fila (bitácora 111) ═══

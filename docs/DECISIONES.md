@@ -1710,7 +1710,7 @@ haciendo a mano.
 
 ## 37 · La foto de variante pertenece a su combinación
 
-**Estado:** DECIDIDA e implementada el 4 de octubre de 2026 (1.1.1).
+**Estado:** DECIDIDA e implementada el 4 de octubre de 2026 (1.1.2).
 **Vigencia:** VIGENTE. Completa la decisión 11 sobre variantes.
 
 ### Qué hace hoy
@@ -1728,12 +1728,12 @@ la galería general y el panel no permitía corregir o quitar una asociación.
 ### La decisión
 
 `Catálogo › Imágenes` guarda solo las fotos generales. Cada fila de
-`Inventario por variante` tiene `Imágenes` para las fotos de esa combinación,
-separadas por `|`. Vacío hereda las generales. El panel puede subir fotos,
-editar la lista o dejarla vacía; cada combinación admite seis. El catálogo y el
-respaldo publican la asociación exacta. Al actualizar la hoja, las fotos
-antiguas reconocidas por nombre se copian a las filas que coinciden antes de
-retirarlas de la galería general.
+`Inventario por variante` tiene `Foto` para las fotos de esa combinación,
+separadas por `|`. Vacío hereda las generales. El panel sube hasta seis fotos y
+muestra los nombres guardados en la hoja; no duplica esa información en un
+campo editable. El catálogo y el respaldo publican la asociación exacta. Al
+actualizar la hoja, las fotos antiguas reconocidas por nombre se copian a las
+filas que coinciden antes de retirarlas de la galería general.
 
 ### Condición de disparo
 

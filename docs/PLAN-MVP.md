@@ -855,8 +855,7 @@ hablaban del panel los cerró D-5.
 > foto del color que está eligiendo.
 
 - [x] **Una pestaña nueva, `Inventario por variante`**: `ID producto` ·
-      `Combinación` · `Stock` · `Código` · `Nota`. *(Sin columna Imágenes: la
-      decisión de las fotos —«el nombre es el dato»— la hizo innecesaria.)*
+      `Combinación` · `Stock` · `Código` · `Nota` · `Foto`.
 - [x] **Los topes**: 3 grupos, 20 opciones, 100 combinaciones, en los tres
       sitios. *(Y ahora sí hay una aserción que compara los tres: el
       comentario de C-1 decía que `variantes.js` lo comprobaba, y no lo hacía.)*
@@ -878,8 +877,8 @@ hablaban del panel los cerró D-5.
 - [x] **La página**: opción sin existencias marcada y deshabilitada, «Últimas
       N» de la combinación, «Agotado» en la tarjeta solo si se acabaron todas.
 - [x] **Las fotos de cada combinación viven en su fila**: `Inventario por
-      variante › Imágenes`. El panel permite subirlas o editar la lista de
-      nombres. Vacío usa las fotos generales de `Catálogo › Imágenes`.
+      variante › Foto`. El panel las sube y muestra los nombres guardados.
+      Vacío usa las fotos generales de `Catálogo › Imágenes`.
 - [x] **Lo que ve el comprador**: al elegir una combinación completa, sus
       fotos; sin fotos propias, las generales. Hasta 6 generales y 6 por
       combinación. (La decisión 37 reemplazó el vínculo inferido por nombre.)

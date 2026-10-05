@@ -15,8 +15,11 @@
  *   node pruebas/admin.js
  */
 const { chromium } = require('playwright');
+const fs = require('node:fs');
+const path = require('node:path');
 const U = 'http://localhost:' + (process.env.PUERTO || 8099);
 const { pintado, hasta } = require('./esperar.js');
+const FOTO_JPG = fs.readFileSync(path.join(__dirname, '..', 'publicar', 'fotos', 'pan-1.jpg'));
 
 const T = []; const ok = (n,c,d) => T.push((c?'  OK  ':' FALLA')+' | '+n+(d?'  -> '+d:''));
 
@@ -394,6 +397,29 @@ const filaNumero = async (id) => ((await hojas())['Catálogo'] || []).findIndex(
     ok('  ...y cada fila puede subir una foto para su combinación exacta',
        combinacionesFoto.length === 2 && combinacionesFoto.includes('Talla: S · Color: Rosa') &&
        combinacionesFoto.includes('Talla: M · Color: Rosa'), combinacionesFoto.join(' / '));
+    ok('  ...sin un campo Fotos duplicado: los nombres se muestran desde la hoja',
+       await p.locator('#filasCombinaciones textarea.imagenes').count() === 0 &&
+       (await p.locator('#filasCombinaciones .nombres-foto').allTextContents()).every(x => /Usa las fotos generales/.test(x)));
+    const pngVariante = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    await p.setInputFiles('#filasCombinaciones input[data-foto-combinacion="Talla: S · Color: Rosa"]',
+      { name: 'rosa.png', mimeType: 'image/png', buffer: pngVariante });
+    await hasta(p, () => /Subida:|No pudimos|No sabemos/.test(
+      document.querySelector('.fila-combo .estado-foto-combo').textContent));
+    const varianteS = ((await hojas())['Inventario por variante'] || []).find(f => f[0] === 'baguette' && f[1] === 'Talla: S · Color: Rosa');
+    ok('EL PNG DE UNA VARIANTE se procesa y su nombre queda en la columna Foto',
+       /Subida:/.test(await p.locator('.fila-combo .estado-foto-combo').first().innerText()) &&
+       varianteS && varianteS[6] === 'baguette--talla-s-color-rosa-1.jpg' &&
+       /baguette--talla-s-color-rosa-1\.jpg/.test(await p.locator('.fila-combo .nombres-foto').first().innerText()),
+       varianteS && varianteS[6]);
+    await p.setInputFiles('#filasCombinaciones input[data-foto-combinacion="Talla: M · Color: Rosa"]',
+      { name: 'rosa.jpg', mimeType: 'image/jpeg', buffer: FOTO_JPG });
+    await hasta(p, () => /Subida:|No pudimos|No sabemos/.test(
+      document.querySelectorAll('.fila-combo .estado-foto-combo')[1].textContent));
+    const filasConFoto = ((await hojas())['Inventario por variante'] || []).filter(f => f[0] === 'baguette');
+    ok('EL JPG DE OTRA VARIANTE también llega a Foto, sin alterar las fotos generales',
+       /Subida:/.test(await p.locator('.fila-combo .estado-foto-combo').nth(1).innerText()) &&
+       filasConFoto[1][6] === 'baguette--talla-m-color-rosa-1.jpg' &&
+       /baguette-1\.jpg/.test((await fila('baguette'))[7]), filasConFoto.map(f => f[6]).join(' / '));
     await p.fill('#filasCombinaciones input.stock >> nth=0', 'tres');
     await p.click('#guardarCombinaciones');
     await quizas(hasta(p, () => !document.querySelector('#avisoCombinaciones').hidden));

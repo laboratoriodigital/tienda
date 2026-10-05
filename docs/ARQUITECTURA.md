@@ -208,11 +208,12 @@ tienda arma la URL. El `logo` y el `favicon` de Configuración se nombran igual 
 salen de la misma carpeta (0.21.0).
 
 En `Catálogo › Imágenes` viven las fotos generales del producto. Las fotos que
-cambian con una variante viven en `Inventario por variante › Imágenes`, junto
+cambian con una variante viven en `Inventario por variante › Foto`, junto
 a su combinación; el catálogo publicado las entrega como
 `imagenesVariantes: [{ eleccion, imagenes }]`. Un campo vacío hereda las fotos
-generales. El panel sube a esa fila y permite quitar o reemplazar nombres. El
-respaldo sin red y el catálogo estático conservan la misma asociación.
+generales. El panel sube a esa fila y muestra los nombres guardados en modo de
+solo lectura; la hoja conserva una sola fuente para la asociación. El respaldo
+sin red y el catálogo estático conservan la misma asociación.
 
 Los tres proveedores externos están **autorizados de antemano** en la política
 de seguridad (`img-src`) y en `FOTOS_HOSTS`; Cloudflare en el propio dominio
@@ -443,9 +444,9 @@ puertas de montaje; ningún token de GitHub ni llave de pago pasa por esa hoja.
 
 | Código | Constante | Qué numera | Con qué compara |
 |---|---|---|---|
-| `maestro.gs` | `VERSION` (fecha; hoy `2026-10-04-1`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
+| `maestro.gs` | `VERSION` (fecha; hoy `2026-10-04-2`) | El contrato con la tienda | Tiene que ser **igual** a `SCRIPT_VERSION` |
 | `publicar/index.html` | `SCRIPT_VERSION` | Lo que la tienda espera del maestro | Se hornea con lo que **contesta el maestro publicado**; el montaje se para si no es la `VERSION` del repositorio (bitácora 56) |
-| `maestro.gs` | `VERSION_TIENDA` (`1.1.1`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
+| `maestro.gs` | `VERSION_TIENDA` (`1.1.2`) | La versión del producto que corre esa tienda | Igual a `version` de `package.json` (lo exige `actualizar.js`). La puerta `actualizacion` la compara con la última etiqueta de la semilla |
 | `panel.gs` | `VERSION_PANEL` (`2026-09-30-a`) | El archivo de gestión | **Con nada.** Es otro programa |
 
 La 1.0.0 fue un ejemplo de por qué van separadas: subió el producto
