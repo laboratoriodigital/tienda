@@ -1,7 +1,7 @@
 {
  "esquema": 1,
  "version": "2026-10-04-2",
- "generado": "2026-11-09T21:19:15.597Z",
+ "generado": "2026-11-16T20:49:58.157Z",
  "productos": [
   {
    "id": "smarthphone",
@@ -107,7 +107,7 @@
   "repositorio": "laboratoriodigital/tienda",
   "f_autoria": "Sí",
   "autoria_url": "https://tienda.laboratorio-digital.com/",
-  "correo_ultimo": "Mon Nov 09 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
+  "correo_ultimo": "Mon Nov 16 2026 00:00:00 GMT-0500 (Colombia Standard Time)",
   "panel_usuario": "sebas",
   "tope_pago": "12110000",
   "cobro": "pasarela",
